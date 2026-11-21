@@ -1,0 +1,8 @@
+# Lint with: selene src
+# roblox_min.yml declares Roblox globals; replace with `std = "roblox"` after
+# running `selene generate-roblox-std` for full API checking.
+std = "roblox_min"
+
+[lints]
+shadowing = "allow"
+mixed_table = "allow"

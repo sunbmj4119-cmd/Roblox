@@ -1,0 +1,9 @@
+# Rojo / Studio
+*.rbxl.lock
+*.rbxlx.lock
+sourcemap.json
+roblox.yml
+# OS / editors
+.DS_Store
+.vscode/
+*.log
