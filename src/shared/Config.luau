@@ -485,7 +485,7 @@ Config.RewardedAds = {
 }
 
 ---------------------------------------------------------------------------
--- Social bonuses (viral loop + Premium Payouts)
+-- Social bonuses (viral loop + Creator Rewards engagement)
 ---------------------------------------------------------------------------
 Config.Social = {
 	FriendBonusPer = 0.1, -- +10% coins per friend in server

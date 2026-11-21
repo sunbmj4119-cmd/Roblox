@@ -2,7 +2,7 @@
 	ProgressionService: everything that brings players back every day/week.
 	  * Daily login streak (7-day calendar, streak breaks if you miss a day)
 	  * 3 random daily quests
-	  * Playtime gifts (session length -> Premium Payouts)
+	  * Playtime gifts (10+ min sessions -> Creator Rewards daily engagement)
 	  * Weekly ranked points + tier rewards on week rollover (+ global top 10)
 	  * Season pass (free + premium track)
 	  * VIP daily chest, Miner Club daily gems, one-time group reward
