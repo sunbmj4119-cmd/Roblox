@@ -29,7 +29,9 @@
 ### Studio 테스트 팁
 - **Game Settings → Security → Enable Studio Access to API Services**를 켜면 DataStore 저장과 리더보드가 동작합니다. 꺼져 있어도 임시 데이터로 플레이할 수 있습니다.
 - 상품 ID가 `0`인 상태에서는 **Studio에서 구매가 즉시 시뮬레이션됩니다** (`[TEST]` 표시). 모든 결제 흐름을 실제 상품을 만들기 전에 테스트할 수 있습니다.
-- 운석이 빨리 보고 싶다면 `Config.Meteor.IntervalSeconds`를 60으로 줄이세요. 서버 시작 후 첫 운석은 최대 150초 뒤에 떨어집니다.
+- 화면 왼쪽 아래 **🛠 DEV** 버튼(Studio에서만 보임)으로 코인·젬·랭크 점수·시즌 XP를 지급하고, 운석을 즉시 소환하고, 가방을 채우고, 데이터를 초기화할 수 있습니다. 라이브 서버에서는 서버가 차단합니다.
+- 운석이 빨리 보고 싶다면 DEV → Meteor를 누르거나 `Config.Meteor.IntervalSeconds`를 줄이세요. 서버 시작 후 첫 운석은 최대 150초 뒤에 떨어집니다.
+- 설정 검증: [Lune](https://lune-org.github.io/docs)을 설치한 뒤 `lune run tests/ConfigCheck.luau`를 실행하면 펫·광석·상품 이름 오타와 확률 합계를 검사합니다.
 - 멀티플레이 테스트 (PvP, 운석 경쟁): **Test → Clients and Servers → 2~3 Players → Start**
 
 ---
