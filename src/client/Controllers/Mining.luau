@@ -51,6 +51,7 @@ local hpGui = Lib.New("BillboardGui", {
 	StudsOffsetWorldSpace = Vector3.new(0, 4, 0),
 	AlwaysOnTop = true,
 	Enabled = false,
+	ResetOnSpawn = false, -- module runs once; don't let respawn delete it
 	Parent = player:WaitForChild("PlayerGui"),
 })
 local _, setHp = Lib.Bar({ Size = UDim2.fromScale(1, 1), Color = C.Green, TextSize = 12, Parent = hpGui })

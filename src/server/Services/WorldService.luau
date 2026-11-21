@@ -506,14 +506,8 @@ local function buildZones()
 				Transparency = 0.1,
 			}, gates)
 			gate:SetAttribute("ZoneIndex", index)
-			billboard(
-				gate,
-				"🔒 " .. zone.Name .. "\n🪙 " .. Util.Format(zone.Cost),
-				Color3.new(1, 1, 1),
-				-1,
-				300,
-				90
-			)
+			local gateLabel = billboard(gate, "🔒 " .. zone.Name .. "\n🪙 " .. Util.Format(zone.Cost), Color3.new(1, 1, 1), -1, 300, 90)
+			gateLabel.StudsOffsetWorldSpace = Vector3.new(0, -1, -2) -- in front of the forcefield, facing the approach
 			prompt(gate, "Unlock", zone.Name .. " (" .. Util.Format(zone.Cost) .. ")", function(player)
 				Services.EconomyService:UnlockZone(player, index)
 			end).MaxActivationDistance = 14

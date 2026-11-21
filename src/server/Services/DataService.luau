@@ -8,6 +8,7 @@
 	  runs with temporary data (never saved) so you can test immediately.
 ]]
 local DataStoreService = game:GetService("DataStoreService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -85,7 +86,7 @@ local function isAccessError(err): boolean
 end
 
 -- returns data, canSave, fatal
-local function loadAsync(player: Player)
+local function loadAsync(player: Player, sessionId: string)
 	if not store then
 		return nil, false, false
 	end
@@ -99,14 +100,14 @@ local function loadAsync(player: Player)
 				local lock = data._lock
 				if
 					type(lock) == "table"
-					and lock.JobId ~= game.JobId
+					and lock.Session ~= sessionId
 					and os.time() - (tonumber(lock.Time) or 0) < LOCK_EXPIRE
 					and attempt < 6
 				then
 					locked = true
 					return nil -- cancel, another server still owns this session
 				end
-				data._lock = { JobId = game.JobId, Time = os.time() }
+				data._lock = { Session = sessionId, JobId = game.JobId, Time = os.time() }
 				result = data
 				return data
 			end)
@@ -128,30 +129,46 @@ local function loadAsync(player: Player)
 	return nil, false, true
 end
 
-local function saveAsync(player: Player, release: boolean)
+-- returns true only when the data was actually written (or saving is disabled)
+local function saveAsync(player: Player, release: boolean): boolean
 	local profile = profiles[player]
 	if not profile or not profile.CanSave or not store then
 		return true
 	end
+	if profile.Released then
+		return false -- the leave save already released the session; never re-take the lock
+	end
 	while profile.Saving do
 		task.wait(0.1)
 	end
+	if profile.Released then
+		return false
+	end
+	if release then
+		profile.Released = true
+	end
 	profile.Saving = true
 	local data = profile.Data
+	local sessionId = profile.SessionId
+	local wrote = false
 	local ok, err = pcall(function()
 		store:UpdateAsync(keyFor(player.UserId), function(old)
-			if type(old) == "table" and type(old._lock) == "table" and old._lock.JobId ~= game.JobId then
+			if type(old) == "table" and type(old._lock) == "table" and old._lock.Session ~= sessionId then
+				wrote = false
 				return nil -- session was taken over by another server; never overwrite it
 			end
-			data._lock = if release then nil else { JobId = game.JobId, Time = os.time() }
+			data._lock = if release then nil else { Session = sessionId, JobId = game.JobId, Time = os.time() }
+			wrote = true
 			return data
 		end)
 	end)
 	profile.Saving = false
 	if not ok then
 		warn(string.format("[DataService] save for %s failed: %s", player.Name, tostring(err)))
+	elseif not wrote then
+		warn(string.format("[DataService] save for %s skipped: session owned elsewhere", player.Name))
 	end
-	return ok
+	return ok and wrote
 end
 
 local function setupLeaderstats(player: Player)
@@ -210,13 +227,14 @@ local function snapshot(player: Player, profile)
 end
 
 local function onPlayerAdded(player: Player)
-	local data, canSave, fatal = loadAsync(player)
+	local sessionId = HttpService:GenerateGUID(false)
+	local data, canSave, fatal = loadAsync(player, sessionId)
 	if not player.Parent then
 		-- left while loading: release the session lock we just took
 		if data and canSave and store then
 			pcall(function()
 				store:UpdateAsync(keyFor(player.UserId), function(old)
-					if type(old) == "table" and type(old._lock) == "table" and old._lock.JobId == game.JobId then
+					if type(old) == "table" and type(old._lock) == "table" and old._lock.Session == sessionId then
 						old._lock = nil
 						return old
 					end
@@ -243,7 +261,7 @@ local function onPlayerAdded(player: Player)
 		data.FirstJoin = os.time()
 	end
 
-	profiles[player] = { Data = data, CanSave = canSave, Dirty = true, Saving = false }
+	profiles[player] = { Data = data, CanSave = canSave, Dirty = true, Saving = false, Released = false, SessionId = sessionId }
 	setupLeaderstats(player)
 	updateLeaderstats(player, data)
 	player:SetAttribute("DataLoaded", true)

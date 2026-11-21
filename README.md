@@ -12,12 +12,12 @@
 ## 🚀 빠른 시작
 
 ### 방법 A: 플레이스 파일 바로 열기 (가장 쉬움)
-1. [Rojo](https://rojo.space)로 플레이스 파일을 빌드합니다.
+1. 저장소에 포함된 `MeteorMiners.rbxlx`를 Roblox Studio에서 엽니다.
+2. **Play** (F5)를 누르면 끝입니다.
+3. 코드를 고친 뒤에는 [Rojo](https://rojo.space)로 다시 빌드합니다.
    ```bash
    rojo build default.project.json -o MeteorMiners.rbxlx
    ```
-2. Roblox Studio에서 `MeteorMiners.rbxlx`를 엽니다.
-3. **Play** (F5)를 누르면 끝입니다.
 
 ### 방법 B: Rojo 실시간 동기화 (개발용)
 1. Studio에 Rojo 플러그인을 설치합니다.

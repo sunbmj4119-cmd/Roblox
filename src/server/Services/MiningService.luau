@@ -280,7 +280,7 @@ local function onSwing(player: Player, hint)
 
 	-- 2) meteor event
 	if meteor:IsActive() and meteor:InRange(root.Position) then
-		meteor:Hit(player, Services.StatsService:Damage(player, data))
+		meteor:Hit(player, Services.StatsService:Damage(player, data), cooldown)
 		return
 	end
 

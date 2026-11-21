@@ -49,7 +49,7 @@ function Egg.Build(content, ctx)
 		end
 		if count == 3 and not State.HasPass("TripleHatch") then
 			if ctx.Upsell then
-				ctx.Upsell.Pass("TripleHatch")
+				ctx.Upsell.Pass("TripleHatch", true)
 			end
 			return
 		end
@@ -62,7 +62,7 @@ function Egg.Build(content, ctx)
 		if result.Error then
 			ctx.Toast(result.Error, C.Red)
 			if result.Upsell and ctx.Upsell then
-				ctx.Upsell.Pass(result.Upsell)
+				ctx.Upsell.Pass(result.Upsell, true)
 			end
 			return
 		end
@@ -79,7 +79,7 @@ function Egg.Build(content, ctx)
 	end })
 	local lucky = Lib.Button({ Text = "🍀 Lucky Hatch", Size = UDim2.fromOffset(170, 50), LayoutOrder = 3, Color = C.Gold, Parent = buttons, OnClick = function()
 		if ctx.Upsell then
-			ctx.Upsell.Pass("Lucky")
+			ctx.Upsell.Pass("Lucky", true)
 		end
 	end })
 
@@ -127,6 +127,7 @@ function Egg.Build(content, ctx)
 		if not data then
 			return
 		end
+		luckLabel.TextColor3 = C.Green
 		local egg = Config.Eggs[eggId]
 		if builtFor ~= eggId then
 			builtFor = eggId

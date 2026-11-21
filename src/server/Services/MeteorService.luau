@@ -257,18 +257,50 @@ local function finish(destroyed: boolean)
 	Net:Broadcast("MeteorRank", {})
 end
 
-function Meteor:Hit(player: Player, damage: number)
+-- back to a clean idle state so a failure never stops future events
+local function resetToIdle()
+	if meteorPart then
+		meteorPart:Destroy()
+		meteorPart = nil
+	end
+	scores = {}
+	summoner = nil
+	hp, maxHp = 0, 0
+	state = "Idle"
+	nextAt = os.time() + settings.IntervalSeconds
+	setAttributes()
+	Net:Broadcast("MeteorRank", {})
+end
+
+local function safeFinish(destroyed: boolean)
+	local ok, err = pcall(finish, destroyed)
+	if not ok then
+		warn("[Meteor] finish failed: " .. tostring(err))
+		resetToIdle()
+	end
+end
+
+-- cooldown is the attacker's swing cooldown, used to size the meteor so the
+-- event lasts about SecondsPerParticipant no matter how strong players are
+function Meteor:Hit(player: Player, damage: number, cooldown: number?)
 	if state ~= "Active" then
 		return
 	end
 	local score = 1 + math.log10(math.max(1, damage))
+	if not scores[player] then
+		-- each new participant makes the meteor tougher by ~N seconds of their own hitting
+		local extra = settings.SecondsPerParticipant * score / math.max(0.2, cooldown or 0.5)
+		maxHp += extra
+		hp += extra
+		workspace:SetAttribute("MeteorMaxHP", maxHp)
+	end
 	scores[player] = (scores[player] or 0) + score
 	hp = math.max(0, hp - score)
 	workspace:SetAttribute("MeteorHP", hp)
 	updateBar()
 	Net:Send(player, "MeteorHit", score)
 	if hp <= 0 then
-		finish(true)
+		safeFinish(true)
 	end
 end
 
@@ -322,7 +354,7 @@ local function startFalling()
 	explosion.Parent = workspace
 	Net:Broadcast("MeteorImpact", final)
 
-	maxHp = settings.BaseHP + settings.HPPerPlayer * #Players:GetPlayers()
+	maxHp = settings.BaseHP
 	hp = maxHp
 	scores = {}
 	endsAt = os.time() + settings.DurationSeconds
@@ -352,7 +384,7 @@ function Meteor:Start()
 				end
 			elseif state == "Active" then
 				if now >= endsAt then
-					finish(false)
+					safeFinish(false)
 				elseif os.clock() - lastRankPush >= 1 then
 					lastRankPush = os.clock()
 					local list = ranking()
@@ -376,14 +408,10 @@ function Meteor:Start()
 			local ok, err = pcall(step)
 			if not ok then
 				warn("[Meteor] loop error: " .. tostring(err))
-				-- recover to a clean idle state so events keep coming
-				if meteorPart then
-					meteorPart:Destroy()
-					meteorPart = nil
-				end
-				state = "Idle"
-				nextAt = os.time() + settings.IntervalSeconds
-				setAttributes()
+				resetToIdle()
+			elseif state == "Ending" then
+				-- finish() never got back to Idle: recover
+				resetToIdle()
 			end
 		end
 	end)
@@ -395,7 +423,7 @@ function Meteor:Start()
 	Net:On("GoToMeteor", 2, function(player)
 		local character = player.Character
 		if character and (state == "Warning" or state == "Falling" or state == "Active") then
-			character:PivotTo(CFrame.new(settings.Position + Vector3.new(0, 4, -26)))
+			character:PivotTo(CFrame.new(settings.Position + Vector3.new(0, 4, -18)))
 		end
 	end)
 end

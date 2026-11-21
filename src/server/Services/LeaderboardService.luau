@@ -237,7 +237,11 @@ local function refresh()
 		local data = Data:Get(player)
 		if data then
 			for _, board in Config.Leaderboards.Boards do
-				local store = storeFor(board)
+				-- weekly points always go to the week they were earned in, so a
+				-- refresh right after Monday 00:00 can't leak last week's points
+				local store = if board.Weekly
+					then (if data.Weekly.Week ~= 0 then storeFor(board, data.Weekly.Week) else nil)
+					else storeFor(board)
 				local value = math.floor(math.min(valueFor(board.Key, data), MAX_VALUE))
 				if store and value > 0 then
 					pcall(store.SetAsync, store, tostring(player.UserId), value)

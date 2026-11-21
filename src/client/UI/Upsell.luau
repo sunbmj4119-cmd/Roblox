@@ -63,13 +63,14 @@ Lib.Button({
 })
 
 local lastShown = {}
-local function show(kind: string, key: string, entry)
+-- force = the player tapped a button themselves (never throttled)
+local function show(kind: string, key: string, entry, force: boolean?)
 	if not entry then
 		return
 	end
 	-- don't nag: same offer at most once per 90 seconds
 	local id = kind .. key
-	if lastShown[id] and os.clock() - lastShown[id] < 90 then
+	if not force and lastShown[id] and os.clock() - lastShown[id] < 90 then
 		return
 	end
 	lastShown[id] = os.clock()
@@ -82,22 +83,27 @@ local function show(kind: string, key: string, entry)
 	Lib.Pop(frame)
 end
 
-function Upsell.Pass(key: string)
+function Upsell.Pass(key: string, force: boolean?)
 	if State.HasPass(key) then
 		return
 	end
-	show("Pass", key, Config.GamePasses[key])
+	show("Pass", key, Config.GamePasses[key], force)
 end
 
-function Upsell.Product(key: string)
-	show("Product", key, Config.Products[key])
+function Upsell.Product(key: string, force: boolean?)
+	show("Product", key, Config.Products[key], force)
 end
 
 function Upsell.Hide()
 	frame.Visible = false
 end
 
-Net.On("Upsell", Upsell.Pass)
-Net.On("UpsellProduct", Upsell.Product)
+-- server-pushed offers are throttled
+Net.On("Upsell", function(key)
+	Upsell.Pass(key)
+end)
+Net.On("UpsellProduct", function(key)
+	Upsell.Product(key)
+end)
 
 return Upsell

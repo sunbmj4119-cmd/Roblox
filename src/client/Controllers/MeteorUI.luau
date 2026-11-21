@@ -16,6 +16,7 @@ local Net = require(Client.Net)
 local State = require(Client.State)
 local Lib = require(Client.UI.Lib)
 local Root = require(Client.UI.Root)
+local HUD = require(Client.Controllers.HUD)
 
 local New, C = Lib.New, Lib.Colors
 local player = Players.LocalPlayer
@@ -54,13 +55,13 @@ local summonButton = Lib.Button({
 })
 
 -- live ranking -------------------------------------------------------------
-local rankCluster = Root.Cluster("MeteorRank", Vector2.new(1, 0.5), UDim2.new(1, -12, 0.55, 0), UDim2.fromOffset(240, 250))
 local rankFrame = New("Frame", {
 	BackgroundColor3 = Color3.fromRGB(20, 22, 34),
 	BackgroundTransparency = 0.1,
-	Size = UDim2.fromScale(1, 1),
+	Size = UDim2.fromOffset(240, 250),
+	LayoutOrder = 10,
 	Visible = false,
-	Parent = rankCluster,
+	Parent = HUD.RightColumn,
 }, { Lib.Corner(14), Lib.Stroke(Color3.fromRGB(255, 150, 60), 2.5, 0) })
 Lib.Text({ Text = "☄️ LIVE RANKING", TextColor3 = Color3.fromRGB(255, 180, 100), Size = UDim2.new(1, -16, 0, 28), Position = UDim2.fromOffset(8, 6), MaxTextSize = 22, Parent = rankFrame })
 local rankLines = {}

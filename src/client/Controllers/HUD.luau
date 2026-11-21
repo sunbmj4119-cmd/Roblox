@@ -101,7 +101,7 @@ end
 ---------------------------------------------------------------------------
 -- top left: currencies, backpack, goal
 ---------------------------------------------------------------------------
-local topLeft = Root.Cluster("TopLeft", Vector2.zero, UDim2.fromOffset(12, 12), UDim2.fromOffset(300, 330))
+local topLeft = Root.Cluster("TopLeft", Vector2.zero, UDim2.fromOffset(12, 12), UDim2.fromOffset(360, 460))
 Lib.List(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Left).Parent = topLeft
 
 local function pill(order: number, icon: string, color: Color3)
@@ -134,7 +134,7 @@ Lib.Button({
 		if State.HasPass("AutoSell") then
 			Net.Fire("SellAnywhere")
 		else
-			Upsell.Pass("AutoSell")
+			Upsell.Pass("AutoSell", true)
 			HUD.Toast("Sell at the 💰 pad in the hub - or sell anywhere with Auto Sell!", C.Green)
 		end
 	end,
@@ -170,8 +170,11 @@ local goalText = Lib.Text({
 ---------------------------------------------------------------------------
 -- left menu
 ---------------------------------------------------------------------------
-local menu = Root.Cluster("Menu", Vector2.new(0, 0.5), UDim2.new(0, 12, 0.6, 0), UDim2.fromOffset(176, 360))
-Lib.Grid(UDim2.fromOffset(82, 82), 8).Parent = menu
+-- the menu flows right under the info box (same UIScale), so they never overlap
+local menu = New("Frame", { Name = "Menu", BackgroundTransparency = 1, Size = UDim2.fromOffset(352, 172), LayoutOrder = 7, Parent = topLeft })
+local menuGrid = Lib.Grid(UDim2.fromOffset(82, 82), 8)
+menuGrid.HorizontalAlignment = Enum.HorizontalAlignment.Left
+menuGrid.Parent = menu
 local badges = {}
 local MENU = {
 	{ "Shop", "⛏️", "Upgrade", C.Gold },
@@ -215,7 +218,8 @@ end
 ---------------------------------------------------------------------------
 -- right side: boosts
 ---------------------------------------------------------------------------
-local right = Root.Cluster("Boosts", Vector2.new(1, 0), UDim2.new(1, -12, 0, 70), UDim2.fromOffset(230, 200))
+local right = Root.Cluster("RightColumn", Vector2.new(1, 0), UDim2.new(1, -12, 0, 70), UDim2.fromOffset(250, 520))
+HUD.RightColumn = right -- boosts + meteor live ranking stack here
 Lib.List(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Right).Parent = right
 local boostRows = {}
 local BOOSTS = {
@@ -254,7 +258,7 @@ local autoButton = Lib.Button({
 			State.AutoMine = not State.AutoMine
 			HUD.Refresh()
 		else
-			Upsell.Pass("AutoMine")
+			Upsell.Pass("AutoMine", true)
 		end
 	end,
 })
@@ -264,7 +268,7 @@ local starterButton = Lib.Button({
 	LayoutOrder = 2,
 	Parent = bottomRow,
 	OnClick = function()
-		Upsell.Product("StarterPack")
+		Upsell.Product("StarterPack", true)
 	end,
 })
 local fullFrame = New("Frame", {

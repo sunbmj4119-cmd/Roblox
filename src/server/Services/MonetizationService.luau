@@ -223,7 +223,11 @@ local function processReceipt(receipt)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	Data:AddReceipt(player, purchaseId)
-	Data:Save(player)
+	if not Data:Save(player) then
+		-- granted in memory but not persisted: let Roblox retry. The stored
+		-- PurchaseId prevents a double grant if this session is still alive.
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 

@@ -29,7 +29,7 @@ function Pets.Build(content, ctx)
 	end })
 	local slotsButton = Lib.Button({ Text = "🐾 +3 Slots", Color = C.Gold, Size = UDim2.fromOffset(130, 38), LayoutOrder = 4, Parent = actions, OnClick = function()
 		if ctx.Upsell then
-			ctx.Upsell.Pass("ExtraPets")
+			ctx.Upsell.Pass("ExtraPets", true)
 		end
 	end })
 
