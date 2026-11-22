@@ -18,11 +18,11 @@ local Root = require(Client.UI.Root)
 local C = Lib.Colors
 
 local function build()
-	local cluster = Root.Cluster("Dev", Vector2.new(0, 1), UDim2.new(0, 12, 1, -12), UDim2.fromOffset(150, 330))
+	local cluster = Root.Cluster("Dev", Vector2.new(0, 1), UDim2.new(0, 12, 1, -12), UDim2.fromOffset(150, 400))
 	local list = Lib.New("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, -40), Visible = false, Parent = cluster }, {
 		Lib.List(Enum.FillDirection.Vertical, 4, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Bottom),
 	})
-	for order, command in { "Coins", "Gems", "Stardust", "Points", "XP", "Meteor", "Fill", "Reset" } do
+	for order, command in { "Coins", "Gems", "Level", "Points", "Event", "Rainbow", "Spin", "Meteor", "Fill", "Reset" } do
 		Lib.Button({
 			Text = command,
 			Color = if command == "Reset" then C.Red else C.Gray,

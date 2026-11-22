@@ -38,8 +38,9 @@ New("UIListLayout", {
 
 local queue = {}
 
-local function slot(petName: string, eggColor: Color3)
+local function slot(petName: string, variant: string?, eggColor: Color3)
 	local info = Config.Pets[petName]
+	local variantColor = if variant == "Rainbow" then Color3.fromRGB(255, 120, 230) elseif variant == "Golden" then Color3.fromRGB(255, 210, 60) else nil
 	local rarity = Config.Rarities[info.Rarity]
 	local frame = New("Frame", {
 		BackgroundTransparency = 1,
@@ -70,7 +71,7 @@ local function slot(petName: string, eggColor: Color3)
 	camera.CFrame = CFrame.new(Vector3.new(0, 0.6, 11), Vector3.new(0, 0, 0))
 
 	local nameLabel = Lib.Text({
-		Text = petName,
+		Text = Util.PetDisplayName(petName, variant),
 		Size = UDim2.new(1, 0, 0, 40),
 		Position = UDim2.fromOffset(0, 262),
 		MaxTextSize = 34,
@@ -79,8 +80,8 @@ local function slot(petName: string, eggColor: Color3)
 		Parent = frame,
 	})
 	local rarityLabel = Lib.Text({
-		Text = string.upper(info.Rarity),
-		TextColor3 = rarity.Color,
+		Text = (if variant then "✨ " .. string.upper(variant) .. " ✨  " else "") .. string.upper(info.Rarity),
+		TextColor3 = variantColor or rarity.Color,
 		Size = UDim2.new(1, 0, 0, 34),
 		Position = UDim2.fromOffset(0, 302),
 		MaxTextSize = 30,
@@ -89,7 +90,7 @@ local function slot(petName: string, eggColor: Color3)
 		Parent = frame,
 	})
 	local powerLabel = Lib.Text({
-		Text = "💥 +" .. Util.Format(info.Power) .. "x power",
+		Text = "💥 +" .. Util.Format(Util.PetPower(Config, petName, variant)) .. "x power",
 		Font = Lib.BodyFont,
 		Size = UDim2.new(1, 0, 0, 26),
 		Position = UDim2.fromOffset(0, 340),
@@ -106,6 +107,8 @@ local function slot(petName: string, eggColor: Color3)
 		Labels = { nameLabel, rarityLabel, powerLabel },
 		Rarity = rarity,
 		PetName = petName,
+		Variant = variant,
+		FlashColor = variantColor or rarity.Color,
 	}
 end
 
@@ -115,9 +118,16 @@ local function play(pets, eggId)
 	local egg = eggId and Config.Eggs[eggId]
 	local eggColor = if egg then egg.Color else C.Gold
 	local slots = {}
-	for _, name in pets do
+	local anyVariant = false
+	for _, entry in pets do
+		-- entries are { Name, Variant } (older format: plain name)
+		local name = if type(entry) == "table" then entry.Name else entry
+		local variant = if type(entry) == "table" then entry.Variant else nil
+		if variant then
+			anyVariant = true
+		end
 		if Config.Pets[name] then
-			table.insert(slots, slot(name, eggColor))
+			table.insert(slots, slot(name, variant, eggColor))
 		end
 	end
 	dim.Visible = true
@@ -138,7 +148,7 @@ local function play(pets, eggId)
 	local best = 0
 	for _, s in slots do
 		s.Egg:Destroy()
-		local model = PetModel.Build(s.PetName)
+		local model = PetModel.Build(s.PetName, s.Variant)
 		model.Parent = s.Viewport
 		model:PivotTo(CFrame.new())
 		local size = model:GetExtentsSize().Magnitude
@@ -150,7 +160,7 @@ local function play(pets, eggId)
 		Lib.Pop(s.Frame)
 		best = math.max(best, s.Rarity.Order)
 		local flash = New("Frame", {
-			BackgroundColor3 = s.Rarity.Color,
+			BackgroundColor3 = s.FlashColor,
 			BackgroundTransparency = 0.2,
 			Size = UDim2.fromOffset(260, 260),
 			ZIndex = 101,
@@ -158,7 +168,7 @@ local function play(pets, eggId)
 		}, { Lib.Corner(130) })
 		TweenService:Create(flash, TweenInfo.new(0.8), { BackgroundTransparency = 1 }):Play()
 	end
-	Lib.PlaySound(Config.Sounds.Coins, if best >= 5 then 1 else 0.6)
+	Lib.PlaySound(if best >= 5 or anyVariant then "Legendary" else "Hatch")
 
 	-- spin for a moment
 	local spinStart = os.clock()

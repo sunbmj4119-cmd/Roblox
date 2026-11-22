@@ -3,6 +3,7 @@
 	notification badges, active boosts, starter-pack timer, auto-mine toggle,
 	toasts and server-wide announcements.
 ]]
+local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -101,7 +102,7 @@ end
 ---------------------------------------------------------------------------
 -- top left: currencies, backpack, goal
 ---------------------------------------------------------------------------
-local topLeft = Root.Cluster("TopLeft", Vector2.zero, UDim2.fromOffset(12, 12), UDim2.fromOffset(360, 460))
+local topLeft = Root.Cluster("TopLeft", Vector2.zero, UDim2.fromOffset(12, 12), UDim2.fromOffset(360, 640))
 Lib.List(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Left).Parent = topLeft
 
 local function pill(order: number, icon: string, color: Color3)
@@ -121,7 +122,12 @@ local coinPill, coinLabel = pill(1, "🪙", C.Coins)
 local _, gemLabel = pill(2, "💎", C.Gems)
 local _, dustLabel = pill(3, "✨", C.Stardust)
 
-local backpackRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(290, 36), LayoutOrder = 4, Parent = topLeft })
+-- level bar: every block gives XP, level-ups are frequent early on
+local levelRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(290, 28), LayoutOrder = 4, Parent = topLeft })
+local levelBadge = Lib.Text({ Text = "Lv.1", TextColor3 = C.Gold, Size = UDim2.fromOffset(66, 28), MaxTextSize = 22, Parent = levelRow })
+local _, setLevel = Lib.Bar({ Size = UDim2.fromOffset(220, 22), Position = UDim2.fromOffset(68, 3), Color = C.Gold, TextSize = 14, Parent = levelRow })
+
+local backpackRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(290, 36), LayoutOrder = 5, Parent = topLeft })
 local _, setBackpack = Lib.Bar({ Size = UDim2.fromOffset(200, 32), Position = UDim2.fromOffset(0, 2), Color = C.Blue, TextSize = 18, Parent = backpackRow })
 Lib.Button({
 	Text = "💰 Sell",
@@ -144,7 +150,7 @@ local statsLabel = Lib.Text({
 	Text = "",
 	Font = Lib.BodyFont,
 	Size = UDim2.fromOffset(290, 20),
-	LayoutOrder = 5,
+	LayoutOrder = 6,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	MaxTextSize = 15,
 	Parent = topLeft,
@@ -154,7 +160,7 @@ local goal = New("Frame", {
 	BackgroundColor3 = Color3.fromRGB(20, 22, 34),
 	BackgroundTransparency = 0.2,
 	Size = UDim2.fromOffset(290, 46),
-	LayoutOrder = 6,
+	LayoutOrder = 7,
 	Parent = topLeft,
 }, { Lib.Corner(12), Lib.Stroke(C.Gold, 2, 0.3) })
 local goalText = Lib.Text({
@@ -171,7 +177,7 @@ local goalText = Lib.Text({
 -- left menu
 ---------------------------------------------------------------------------
 -- the menu flows right under the info box (same UIScale), so they never overlap
-local menu = New("Frame", { Name = "Menu", BackgroundTransparency = 1, Size = UDim2.fromOffset(352, 172), LayoutOrder = 7, Parent = topLeft })
+local menu = New("Frame", { Name = "Menu", BackgroundTransparency = 1, Size = UDim2.fromOffset(352, 262), LayoutOrder = 8, Parent = topLeft })
 local menuGrid = Lib.Grid(UDim2.fromOffset(82, 82), 8)
 menuGrid.HorizontalAlignment = Enum.HorizontalAlignment.Left
 menuGrid.Parent = menu
@@ -185,6 +191,8 @@ local MENU = {
 	{ "Rebirth", "♻️", "Rebirth", C.Purple },
 	{ "Teleport", "🌀", "Zones", C.Cyan },
 	{ "Store", "🛒", "Store", Color3.fromRGB(60, 200, 110) },
+	{ "Spin", "🎡", "Spin", Color3.fromRGB(255, 170, 40) },
+	{ "Codes", "🎟", "Codes", Color3.fromRGB(120, 200, 90) },
 }
 for order, item in MENU do
 	local button = New("TextButton", {
@@ -210,7 +218,7 @@ for order, item in MENU do
 	button.Activated:Connect(function()
 		scale.Scale = 0.9
 		TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-		Lib.PlaySound(Config.Sounds.UI, 0.35)
+		Lib.PlaySound("UI")
 		Panels.Toggle(item[1])
 	end)
 end
@@ -228,6 +236,46 @@ local BOOSTS = {
 	{ "Power2x", "💥 2x Power", C.Red },
 	{ "ServerLuck", "🌟 Server Luck", C.Gold },
 }
+-- active server event chip (top of the right column)
+local eventChip = New("Frame", {
+	BackgroundColor3 = Color3.fromRGB(20, 22, 34),
+	BackgroundTransparency = 0.1,
+	Size = UDim2.fromOffset(240, 54),
+	LayoutOrder = 0,
+	Visible = false,
+	Parent = right,
+}, { Lib.Corner(12), Lib.Stroke(C.Gold, 2.5, 0) })
+local eventTitle = Lib.Text({ Text = "", Size = UDim2.new(1, -12, 0, 26), Position = UDim2.fromOffset(6, 3), MaxTextSize = 20, Parent = eventChip })
+local eventDesc = Lib.Text({
+	Text = "",
+	Font = Lib.BodyFont,
+	TextColor3 = C.Sub,
+	Size = UDim2.new(1, -12, 0, 18),
+	Position = UDim2.fromOffset(6, 31),
+	MaxTextSize = 13,
+	Parent = eventChip,
+})
+
+-- where you stand in THIS server (competition you can see)
+local rankChip = New("Frame", {
+	BackgroundColor3 = Color3.fromRGB(20, 22, 34),
+	BackgroundTransparency = 0.15,
+	Size = UDim2.fromOffset(240, 50),
+	LayoutOrder = 5,
+	Visible = false,
+	Parent = right,
+}, { Lib.Corner(12), Lib.Stroke(Color3.fromRGB(255, 215, 80), 2, 0.2) })
+local rankTitle = Lib.Text({ Text = "", TextColor3 = C.Gold, Size = UDim2.new(1, -12, 0, 24), Position = UDim2.fromOffset(6, 3), MaxTextSize = 20, Parent = rankChip })
+local rankSub = Lib.Text({
+	Text = "",
+	Font = Lib.BodyFont,
+	TextColor3 = C.Sub,
+	Size = UDim2.new(1, -12, 0, 18),
+	Position = UDim2.fromOffset(6, 28),
+	MaxTextSize = 13,
+	Parent = rankChip,
+})
+
 for order, def in BOOSTS do
 	local row = New("Frame", {
 		BackgroundColor3 = Color3.fromRGB(20, 22, 34),
@@ -373,18 +421,59 @@ local function anyGiftClaimable(derived): boolean
 end
 
 local lastCoins = nil
+local coinValue = Instance.new("NumberValue")
+coinValue.Changed:Connect(function(value)
+	coinLabel.Text = Util.Format(math.floor(value))
+end)
+local eventDefs = {}
+for _, def in Config.Events.List do
+	eventDefs[def.Id] = def
+end
+
 function HUD.Refresh()
 	local data, derived = State.Data, State.Derived
 	if not data then
 		return
 	end
-	coinLabel.Text = Util.Format(data.Coins)
-	gemLabel.Text = Util.Format(data.Gems)
-	dustLabel.Text = Util.Format(data.Stardust)
-	if lastCoins and data.Coins > lastCoins then
-		Lib.Pop(coinPill)
+	if lastCoins == nil then
+		coinValue.Value = data.Coins
+	elseif data.Coins ~= lastCoins then
+		-- numbers roll up instead of jumping (feels rewarding)
+		TweenService:Create(coinValue, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Value = data.Coins }):Play()
+		if data.Coins > lastCoins then
+			Lib.Pop(coinPill)
+		end
 	end
 	lastCoins = data.Coins
+	gemLabel.Text = Util.Format(data.Gems)
+	dustLabel.Text = Util.Format(data.Stardust)
+
+	local need = derived.XPNeeded or 1
+	levelBadge.Text = "Lv." .. (data.Level or 1)
+	setLevel((data.XP or 0) / need, string.format("%s / %s XP", Util.Format(data.XP or 0), Util.Format(need)))
+
+	-- server event chip
+	local eventId = workspace:GetAttribute("EventId")
+	local eventDef = type(eventId) == "string" and eventDefs[eventId]
+	local eventLeft = (workspace:GetAttribute("EventEnd") or 0) - State.Now()
+	eventChip.Visible = eventDef ~= nil and eventLeft > 0
+	if eventChip.Visible and eventDef then
+		eventTitle.Text = eventDef.Name .. "  " .. Util.FormatTime(eventLeft)
+		eventTitle.TextColor3 = eventDef.Color
+		eventDesc.Text = eventDef.Description
+		eventChip:FindFirstChildOfClass("UIStroke").Color = eventDef.Color
+	end
+
+	-- in-server ranking chip
+	local sr = derived.ServerRank
+	rankChip.Visible = type(sr) == "table" and (sr.Count or 0) >= 2
+	if rankChip.Visible then
+		rankTitle.Text = string.format("🏆 #%d of %d in server", sr.Place, sr.Count)
+		rankSub.Text = if sr.NextName
+			then string.format("+%s pts to pass %s", Util.Comma(sr.NextGap or 0), sr.NextName)
+			else "You're #1 here - defend it!"
+	end
+	badges.Spin.Visible = (data.FreeSpinAt or 0) <= State.Now()
 
 	local capacity = derived.Capacity or 1
 	local full = data.Backpack >= capacity
@@ -436,10 +525,41 @@ Net.On("Announce", function(text, color)
 end)
 Net.On("Reward", function(text, source)
 	HUD.Toast("🎁 " .. (if source then source .. ": " else "") .. text, C.Gold)
-	Lib.PlaySound(Config.Sounds.Coins, 0.6)
+	Lib.PlaySound("Reward")
 end)
+local function flyCoins(amount: number)
+	local inset = GuiService:GetGuiInset()
+	local target = coinPill.AbsolutePosition + coinPill.AbsoluteSize / 2 + inset
+	local camera = workspace.CurrentCamera
+	local center = if camera then camera.ViewportSize / 2 else Vector2.new(640, 380)
+	local n = math.clamp(math.floor(math.log10(math.max(10, amount)) * 2), 3, 12)
+	for i = 1, n do
+		local icon = Lib.Text({
+			Text = "🪙",
+			Size = UDim2.fromOffset(34, 34),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(center.X + math.random(-80, 80), center.Y + math.random(-60, 60)),
+			MaxTextSize = 30,
+			Outline = false,
+			ZIndex = 60,
+			Parent = Root.Overlay,
+		})
+		task.delay(i * 0.04, function()
+			local tween = TweenService:Create(icon, TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Position = UDim2.fromOffset(target.X, target.Y),
+			})
+			tween:Play()
+			tween.Completed:Once(function()
+				icon:Destroy()
+				Lib.PlaySound("Coin", 0.35, i * 0.04)
+			end)
+		end)
+	end
+end
+
 Net.On("Sold", function(coins)
-	Lib.PlaySound(Config.Sounds.Coins, 0.5)
+	Lib.PlaySound("Coin")
+	flyCoins(coins)
 	local popup = Lib.Text({
 		Text = "+" .. Util.Format(coins) .. " 🪙",
 		TextColor3 = C.Coins,
@@ -458,6 +578,72 @@ Net.On("Sold", function(coins)
 		popup:Destroy()
 	end)
 end)
+local function confetti()
+	local camera = workspace.CurrentCamera
+	local size = if camera then camera.ViewportSize else Vector2.new(1280, 760)
+	local colors = { C.Gold, C.Pink, C.Cyan, C.Green, C.Purple }
+	for _ = 1, 36 do
+		local piece = New("Frame", {
+			BackgroundColor3 = colors[math.random(1, #colors)],
+			Size = UDim2.fromOffset(math.random(8, 14), math.random(14, 22)),
+			Position = UDim2.fromOffset(size.X / 2, size.Y * 0.4),
+			Rotation = math.random(0, 360),
+			ZIndex = 70,
+			Parent = Root.Overlay,
+		}, { Lib.Corner(3) })
+		local endPos = UDim2.fromOffset(size.X / 2 + math.random(-450, 450), size.Y * 0.4 + math.random(-250, 350))
+		TweenService:Create(piece, TweenInfo.new(1.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Position = endPos,
+			Rotation = piece.Rotation + math.random(-360, 360),
+			BackgroundTransparency = 1,
+		}):Play()
+		task.delay(1.5, function()
+			piece:Destroy()
+		end)
+	end
+end
+
+local celebration = Root.Cluster("LevelUp", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.32), UDim2.fromOffset(520, 120))
+local celebrationTitle = Lib.Text({ Text = "", TextColor3 = C.Gold, Size = UDim2.fromScale(1, 0.62), MaxTextSize = 64, Visible = false, Parent = celebration })
+local celebrationSub = Lib.Text({
+	Text = "",
+	Size = UDim2.fromScale(1, 0.34),
+	Position = UDim2.fromScale(0, 0.64),
+	MaxTextSize = 30,
+	Visible = false,
+	Parent = celebration,
+})
+local celebrationToken = 0
+local function celebrate(title: string, sub: string, color: Color3)
+	celebrationToken += 1
+	local token = celebrationToken
+	celebrationTitle.Text = title
+	celebrationTitle.TextColor3 = color
+	celebrationSub.Text = sub
+	celebrationTitle.Visible = true
+	celebrationSub.Visible = true
+	Lib.Pop(celebrationTitle)
+	confetti()
+	task.delay(2.2, function()
+		if token == celebrationToken then
+			celebrationTitle.Visible = false
+			celebrationSub.Visible = false
+		end
+	end)
+end
+
+Net.On("LevelUp", function(level, gems)
+	Lib.PlaySound("LevelUp")
+	celebrate("⭐ LEVEL " .. tostring(level) .. "!", "+" .. tostring(gems) .. " 💎  •  +2% coins forever", C.Gold)
+end)
+Net.On("RankUp", function(rankName)
+	Lib.PlaySound("RankUp")
+	celebrate("🏅 " .. string.upper(tostring(rankName)) .. " RANK!", "Weekly ranked - keep climbing!", C.Cyan)
+end)
+Net.On("EventStarted", function()
+	Lib.PlaySound("Event")
+end)
+
 Net.On("Rebirthed", function(count, gems)
 	HUD.Announce(string.format("♻️ REBIRTH %d!  +%s 💎", count, Util.Format(gems)), C.Purple)
 end)

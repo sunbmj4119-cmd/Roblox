@@ -14,13 +14,73 @@ local Net = require(script.Parent.Net)
 local World = {}
 local Services
 
-local HUB_HALF = 80
-local ZONE_W = 100
-local ZONE_L = 100
-local GAP = 10
-local FIRST_Z = 90
+local LAYOUT = Config.World.Layout
+local HUB_HALF = LAYOUT.HubHalf
+local ZONE_W = LAYOUT.ZoneWidth
+local ZONE_L = LAYOUT.ZoneLength
+local GAP = LAYOUT.Gap
+local FIRST_Z = LAYOUT.FirstZ
 local CORRIDOR_W = 24
 local WALL_H = 16
+
+-- per-zone ambient particles (index = zone)
+local AMBIENCE = {
+	{ -- Meadow: fireflies
+		Color = Color3.fromRGB(220, 255, 120),
+		Light = 1,
+		Size = 0.25,
+		Life = { 3, 5 },
+		Rate = 14,
+		Speed = { 0.4, 1.2 },
+		Acceleration = Vector3.new(0, 0.3, 0),
+		Direction = Enum.NormalId.Top,
+		Height = 4,
+	},
+	{ -- Frost: snow
+		Color = Color3.fromRGB(240, 250, 255),
+		Light = 0.3,
+		Size = 0.35,
+		Life = { 7, 9 },
+		Rate = 45,
+		Speed = { 2, 4 },
+		Acceleration = Vector3.new(0.5, -1, 0),
+		Direction = Enum.NormalId.Bottom,
+		Height = 30,
+	},
+	{ -- Lava: rising embers
+		Color = Color3.fromRGB(255, 130, 40),
+		Light = 1,
+		Size = 0.3,
+		Life = { 3, 5 },
+		Rate = 35,
+		Speed = { 3, 6 },
+		Acceleration = Vector3.new(0, 2, 0),
+		Direction = Enum.NormalId.Top,
+		Height = 0.6,
+	},
+	{ -- Void: drifting motes
+		Color = Color3.fromRGB(190, 120, 255),
+		Light = 1,
+		Size = 0.4,
+		Life = { 4, 6 },
+		Rate = 22,
+		Speed = { 0.5, 1.5 },
+		Acceleration = Vector3.new(0, 0.5, 0),
+		Direction = Enum.NormalId.Top,
+		Height = 6,
+	},
+	{ -- Star Crater: falling stars
+		Color = Color3.fromRGB(255, 140, 220),
+		Light = 1,
+		Size = 0.5,
+		Life = { 4, 6 },
+		Rate = 28,
+		Speed = { 6, 10 },
+		Acceleration = Vector3.new(1, -2, 0),
+		Direction = Enum.NormalId.Bottom,
+		Height = 45,
+	},
+}
 
 World.Zones = {}
 World.OreSlots = {}
@@ -321,7 +381,7 @@ local function buildHub()
 	spawn.Name = "Spawn"
 	spawn.Anchored = true
 	spawn.Size = Vector3.new(12, 1, 12)
-	spawn.CFrame = CFrame.new(0, 0.5, -60)
+	spawn.CFrame = CFrame.new(0, 0.5, -60) * CFrame.Angles(0, math.pi, 0) -- face the mines
 	spawn.Color = Color3.fromRGB(255, 220, 120)
 	spawn.Material = Enum.Material.Neon
 	spawn.Neutral = true
@@ -329,6 +389,42 @@ local function buildHub()
 	spawn.TopSurface = Enum.SurfaceType.Smooth
 	spawn.Parent = hub
 	billboard(spawn, Config.GameName, Color3.fromRGB(255, 230, 120), 14, 360, 80)
+
+	-- signs facing the spawn: the core hooks + "like & favorite" (algorithm signal)
+	local function sign(position: Vector3, text: string, color: Color3)
+		local board = newPart({
+			Name = "Sign",
+			Size = Vector3.new(16, 7, 0.6),
+			CFrame = CFrame.new(position),
+			Color = Color3.fromRGB(25, 25, 38),
+			Material = Enum.Material.SmoothPlastic,
+		}, hub)
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Front
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 30
+		gui.LightInfluence = 0
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.FredokaOne
+		label.TextScaled = true
+		label.TextColor3 = color
+		label.Text = text
+		label.Parent = gui
+		gui.Parent = board
+		for _, x in { -7.6, 7.6 } do
+			newPart({
+				Name = "Post",
+				Size = Vector3.new(0.6, 6, 0.6),
+				CFrame = CFrame.new(position + Vector3.new(x, -6, 0.4)),
+				Color = Color3.fromRGB(60, 60, 70),
+				Material = Enum.Material.Metal,
+			}, hub)
+		end
+	end
+	sign(Vector3.new(-18, 9, -46), "👍 LIKE + ⭐ FAVORITE\nfor new CODES & updates!", Color3.fromRGB(255, 220, 90))
+	sign(Vector3.new(18, 9, -46), "☄️ METEOR every 7 min\n🎡 FREE SPIN • 🏆 WEEKLY RANKS", Color3.fromRGB(120, 230, 255))
 
 	-- sell pad
 	local sell = newPart({
@@ -471,6 +567,60 @@ local function buildZones()
 		-- accent lights in the corners
 		for _, pos in { Vector3.new(-44, 0, zStart + 6), Vector3.new(44, 0, zStart + 6), Vector3.new(-44, 0, zEnd - 6), Vector3.new(44, 0, zEnd - 6) } do
 			lamp(pos, zone.Accent, zf)
+		end
+
+		-- ambient particles: every zone has its own mood
+		local mood = AMBIENCE[index]
+		if mood then
+			local emitterPart = newPart({
+				Name = "Ambience",
+				Size = Vector3.new(ZONE_W - 4, 1, ZONE_L - 4),
+				CFrame = CFrame.new(0, mood.Height, zStart + ZONE_L / 2),
+				Transparency = 1,
+				CanCollide = false,
+				CanQuery = false,
+				CanTouch = false,
+			}, zf)
+			local emitter = Instance.new("ParticleEmitter")
+			emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+			emitter.Color = ColorSequence.new(mood.Color)
+			emitter.LightEmission = mood.Light
+			emitter.Size = NumberSequence.new(mood.Size)
+			emitter.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.2, 0.15),
+				NumberSequenceKeypoint.new(0.8, 0.3),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			emitter.Lifetime = NumberRange.new(mood.Life[1], mood.Life[2])
+			emitter.Rate = mood.Rate
+			emitter.Speed = NumberRange.new(mood.Speed[1], mood.Speed[2])
+			emitter.Acceleration = mood.Acceleration
+			emitter.EmissionDirection = mood.Direction
+			emitter.SpreadAngle = Vector2.new(25, 25)
+			emitter.Parent = emitterPart
+		end
+
+		-- glowing crystal clusters along the walls
+		local crystalRng = Random.new(500 + index)
+		for i = 1, 8 do
+			local side = if i % 2 == 0 then 1 else -1
+			local base = Vector3.new(side * 47, 0, zStart + 10 + (i - 1) * 11)
+			for _ = 1, 3 do
+				local height = crystalRng:NextNumber(3, 7)
+				newPart({
+					Name = "WallCrystal",
+					Size = Vector3.new(1.4, height, 1.4),
+					CFrame = CFrame.new(base + Vector3.new(crystalRng:NextNumber(-1.5, 1.5), height / 2 - 0.5, crystalRng:NextNumber(-1.5, 1.5)))
+						* CFrame.Angles(crystalRng:NextNumber(-0.35, 0.35), crystalRng:NextNumber(0, 3), crystalRng:NextNumber(-0.35, 0.35)),
+					Color = zone.Accent,
+					Material = Enum.Material.Neon,
+					Transparency = 0.15,
+					CanCollide = false,
+					CanQuery = false,
+					CastShadow = false,
+				}, zf)
+			end
 		end
 
 		-- floating zone title

@@ -154,6 +154,8 @@ Config.Ores = {
 }
 
 Config.World = {
+	-- map geometry (shared by WorldService and client zone detection)
+	Layout = { HubHalf = 80, ZoneWidth = 100, ZoneLength = 100, Gap = 10, FirstZ = 90 },
 	OreRespawnSeconds = 7,
 	OreSize = 5,
 	OreSpacing = 7,
@@ -632,13 +634,138 @@ Config.SeasonTiers[30].Free = { Gems = 300 }
 Config.SeasonTiers[30].Premium = { Pet = "Impact Wolf", Gems = 500 }
 
 ---------------------------------------------------------------------------
--- Sounds (built-in Roblox sounds; swap with your own asset ids)
+-- JUICE & DOPAMINE: crits, combos, lucky ores, pet variants, levels
+---------------------------------------------------------------------------
+Config.Crit = { Chance = 0.1, Multiplier = 3 }
+
+-- breaking blocks quickly in a row builds a combo: +2% ore per step (max +60%)
+Config.Combo = { Window = 2.5, BonusPer = 0.02, MaxBonus = 0.6 }
+
+-- any ore can spawn as a lucky variant (rarest first)
+Config.LuckyOres = {
+	{ Id = "Rainbow", Chance = 1 / 1500, ValueMult = 50, Gems = 15, HPMult = 3, Announce = true },
+	{ Id = "Golden", Chance = 1 / 120, ValueMult = 10, Gems = 1, HPMult = 2 },
+}
+
+-- hatched pets can be Golden / Rainbow (luck increases the chance, max x4)
+Config.PetVariants = {
+	{ Id = "Rainbow", Chance = 1 / 300, PowerMult = 6 },
+	{ Id = "Golden", Chance = 1 / 25, PowerMult = 2.5 },
+}
+
+-- player level: XP from every block, fast early levels, coin bonus per level
+Config.Levels = {
+	XPBase = 12,
+	XPExponent = 1.55, -- XP to reach the next level = XPBase * level ^ XPExponent
+	CoinBonusPer = 0.02, -- +2% coins per level
+	GemsPerLevel = 5,
+	MilestoneEvery = 10,
+	MilestoneGems = 100,
+}
+
+-- random mini events between meteors keep every few minutes exciting
+Config.Events = {
+	IntervalSeconds = 300,
+	DurationSeconds = 75,
+	List = {
+		{
+			Id = "Frenzy",
+			Name = "⚡ ORE FRENZY",
+			Description = "Ores respawn 4x faster!",
+			Color = Color3.fromRGB(255, 220, 80),
+			RespawnMult = 0.25,
+		},
+		{
+			Id = "LuckyRush",
+			Name = "🍀 LUCKY RUSH",
+			Description = "Golden & Rainbow ores are 5x more common!",
+			Color = Color3.fromRGB(120, 255, 140),
+			LuckyMult = 5,
+		},
+		{
+			Id = "GemStorm",
+			Name = "💎 GEM STORM",
+			Description = "Every ore can drop gems!",
+			Color = Color3.fromRGB(80, 220, 255),
+			GemChance = 0.15,
+		},
+		{
+			Id = "DoubleOre",
+			Name = "🪙 DOUBLE ORE",
+			Description = "All ore is worth 2x!",
+			Color = Color3.fromRGB(255, 170, 60),
+			ValueMult = 2,
+		},
+	},
+}
+
+-- free prize wheel (retention): one free spin every few hours
+Config.Spin = {
+	CooldownSeconds = 4 * 3600,
+	VipCooldownSeconds = 2 * 3600,
+	Rewards = {
+		{ Weight = 28, Reward = { Gems = 30 }, Color = Color3.fromRGB(80, 200, 255) },
+		{ Weight = 20, Reward = { Gems = 75 }, Color = Color3.fromRGB(60, 150, 255) },
+		{ Weight = 16, Reward = { Boost = { "Coins2x", 900 } }, Color = Color3.fromRGB(255, 200, 60) },
+		{ Weight = 14, Reward = { Boost = { "Luck2x", 900 } }, Color = Color3.fromRGB(90, 220, 110) },
+		{ Weight = 10, Reward = { Stardust = 200 }, Color = Color3.fromRGB(255, 110, 220) },
+		{ Weight = 7, Reward = { Boost = { "Power2x", 1200 } }, Color = Color3.fromRGB(255, 100, 80) },
+		{ Weight = 4, Reward = { Gems = 400 }, Color = Color3.fromRGB(170, 90, 255) },
+		{ Weight = 1, Reward = { Gems = 2000 }, Color = Color3.fromRGB(255, 230, 120), Jackpot = true },
+	},
+}
+
+-- promo codes: post them on YouTube / TikTok / Discord / group wall.
+-- Players search "Meteor Miners codes" -> free marketing. ExpiresAt = unix time (0 = never)
+Config.Codes = {
+	RELEASE = { Reward = { Gems = 250 }, ExpiresAt = 0 },
+	METEOR = { Reward = { Stardust = 200 }, ExpiresAt = 0 },
+	LUCKY = { Reward = { Boost = { "Luck2x", 900 } }, ExpiresAt = 0 },
+}
+
+---------------------------------------------------------------------------
+-- Sounds: Ids (one picked at random), Volume, Pitch, random pitch Variance.
+-- Built-in classic Roblox sounds work with zero uploads. To upgrade, pick
+-- sounds in Studio Toolbox -> Audio (Creator Store) and paste "rbxassetid://123".
 ---------------------------------------------------------------------------
 Config.Sounds = {
-	Swing = "rbxasset://sounds/swordslash.wav",
-	Break = "rbxasset://sounds/clickfast.wav",
-	Coins = "rbxasset://sounds/electronicpingshort.wav",
-	UI = "rbxasset://sounds/button.wav",
+	UI = { Ids = { "rbxasset://sounds/snap.mp3" }, Volume = 0.35, Pitch = 1.6, Variance = 0.05 },
+	Swing = { Ids = { "rbxasset://sounds/swordslash.mp3" }, Volume = 0.15, Pitch = 1.25, Variance = 0.12 },
+	HitStone = {
+		Ids = { "rbxasset://sounds/stone.mp3", "rbxasset://sounds/stone2.mp3", "rbxasset://sounds/stone3.mp3" },
+		Volume = 0.55,
+		Pitch = 1,
+		Variance = 0.15,
+	},
+	HitMetal = {
+		Ids = { "rbxasset://sounds/metal.mp3", "rbxasset://sounds/metal2.mp3", "rbxasset://sounds/metal3.mp3" },
+		Volume = 0.45,
+		Pitch = 1.1,
+		Variance = 0.15,
+	},
+	HitIce = {
+		Ids = { "rbxasset://sounds/ice.mp3", "rbxasset://sounds/ice2.mp3", "rbxasset://sounds/ice3.mp3" },
+		Volume = 0.45,
+		Pitch = 1.1,
+		Variance = 0.15,
+	},
+	Break = { Ids = { "rbxasset://sounds/collide.mp3" }, Volume = 0.22, Pitch = 1.7, Variance = 0.2 },
+	Crit = { Ids = { "rbxasset://sounds/bass.mp3" }, Volume = 0.55, Pitch = 1.5, Variance = 0.05 },
+	Coin = { Ids = { "rbxasset://sounds/electronicpingshort.mp3" }, Volume = 0.4, Pitch = 1.3, Variance = 0.05 },
+	Lucky = { Ids = { "rbxasset://sounds/victory.mp3" }, Volume = 0.7, Pitch = 1.3, Variance = 0 },
+	LevelUp = { Ids = { "rbxasset://sounds/victory.mp3" }, Volume = 0.6, Pitch = 1, Variance = 0 },
+	Hatch = { Ids = { "rbxasset://sounds/snap.mp3" }, Volume = 0.6, Pitch = 0.9, Variance = 0.1 },
+	Legendary = { Ids = { "rbxasset://sounds/victory.mp3" }, Volume = 0.9, Pitch = 1.15, Variance = 0 },
+	MeteorWarn = { Ids = { "rbxasset://sounds/bass.mp3" }, Volume = 0.8, Pitch = 0.6, Variance = 0 },
+	Impact = { Ids = { "rbxasset://sounds/collide.mp3" }, Volume = 1, Pitch = 0.55, Variance = 0.05 },
+	Bonked = { Ids = { "rbxasset://sounds/uuhhh.mp3" }, Volume = 0.6, Pitch = 1, Variance = 0.1 },
+	SpinTick = { Ids = { "rbxasset://sounds/snap.mp3" }, Volume = 0.3, Pitch = 2, Variance = 0.05 },
+	Reward = { Ids = { "rbxasset://sounds/electronicpingshort.mp3" }, Volume = 0.6, Pitch = 1.6, Variance = 0 },
+	RankUp = { Ids = { "rbxasset://sounds/victory.mp3" }, Volume = 0.7, Pitch = 1.25, Variance = 0 },
+	Event = { Ids = { "rbxasset://sounds/bass.mp3" }, Volume = 0.6, Pitch = 1.2, Variance = 0 },
 }
+
+-- optional looping background music (Creator Store audio ids, "" = off)
+Config.Music = { Hub = "", Mine = "", Meteor = "", Volume = 0.3 }
 
 return Config

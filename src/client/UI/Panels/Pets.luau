@@ -40,9 +40,8 @@ function Pets.Build(content, ctx)
 	local signature = ""
 	local confirmDelete = {} -- [petId] = os.clock()
 
-	local function power(name)
-		local info = Config.Pets[name]
-		return if info then info.Power else 0
+	local function power(pet)
+		return Util.PetPower(Config, pet.Name, pet.Variant)
 	end
 
 	local function rebuild(data)
@@ -57,8 +56,8 @@ function Pets.Build(content, ctx)
 			if ea ~= eb then
 				return ea > eb
 			end
-			if power(a.Name) ~= power(b.Name) then
-				return power(a.Name) > power(b.Name)
+			if power(a) ~= power(b) then
+				return power(a) > power(b)
 			end
 			return a.Id < b.Id
 		end)
@@ -73,18 +72,37 @@ function Pets.Build(content, ctx)
 					BackgroundColor3 = if isEquipped then Color3.fromRGB(45, 95, 60) else C.Card,
 					LayoutOrder = order,
 					Parent = grid,
-				}, { Lib.Corner(12), Lib.Stroke(rarity.Color, 3, 0) })
+				}, {
+					Lib.Corner(12),
+					Lib.Stroke(
+						if pet.Variant == "Rainbow"
+							then Color3.fromRGB(255, 120, 230)
+							elseif pet.Variant == "Golden" then Color3.fromRGB(255, 210, 60)
+							else rarity.Color,
+						if pet.Variant then 4 else 3,
+						0
+					),
+				})
 				local swatch = New("Frame", {
 					Size = UDim2.fromOffset(42, 42),
 					Position = UDim2.new(0.5, 0, 0, 8),
 					AnchorPoint = Vector2.new(0.5, 0),
-					BackgroundColor3 = info.Color,
+					BackgroundColor3 = if pet.Variant == "Golden"
+						then Color3.fromRGB(255, 205, 50)
+						elseif pet.Variant == "Rainbow" then Color3.fromRGB(255, 90, 210)
+						else info.Color,
 					Parent = card,
 				}, { Lib.Corner(if info.Shape == "Ball" then 21 else 8), Lib.Stroke(Color3.new(0, 0, 0), 2, 0.3) })
 				Lib.Text({ Text = "• •", TextColor3 = Color3.new(0, 0, 0), Outline = false, Size = UDim2.fromScale(1, 0.5), Position = UDim2.fromScale(0, 0.15), Parent = swatch })
-				Lib.Text({ Text = pet.Name, Size = UDim2.new(1, -6, 0, 20), Position = UDim2.fromOffset(3, 54), MaxTextSize = 15, Parent = card })
 				Lib.Text({
-					Text = "+" .. Util.Format(info.Power) .. "x",
+					Text = (if pet.Variant then "✨" else "") .. Util.PetDisplayName(pet.Name, pet.Variant),
+					Size = UDim2.new(1, -6, 0, 20),
+					Position = UDim2.fromOffset(3, 54),
+					MaxTextSize = 15,
+					Parent = card,
+				})
+				Lib.Text({
+					Text = "+" .. Util.Format(power(pet)) .. "x",
 					TextColor3 = rarity.Color,
 					Size = UDim2.new(1, -6, 0, 18),
 					Position = UDim2.fromOffset(3, 74),
@@ -156,7 +174,7 @@ function Pets.Build(content, ctx)
 		slotsButton.Visible = not State.HasPass("ExtraPets")
 		local parts = {}
 		for _, pet in data.Pets do
-			table.insert(parts, pet.Id)
+			table.insert(parts, pet.Id .. (pet.Variant or ""))
 		end
 		local sig = table.concat(parts, ",") .. "|" .. table.concat(data.Equipped, ",")
 		if sig ~= signature then

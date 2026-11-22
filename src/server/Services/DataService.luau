@@ -35,7 +35,11 @@ local TEMPLATE = {
 	BackpackTier = 1,
 	ZoneLevel = 1,
 	Rebirths = 0,
-	Pets = {}, -- { { Id = 1, Name = "Bunny" }, ... }
+	Level = 1,
+	XP = 0,
+	FreeSpinAt = 0, -- unix time when the next free spin is ready
+	Codes = {}, -- [CODE] = true
+	Pets = {}, -- { { Id = 1, Name = "Bunny", Variant = "Golden"? }, ... }
 	Equipped = {}, -- { petId, ... }
 	NextPetUid = 1,
 	PetIndex = {}, -- [petName] = true
@@ -49,6 +53,9 @@ local TEMPLATE = {
 		Bonks = 0,
 		PlaySeconds = 0,
 		Purchases = 0,
+		LuckyOres = 0,
+		Crits = 0,
+		BestCombo = 0,
 	},
 	Daily = { Day = 0, Quests = {}, Streak = 0, LastClaimDay = 0, VipChestDay = 0, ClubDay = 0 },
 	Season = { Id = 0, XP = 0, Premium = false, ClaimedFree = {}, ClaimedPremium = {} },

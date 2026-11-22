@@ -129,3 +129,8 @@ src/client/                   → StarterPlayerScripts.Client
 | 새 시즌 시작 | `Config.Season.Id`를 +1 하고 `Config.SeasonTiers` 보상 변경 |
 | 랭크 기준/보상 | `Config.Ranks`, `Config.Leaderboards.WeeklyTopReward` |
 | 출석/선물/퀘스트 | `Config.DailyRewards`, `Config.PlaytimeGifts`, `Config.Quests` |
+| 프로모 코드 추가 | `Config.Codes` (예: `SUMMER = { Reward = { Gems = 500 }, ExpiresAt = 0 }`) |
+| 미니 이벤트 주기/종류 | `Config.Events` |
+| 휠 상품/쿨타임 | `Config.Spin` |
+| 크리·콤보·럭키 확률 | `Config.Crit`, `Config.Combo`, `Config.LuckyOres`, `Config.PetVariants` |
+| 효과음 / 배경음악 | `Config.Sounds` (Toolbox → Audio의 `rbxassetid://` 넣기), `Config.Music` |

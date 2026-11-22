@@ -174,6 +174,35 @@ for tier = 1, #Config.SeasonTiers do
 		checkReward(def.Premium, "SeasonTiers[" .. tier .. "].Premium")
 	end
 end
+-- new systems: spin, codes, events, variants, lucky ores, sounds
+local spinWeight = 0
+for i, entry in Config.Spin.Rewards do
+	checkReward(entry.Reward, "Spin.Rewards[" .. i .. "]")
+	check(type(entry.Weight) == "number" and entry.Weight > 0, "Spin weight must be > 0")
+	spinWeight += entry.Weight
+end
+check(spinWeight > 0, "Spin needs rewards")
+for code, def in Config.Codes do
+	check(code == string.upper(code), "code " .. code .. " must be UPPERCASE")
+	checkReward(def.Reward, "Codes." .. code)
+end
+for _, def in Config.Events.List do
+	check(type(def.Id) == "string" and type(def.Name) == "string" and def.Description, "event needs Id/Name/Description")
+end
+for _, def in Config.PetVariants do
+	check(def.Chance > 0 and def.Chance < 1 and def.PowerMult > 1, "bad pet variant " .. tostring(def.Id))
+end
+for _, def in Config.LuckyOres do
+	check(def.Chance > 0 and def.Chance < 1 and def.ValueMult > 1, "bad lucky ore " .. tostring(def.Id))
+end
+for name, def in Config.Sounds do
+	check(type(def) == "table" and type(def.Ids) == "table" and #def.Ids > 0, "sound " .. name .. " needs Ids")
+end
+check(Util.XPForLevel(Config, 1) >= 1 and Util.XPForLevel(Config, 50) > Util.XPForLevel(Config, 10), "XP curve must grow")
+check(Util.PetPower(Config, "Fox", "Golden") > Util.PetPower(Config, "Fox", nil), "golden pets must be stronger")
+check(Util.ZoneAt(Config, roblox.Vector3.new(0, 3, -60)) == 0, "spawn must be in the hub")
+check(Util.ZoneAt(Config, roblox.Vector3.new(0, 3, Config.World.Layout.FirstZ + 20)) == 1, "zone 1 detection")
+
 for i = 2, #Config.Ranks do
 	check(Config.Ranks[i].Min > Config.Ranks[i - 1].Min, "rank thresholds must increase")
 end

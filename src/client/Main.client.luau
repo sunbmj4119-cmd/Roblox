@@ -24,6 +24,8 @@ require(Controllers:WaitForChild("PetFollow"))
 require(Controllers:WaitForChild("WorldFX"))
 require(Controllers:WaitForChild("MeteorUI"))
 require(Controllers:WaitForChild("DevTools"))
+require(Controllers:WaitForChild("Guide"))
+require(Controllers:WaitForChild("Ambience"))
 
 -- ask for a fresh snapshot in case the first one arrived before we listened
 Net.Fire("Sync")

@@ -20,6 +20,7 @@ local Services
 local Data
 
 local sessionStart = {} -- [player] = unix time
+local overtakeCooldown = {} -- ["a>b"] = os.clock()
 local giftsClaimed = {} -- [player] = { [index] = true }
 local questById = {}
 for _, quest in Config.Quests do
@@ -46,7 +47,7 @@ function Progression:GiftsClaimed(player: Player)
 	return list
 end
 
-function Progression:GrantReward(player: Player, reward, source: string?)
+function Progression:GrantReward(player: Player, reward, source: string?, silent: boolean?)
 	local data = Data:Get(player)
 	if not data or not reward then
 		return
@@ -65,10 +66,37 @@ function Progression:GrantReward(player: Player, reward, source: string?)
 		Services.BoostService:Add(player, reward.Boost[1], reward.Boost[2])
 	end
 	if reward.Pet then
-		Services.PetService:GrantPet(player, reward.Pet)
+		Services.PetService:GrantPet(player, reward.Pet, reward.Variant)
 	end
 	Data:MarkDirty(player)
-	Net:Send(player, "Reward", Util.RewardText(reward), source)
+	if not silent then
+		Net:Send(player, "Reward", Util.RewardText(reward), source)
+	end
+end
+
+-- player level: every block gives XP; level-ups give gems + a permanent coin bonus
+function Progression:AddXP(player: Player, amount: number)
+	local data = Data:Get(player)
+	if not data or amount <= 0 then
+		return
+	end
+	data.XP += amount
+	local levels = Config.Levels
+	local guard = 0
+	while data.XP >= Util.XPForLevel(Config, data.Level) and guard < 50 do
+		guard += 1
+		data.XP -= Util.XPForLevel(Config, data.Level)
+		data.Level += 1
+		local gems = levels.GemsPerLevel
+		if data.Level % levels.MilestoneEvery == 0 then
+			gems += levels.MilestoneGems
+			Net:Announce(string.format("⭐ %s reached LEVEL %d!", player.DisplayName, data.Level), Color3.fromRGB(255, 220, 90))
+		end
+		data.Gems += gems
+		Net:Send(player, "LevelUp", data.Level, gems)
+		Services.CharacterService:RefreshOverhead(player)
+	end
+	Data:MarkDirty(player)
 end
 
 function Progression:AddQuest(player: Player, questType: string, amount: number)
@@ -94,10 +122,27 @@ function Progression:AddPoints(player: Player, amount: number)
 		return
 	end
 	local _, before = Util.RankFor(Config, data.Weekly.Points)
+	local oldPoints = data.Weekly.Points
 	data.Weekly.Points += amount
+	-- in-server rivalry: tell both players when someone overtakes
+	local now = os.clock()
+	for _, other in Data:LoadedPlayers() do
+		local otherData = other ~= player and Data:Get(other)
+		if otherData then
+			local theirs = otherData.Weekly.Points
+			if oldPoints <= theirs and data.Weekly.Points > theirs and theirs > 0 then
+				local key = player.UserId .. ">" .. other.UserId
+				if not overtakeCooldown[key] or now - overtakeCooldown[key] > 90 then
+					overtakeCooldown[key] = now
+					Net:Notify(player, "⬆️ You passed " .. other.DisplayName .. " in the weekly ranking!", Color3.fromRGB(120, 255, 170))
+					Net:Notify(other, "⬇️ " .. player.DisplayName .. " just passed you! Take it back!", Color3.fromRGB(255, 120, 120))
+				end
+			end
+		end
+	end
 	local rank, after = Util.RankFor(Config, data.Weekly.Points)
 	if after > before then
-		Net:Notify(player, "🏅 RANK UP! You are now " .. string.upper(rank.Name) .. "!", rank.Color)
+		Net:Send(player, "RankUp", rank.Name)
 		if after >= 5 then
 			Net:Announce(string.format("🏅 %s reached %s rank this week!", player.DisplayName, string.upper(rank.Name)), rank.Color)
 		end
@@ -343,6 +388,57 @@ function Progression:Start()
 		end
 		data.Daily.VipChestDay = today
 		self:GrantReward(player, { Gems = Config.Social.VipDailyGems }, "VIP daily chest")
+	end)
+
+	-- promo codes ---------------------------------------------------------
+	Net:OnRequest("RedeemCode", 1, function(player, code)
+		local data = Data:Get(player)
+		if not data or type(code) ~= "string" then
+			return false, "Enter a code"
+		end
+		code = string.upper((code:gsub("%s+", "")))
+		local def = Config.Codes[code]
+		if not def then
+			return false, "Invalid code"
+		end
+		if def.ExpiresAt and def.ExpiresAt > 0 and os.time() > def.ExpiresAt then
+			return false, "This code has expired"
+		end
+		if data.Codes[code] then
+			return false, "Already redeemed"
+		end
+		data.Codes[code] = true
+		self:GrantReward(player, def.Reward, "Code " .. code)
+		return true, "Redeemed: " .. Util.RewardText(def.Reward)
+	end)
+
+	-- free prize wheel ------------------------------------------------------
+	Net:OnRequest("Spin", 1, function(player)
+		local data = Data:Get(player)
+		if not data then
+			return nil
+		end
+		local now = os.time()
+		if data.FreeSpinAt > now then
+			return { Error = "Next free spin in " .. Util.FormatTime(data.FreeSpinAt - now) }
+		end
+		local cooldown = if Services.MonetizationService:HasPass(player, "VIP")
+			then Config.Spin.VipCooldownSeconds
+			else Config.Spin.CooldownSeconds
+		data.FreeSpinAt = now + cooldown
+		local entries = {}
+		for i, entry in Config.Spin.Rewards do
+			entries[i] = { i, entry.Weight }
+		end
+		local index = Util.WeightedPick(entries)
+		local entry = Config.Spin.Rewards[index]
+		-- granted now, revealed by the wheel animation on the client
+		self:GrantReward(player, entry.Reward, "Spin", true)
+		if entry.Jackpot then
+			Net:Announce("🎡 " .. player.DisplayName .. " hit the JACKPOT on the prize wheel!", Color3.fromRGB(255, 230, 120))
+		end
+		Data:MarkDirty(player)
+		return { Index = index, Text = Util.RewardText(entry.Reward) }
 	end)
 
 	Net:On("ClaimGroup", 2, function(player)

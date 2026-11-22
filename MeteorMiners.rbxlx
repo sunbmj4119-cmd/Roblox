@@ -172,6 +172,8 @@ Config.Ores = {
 }
 
 Config.World = {
+	-- map geometry (shared by WorldService and client zone detection)
+	Layout = { HubHalf = 80, ZoneWidth = 100, ZoneLength = 100, Gap = 10, FirstZ = 90 },
 	OreRespawnSeconds = 7,
 	OreSize = 5,
 	OreSpacing = 7,
@@ -650,14 +652,139 @@ Config.SeasonTiers[30].Free = { Gems = 300 }
 Config.SeasonTiers[30].Premium = { Pet = "Impact Wolf", Gems = 500 }
 
 ---------------------------------------------------------------------------
--- Sounds (built-in Roblox sounds; swap with your own asset ids)
+-- JUICE & DOPAMINE: crits, combos, lucky ores, pet variants, levels
+---------------------------------------------------------------------------
+Config.Crit = { Chance = 0.1, Multiplier = 3 }
+
+-- breaking blocks quickly in a row builds a combo: +2% ore per step (max +60%)
+Config.Combo = { Window = 2.5, BonusPer = 0.02, MaxBonus = 0.6 }
+
+-- any ore can spawn as a lucky variant (rarest first)
+Config.LuckyOres = {
+	{ Id = "Rainbow", Chance = 1 / 1500, ValueMult = 50, Gems = 15, HPMult = 3, Announce = true },
+	{ Id = "Golden", Chance = 1 / 120, ValueMult = 10, Gems = 1, HPMult = 2 },
+}
+
+-- hatched pets can be Golden / Rainbow (luck increases the chance, max x4)
+Config.PetVariants = {
+	{ Id = "Rainbow", Chance = 1 / 300, PowerMult = 6 },
+	{ Id = "Golden", Chance = 1 / 25, PowerMult = 2.5 },
+}
+
+-- player level: XP from every block, fast early levels, coin bonus per level
+Config.Levels = {
+	XPBase = 12,
+	XPExponent = 1.55, -- XP to reach the next level = XPBase * level ^ XPExponent
+	CoinBonusPer = 0.02, -- +2% coins per level
+	GemsPerLevel = 5,
+	MilestoneEvery = 10,
+	MilestoneGems = 100,
+}
+
+-- random mini events between meteors keep every few minutes exciting
+Config.Events = {
+	IntervalSeconds = 300,
+	DurationSeconds = 75,
+	List = {
+		{
+			Id = "Frenzy",
+			Name = "⚡ ORE FRENZY",
+			Description = "Ores respawn 4x faster!",
+			Color = Color3.fromRGB(255, 220, 80),
+			RespawnMult = 0.25,
+		},
+		{
+			Id = "LuckyRush",
+			Name = "🍀 LUCKY RUSH",
+			Description = "Golden & Rainbow ores are 5x more common!",
+			Color = Color3.fromRGB(120, 255, 140),
+			LuckyMult = 5,
+		},
+		{
+			Id = "GemStorm",
+			Name = "💎 GEM STORM",
+			Description = "Every ore can drop gems!",
+			Color = Color3.fromRGB(80, 220, 255),
+			GemChance = 0.15,
+		},
+		{
+			Id = "DoubleOre",
+			Name = "🪙 DOUBLE ORE",
+			Description = "All ore is worth 2x!",
+			Color = Color3.fromRGB(255, 170, 60),
+			ValueMult = 2,
+		},
+	},
+}
+
+-- free prize wheel (retention): one free spin every few hours
+Config.Spin = {
+	CooldownSeconds = 4 * 3600,
+	VipCooldownSeconds = 2 * 3600,
+	Rewards = {
+		{ Weight = 28, Reward = { Gems = 30 }, Color = Color3.fromRGB(80, 200, 255) },
+		{ Weight = 20, Reward = { Gems = 75 }, Color = Color3.fromRGB(60, 150, 255) },
+		{ Weight = 16, Reward = { Boost = { "Coins2x", 900 } }, Color = Color3.fromRGB(255, 200, 60) },
+		{ Weight = 14, Reward = { Boost = { "Luck2x", 900 } }, Color = Color3.fromRGB(90, 220, 110) },
+		{ Weight = 10, Reward = { Stardust = 200 }, Color = Color3.fromRGB(255, 110, 220) },
+		{ Weight = 7, Reward = { Boost = { "Power2x", 1200 } }, Color = Color3.fromRGB(255, 100, 80) },
+		{ Weight = 4, Reward = { Gems = 400 }, Color = Color3.fromRGB(170, 90, 255) },
+		{ Weight = 1, Reward = { Gems = 2000 }, Color = Color3.fromRGB(255, 230, 120), Jackpot = true },
+	},
+}
+
+-- promo codes: post them on YouTube / TikTok / Discord / group wall.
+-- Players search "Meteor Miners codes" -> free marketing. ExpiresAt = unix time (0 = never)
+Config.Codes = {
+	RELEASE = { Reward = { Gems = 250 }, ExpiresAt = 0 },
+	METEOR = { Reward = { Stardust = 200 }, ExpiresAt = 0 },
+	LUCKY = { Reward = { Boost = { "Luck2x", 900 } }, ExpiresAt = 0 },
+}
+
+---------------------------------------------------------------------------
+-- Sounds: Ids (one picked at random), Volume, Pitch, random pitch Variance.
+-- Built-in classic Roblox sounds work with zero uploads. To upgrade, pick
+-- sounds in Studio Toolbox -> Audio (Creator Store) and paste "rbxassetid://123".
 ---------------------------------------------------------------------------
 Config.Sounds = {
-	Swing = "rbxasset://sounds/swordslash.wav",
-	Break = "rbxasset://sounds/clickfast.wav",
-	Coins = "rbxasset://sounds/electronicpingshort.wav",
-	UI = "rbxasset://sounds/button.wav",
+	UI = { Ids = { "rbxasset://sounds/snap.mp3" }, Volume = 0.35, Pitch = 1.6, Variance = 0.05 },
+	Swing = { Ids = { "rbxasset://sounds/swordslash.mp3" }, Volume = 0.15, Pitch = 1.25, Variance = 0.12 },
+	HitStone = {
+		Ids = { "rbxasset://sounds/stone.mp3", "rbxasset://sounds/stone2.mp3", "rbxasset://sounds/stone3.mp3" },
+		Volume = 0.55,
+		Pitch = 1,
+		Variance = 0.15,
+	},
+	HitMetal = {
+		Ids = { "rbxasset://sounds/metal.mp3", "rbxasset://sounds/metal2.mp3", "rbxasset://sounds/metal3.mp3" },
+		Volume = 0.45,
+		Pitch = 1.1,
+		Variance = 0.15,
+	},
+	HitIce = {
+		Ids = { "rbxasset://sounds/ice.mp3", "rbxasset://sounds/ice2.mp3", "rbxasset://sounds/ice3.mp3" },
+		Volume = 0.45,
+		Pitch = 1.1,
+		Variance = 0.15,
+	},
+	Break = { Ids = { "rbxasset://sounds/collide.mp3" }, Volume = 0.22, Pitch = 1.7, Variance = 0.2 },
+	Crit = { Ids = { "rbxasset://sounds/bass.mp3" }, Volume = 0.55, Pitch = 1.5, Variance = 0.05 },
+	Coin = { Ids = { "rbxasset://sounds/electronicpingshort.mp3" }, Volume = 0.4, Pitch = 1.3, Variance = 0.05 },
+	Lucky = { Ids = { "rbxasset://sounds/victory.mp3" }, Volume = 0.7, Pitch = 1.3, Variance = 0 },
+	LevelUp = { Ids = { "rbxasset://sounds/victory.mp3" }, Volume = 0.6, Pitch = 1, Variance = 0 },
+	Hatch = { Ids = { "rbxasset://sounds/snap.mp3" }, Volume = 0.6, Pitch = 0.9, Variance = 0.1 },
+	Legendary = { Ids = { "rbxasset://sounds/victory.mp3" }, Volume = 0.9, Pitch = 1.15, Variance = 0 },
+	MeteorWarn = { Ids = { "rbxasset://sounds/bass.mp3" }, Volume = 0.8, Pitch = 0.6, Variance = 0 },
+	Impact = { Ids = { "rbxasset://sounds/collide.mp3" }, Volume = 1, Pitch = 0.55, Variance = 0.05 },
+	Bonked = { Ids = { "rbxasset://sounds/uuhhh.mp3" }, Volume = 0.6, Pitch = 1, Variance = 0.1 },
+	SpinTick = { Ids = { "rbxasset://sounds/snap.mp3" }, Volume = 0.3, Pitch = 2, Variance = 0.05 },
+	Reward = { Ids = { "rbxasset://sounds/electronicpingshort.mp3" }, Volume = 0.6, Pitch = 1.6, Variance = 0 },
+	RankUp = { Ids = { "rbxasset://sounds/victory.mp3" }, Volume = 0.7, Pitch = 1.25, Variance = 0 },
+	Event = { Ids = { "rbxasset://sounds/bass.mp3" }, Volume = 0.6, Pitch = 1.2, Variance = 0 },
 }
+
+-- optional looping background music (Creator Store audio ids, "" = off)
+Config.Music = { Hub = "", Mine = "", Meteor = "", Volume = 0.3 }
 
 return Config
 ]]></string>
@@ -699,7 +826,7 @@ local function weld(a, b)
 	w.Parent = a
 end
 
-function PetModel.Build(petName: string): Model
+function PetModel.Build(petName: string, variant: string?): Model
 	local custom = ReplicatedStorage:FindFirstChild("PetModels")
 	if custom and custom:FindFirstChild(petName) then
 		local clone = (custom :: any)[petName]:Clone()
@@ -809,6 +936,33 @@ function PetModel.Build(petName: string): Model
 		light.Brightness = 1.5
 		light.Parent = body
 	end
+	-- Golden / Rainbow variants: shiny material + glow + sparkles
+	if variant == "Golden" or variant == "Rainbow" then
+		local tint = if variant == "Golden" then Color3.fromRGB(255, 205, 50) else Color3.fromRGB(255, 90, 210)
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") and d.Name ~= "Eye" and d.Name ~= "Shine" then
+				d.Color = if variant == "Golden" then d.Color:Lerp(tint, 0.75) else tint
+				d.Material = if variant == "Golden" then Enum.Material.Foil else Enum.Material.Neon
+			end
+		end
+		model:SetAttribute("Variant", variant)
+		local glow = Instance.new("PointLight")
+		glow.Color = tint
+		glow.Range = 9
+		glow.Brightness = 2
+		glow.Parent = body
+		local shimmer = Instance.new("ParticleEmitter")
+		shimmer.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		shimmer.Color = ColorSequence.new(if variant == "Golden" then Color3.fromRGB(255, 240, 150) else Color3.new(1, 1, 1))
+		shimmer.Size = NumberSequence.new(0.35, 0)
+		shimmer.Lifetime = NumberRange.new(0.5, 0.9)
+		shimmer.Rate = 8
+		shimmer.Speed = NumberRange.new(0.5, 1.5)
+		shimmer.SpreadAngle = Vector2.new(180, 180)
+		shimmer.LightEmission = 1
+		shimmer.Parent = body
+	end
+
 	if rarity.Order >= 6 then
 		local sparkle = Instance.new("ParticleEmitter")
 		sparkle.Texture = "rbxasset://textures/particles/sparkles_main.dds"
@@ -1052,6 +1206,55 @@ function Util.CanTest(config, player: Player): boolean
 	return config.OwnerTestMode == true and Util.IsOwner(player)
 end
 
+-- XP needed to go from `level` to `level + 1`
+function Util.XPForLevel(config, level: number): number
+	return math.max(1, math.floor(config.Levels.XPBase * level ^ config.Levels.XPExponent))
+end
+
+function Util.VariantDef(config, variant: string?)
+	if not variant then
+		return nil
+	end
+	for _, def in config.PetVariants do
+		if def.Id == variant then
+			return def
+		end
+	end
+	return nil
+end
+
+-- pet power including Golden / Rainbow multiplier
+function Util.PetPower(config, petName: string, variant: string?): number
+	local info = config.Pets[petName]
+	if not info then
+		return 0
+	end
+	local def = Util.VariantDef(config, variant)
+	return info.Power * (if def then def.PowerMult else 1)
+end
+
+function Util.PetDisplayName(petName: string, variant: string?): string
+	return if variant then variant .. " " .. petName else petName
+end
+
+-- 0 = hub, 1..n = zone index, nil = outside (mirrors WorldService layout)
+function Util.ZoneAt(config, position: Vector3): number?
+	local layout = config.World.Layout
+	if math.abs(position.X) <= layout.HubHalf and math.abs(position.Z) <= layout.HubHalf then
+		return 0
+	end
+	if math.abs(position.X) > layout.ZoneWidth / 2 + 1 then
+		return nil
+	end
+	for index = 1, #config.Zones do
+		local zStart = layout.FirstZ + (index - 1) * (layout.ZoneLength + layout.Gap)
+		if position.Z >= zStart and position.Z <= zStart + layout.ZoneLength then
+			return index
+		end
+	end
+	return nil
+end
+
 return Util
 ]]></string>
         </Properties>
@@ -1081,6 +1284,7 @@ local ORDER = {
 	"StatsService",
 	"MonetizationService",
 	"BoostService",
+	"EventService",
 	"WorldService",
 	"CharacterService",
 	"EconomyService",
@@ -1288,6 +1492,24 @@ local function buildPickaxe(tier: number): Tool
 		light.Range = 8
 		light.Parent = head
 	end
+	-- swing trail from tier 4: upgrades you can SEE are upgrades people buy
+	if tier >= 4 then
+		local a0 = Instance.new("Attachment")
+		a0.Position = Vector3.new(-1.3, 0, 0)
+		a0.Parent = head
+		local a1 = Instance.new("Attachment")
+		a1.Position = Vector3.new(1.3, 0, 0)
+		a1.Parent = head
+		local trail = Instance.new("Trail")
+		trail.Attachment0 = a0
+		trail.Attachment1 = a1
+		trail.Color = ColorSequence.new(info.Color)
+		trail.LightEmission = if tier >= 7 then 1 else 0.4
+		trail.Lifetime = 0.18
+		trail.Transparency = NumberSequence.new(0.2, 1)
+		trail.FaceCamera = true
+		trail.Parent = head
+	end
 	return tool
 end
 
@@ -1373,7 +1595,7 @@ function CharacterService:RefreshOverhead(player: Player)
 
 	local rank = Util.RankFor(Config, data.Weekly.Points)
 	local rankLabel = gui:FindFirstChild("Rank") :: TextLabel
-	rankLabel.Text = string.format("%s  •  ♻️%d", string.upper(rank.Name), data.Rebirths)
+	rankLabel.Text = string.format("Lv.%d  •  %s  •  ♻️%d", data.Level, string.upper(rank.Name), data.Rebirths)
 	rankLabel.TextColor3 = rank.Color
 
 	local tags = {}
@@ -1472,7 +1694,11 @@ local TEMPLATE = {
 	BackpackTier = 1,
 	ZoneLevel = 1,
 	Rebirths = 0,
-	Pets = {}, -- { { Id = 1, Name = "Bunny" }, ... }
+	Level = 1,
+	XP = 0,
+	FreeSpinAt = 0, -- unix time when the next free spin is ready
+	Codes = {}, -- [CODE] = true
+	Pets = {}, -- { { Id = 1, Name = "Bunny", Variant = "Golden"? }, ... }
 	Equipped = {}, -- { petId, ... }
 	NextPetUid = 1,
 	PetIndex = {}, -- [petName] = true
@@ -1486,6 +1712,9 @@ local TEMPLATE = {
 		Bonks = 0,
 		PlaySeconds = 0,
 		Purchases = 0,
+		LuckyOres = 0,
+		Crits = 0,
+		BestCombo = 0,
 	},
 	Daily = { Day = 0, Quests = {}, Streak = 0, LastClaimDay = 0, VipChestDay = 0, ClubDay = 0 },
 	Season = { Id = 0, XP = 0, Premium = false, ClaimedFree = {}, ClaimedPremium = {} },
@@ -1893,6 +2122,14 @@ function Dev:Start()
 			Services.ProgressionService:AddSeasonXP(player, 5 * 2000)
 		elseif command == "Meteor" then
 			Services.MeteorService:Summon(player)
+		elseif command == "Level" then
+			Services.ProgressionService:AddXP(player, 2000)
+		elseif command == "Event" then
+			Services.EventService:Trigger()
+		elseif command == "Rainbow" then
+			Services.MiningService:DevRainbow(player)
+		elseif command == "Spin" then
+			data.FreeSpinAt = 0
 		elseif command == "Fill" then
 			data.Backpack = Services.StatsService:Capacity(player, data)
 		elseif command == "Reset" then
@@ -2112,6 +2349,110 @@ return Economy
           </Properties>
         </Item>
         <Item class="ModuleScript" referent="15">
+          <Properties>
+            <string name="Name">EventService</string>
+            <string name="Source"><![CDATA[--[[
+	EventService: short random server events between meteors
+	(Ore Frenzy, Lucky Rush, Gem Storm, Double Ore). Every few minutes there
+	is something new happening -> players stay longer and talk about it.
+	Other services read multipliers with Events:Get(key, default).
+]]
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Net = require(script.Parent.Net)
+
+local Events = {}
+
+local settings = Config.Events
+local current = nil
+local endsAt = 0
+local nextAt = os.time() + 90 -- first event shortly after the server starts
+local lastId = nil
+
+local function setAttributes()
+	workspace:SetAttribute("EventId", if current then current.Id else "")
+	workspace:SetAttribute("EventEnd", endsAt)
+end
+
+function Events:Active()
+	return current
+end
+
+function Events:Get(key: string, default: number): number
+	if current and type(current[key]) == "number" then
+		return current[key]
+	end
+	return default
+end
+
+-- start a specific event (id) or a random one different from the last
+function Events:Trigger(id: string?)
+	local def = nil
+	for _, candidate in settings.List do
+		if candidate.Id == id then
+			def = candidate
+		end
+	end
+	if not def then
+		local pool = {}
+		for _, candidate in settings.List do
+			if candidate.Id ~= lastId then
+				table.insert(pool, candidate)
+			end
+		end
+		if #pool == 0 then
+			return
+		end
+		def = pool[math.random(1, #pool)]
+	end
+	current = def
+	lastId = def.Id
+	endsAt = os.time() + settings.DurationSeconds
+	setAttributes()
+	Net:Announce(string.format("%s! %s (%ds)", def.Name, def.Description, settings.DurationSeconds), def.Color)
+	Net:Broadcast("EventStarted", def.Id)
+end
+
+local function stop()
+	if current then
+		Net:Broadcast("EventEnded", current.Id)
+	end
+	current = nil
+	endsAt = 0
+	nextAt = os.time() + settings.IntervalSeconds
+	setAttributes()
+end
+
+function Events:Start()
+	setAttributes()
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			local ok, err = pcall(function()
+				local now = os.time()
+				if current and now >= endsAt then
+					stop()
+				elseif not current and now >= nextAt then
+					self:Trigger()
+				end
+			end)
+			if not ok then
+				warn("[Events] loop error: " .. tostring(err))
+				current = nil
+				nextAt = os.time() + settings.IntervalSeconds
+				setAttributes()
+			end
+		end
+	end)
+end
+
+return Events
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="16">
           <Properties>
             <string name="Name">LeaderboardService</string>
             <string name="Source"><![CDATA[--[[
@@ -2429,7 +2770,7 @@ return Leaderboards
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="16">
+        <Item class="ModuleScript" referent="17">
           <Properties>
             <string name="Name">MeteorService</string>
             <string name="Source"><![CDATA[--[[
@@ -2866,7 +3207,7 @@ return Meteor
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="17">
+        <Item class="ModuleScript" referent="18">
           <Properties>
             <string name="Name">MiningService</string>
             <string name="Source"><![CDATA[--[[
@@ -2893,6 +3234,7 @@ local blockInfo = {} -- [part] = { Slot, Ore, HP, Zone }
 local zoneBlocks = {} -- [zone] = { [part] = true }
 local lastSwing = {} -- [player] = os.clock()
 local immunity = {} -- [player] = os.clock() until
+local combos = {} -- [player] = { Count, Last }
 local oreFolder: Folder
 local dropFolder: Folder
 
@@ -2902,12 +3244,60 @@ local function pickOre(zoneIndex: number): string
 	return Util.WeightedPick(Config.Zones[zoneIndex].Ores, nil, oreRng)
 end
 
-local function spawnBlock(slot)
+local function rollLucky()
+	local mult = Services.EventService:Get("LuckyMult", 1)
+	for _, def in Config.LuckyOres do
+		if oreRng:NextNumber() < def.Chance * mult then
+			return def
+		end
+	end
+	return nil
+end
+
+local function addSparkles(part: BasePart, color: Color3, rate: number)
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Name = "Sparkles"
+	emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	emitter.Color = ColorSequence.new(color)
+	emitter.LightEmission = 1
+	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
+	emitter.Lifetime = NumberRange.new(0.6, 1.2)
+	emitter.Speed = NumberRange.new(1, 3)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Rate = rate
+	emitter.Parent = part
+end
+
+-- small crystal spikes on top of rare ores so they read as "valuable" at a glance
+local function addCrystals(part: BasePart, color: Color3, material: Enum.Material)
+	local size = Config.World.OreSize
+	for i = 1, 3 do
+		local spike = Instance.new("Part")
+		spike.Name = "Crystal"
+		spike.Anchored = true
+		spike.CanCollide = false
+		spike.CanQuery = false
+		spike.CanTouch = false
+		spike.CastShadow = false
+		spike.Material = material
+		spike.Color = color
+		spike.Size = Vector3.new(0.9, 2 + i * 0.5, 0.9)
+		local angle = i * 2.1
+		spike.CFrame = part.CFrame
+			* CFrame.new(math.cos(angle) * size * 0.22, size / 2 + spike.Size.Y * 0.35, math.sin(angle) * size * 0.22)
+			* CFrame.Angles(math.rad(18) * math.cos(angle), 0, math.rad(18) * math.sin(angle))
+		spike.Parent = part
+	end
+end
+
+local function spawnBlock(slot, forcedLucky)
 	if slot.Part and slot.Part.Parent then
 		return
 	end
 	local oreId = pickOre(slot.Zone)
 	local ore = Config.Ores[oreId]
+	local lucky = forcedLucky or rollLucky()
+	local hp = ore.HP * (if lucky then lucky.HPMult or 1 else 1)
 	local size = Config.World.OreSize
 	local part = Instance.new("Part")
 	part.Name = oreId
@@ -2919,20 +3309,41 @@ local function spawnBlock(slot)
 	part.BottomSurface = Enum.SurfaceType.Smooth
 	part.CFrame = CFrame.new(slot.Position) * CFrame.Angles(0, math.rad(oreRng:NextInteger(0, 3) * 90), 0)
 	part:SetAttribute("Ore", oreId)
-	part:SetAttribute("HP", ore.HP)
-	part:SetAttribute("MaxHP", ore.HP)
+	part:SetAttribute("HP", hp)
+	part:SetAttribute("MaxHP", hp)
 	part:SetAttribute("Zone", slot.Zone)
-	if ore.Glow then
+	if lucky then
+		part:SetAttribute("Lucky", lucky.Id)
+		if lucky.Id == "Golden" then
+			part.Color = Color3.fromRGB(255, 205, 50)
+			part.Material = Enum.Material.Foil
+			addSparkles(part, Color3.fromRGB(255, 230, 120), 8)
+		else
+			part.Color = Color3.fromRGB(255, 80, 200) -- clients cycle the hue
+			part.Material = Enum.Material.Neon
+			addSparkles(part, Color3.new(1, 1, 1), 20)
+		end
+		local light = Instance.new("PointLight")
+		light.Color = part.Color
+		light.Range = 16
+		light.Brightness = 2
+		light.Parent = part
+		addCrystals(part, part.Color, part.Material)
+	elseif ore.Glow then
 		local light = Instance.new("PointLight")
 		light.Color = ore.Color
 		light.Range = 10
 		light.Brightness = 1.4
 		light.Parent = part
+		addCrystals(part, ore.Color, Enum.Material.Neon)
 	end
 	part.Parent = oreFolder
 	slot.Part = part
-	blockInfo[part] = { Slot = slot, Ore = oreId, HP = ore.HP, Zone = slot.Zone }
+	blockInfo[part] = { Slot = slot, Ore = oreId, HP = hp, MaxHP = hp, Zone = slot.Zone, Lucky = lucky }
 	zoneBlocks[slot.Zone][part] = true
+	if lucky and lucky.Announce then
+		Net:Announce("🌈 A RAINBOW ORE appeared in " .. Config.Zones[slot.Zone].Name .. "! (50x value)", Color3.fromRGB(255, 120, 230))
+	end
 end
 
 local function removeBlock(part: BasePart, info)
@@ -2940,7 +3351,8 @@ local function removeBlock(part: BasePart, info)
 	zoneBlocks[info.Zone][part] = nil
 	info.Slot.Part = nil
 	part:Destroy()
-	task.delay(Config.World.OreRespawnSeconds, spawnBlock, info.Slot)
+	local delay = Config.World.OreRespawnSeconds * Services.EventService:Get("RespawnMult", 1)
+	task.delay(delay, spawnBlock, info.Slot)
 end
 
 local function withinReach(root: BasePart, part: BasePart, extra: number?): boolean
@@ -2988,20 +3400,55 @@ local function mineBlock(player: Player, data, part: BasePart)
 	end
 
 	local ore = Config.Ores[info.Ore]
-	info.HP -= stats:Damage(player, data)
+	local damage = stats:Damage(player, data)
+	local crit = math.random() < Config.Crit.Chance
+	if crit then
+		damage *= Config.Crit.Multiplier
+		data.Stats.Crits += 1
+	end
+	info.HP -= damage
 	if info.HP > 0 then
 		part:SetAttribute("HP", info.HP)
-		Net:Send(player, "MineHit", part, info.HP / ore.HP)
+		Net:Send(player, "MineHit", part, info.HP / info.MaxHP, crit, damage)
 		return
 	end
 
-	local gained = math.min(ore.Value, capacity - data.Backpack)
+	-- combo: consecutive breaks within the window
+	local now = os.clock()
+	local combo = combos[player]
+	if combo and now - combo.Last <= Config.Combo.Window then
+		combo.Count += 1
+	else
+		combo = { Count = 1, Last = now }
+		combos[player] = combo
+	end
+	combo.Last = now
+	data.Stats.BestCombo = math.max(data.Stats.BestCombo, combo.Count)
+	local comboBonus = math.min(Config.Combo.MaxBonus, (combo.Count - 1) * Config.Combo.BonusPer)
+
+	local events = Services.EventService
+	local lucky = info.Lucky
+	local value = ore.Value * (if lucky then lucky.ValueMult else 1) * events:Get("ValueMult", 1) * (1 + comboBonus)
+	local gained = math.min(math.floor(value), capacity - data.Backpack)
 	data.Backpack += gained
 	data.Stats.BlocksMined += 1
-	local extra = {}
+
+	local extra = { Crit = crit, Combo = combo.Count, Lucky = if lucky then lucky.Id else nil, Damage = damage }
+	local gems = 0
 	if ore.GemChance and math.random() < ore.GemChance then
-		data.Gems += ore.Gems
-		extra.Gems = ore.Gems
+		gems += ore.Gems
+	end
+	local stormChance = events:Get("GemChance", 0)
+	if stormChance > 0 and math.random() < stormChance then
+		gems += info.Zone
+	end
+	if lucky then
+		gems += lucky.Gems
+		data.Stats.LuckyOres += 1
+	end
+	if gems > 0 then
+		data.Gems += gems
+		extra.Gems = gems
 	end
 	if ore.Stardust then
 		data.Stardust += ore.Stardust
@@ -3009,13 +3456,34 @@ local function mineBlock(player: Player, data, part: BasePart)
 	end
 	local position = part.Position
 	removeBlock(part, info)
-	Services.ProgressionService:OnBlockMined(player, info.Zone)
+	local progression = Services.ProgressionService
+	progression:OnBlockMined(player, info.Zone)
+	progression:AddXP(player, info.Zone * (if lucky then 10 else 1))
 	Net:Send(player, "MineBreak", position, info.Ore, gained, extra)
+	if lucky and lucky.Announce then
+		Net:Announce(
+			string.format("🌈 %s mined a RAINBOW %s! (+%d 💎)", player.DisplayName, ore.Name, gems),
+			Color3.fromRGB(255, 120, 230)
+		)
+	end
 
 	if data.Backpack >= capacity and monetization:HasPass(player, "AutoSell") then
 		Services.EconomyService:Sell(player, true)
 	end
 	Data:MarkDirty(player)
+end
+
+-- DEV: turn the block closest to the player into a Rainbow ore
+function Mining:DevRainbow(player: Player)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart
+	local target = root and nearestBlock(root)
+	if not target then
+		return false
+	end
+	local slot = blockInfo[target].Slot
+	removeBlock(target, blockInfo[target]) -- the scheduled respawn no-ops because we refill now
+	spawnBlock(slot, Config.LuckyOres[1])
+	return true
 end
 
 ---------------------------------------------------------------------------
@@ -3183,6 +3651,7 @@ function Mining:Start()
 	Players.PlayerRemoving:Connect(function(player)
 		lastSwing[player] = nil
 		immunity[player] = nil
+		combos[player] = nil
 	end)
 end
 
@@ -3190,7 +3659,7 @@ return Mining
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="18">
+        <Item class="ModuleScript" referent="19">
           <Properties>
             <string name="Name">MonetizationService</string>
             <string name="Source"><![CDATA[--[[
@@ -3596,7 +4065,7 @@ return Monetization
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="19">
+        <Item class="ModuleScript" referent="20">
           <Properties>
             <string name="Name">Net</string>
             <string name="Source"><![CDATA[--[[
@@ -3709,7 +4178,7 @@ return Net
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="20">
+        <Item class="ModuleScript" referent="21">
           <Properties>
             <string name="Name">PetService</string>
             <string name="Source"><![CDATA[--[[
@@ -3744,9 +4213,19 @@ local function luckFn(luck: number)
 end
 PetService.LuckFn = luckFn
 
-local function power(name: string): number
-	local info = Config.Pets[name]
-	return if info then info.Power else 0
+local function power(pet): number
+	return Util.PetPower(Config, pet.Name, pet.Variant)
+end
+
+-- Golden / Rainbow roll; luck raises the chance (capped at x4)
+local function rollVariant(luck: number): string?
+	local mult = math.clamp(luck, 1, 4)
+	for _, def in Config.PetVariants do
+		if math.random() < def.Chance * mult then
+			return def.Id
+		end
+	end
+	return nil
 end
 
 function PetService:RefreshEquipped(player: Player)
@@ -3763,7 +4242,8 @@ function PetService:RefreshEquipped(player: Player)
 	for _, id in data.Equipped do
 		if byId[id] and not table.find(valid, id) and #valid < slots then
 			table.insert(valid, id)
-			table.insert(names, byId[id].Name)
+			-- "Variant|Name" so every client can render golden/rainbow pets
+			table.insert(names, (byId[id].Variant or "") .. "|" .. byId[id].Name)
 		end
 	end
 	data.Equipped = valid
@@ -3771,8 +4251,8 @@ function PetService:RefreshEquipped(player: Player)
 	Data:MarkDirty(player)
 end
 
-local function addPet(player: Player, data, name: string)
-	local pet = { Id = data.NextPetUid, Name = name }
+local function addPet(player: Player, data, name: string, variant: string?)
+	local pet = { Id = data.NextPetUid, Name = name, Variant = variant }
 	data.NextPetUid += 1
 	table.insert(data.Pets, pet)
 	data.PetIndex[name] = true
@@ -3782,13 +4262,17 @@ local function addPet(player: Player, data, name: string)
 	return pet
 end
 
-local function announceIfRare(player: Player, name: string, eggName: string)
+local function announceIfRare(player: Player, name: string, variant: string?, eggName: string)
 	local info = Config.Pets[name]
 	local rarity = info and Config.Rarities[info.Rarity]
-	if rarity and rarity.Order >= Config.AnnounceRarity then
+	if not rarity then
+		return
+	end
+	if rarity.Order >= Config.AnnounceRarity or variant == "Rainbow" then
+		local label = if variant then string.upper(variant) .. " " .. string.upper(info.Rarity) else string.upper(info.Rarity)
 		Net:Announce(
-			string.format("🥚 %s hatched a %s %s from the %s!", player.DisplayName, string.upper(info.Rarity), name, eggName),
-			rarity.Color
+			string.format("🥚 %s hatched a %s %s from the %s!", player.DisplayName, label, name, eggName),
+			if variant == "Rainbow" then Color3.fromRGB(255, 120, 230) else rarity.Color
 		)
 	end
 end
@@ -3800,9 +4284,10 @@ local function roll(player: Player, data, eggId: string, count: number)
 	local results = {}
 	for _ = 1, count do
 		local name = Util.WeightedPick(egg.Pets, fn)
-		addPet(player, data, name)
-		table.insert(results, name)
-		announceIfRare(player, name, egg.Name)
+		local variant = rollVariant(luck)
+		addPet(player, data, name, variant)
+		table.insert(results, { Name = name, Variant = variant })
+		announceIfRare(player, name, variant, egg.Name)
 	end
 	data.Stats.EggsHatched += count
 	Services.ProgressionService:AddQuest(player, "Hatch", count)
@@ -3811,14 +4296,14 @@ local function roll(player: Player, data, eggId: string, count: number)
 	return results
 end
 
-function PetService:GrantPet(player: Player, name: string)
+function PetService:GrantPet(player: Player, name: string, variant: string?)
 	local data = Data:Get(player)
 	if not data or not Config.Pets[name] then
 		return
 	end
-	addPet(player, data, name)
+	addPet(player, data, name, variant)
 	self:RefreshEquipped(player)
-	Net:Send(player, "HatchResult", { name }, nil)
+	Net:Send(player, "HatchResult", { { Name = name, Variant = variant } }, nil)
 end
 
 function PetService:PaidHatch(player: Player, eggId: string, count: number)
@@ -3910,7 +4395,7 @@ function PetService:Start()
 		end
 		local sorted = table.clone(data.Pets)
 		table.sort(sorted, function(a, b)
-			return power(a.Name) > power(b.Name)
+			return power(a) > power(b)
 		end)
 		local slots = Services.StatsService:PetSlots(player, data)
 		data.Equipped = {}
@@ -3946,7 +4431,8 @@ function PetService:Start()
 		local removed = 0
 		for _, pet in data.Pets do
 			local info = Config.Pets[pet.Name]
-			if info and info.Rarity == rarity and not table.find(data.Equipped, pet.Id) then
+			-- golden / rainbow pets are never bulk-deleted
+			if info and info.Rarity == rarity and not pet.Variant and not table.find(data.Equipped, pet.Id) then
 				removed += 1
 			else
 				table.insert(kept, pet)
@@ -3962,7 +4448,7 @@ return PetService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="21">
+        <Item class="ModuleScript" referent="22">
           <Properties>
             <string name="Name">ProgressionService</string>
             <string name="Source"><![CDATA[--[[
@@ -3987,6 +4473,7 @@ local Services
 local Data
 
 local sessionStart = {} -- [player] = unix time
+local overtakeCooldown = {} -- ["a>b"] = os.clock()
 local giftsClaimed = {} -- [player] = { [index] = true }
 local questById = {}
 for _, quest in Config.Quests do
@@ -4013,7 +4500,7 @@ function Progression:GiftsClaimed(player: Player)
 	return list
 end
 
-function Progression:GrantReward(player: Player, reward, source: string?)
+function Progression:GrantReward(player: Player, reward, source: string?, silent: boolean?)
 	local data = Data:Get(player)
 	if not data or not reward then
 		return
@@ -4032,10 +4519,37 @@ function Progression:GrantReward(player: Player, reward, source: string?)
 		Services.BoostService:Add(player, reward.Boost[1], reward.Boost[2])
 	end
 	if reward.Pet then
-		Services.PetService:GrantPet(player, reward.Pet)
+		Services.PetService:GrantPet(player, reward.Pet, reward.Variant)
 	end
 	Data:MarkDirty(player)
-	Net:Send(player, "Reward", Util.RewardText(reward), source)
+	if not silent then
+		Net:Send(player, "Reward", Util.RewardText(reward), source)
+	end
+end
+
+-- player level: every block gives XP; level-ups give gems + a permanent coin bonus
+function Progression:AddXP(player: Player, amount: number)
+	local data = Data:Get(player)
+	if not data or amount <= 0 then
+		return
+	end
+	data.XP += amount
+	local levels = Config.Levels
+	local guard = 0
+	while data.XP >= Util.XPForLevel(Config, data.Level) and guard < 50 do
+		guard += 1
+		data.XP -= Util.XPForLevel(Config, data.Level)
+		data.Level += 1
+		local gems = levels.GemsPerLevel
+		if data.Level % levels.MilestoneEvery == 0 then
+			gems += levels.MilestoneGems
+			Net:Announce(string.format("⭐ %s reached LEVEL %d!", player.DisplayName, data.Level), Color3.fromRGB(255, 220, 90))
+		end
+		data.Gems += gems
+		Net:Send(player, "LevelUp", data.Level, gems)
+		Services.CharacterService:RefreshOverhead(player)
+	end
+	Data:MarkDirty(player)
 end
 
 function Progression:AddQuest(player: Player, questType: string, amount: number)
@@ -4061,10 +4575,27 @@ function Progression:AddPoints(player: Player, amount: number)
 		return
 	end
 	local _, before = Util.RankFor(Config, data.Weekly.Points)
+	local oldPoints = data.Weekly.Points
 	data.Weekly.Points += amount
+	-- in-server rivalry: tell both players when someone overtakes
+	local now = os.clock()
+	for _, other in Data:LoadedPlayers() do
+		local otherData = other ~= player and Data:Get(other)
+		if otherData then
+			local theirs = otherData.Weekly.Points
+			if oldPoints <= theirs and data.Weekly.Points > theirs and theirs > 0 then
+				local key = player.UserId .. ">" .. other.UserId
+				if not overtakeCooldown[key] or now - overtakeCooldown[key] > 90 then
+					overtakeCooldown[key] = now
+					Net:Notify(player, "⬆️ You passed " .. other.DisplayName .. " in the weekly ranking!", Color3.fromRGB(120, 255, 170))
+					Net:Notify(other, "⬇️ " .. player.DisplayName .. " just passed you! Take it back!", Color3.fromRGB(255, 120, 120))
+				end
+			end
+		end
+	end
 	local rank, after = Util.RankFor(Config, data.Weekly.Points)
 	if after > before then
-		Net:Notify(player, "🏅 RANK UP! You are now " .. string.upper(rank.Name) .. "!", rank.Color)
+		Net:Send(player, "RankUp", rank.Name)
 		if after >= 5 then
 			Net:Announce(string.format("🏅 %s reached %s rank this week!", player.DisplayName, string.upper(rank.Name)), rank.Color)
 		end
@@ -4312,6 +4843,57 @@ function Progression:Start()
 		self:GrantReward(player, { Gems = Config.Social.VipDailyGems }, "VIP daily chest")
 	end)
 
+	-- promo codes ---------------------------------------------------------
+	Net:OnRequest("RedeemCode", 1, function(player, code)
+		local data = Data:Get(player)
+		if not data or type(code) ~= "string" then
+			return false, "Enter a code"
+		end
+		code = string.upper((code:gsub("%s+", "")))
+		local def = Config.Codes[code]
+		if not def then
+			return false, "Invalid code"
+		end
+		if def.ExpiresAt and def.ExpiresAt > 0 and os.time() > def.ExpiresAt then
+			return false, "This code has expired"
+		end
+		if data.Codes[code] then
+			return false, "Already redeemed"
+		end
+		data.Codes[code] = true
+		self:GrantReward(player, def.Reward, "Code " .. code)
+		return true, "Redeemed: " .. Util.RewardText(def.Reward)
+	end)
+
+	-- free prize wheel ------------------------------------------------------
+	Net:OnRequest("Spin", 1, function(player)
+		local data = Data:Get(player)
+		if not data then
+			return nil
+		end
+		local now = os.time()
+		if data.FreeSpinAt > now then
+			return { Error = "Next free spin in " .. Util.FormatTime(data.FreeSpinAt - now) }
+		end
+		local cooldown = if Services.MonetizationService:HasPass(player, "VIP")
+			then Config.Spin.VipCooldownSeconds
+			else Config.Spin.CooldownSeconds
+		data.FreeSpinAt = now + cooldown
+		local entries = {}
+		for i, entry in Config.Spin.Rewards do
+			entries[i] = { i, entry.Weight }
+		end
+		local index = Util.WeightedPick(entries)
+		local entry = Config.Spin.Rewards[index]
+		-- granted now, revealed by the wheel animation on the client
+		self:GrantReward(player, entry.Reward, "Spin", true)
+		if entry.Jackpot then
+			Net:Announce("🎡 " .. player.DisplayName .. " hit the JACKPOT on the prize wheel!", Color3.fromRGB(255, 230, 120))
+		end
+		Data:MarkDirty(player)
+		return { Index = index, Text = Util.RewardText(entry.Reward) }
+	end)
+
 	Net:On("ClaimGroup", 2, function(player)
 		local data = Data:Get(player)
 		if not data or Config.GroupId == 0 or data.Flags.GroupReward then
@@ -4332,7 +4914,7 @@ return Progression
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="22">
+        <Item class="ModuleScript" referent="23">
           <Properties>
             <string name="Name">StatsService</string>
             <string name="Source"><![CDATA[--[[
@@ -4352,6 +4934,7 @@ local Services
 local Data
 
 local friendCache = {} -- ["a:b"] = bool
+local serverRank
 
 local function has(player, key)
 	return Services.MonetizationService:HasPass(player, key)
@@ -4369,10 +4952,7 @@ function Stats:PetPower(_player, data): number
 	local total = 0
 	for _, pet in data.Pets do
 		if equipped[pet.Id] then
-			local info = Config.Pets[pet.Name]
-			if info then
-				total += info.Power
-			end
+			total += Util.PetPower(Config, pet.Name, pet.Variant)
 		end
 	end
 	return total
@@ -4430,6 +5010,7 @@ function Stats:CoinMultiplier(player, data): number
 		mult *= 2
 	end
 	local bonus = self:SocialBonus(player)
+	bonus += (data.Level - 1) * Config.Levels.CoinBonusPer
 	if has(player, "VIP") then
 		bonus += Config.Social.VipCoinBonus
 	end
@@ -4460,6 +5041,32 @@ function Stats:Capacity(player, data): number
 		cap *= 2
 	end
 	return cap
+end
+
+-- weekly-points standing among players in THIS server (+ who to beat next)
+serverRank = function(player: Player, data)
+	local list = {}
+	for _, other in Data:LoadedPlayers() do
+		local otherData = Data:Get(other)
+		if otherData then
+			table.insert(list, { Player = other, Points = otherData.Weekly.Points })
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.Points > b.Points
+	end)
+	for place, entry in list do
+		if entry.Player == player then
+			local ahead = list[place - 1]
+			return {
+				Place = place,
+				Count = #list,
+				NextName = ahead and ahead.Player.DisplayName or nil,
+				NextGap = ahead and (ahead.Points - data.Weekly.Points + 1) or nil,
+			}
+		end
+	end
+	return { Place = 1, Count = 1 }
 end
 
 function Stats:BuildDerived(player)
@@ -4493,6 +5100,11 @@ function Stats:BuildDerived(player)
 		GiftsClaimed = progression and progression:GiftsClaimed(player) or {},
 		PaidRandomRestricted = player:GetAttribute("PaidRandomRestricted") == true,
 		AdsEnabled = Config.RewardedAds.Enabled,
+		XPNeeded = Util.XPForLevel(Config, data.Level),
+		SpinCooldown = if Services.MonetizationService:HasPass(player, "VIP")
+			then Config.Spin.VipCooldownSeconds
+			else Config.Spin.CooldownSeconds,
+		ServerRank = serverRank(player, data),
 		ServerTime = os.time(),
 	}
 end
@@ -4560,7 +5172,7 @@ return Stats
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="23">
+        <Item class="ModuleScript" referent="24">
           <Properties>
             <string name="Name">WorldService</string>
             <string name="Source"><![CDATA[--[[
@@ -4579,13 +5191,73 @@ local Net = require(script.Parent.Net)
 local World = {}
 local Services
 
-local HUB_HALF = 80
-local ZONE_W = 100
-local ZONE_L = 100
-local GAP = 10
-local FIRST_Z = 90
+local LAYOUT = Config.World.Layout
+local HUB_HALF = LAYOUT.HubHalf
+local ZONE_W = LAYOUT.ZoneWidth
+local ZONE_L = LAYOUT.ZoneLength
+local GAP = LAYOUT.Gap
+local FIRST_Z = LAYOUT.FirstZ
 local CORRIDOR_W = 24
 local WALL_H = 16
+
+-- per-zone ambient particles (index = zone)
+local AMBIENCE = {
+	{ -- Meadow: fireflies
+		Color = Color3.fromRGB(220, 255, 120),
+		Light = 1,
+		Size = 0.25,
+		Life = { 3, 5 },
+		Rate = 14,
+		Speed = { 0.4, 1.2 },
+		Acceleration = Vector3.new(0, 0.3, 0),
+		Direction = Enum.NormalId.Top,
+		Height = 4,
+	},
+	{ -- Frost: snow
+		Color = Color3.fromRGB(240, 250, 255),
+		Light = 0.3,
+		Size = 0.35,
+		Life = { 7, 9 },
+		Rate = 45,
+		Speed = { 2, 4 },
+		Acceleration = Vector3.new(0.5, -1, 0),
+		Direction = Enum.NormalId.Bottom,
+		Height = 30,
+	},
+	{ -- Lava: rising embers
+		Color = Color3.fromRGB(255, 130, 40),
+		Light = 1,
+		Size = 0.3,
+		Life = { 3, 5 },
+		Rate = 35,
+		Speed = { 3, 6 },
+		Acceleration = Vector3.new(0, 2, 0),
+		Direction = Enum.NormalId.Top,
+		Height = 0.6,
+	},
+	{ -- Void: drifting motes
+		Color = Color3.fromRGB(190, 120, 255),
+		Light = 1,
+		Size = 0.4,
+		Life = { 4, 6 },
+		Rate = 22,
+		Speed = { 0.5, 1.5 },
+		Acceleration = Vector3.new(0, 0.5, 0),
+		Direction = Enum.NormalId.Top,
+		Height = 6,
+	},
+	{ -- Star Crater: falling stars
+		Color = Color3.fromRGB(255, 140, 220),
+		Light = 1,
+		Size = 0.5,
+		Life = { 4, 6 },
+		Rate = 28,
+		Speed = { 6, 10 },
+		Acceleration = Vector3.new(1, -2, 0),
+		Direction = Enum.NormalId.Bottom,
+		Height = 45,
+	},
+}
 
 World.Zones = {}
 World.OreSlots = {}
@@ -4886,7 +5558,7 @@ local function buildHub()
 	spawn.Name = "Spawn"
 	spawn.Anchored = true
 	spawn.Size = Vector3.new(12, 1, 12)
-	spawn.CFrame = CFrame.new(0, 0.5, -60)
+	spawn.CFrame = CFrame.new(0, 0.5, -60) * CFrame.Angles(0, math.pi, 0) -- face the mines
 	spawn.Color = Color3.fromRGB(255, 220, 120)
 	spawn.Material = Enum.Material.Neon
 	spawn.Neutral = true
@@ -4894,6 +5566,42 @@ local function buildHub()
 	spawn.TopSurface = Enum.SurfaceType.Smooth
 	spawn.Parent = hub
 	billboard(spawn, Config.GameName, Color3.fromRGB(255, 230, 120), 14, 360, 80)
+
+	-- signs facing the spawn: the core hooks + "like & favorite" (algorithm signal)
+	local function sign(position: Vector3, text: string, color: Color3)
+		local board = newPart({
+			Name = "Sign",
+			Size = Vector3.new(16, 7, 0.6),
+			CFrame = CFrame.new(position),
+			Color = Color3.fromRGB(25, 25, 38),
+			Material = Enum.Material.SmoothPlastic,
+		}, hub)
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Front
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 30
+		gui.LightInfluence = 0
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.FredokaOne
+		label.TextScaled = true
+		label.TextColor3 = color
+		label.Text = text
+		label.Parent = gui
+		gui.Parent = board
+		for _, x in { -7.6, 7.6 } do
+			newPart({
+				Name = "Post",
+				Size = Vector3.new(0.6, 6, 0.6),
+				CFrame = CFrame.new(position + Vector3.new(x, -6, 0.4)),
+				Color = Color3.fromRGB(60, 60, 70),
+				Material = Enum.Material.Metal,
+			}, hub)
+		end
+	end
+	sign(Vector3.new(-18, 9, -46), "👍 LIKE + ⭐ FAVORITE\nfor new CODES & updates!", Color3.fromRGB(255, 220, 90))
+	sign(Vector3.new(18, 9, -46), "☄️ METEOR every 7 min\n🎡 FREE SPIN • 🏆 WEEKLY RANKS", Color3.fromRGB(120, 230, 255))
 
 	-- sell pad
 	local sell = newPart({
@@ -5038,6 +5746,60 @@ local function buildZones()
 			lamp(pos, zone.Accent, zf)
 		end
 
+		-- ambient particles: every zone has its own mood
+		local mood = AMBIENCE[index]
+		if mood then
+			local emitterPart = newPart({
+				Name = "Ambience",
+				Size = Vector3.new(ZONE_W - 4, 1, ZONE_L - 4),
+				CFrame = CFrame.new(0, mood.Height, zStart + ZONE_L / 2),
+				Transparency = 1,
+				CanCollide = false,
+				CanQuery = false,
+				CanTouch = false,
+			}, zf)
+			local emitter = Instance.new("ParticleEmitter")
+			emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+			emitter.Color = ColorSequence.new(mood.Color)
+			emitter.LightEmission = mood.Light
+			emitter.Size = NumberSequence.new(mood.Size)
+			emitter.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.2, 0.15),
+				NumberSequenceKeypoint.new(0.8, 0.3),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			emitter.Lifetime = NumberRange.new(mood.Life[1], mood.Life[2])
+			emitter.Rate = mood.Rate
+			emitter.Speed = NumberRange.new(mood.Speed[1], mood.Speed[2])
+			emitter.Acceleration = mood.Acceleration
+			emitter.EmissionDirection = mood.Direction
+			emitter.SpreadAngle = Vector2.new(25, 25)
+			emitter.Parent = emitterPart
+		end
+
+		-- glowing crystal clusters along the walls
+		local crystalRng = Random.new(500 + index)
+		for i = 1, 8 do
+			local side = if i % 2 == 0 then 1 else -1
+			local base = Vector3.new(side * 47, 0, zStart + 10 + (i - 1) * 11)
+			for _ = 1, 3 do
+				local height = crystalRng:NextNumber(3, 7)
+				newPart({
+					Name = "WallCrystal",
+					Size = Vector3.new(1.4, height, 1.4),
+					CFrame = CFrame.new(base + Vector3.new(crystalRng:NextNumber(-1.5, 1.5), height / 2 - 0.5, crystalRng:NextNumber(-1.5, 1.5)))
+						* CFrame.Angles(crystalRng:NextNumber(-0.35, 0.35), crystalRng:NextNumber(0, 3), crystalRng:NextNumber(-0.35, 0.35)),
+					Color = zone.Accent,
+					Material = Enum.Material.Neon,
+					Transparency = 0.15,
+					CanCollide = false,
+					CanQuery = false,
+					CastShadow = false,
+				}, zf)
+			end
+		end
+
 		-- floating zone title
 		local titleAnchor = newPart({
 			Name = "TitleAnchor",
@@ -5158,23 +5920,143 @@ return World
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="24">
+  <Item class="StarterPlayer" referent="25">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="25">
+    <Item class="StarterPlayerScripts" referent="26">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="26">
+      <Item class="Folder" referent="27">
         <Properties>
           <string name="Name">Client</string>
         </Properties>
-        <Item class="Folder" referent="27">
+        <Item class="Folder" referent="28">
           <Properties>
             <string name="Name">Controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="28">
+          <Item class="ModuleScript" referent="29">
+            <Properties>
+              <string name="Name">Ambience</string>
+              <string name="Source"><![CDATA[--[[
+	Zone ambience: entering a zone tints the screen to its mood, shows a big
+	zone title (sense of progress/exploration) and switches background music
+	if you set music ids in Config.Music.
+]]
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Util = require(Shared.Util)
+
+local Client = script.Parent.Parent
+local Lib = require(Client.UI.Lib)
+local Root = require(Client.UI.Root)
+
+local player = Players.LocalPlayer
+
+local MOODS = {
+	[0] = { Title = "🏠 HUB", Tint = Color3.fromRGB(255, 255, 255) },
+	[1] = { Title = "🌿 MEADOW MINE", Tint = Color3.fromRGB(245, 255, 235) },
+	[2] = { Title = "❄️ FROST CAVERN", Tint = Color3.fromRGB(215, 235, 255) },
+	[3] = { Title = "🔥 LAVA DEPTHS", Tint = Color3.fromRGB(255, 222, 200) },
+	[4] = { Title = "🔮 CRYSTAL VOID", Tint = Color3.fromRGB(232, 215, 255) },
+	[5] = { Title = "⚔️ STAR CRATER", Tint = Color3.fromRGB(255, 210, 232) },
+}
+
+local tint = Instance.new("ColorCorrectionEffect")
+tint.Name = "ZoneTint"
+tint.Parent = Lighting
+
+-- big zone title
+local cluster = Root.Cluster("ZoneTitle", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.22), UDim2.fromOffset(600, 80))
+local title = Lib.Text({ Text = "", Size = UDim2.fromScale(1, 1), MaxTextSize = 60, Visible = false, Parent = cluster })
+local titleToken = 0
+local function showTitle(text: string, color: Color3)
+	titleToken += 1
+	local token = titleToken
+	title.Text = text
+	title.TextColor3 = color
+	title.TextTransparency = 0
+	title.Visible = true
+	Lib.Pop(title)
+	task.delay(1.8, function()
+		if token ~= titleToken then
+			return
+		end
+		local tween = TweenService:Create(title, TweenInfo.new(0.6), { TextTransparency = 1 })
+		tween:Play()
+		tween.Completed:Wait()
+		if token == titleToken then
+			title.Visible = false
+		end
+	end)
+end
+
+-- optional music
+local music = Instance.new("Sound")
+music.Name = "BGM"
+music.Looped = true
+music.Volume = 0
+music.Parent = SoundService
+local currentTrack = ""
+local function playTrack(id: string)
+	if id == currentTrack then
+		return
+	end
+	currentTrack = id
+	TweenService:Create(music, TweenInfo.new(0.8), { Volume = 0 }):Play()
+	task.delay(0.8, function()
+		if currentTrack ~= id then
+			return
+		end
+		if id == "" then
+			music:Stop()
+			return
+		end
+		music.SoundId = id
+		music:Play()
+		TweenService:Create(music, TweenInfo.new(1.2), { Volume = Config.Music.Volume or 0.3 }):Play()
+	end)
+end
+
+local currentZone = -1
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart
+		if root then
+			local zone = Util.ZoneAt(Config, root.Position)
+			if zone and zone ~= currentZone then
+				local first = currentZone == -1
+				currentZone = zone
+				local mood = MOODS[zone] or MOODS[0]
+				TweenService:Create(tint, TweenInfo.new(1.2), { TintColor = mood.Tint }):Play()
+				if not first then
+					local zoneConfig = Config.Zones[zone]
+					showTitle(mood.Title, if zoneConfig then zoneConfig.Accent else Color3.fromRGB(255, 230, 120))
+				end
+			end
+			local meteorActive = workspace:GetAttribute("MeteorState") == "Active"
+			local wanted = if meteorActive and Config.Music.Meteor ~= ""
+				then Config.Music.Meteor
+				elseif currentZone == 0 then Config.Music.Hub
+				else Config.Music.Mine
+			playTrack(wanted or "")
+		end
+	end
+end)
+
+return {}
+]]></string>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="30">
             <Properties>
               <string name="Name">DevTools</string>
               <string name="Source"><![CDATA[--[[
@@ -5197,11 +6079,11 @@ local Root = require(Client.UI.Root)
 local C = Lib.Colors
 
 local function build()
-	local cluster = Root.Cluster("Dev", Vector2.new(0, 1), UDim2.new(0, 12, 1, -12), UDim2.fromOffset(150, 330))
+	local cluster = Root.Cluster("Dev", Vector2.new(0, 1), UDim2.new(0, 12, 1, -12), UDim2.fromOffset(150, 400))
 	local list = Lib.New("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, -40), Visible = false, Parent = cluster }, {
 		Lib.List(Enum.FillDirection.Vertical, 4, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Bottom),
 	})
-	for order, command in { "Coins", "Gems", "Stardust", "Points", "XP", "Meteor", "Fill", "Reset" } do
+	for order, command in { "Coins", "Gems", "Level", "Points", "Event", "Rainbow", "Spin", "Meteor", "Fill", "Reset" } do
 		Lib.Button({
 			Text = command,
 			Color = if command == "Reset" then C.Red else C.Gray,
@@ -5238,7 +6120,162 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="29">
+          <Item class="ModuleScript" referent="31">
+            <Properties>
+              <string name="Name">Guide</string>
+              <string name="Source"><![CDATA[--[[
+	New-player guide: a glowing beam from your character to the next thing
+	to do (mine -> sell -> hatch -> upgrade -> unlock). The first minutes
+	decide whether a player comes back (D1 retention), so never leave them
+	wondering what to do. Turns itself off once the player is established.
+]]
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Util = require(Shared.Util)
+
+local Client = script.Parent.Parent
+local State = require(Client.State)
+local Lib = require(Client.UI.Lib)
+
+local player = Players.LocalPlayer
+
+local MAX_LEVEL = 8 -- guide disappears after this level / zone 3
+local PICKAXE_SHOP = Vector3.new(56, 4, -45)
+local MINE_ENTRANCE = Vector3.new(0, 4, Config.World.Layout.FirstZ + 10)
+
+-- local-only marker part the beam points at
+local marker = Instance.new("Part")
+marker.Name = "GuideMarker"
+marker.Anchored = true
+marker.CanCollide = false
+marker.CanQuery = false
+marker.CanTouch = false
+marker.Transparency = 1
+marker.Size = Vector3.one
+marker.Parent = workspace
+local targetAttachment = Instance.new("Attachment")
+targetAttachment.Parent = marker
+
+local beam = Instance.new("Beam")
+beam.Attachment1 = targetAttachment
+beam.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+beam.TextureMode = Enum.TextureMode.Wrap
+beam.TextureLength = 3
+beam.TextureSpeed = 2
+beam.Color = ColorSequence.new(Color3.fromRGB(255, 230, 120), Color3.fromRGB(255, 160, 60))
+beam.LightEmission = 1
+beam.Width0 = 1.6
+beam.Width1 = 1.6
+beam.FaceCamera = true
+beam.Segments = 20
+beam.Transparency = NumberSequence.new(0.1, 0.4)
+beam.Enabled = false
+beam.Parent = marker
+
+local billboard = Lib.New("BillboardGui", {
+	Size = UDim2.fromOffset(240, 70),
+	StudsOffsetWorldSpace = Vector3.new(0, 6, 0),
+	AlwaysOnTop = true,
+	Adornee = marker,
+	Enabled = false,
+	ResetOnSpawn = false,
+	Parent = player:WaitForChild("PlayerGui"),
+})
+local label = Lib.Text({ Text = "", TextColor3 = Color3.fromRGB(255, 230, 120), Size = UDim2.fromScale(1, 0.55), MaxTextSize = 30, Parent = billboard })
+local arrow = Lib.Text({ Text = "⬇", TextColor3 = Color3.fromRGB(255, 230, 120), Size = UDim2.fromScale(1, 0.45), Position = UDim2.fromScale(0, 0.55), MaxTextSize = 30, Parent = billboard })
+
+local function part(path: { string }): BasePart?
+	local node: Instance? = workspace:FindFirstChild("Map")
+	for _, name in path do
+		node = node and node:FindFirstChild(name)
+	end
+	return if node and node:IsA("BasePart") then node else nil
+end
+
+-- returns target position + label, or nil when the player needs no help
+local function pickTarget(root: BasePart)
+	local data, derived = State.Data, State.Derived
+	if not data or not derived then
+		return nil
+	end
+	if (data.Level or 1) >= MAX_LEVEL or data.ZoneLevel >= 3 then
+		return nil
+	end
+	local capacity = derived.Capacity or math.huge
+	if data.Backpack >= capacity then
+		local pad = part({ "Hub", "SellPad" })
+		return pad and pad.Position + Vector3.new(0, 1, 0), "💰 SELL YOUR ORE"
+	end
+	if data.Stats.EggsHatched == 0 and data.Coins >= Config.Eggs.Meadow.Price then
+		local egg = part({ "Hub", "Eggs", "MeadowEgg" })
+		return egg and egg.Position, "🥚 HATCH A PET"
+	end
+	local pick = Config.Pickaxes[data.PickaxeTier + 1]
+	if pick and data.Coins >= pick.Cost and data.PickaxeTier < 4 then
+		return PICKAXE_SHOP, "⛏️ BETTER PICKAXE"
+	end
+	local zone = Config.Zones[data.ZoneLevel + 1]
+	if zone and data.Coins >= zone.Cost then
+		local gate = part({ "Gates", "Gate_" .. (data.ZoneLevel + 1) })
+		return gate and gate.Position, "🔓 UNLOCK " .. string.upper(zone.Name)
+	end
+	if Util.ZoneAt(Config, root.Position) == 0 and data.Backpack < capacity then
+		return MINE_ENTRANCE, "⛏️ MINE ORE HERE"
+	end
+	return nil
+end
+
+local rootAttachment: Attachment? = nil
+local function attachTo(character: Model)
+	local root = character:WaitForChild("HumanoidRootPart", 10)
+	if root then
+		local attachment = Instance.new("Attachment")
+		attachment.Name = "GuideAttachment"
+		attachment.Parent = root
+		rootAttachment = attachment
+		beam.Attachment0 = attachment
+	end
+end
+player.CharacterAdded:Connect(attachTo)
+if player.Character then
+	task.spawn(attachTo, player.Character)
+end
+
+local accumulator = 0
+RunService.Heartbeat:Connect(function(dt)
+	arrow.Position = UDim2.fromScale(0, 0.55 + math.sin(os.clock() * 5) * 0.06)
+	accumulator += dt
+	if accumulator < 0.4 then
+		return
+	end
+	accumulator = 0
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart
+	if not root or not rootAttachment then
+		beam.Enabled = false
+		billboard.Enabled = false
+		return
+	end
+	local ok, position, text = pcall(pickTarget, root)
+	if not ok or not position then
+		beam.Enabled = false
+		billboard.Enabled = false
+		return
+	end
+	marker.Position = position
+	label.Text = text
+	beam.Enabled = true
+	billboard.Enabled = true
+end)
+
+return {}
+]]></string>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="32">
             <Properties>
               <string name="Name">HUD</string>
               <string name="Source"><![CDATA[--[[
@@ -5246,6 +6283,7 @@ return {}
 	notification badges, active boosts, starter-pack timer, auto-mine toggle,
 	toasts and server-wide announcements.
 ]]
+local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -5344,7 +6382,7 @@ end
 ---------------------------------------------------------------------------
 -- top left: currencies, backpack, goal
 ---------------------------------------------------------------------------
-local topLeft = Root.Cluster("TopLeft", Vector2.zero, UDim2.fromOffset(12, 12), UDim2.fromOffset(360, 460))
+local topLeft = Root.Cluster("TopLeft", Vector2.zero, UDim2.fromOffset(12, 12), UDim2.fromOffset(360, 640))
 Lib.List(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Left).Parent = topLeft
 
 local function pill(order: number, icon: string, color: Color3)
@@ -5364,7 +6402,12 @@ local coinPill, coinLabel = pill(1, "🪙", C.Coins)
 local _, gemLabel = pill(2, "💎", C.Gems)
 local _, dustLabel = pill(3, "✨", C.Stardust)
 
-local backpackRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(290, 36), LayoutOrder = 4, Parent = topLeft })
+-- level bar: every block gives XP, level-ups are frequent early on
+local levelRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(290, 28), LayoutOrder = 4, Parent = topLeft })
+local levelBadge = Lib.Text({ Text = "Lv.1", TextColor3 = C.Gold, Size = UDim2.fromOffset(66, 28), MaxTextSize = 22, Parent = levelRow })
+local _, setLevel = Lib.Bar({ Size = UDim2.fromOffset(220, 22), Position = UDim2.fromOffset(68, 3), Color = C.Gold, TextSize = 14, Parent = levelRow })
+
+local backpackRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(290, 36), LayoutOrder = 5, Parent = topLeft })
 local _, setBackpack = Lib.Bar({ Size = UDim2.fromOffset(200, 32), Position = UDim2.fromOffset(0, 2), Color = C.Blue, TextSize = 18, Parent = backpackRow })
 Lib.Button({
 	Text = "💰 Sell",
@@ -5387,7 +6430,7 @@ local statsLabel = Lib.Text({
 	Text = "",
 	Font = Lib.BodyFont,
 	Size = UDim2.fromOffset(290, 20),
-	LayoutOrder = 5,
+	LayoutOrder = 6,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	MaxTextSize = 15,
 	Parent = topLeft,
@@ -5397,7 +6440,7 @@ local goal = New("Frame", {
 	BackgroundColor3 = Color3.fromRGB(20, 22, 34),
 	BackgroundTransparency = 0.2,
 	Size = UDim2.fromOffset(290, 46),
-	LayoutOrder = 6,
+	LayoutOrder = 7,
 	Parent = topLeft,
 }, { Lib.Corner(12), Lib.Stroke(C.Gold, 2, 0.3) })
 local goalText = Lib.Text({
@@ -5414,7 +6457,7 @@ local goalText = Lib.Text({
 -- left menu
 ---------------------------------------------------------------------------
 -- the menu flows right under the info box (same UIScale), so they never overlap
-local menu = New("Frame", { Name = "Menu", BackgroundTransparency = 1, Size = UDim2.fromOffset(352, 172), LayoutOrder = 7, Parent = topLeft })
+local menu = New("Frame", { Name = "Menu", BackgroundTransparency = 1, Size = UDim2.fromOffset(352, 262), LayoutOrder = 8, Parent = topLeft })
 local menuGrid = Lib.Grid(UDim2.fromOffset(82, 82), 8)
 menuGrid.HorizontalAlignment = Enum.HorizontalAlignment.Left
 menuGrid.Parent = menu
@@ -5428,6 +6471,8 @@ local MENU = {
 	{ "Rebirth", "♻️", "Rebirth", C.Purple },
 	{ "Teleport", "🌀", "Zones", C.Cyan },
 	{ "Store", "🛒", "Store", Color3.fromRGB(60, 200, 110) },
+	{ "Spin", "🎡", "Spin", Color3.fromRGB(255, 170, 40) },
+	{ "Codes", "🎟", "Codes", Color3.fromRGB(120, 200, 90) },
 }
 for order, item in MENU do
 	local button = New("TextButton", {
@@ -5453,7 +6498,7 @@ for order, item in MENU do
 	button.Activated:Connect(function()
 		scale.Scale = 0.9
 		TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-		Lib.PlaySound(Config.Sounds.UI, 0.35)
+		Lib.PlaySound("UI")
 		Panels.Toggle(item[1])
 	end)
 end
@@ -5471,6 +6516,46 @@ local BOOSTS = {
 	{ "Power2x", "💥 2x Power", C.Red },
 	{ "ServerLuck", "🌟 Server Luck", C.Gold },
 }
+-- active server event chip (top of the right column)
+local eventChip = New("Frame", {
+	BackgroundColor3 = Color3.fromRGB(20, 22, 34),
+	BackgroundTransparency = 0.1,
+	Size = UDim2.fromOffset(240, 54),
+	LayoutOrder = 0,
+	Visible = false,
+	Parent = right,
+}, { Lib.Corner(12), Lib.Stroke(C.Gold, 2.5, 0) })
+local eventTitle = Lib.Text({ Text = "", Size = UDim2.new(1, -12, 0, 26), Position = UDim2.fromOffset(6, 3), MaxTextSize = 20, Parent = eventChip })
+local eventDesc = Lib.Text({
+	Text = "",
+	Font = Lib.BodyFont,
+	TextColor3 = C.Sub,
+	Size = UDim2.new(1, -12, 0, 18),
+	Position = UDim2.fromOffset(6, 31),
+	MaxTextSize = 13,
+	Parent = eventChip,
+})
+
+-- where you stand in THIS server (competition you can see)
+local rankChip = New("Frame", {
+	BackgroundColor3 = Color3.fromRGB(20, 22, 34),
+	BackgroundTransparency = 0.15,
+	Size = UDim2.fromOffset(240, 50),
+	LayoutOrder = 5,
+	Visible = false,
+	Parent = right,
+}, { Lib.Corner(12), Lib.Stroke(Color3.fromRGB(255, 215, 80), 2, 0.2) })
+local rankTitle = Lib.Text({ Text = "", TextColor3 = C.Gold, Size = UDim2.new(1, -12, 0, 24), Position = UDim2.fromOffset(6, 3), MaxTextSize = 20, Parent = rankChip })
+local rankSub = Lib.Text({
+	Text = "",
+	Font = Lib.BodyFont,
+	TextColor3 = C.Sub,
+	Size = UDim2.new(1, -12, 0, 18),
+	Position = UDim2.fromOffset(6, 28),
+	MaxTextSize = 13,
+	Parent = rankChip,
+})
+
 for order, def in BOOSTS do
 	local row = New("Frame", {
 		BackgroundColor3 = Color3.fromRGB(20, 22, 34),
@@ -5616,18 +6701,59 @@ local function anyGiftClaimable(derived): boolean
 end
 
 local lastCoins = nil
+local coinValue = Instance.new("NumberValue")
+coinValue.Changed:Connect(function(value)
+	coinLabel.Text = Util.Format(math.floor(value))
+end)
+local eventDefs = {}
+for _, def in Config.Events.List do
+	eventDefs[def.Id] = def
+end
+
 function HUD.Refresh()
 	local data, derived = State.Data, State.Derived
 	if not data then
 		return
 	end
-	coinLabel.Text = Util.Format(data.Coins)
-	gemLabel.Text = Util.Format(data.Gems)
-	dustLabel.Text = Util.Format(data.Stardust)
-	if lastCoins and data.Coins > lastCoins then
-		Lib.Pop(coinPill)
+	if lastCoins == nil then
+		coinValue.Value = data.Coins
+	elseif data.Coins ~= lastCoins then
+		-- numbers roll up instead of jumping (feels rewarding)
+		TweenService:Create(coinValue, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Value = data.Coins }):Play()
+		if data.Coins > lastCoins then
+			Lib.Pop(coinPill)
+		end
 	end
 	lastCoins = data.Coins
+	gemLabel.Text = Util.Format(data.Gems)
+	dustLabel.Text = Util.Format(data.Stardust)
+
+	local need = derived.XPNeeded or 1
+	levelBadge.Text = "Lv." .. (data.Level or 1)
+	setLevel((data.XP or 0) / need, string.format("%s / %s XP", Util.Format(data.XP or 0), Util.Format(need)))
+
+	-- server event chip
+	local eventId = workspace:GetAttribute("EventId")
+	local eventDef = type(eventId) == "string" and eventDefs[eventId]
+	local eventLeft = (workspace:GetAttribute("EventEnd") or 0) - State.Now()
+	eventChip.Visible = eventDef ~= nil and eventLeft > 0
+	if eventChip.Visible and eventDef then
+		eventTitle.Text = eventDef.Name .. "  " .. Util.FormatTime(eventLeft)
+		eventTitle.TextColor3 = eventDef.Color
+		eventDesc.Text = eventDef.Description
+		eventChip:FindFirstChildOfClass("UIStroke").Color = eventDef.Color
+	end
+
+	-- in-server ranking chip
+	local sr = derived.ServerRank
+	rankChip.Visible = type(sr) == "table" and (sr.Count or 0) >= 2
+	if rankChip.Visible then
+		rankTitle.Text = string.format("🏆 #%d of %d in server", sr.Place, sr.Count)
+		rankSub.Text = if sr.NextName
+			then string.format("+%s pts to pass %s", Util.Comma(sr.NextGap or 0), sr.NextName)
+			else "You're #1 here - defend it!"
+	end
+	badges.Spin.Visible = (data.FreeSpinAt or 0) <= State.Now()
 
 	local capacity = derived.Capacity or 1
 	local full = data.Backpack >= capacity
@@ -5679,10 +6805,41 @@ Net.On("Announce", function(text, color)
 end)
 Net.On("Reward", function(text, source)
 	HUD.Toast("🎁 " .. (if source then source .. ": " else "") .. text, C.Gold)
-	Lib.PlaySound(Config.Sounds.Coins, 0.6)
+	Lib.PlaySound("Reward")
 end)
+local function flyCoins(amount: number)
+	local inset = GuiService:GetGuiInset()
+	local target = coinPill.AbsolutePosition + coinPill.AbsoluteSize / 2 + inset
+	local camera = workspace.CurrentCamera
+	local center = if camera then camera.ViewportSize / 2 else Vector2.new(640, 380)
+	local n = math.clamp(math.floor(math.log10(math.max(10, amount)) * 2), 3, 12)
+	for i = 1, n do
+		local icon = Lib.Text({
+			Text = "🪙",
+			Size = UDim2.fromOffset(34, 34),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(center.X + math.random(-80, 80), center.Y + math.random(-60, 60)),
+			MaxTextSize = 30,
+			Outline = false,
+			ZIndex = 60,
+			Parent = Root.Overlay,
+		})
+		task.delay(i * 0.04, function()
+			local tween = TweenService:Create(icon, TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Position = UDim2.fromOffset(target.X, target.Y),
+			})
+			tween:Play()
+			tween.Completed:Once(function()
+				icon:Destroy()
+				Lib.PlaySound("Coin", 0.35, i * 0.04)
+			end)
+		end)
+	end
+end
+
 Net.On("Sold", function(coins)
-	Lib.PlaySound(Config.Sounds.Coins, 0.5)
+	Lib.PlaySound("Coin")
+	flyCoins(coins)
 	local popup = Lib.Text({
 		Text = "+" .. Util.Format(coins) .. " 🪙",
 		TextColor3 = C.Coins,
@@ -5701,6 +6858,72 @@ Net.On("Sold", function(coins)
 		popup:Destroy()
 	end)
 end)
+local function confetti()
+	local camera = workspace.CurrentCamera
+	local size = if camera then camera.ViewportSize else Vector2.new(1280, 760)
+	local colors = { C.Gold, C.Pink, C.Cyan, C.Green, C.Purple }
+	for _ = 1, 36 do
+		local piece = New("Frame", {
+			BackgroundColor3 = colors[math.random(1, #colors)],
+			Size = UDim2.fromOffset(math.random(8, 14), math.random(14, 22)),
+			Position = UDim2.fromOffset(size.X / 2, size.Y * 0.4),
+			Rotation = math.random(0, 360),
+			ZIndex = 70,
+			Parent = Root.Overlay,
+		}, { Lib.Corner(3) })
+		local endPos = UDim2.fromOffset(size.X / 2 + math.random(-450, 450), size.Y * 0.4 + math.random(-250, 350))
+		TweenService:Create(piece, TweenInfo.new(1.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Position = endPos,
+			Rotation = piece.Rotation + math.random(-360, 360),
+			BackgroundTransparency = 1,
+		}):Play()
+		task.delay(1.5, function()
+			piece:Destroy()
+		end)
+	end
+end
+
+local celebration = Root.Cluster("LevelUp", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.32), UDim2.fromOffset(520, 120))
+local celebrationTitle = Lib.Text({ Text = "", TextColor3 = C.Gold, Size = UDim2.fromScale(1, 0.62), MaxTextSize = 64, Visible = false, Parent = celebration })
+local celebrationSub = Lib.Text({
+	Text = "",
+	Size = UDim2.fromScale(1, 0.34),
+	Position = UDim2.fromScale(0, 0.64),
+	MaxTextSize = 30,
+	Visible = false,
+	Parent = celebration,
+})
+local celebrationToken = 0
+local function celebrate(title: string, sub: string, color: Color3)
+	celebrationToken += 1
+	local token = celebrationToken
+	celebrationTitle.Text = title
+	celebrationTitle.TextColor3 = color
+	celebrationSub.Text = sub
+	celebrationTitle.Visible = true
+	celebrationSub.Visible = true
+	Lib.Pop(celebrationTitle)
+	confetti()
+	task.delay(2.2, function()
+		if token == celebrationToken then
+			celebrationTitle.Visible = false
+			celebrationSub.Visible = false
+		end
+	end)
+end
+
+Net.On("LevelUp", function(level, gems)
+	Lib.PlaySound("LevelUp")
+	celebrate("⭐ LEVEL " .. tostring(level) .. "!", "+" .. tostring(gems) .. " 💎  •  +2% coins forever", C.Gold)
+end)
+Net.On("RankUp", function(rankName)
+	Lib.PlaySound("RankUp")
+	celebrate("🏅 " .. string.upper(tostring(rankName)) .. " RANK!", "Weekly ranked - keep climbing!", C.Cyan)
+end)
+Net.On("EventStarted", function()
+	Lib.PlaySound("Event")
+end)
+
 Net.On("Rebirthed", function(count, gems)
 	HUD.Announce(string.format("♻️ REBIRTH %d!  +%s 💎", count, Util.Format(gems)), C.Purple)
 end)
@@ -5752,7 +6975,7 @@ return HUD
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="30">
+          <Item class="ModuleScript" referent="33">
             <Properties>
               <string name="Name">MeteorUI</string>
               <string name="Source"><![CDATA[--[[
@@ -5765,7 +6988,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Config = require(Shared.Config)
 local Util = require(Shared.Util)
 
 local Client = script.Parent.Parent
@@ -5889,7 +7111,7 @@ Net.On("MeteorResult", function(info)
 	resultBody.Text = table.concat(parts, "   ") .. (if info.Destroyed then "" else "\n<font color='#FF8888'>The meteor escaped - half rewards</font>")
 	result.Visible = true
 	Lib.Pop(result)
-	Lib.PlaySound(Config.Sounds.Coins, 0.8)
+	Lib.PlaySound(if info.Place <= 3 then "RankUp" else "Reward")
 	task.delay(7, function()
 		result.Visible = false
 	end)
@@ -5900,7 +7122,7 @@ local lastHitSound = 0
 Net.On("MeteorHit", function(score)
 	if os.clock() - lastHitSound > 0.15 then
 		lastHitSound = os.clock()
-		Lib.PlaySound(Config.Sounds.Break, 0.35)
+		Lib.PlaySound("HitStone", 0.8)
 	end
 	if type(score) == "number" then
 		myLine.Text = string.format("+%.1f pts!", score)
@@ -5909,6 +7131,7 @@ end)
 
 -- camera shake on impact -------------------------------------------------------
 Net.On("MeteorImpact", function(position)
+	Lib.PlaySound("Impact")
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart
@@ -5932,10 +7155,22 @@ Net.On("MeteorImpact", function(position)
 end)
 
 -- countdown loop ---------------------------------------------------------------
+local lastStateName = "Idle"
 task.spawn(function()
 	while true do
 		task.wait(0.25)
 		local stateName = workspace:GetAttribute("MeteorState") or "Idle"
+		if stateName ~= lastStateName then
+			if stateName == "Warning" then
+				-- siren-like warning: three low hits
+				for i = 0, 2 do
+					task.delay(i * 0.45, function()
+						Lib.PlaySound("MeteorWarn")
+					end)
+				end
+			end
+			lastStateName = stateName
+		end
 		local now = State.Now()
 		local stroke = pill:FindFirstChildOfClass("UIStroke")
 		if stateName == "Idle" then
@@ -5976,12 +7211,14 @@ return MeteorUI
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="31">
+          <Item class="ModuleScript" referent="34">
             <Properties>
               <string name="Name">Mining</string>
               <string name="Source"><![CDATA[--[[
 	Client mining: pickaxe input (click/tap/hold), auto-mine pass, target
-	highlight + HP bar, hit/break effects, PvP knockback feedback.
+	highlight + HP bar, and all the "juice": material hit sounds, block
+	squash, damage numbers, CRIT pops, combo counter with rising pitch,
+	golden/rainbow lucky-ore bursts, PvP knockback feedback.
 	The server re-validates range and cooldown for every swing.
 ]]
 local Debris = game:GetService("Debris")
@@ -6003,6 +7240,7 @@ local Root = require(Client.UI.Root)
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 local C = Lib.Colors
+local New = Lib.New
 
 local Mining = {}
 
@@ -6010,6 +7248,7 @@ local tool: Tool? = nil
 local holding = false
 local lastSwing = 0
 local oresFolder = nil
+local ORE_SIZE = Vector3.one * Config.World.OreSize
 
 local function getOres()
 	if oresFolder and oresFolder.Parent then
@@ -6020,6 +7259,19 @@ local function getOres()
 	return oresFolder
 end
 
+local function hitSoundFor(oreId: string?): string
+	local ore = oreId and Config.Ores[oreId]
+	if ore then
+		local m = ore.Material
+		if m == Enum.Material.Metal or m == Enum.Material.Foil then
+			return "HitMetal"
+		elseif m == Enum.Material.Ice or m == Enum.Material.Glass or m == Enum.Material.Neon then
+			return "HitIce"
+		end
+	end
+	return "HitStone"
+end
+
 -- selection + hp bar ------------------------------------------------------
 local selection = Instance.new("SelectionBox")
 selection.LineThickness = 0.06
@@ -6027,7 +7279,7 @@ selection.Color3 = Color3.fromRGB(255, 230, 120)
 selection.SurfaceTransparency = 1
 selection.Parent = workspace
 
-local hpGui = Lib.New("BillboardGui", {
+local hpGui = New("BillboardGui", {
 	Size = UDim2.fromOffset(120, 18),
 	StudsOffsetWorldSpace = Vector3.new(0, 4, 0),
 	AlwaysOnTop = true,
@@ -6044,12 +7296,17 @@ local function showHp(part: BasePart, ratio: number)
 	hpGui.Adornee = part
 	hpGui.Enabled = true
 	local ore = Config.Ores[part:GetAttribute("Ore") or ""]
-	setHp(ratio, if ore then ore.Name else "", if ratio > 0.5 then C.Green elseif ratio > 0.25 then C.Gold else C.Red)
+	local name = if ore then ore.Name else ""
+	local lucky = part:GetAttribute("Lucky")
+	if type(lucky) == "string" then
+		name = lucky .. " " .. name
+	end
+	setHp(ratio, name, if ratio > 0.5 then C.Green elseif ratio > 0.25 then C.Gold else C.Red)
 	hpHideAt = os.clock() + 2
 end
 
 -- effects ----------------------------------------------------------------
-local function burst(position: Vector3, color: Color3, amount: number)
+local function burst(position: Vector3, color: Color3, amount: number, speed: number?)
 	local part = Instance.new("Part")
 	part.Anchored = true
 	part.CanCollide = false
@@ -6059,11 +7316,11 @@ local function burst(position: Vector3, color: Color3, amount: number)
 	part.Position = position
 	local emitter = Instance.new("ParticleEmitter")
 	emitter.Color = ColorSequence.new(color)
-	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
-	emitter.Speed = NumberRange.new(10, 22)
-	emitter.Lifetime = NumberRange.new(0.4, 0.8)
+	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.7), NumberSequenceKeypoint.new(1, 0) })
+	emitter.Speed = NumberRange.new(10 * (speed or 1), 24 * (speed or 1))
+	emitter.Lifetime = NumberRange.new(0.4, 0.9)
 	emitter.SpreadAngle = Vector2.new(180, 180)
-	emitter.Acceleration = Vector3.new(0, -40, 0)
+	emitter.Acceleration = Vector3.new(0, -45, 0)
 	emitter.Rate = 0
 	emitter.Shape = Enum.ParticleEmitterShape.Box
 	emitter.Parent = part
@@ -6072,20 +7329,88 @@ local function burst(position: Vector3, color: Color3, amount: number)
 	Debris:AddItem(part, 1.5)
 end
 
-local function floatText(position: Vector3, text: string, color: Color3)
+local function floatText(position: Vector3, text: string, color: Color3, size: number?, rise: number?)
 	local anchor = Instance.new("Part")
 	anchor.Anchored = true
 	anchor.CanCollide = false
 	anchor.CanQuery = false
 	anchor.Transparency = 1
 	anchor.Size = Vector3.one * 0.2
-	anchor.Position = position + Vector3.new(0, 3, 0)
+	anchor.Position = position + Vector3.new(math.random(-10, 10) / 10, 3, math.random(-10, 10) / 10)
 	anchor.Parent = workspace
-	local gui = Lib.New("BillboardGui", { Size = UDim2.fromOffset(160, 40), AlwaysOnTop = true, Adornee = anchor, Parent = anchor })
-	local label = Lib.Text({ Text = text, TextColor3 = color, Size = UDim2.fromScale(1, 1), MaxTextSize = 30, Parent = gui })
-	TweenService:Create(anchor, TweenInfo.new(1), { Position = anchor.Position + Vector3.new(0, 4, 0) }):Play()
-	TweenService:Create(label, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { TextTransparency = 1 }):Play()
-	Debris:AddItem(anchor, 1.1)
+	local px = size or 36
+	local gui = New("BillboardGui", { Size = UDim2.fromOffset(px * 6, px * 1.3), AlwaysOnTop = true, Adornee = anchor, Parent = anchor })
+	local label = Lib.Text({ Text = text, TextColor3 = color, Size = UDim2.fromScale(1, 1), MaxTextSize = px, Parent = gui })
+	local scale = New("UIScale", { Scale = 0.4, Parent = label })
+	TweenService:Create(scale, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	TweenService:Create(anchor, TweenInfo.new(1.1), { Position = anchor.Position + Vector3.new(0, rise or 4, 0) }):Play()
+	TweenService:Create(label, TweenInfo.new(1.1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { TextTransparency = 1 }):Play()
+	Debris:AddItem(anchor, 1.2)
+end
+
+-- block squash on hit (purely local, restores the real size)
+local function squash(part: BasePart)
+	part.Size = ORE_SIZE * 0.86
+	TweenService:Create(part, TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = ORE_SIZE }):Play()
+end
+
+local function shake(strength: number, duration: number)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
+	local start = os.clock()
+	local connection
+	connection = RunService.RenderStepped:Connect(function()
+		local t = os.clock() - start
+		if t > duration then
+			humanoid.CameraOffset = Vector3.zero
+			connection:Disconnect()
+			return
+		end
+		local fade = 1 - t / duration
+		humanoid.CameraOffset = Vector3.new(math.random() - 0.5, math.random() - 0.5, 0) * strength * fade
+	end)
+end
+
+-- combo counter (center right) -------------------------------------------
+local comboCluster = Root.Cluster("Combo", Vector2.new(1, 0.5), UDim2.new(1, -30, 0.38, 0), UDim2.fromOffset(240, 90))
+local comboLabel = Lib.Text({
+	Text = "",
+	TextColor3 = Color3.fromRGB(255, 170, 60),
+	Size = UDim2.fromScale(1, 0.65),
+	MaxTextSize = 48,
+	Parent = comboCluster,
+})
+local comboSub = Lib.Text({
+	Text = "",
+	Font = Lib.BodyFont,
+	TextColor3 = Color3.fromRGB(255, 230, 160),
+	Size = UDim2.fromScale(1, 0.3),
+	Position = UDim2.fromScale(0, 0.66),
+	MaxTextSize = 18,
+	Parent = comboCluster,
+})
+local comboScale = New("UIScale", { Parent = comboLabel })
+local comboHideAt = 0
+
+local function showCombo(count: number)
+	if count < 3 then
+		return
+	end
+	local bonus = math.min(Config.Combo.MaxBonus, (count - 1) * Config.Combo.BonusPer)
+	comboLabel.Text = string.format("🔥 x%d COMBO", count)
+	comboLabel.TextColor3 = if count >= 30
+		then Color3.fromRGB(255, 80, 200)
+		elseif count >= 15 then Color3.fromRGB(255, 90, 60)
+		else Color3.fromRGB(255, 170, 60)
+	comboSub.Text = string.format("+%d%% ore", math.floor(bonus * 100 + 0.5))
+	comboScale.Scale = 1.35
+	TweenService:Create(comboScale, TweenInfo.new(0.2, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	comboLabel.Visible = true
+	comboSub.Visible = true
+	comboHideAt = os.clock() + Config.Combo.Window
 end
 
 -- swinging ---------------------------------------------------------------
@@ -6098,7 +7423,7 @@ local function playSwing()
 	anim.Value = "Slash"
 	anim.Parent = tool
 	Debris:AddItem(anim, 0.5)
-	Lib.PlaySound(Config.Sounds.Swing, 0.25)
+	Lib.PlaySound("Swing")
 end
 
 local function swing(useHint: boolean)
@@ -6171,6 +7496,10 @@ RunService.Heartbeat:Connect(function()
 	if hpGui.Enabled and (os.clock() > hpHideAt or not hpTarget or not hpTarget.Parent) then
 		hpGui.Enabled = false
 	end
+	if comboLabel.Visible and os.clock() > comboHideAt then
+		comboLabel.Visible = false
+		comboSub.Visible = false
+	end
 
 	if holding then
 		swing(true)
@@ -6179,30 +7508,99 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
+-- rainbow ores cycle their color locally (only tracked rainbow parts)
+local rainbowParts = {}
+local function trackOre(part: Instance)
+	if part:IsA("BasePart") and part:GetAttribute("Lucky") == "Rainbow" then
+		rainbowParts[part] = true
+	end
+end
+task.spawn(function()
+	local map = workspace:WaitForChild("Map", 60)
+	local ores = map and map:WaitForChild("Ores", 60)
+	if not ores then
+		return
+	end
+	for _, part in ores:GetChildren() do
+		trackOre(part)
+	end
+	ores.ChildAdded:Connect(trackOre)
+	ores.ChildRemoved:Connect(function(part)
+		rainbowParts[part] = nil
+	end)
+end)
+RunService.RenderStepped:Connect(function()
+	if next(rainbowParts) == nil then
+		return
+	end
+	local color = Color3.fromHSV((os.clock() * 0.35) % 1, 0.75, 1)
+	for part in rainbowParts do
+		part.Color = color
+		for _, child in part:GetChildren() do
+			if child:IsA("BasePart") then
+				child.Color = color
+			end
+		end
+	end
+end)
+
 -- server feedback ----------------------------------------------------------
-Net.On("MineHit", function(part, ratio)
-	if typeof(part) == "Instance" and part:IsA("BasePart") then
-		showHp(part, ratio)
-		burst(part.Position + Vector3.new(0, 2.5, 0), part.Color, 4)
+Net.On("MineHit", function(part, ratio, crit, damage)
+	if typeof(part) ~= "Instance" or not part:IsA("BasePart") then
+		return
+	end
+	showHp(part, ratio)
+	squash(part)
+	local top = part.Position + Vector3.new(0, 2.5, 0)
+	burst(top, part.Color, if crit then 10 else 4)
+	Lib.PlaySound(hitSoundFor(part:GetAttribute("Ore")))
+	if crit then
+		Lib.PlaySound("Crit")
+		floatText(top, "💥 CRIT " .. Util.Format(damage or 0), Color3.fromRGB(255, 120, 60), 44, 5)
+		shake(0.25, 0.15)
+	elseif type(damage) == "number" then
+		floatText(top, Util.Format(damage), Color3.fromRGB(255, 255, 255), 26, 3)
 	end
 end)
 
 Net.On("MineBreak", function(position, oreId, gained, extra)
+	extra = extra or {}
 	local ore = Config.Ores[oreId]
 	local color = if ore then ore.Color else Color3.new(1, 1, 1)
-	burst(position, color, 18)
-	Lib.PlaySound(Config.Sounds.Break, 0.4)
 	hpGui.Enabled = false
-	floatText(position, "+" .. Util.Format(gained) .. " ore", Color3.fromRGB(255, 255, 255))
-	if extra and extra.Gems then
-		floatText(position + Vector3.new(0, 2, 0), "+" .. extra.Gems .. " 💎", C.Gems)
+	Lib.PlaySound(hitSoundFor(oreId), 1.1, -0.15)
+	Lib.PlaySound("Break")
+
+	if extra.Lucky then
+		local rainbow = extra.Lucky == "Rainbow"
+		local luckyColor = if rainbow then Color3.fromRGB(255, 120, 230) else Color3.fromRGB(255, 210, 60)
+		burst(position, luckyColor, 60, 1.6)
+		burst(position, Color3.new(1, 1, 1), 25, 1.2)
+		Lib.PlaySound("Lucky")
+		shake(if rainbow then 0.8 else 0.4, 0.35)
+		floatText(position, (if rainbow then "🌈 RAINBOW! " else "✨ GOLDEN! ") .. "+" .. Util.Format(gained), luckyColor, 56, 6)
+	else
+		burst(position, color, 18)
+		floatText(position, "+" .. Util.Format(gained), Color3.fromRGB(255, 255, 255), 30)
 	end
-	if extra and extra.Stardust then
-		floatText(position + Vector3.new(0, 2, 0), "+" .. extra.Stardust .. " ✨", C.Stardust)
+	if extra.Crit then
+		Lib.PlaySound("Crit", 0.8)
+	end
+	if extra.Gems then
+		floatText(position + Vector3.new(0, 2, 0), "+" .. extra.Gems .. " 💎", C.Gems, 34, 5)
+		Lib.PlaySound("Reward", 0.7)
+	end
+	if extra.Stardust then
+		floatText(position + Vector3.new(0, 2, 0), "+" .. extra.Stardust .. " ✨", C.Stardust, 30, 5)
+	end
+	if type(extra.Combo) == "number" then
+		showCombo(extra.Combo)
+		-- coin "ding" climbs in pitch as the combo grows
+		Lib.PlaySound("Coin", 0.6, math.min(0.9, extra.Combo * 0.03))
 	end
 end)
 
-local flash = Lib.New("Frame", {
+local flash = New("Frame", {
 	BackgroundColor3 = Color3.fromRGB(255, 40, 60),
 	BackgroundTransparency = 1,
 	Size = UDim2.fromScale(1, 1),
@@ -6225,6 +7623,8 @@ end)
 Net.On("Bonked", function(attackerName, dropped)
 	flash.BackgroundTransparency = 0.55
 	TweenService:Create(flash, TweenInfo.new(0.6), { BackgroundTransparency = 1 }):Play()
+	Lib.PlaySound("Bonked")
+	shake(0.6, 0.3)
 	local hud = Mining.HUD
 	if hud then
 		hud.Toast(string.format("💥 %s bonked you! You dropped %s ore", attackerName, Util.Format(dropped)), C.Red)
@@ -6235,7 +7635,7 @@ return Mining
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="32">
+          <Item class="ModuleScript" referent="35">
             <Properties>
               <string name="Name">PetFollow</string>
               <string name="Source"><![CDATA[--[[
@@ -6278,9 +7678,14 @@ local function rebuild(player: Player)
 		names = {}
 	end
 	local models = {}
-	for i, name in names do
-		if type(name) == "string" then
-			local model = PetModel.Build(name)
+	for i, entry in names do
+		if type(entry) == "string" then
+			-- entries look like "Golden|Fox" or "|Fox"
+			local variant, name = string.match(entry, "^(.-)|(.+)$")
+			if not name then
+				variant, name = "", entry
+			end
+			local model = PetModel.Build(name, if variant ~= "" then variant else nil)
 			model.Name = player.Name .. "_" .. i
 			model.Parent = folder
 			table.insert(models, model)
@@ -6304,6 +7709,7 @@ end
 
 RunService.RenderStepped:Connect(function(dt)
 	local t = os.clock()
+	local rainbow = Color3.fromHSV((t * 0.3) % 1, 0.7, 1)
 	local alpha = 1 - math.exp(-dt * 9)
 	for player, entry in owners do
 		local character = player.Character
@@ -6322,6 +7728,9 @@ RunService.RenderStepped:Connect(function(dt)
 				local cf = CFrame.lookAt(position, position + Vector3.new(look.X, 0, look.Z) + Vector3.new(0, 0.001, 0))
 				entry.Positions[i] = cf
 				model:PivotTo(cf)
+				if model:GetAttribute("Variant") == "Rainbow" and model.PrimaryPart then
+					model.PrimaryPart.Color = rainbow
+				end
 			end
 		end
 	end
@@ -6331,7 +7740,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="33">
+          <Item class="ModuleScript" referent="36">
             <Properties>
               <string name="Name">WorldFX</string>
               <string name="Source"><![CDATA[--[[
@@ -6418,7 +7827,7 @@ return {}
             </Properties>
           </Item>
         </Item>
-        <Item class="LocalScript" referent="34">
+        <Item class="LocalScript" referent="37">
           <Properties>
             <string name="Name">Main</string>
             <string name="Source"><![CDATA[--[[
@@ -6447,6 +7856,8 @@ require(Controllers:WaitForChild("PetFollow"))
 require(Controllers:WaitForChild("WorldFX"))
 require(Controllers:WaitForChild("MeteorUI"))
 require(Controllers:WaitForChild("DevTools"))
+require(Controllers:WaitForChild("Guide"))
+require(Controllers:WaitForChild("Ambience"))
 
 -- ask for a fresh snapshot in case the first one arrived before we listened
 Net.Fire("Sync")
@@ -6458,7 +7869,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="35">
+        <Item class="ModuleScript" referent="38">
           <Properties>
             <string name="Name">Net</string>
             <string name="Source"><![CDATA[local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -6502,7 +7913,7 @@ return Net
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="36">
+        <Item class="ModuleScript" referent="39">
           <Properties>
             <string name="Name">State</string>
             <string name="Source"><![CDATA[--[[
@@ -6565,11 +7976,11 @@ return State
 ]]></string>
           </Properties>
         </Item>
-        <Item class="Folder" referent="37">
+        <Item class="Folder" referent="40">
           <Properties>
             <string name="Name">UI</string>
           </Properties>
-          <Item class="ModuleScript" referent="38">
+          <Item class="ModuleScript" referent="41">
             <Properties>
               <string name="Name">Hatch</string>
               <string name="Source"><![CDATA[--[[
@@ -6612,8 +8023,9 @@ New("UIListLayout", {
 
 local queue = {}
 
-local function slot(petName: string, eggColor: Color3)
+local function slot(petName: string, variant: string?, eggColor: Color3)
 	local info = Config.Pets[petName]
+	local variantColor = if variant == "Rainbow" then Color3.fromRGB(255, 120, 230) elseif variant == "Golden" then Color3.fromRGB(255, 210, 60) else nil
 	local rarity = Config.Rarities[info.Rarity]
 	local frame = New("Frame", {
 		BackgroundTransparency = 1,
@@ -6644,7 +8056,7 @@ local function slot(petName: string, eggColor: Color3)
 	camera.CFrame = CFrame.new(Vector3.new(0, 0.6, 11), Vector3.new(0, 0, 0))
 
 	local nameLabel = Lib.Text({
-		Text = petName,
+		Text = Util.PetDisplayName(petName, variant),
 		Size = UDim2.new(1, 0, 0, 40),
 		Position = UDim2.fromOffset(0, 262),
 		MaxTextSize = 34,
@@ -6653,8 +8065,8 @@ local function slot(petName: string, eggColor: Color3)
 		Parent = frame,
 	})
 	local rarityLabel = Lib.Text({
-		Text = string.upper(info.Rarity),
-		TextColor3 = rarity.Color,
+		Text = (if variant then "✨ " .. string.upper(variant) .. " ✨  " else "") .. string.upper(info.Rarity),
+		TextColor3 = variantColor or rarity.Color,
 		Size = UDim2.new(1, 0, 0, 34),
 		Position = UDim2.fromOffset(0, 302),
 		MaxTextSize = 30,
@@ -6663,7 +8075,7 @@ local function slot(petName: string, eggColor: Color3)
 		Parent = frame,
 	})
 	local powerLabel = Lib.Text({
-		Text = "💥 +" .. Util.Format(info.Power) .. "x power",
+		Text = "💥 +" .. Util.Format(Util.PetPower(Config, petName, variant)) .. "x power",
 		Font = Lib.BodyFont,
 		Size = UDim2.new(1, 0, 0, 26),
 		Position = UDim2.fromOffset(0, 340),
@@ -6680,6 +8092,8 @@ local function slot(petName: string, eggColor: Color3)
 		Labels = { nameLabel, rarityLabel, powerLabel },
 		Rarity = rarity,
 		PetName = petName,
+		Variant = variant,
+		FlashColor = variantColor or rarity.Color,
 	}
 end
 
@@ -6689,9 +8103,16 @@ local function play(pets, eggId)
 	local egg = eggId and Config.Eggs[eggId]
 	local eggColor = if egg then egg.Color else C.Gold
 	local slots = {}
-	for _, name in pets do
+	local anyVariant = false
+	for _, entry in pets do
+		-- entries are { Name, Variant } (older format: plain name)
+		local name = if type(entry) == "table" then entry.Name else entry
+		local variant = if type(entry) == "table" then entry.Variant else nil
+		if variant then
+			anyVariant = true
+		end
 		if Config.Pets[name] then
-			table.insert(slots, slot(name, eggColor))
+			table.insert(slots, slot(name, variant, eggColor))
 		end
 	end
 	dim.Visible = true
@@ -6712,7 +8133,7 @@ local function play(pets, eggId)
 	local best = 0
 	for _, s in slots do
 		s.Egg:Destroy()
-		local model = PetModel.Build(s.PetName)
+		local model = PetModel.Build(s.PetName, s.Variant)
 		model.Parent = s.Viewport
 		model:PivotTo(CFrame.new())
 		local size = model:GetExtentsSize().Magnitude
@@ -6724,7 +8145,7 @@ local function play(pets, eggId)
 		Lib.Pop(s.Frame)
 		best = math.max(best, s.Rarity.Order)
 		local flash = New("Frame", {
-			BackgroundColor3 = s.Rarity.Color,
+			BackgroundColor3 = s.FlashColor,
 			BackgroundTransparency = 0.2,
 			Size = UDim2.fromOffset(260, 260),
 			ZIndex = 101,
@@ -6732,7 +8153,7 @@ local function play(pets, eggId)
 		}, { Lib.Corner(130) })
 		TweenService:Create(flash, TweenInfo.new(0.8), { BackgroundTransparency = 1 }):Play()
 	end
-	Lib.PlaySound(Config.Sounds.Coins, if best >= 5 then 1 else 0.6)
+	Lib.PlaySound(if best >= 5 or anyVariant then "Legendary" else "Hatch")
 
 	-- spin for a moment
 	local spinStart = os.clock()
@@ -6777,7 +8198,7 @@ return Hatch
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="39">
+          <Item class="ModuleScript" referent="42">
             <Properties>
               <string name="Name">Lib</string>
               <string name="Source"><![CDATA[--[[
@@ -6911,13 +8332,29 @@ function Lib.Text(props)
 	return label
 end
 
-function Lib.PlaySound(id: string?, volume: number?)
+-- Play a named sound from Config.Sounds (random variant + pitch variance),
+-- or a raw sound id. pitchOffset lets combos/coins rise in pitch.
+function Lib.PlaySound(name: string?, volumeMult: number?, pitchOffset: number?)
+	if not name or name == "" then
+		return
+	end
+	local def = Config.Sounds[name]
+	local id, volume, pitch
+	if type(def) == "table" then
+		id = def.Ids[math.random(1, #def.Ids)]
+		volume = (def.Volume or 0.5) * (volumeMult or 1)
+		pitch = (def.Pitch or 1) + (pitchOffset or 0) + (math.random() * 2 - 1) * (def.Variance or 0)
+	else
+		id = name
+		volume = volumeMult or 0.5
+		pitch = 1 + (pitchOffset or 0)
+	end
 	if not id or id == "" then
 		return
 	end
-	local sound = New("Sound", { SoundId = id, Volume = volume or 0.5, Parent = SoundService })
+	local sound = New("Sound", { SoundId = id, Volume = volume, PlaybackSpeed = math.max(0.1, pitch), Parent = SoundService })
 	sound:Play()
-	Debris:AddItem(sound, 3)
+	Debris:AddItem(sound, 5)
 end
 
 -- Big chunky game button. props.Color, props.Text, props.OnClick
@@ -6959,7 +8396,7 @@ function Lib.Button(props)
 	button.Activated:Connect(function()
 		scale.Scale = 0.92
 		TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-		Lib.PlaySound(Config.Sounds.UI, 0.35)
+		Lib.PlaySound("UI")
 		if props.OnClick then
 			props.OnClick()
 		end
@@ -7082,7 +8519,7 @@ return Lib
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="40">
+          <Item class="ModuleScript" referent="43">
             <Properties>
               <string name="Name">Panels</string>
               <string name="Source"><![CDATA[--[[
@@ -7294,7 +8731,107 @@ end
 return Panels
 ]]></string>
             </Properties>
-            <Item class="ModuleScript" referent="41">
+            <Item class="ModuleScript" referent="44">
+              <Properties>
+                <string name="Name">Codes</string>
+                <string name="Source"><![CDATA[-- Promo codes: free rewards for players who find codes on YouTube / TikTok /
+-- Discord / the group wall. Cheap, proven growth loop on Roblox.
+local Codes = { Title = "🎟 CODES", Color = Color3.fromRGB(120, 200, 90) }
+
+function Codes.Build(content, ctx)
+	local Lib, State, Net = ctx.Lib, ctx.State, ctx.Net
+	local New, C = Lib.New, Lib.Colors
+
+	Lib.Text({
+		Text = "Enter a code for free rewards!",
+		Size = UDim2.new(1, 0, 0, 36),
+		Position = UDim2.fromOffset(0, 20),
+		MaxTextSize = 30,
+		Parent = content,
+	})
+	local box = New("TextBox", {
+		PlaceholderText = "Type code here...",
+		Text = "",
+		ClearTextOnFocus = false,
+		Font = Lib.Font,
+		TextScaled = true,
+		TextColor3 = Color3.new(1, 1, 1),
+		PlaceholderColor3 = Color3.fromRGB(150, 150, 170),
+		BackgroundColor3 = C.Card,
+		Size = UDim2.new(0.8, 0, 0, 64),
+		Position = UDim2.new(0.1, 0, 0, 80),
+		Parent = content,
+	}, { Lib.Corner(14), Lib.Stroke(C.Gold, 2, 0.2), Lib.Padding(10) })
+	local status = Lib.Text({
+		Text = "",
+		Size = UDim2.new(1, 0, 0, 30),
+		Position = UDim2.fromOffset(0, 230),
+		MaxTextSize = 24,
+		Parent = content,
+	})
+	local busy = false
+	Lib.Button({
+		Text = "🎁 REDEEM",
+		Color = C.Green,
+		Size = UDim2.fromOffset(260, 60),
+		Position = UDim2.new(0.5, -130, 0, 160),
+		TextSize = 28,
+		Parent = content,
+		OnClick = function()
+			if busy then
+				return
+			end
+			busy = true
+			local ok, message = Net.Invoke("RedeemCode", box.Text)
+			busy = false
+			status.Text = (if ok then "✅ " else "❌ ") .. tostring(message or "Try again")
+			status.TextColor3 = if ok then C.Green else C.Red
+			Lib.Pop(status)
+			if ok then
+				box.Text = ""
+				Lib.PlaySound("Reward")
+			end
+		end,
+	})
+	Lib.Text({
+		Text = "👍 Like & ⭐ favorite the game - new codes at like milestones!\nFind codes on our group, YouTube and TikTok.",
+		Font = Lib.BodyFont,
+		TextColor3 = C.Sub,
+		TextWrapped = true,
+		Size = UDim2.new(1, -40, 0, 60),
+		Position = UDim2.fromOffset(20, 290),
+		MaxTextSize = 16,
+		Parent = content,
+	})
+	local redeemed = Lib.Text({
+		Text = "",
+		Font = Lib.BodyFont,
+		TextColor3 = C.Sub,
+		Size = UDim2.new(1, 0, 0, 20),
+		Position = UDim2.fromOffset(0, 360),
+		MaxTextSize = 14,
+		Parent = content,
+	})
+
+	return {
+		Refresh = function()
+			local data = State.Data
+			if data and data.Codes then
+				local n = 0
+				for _ in data.Codes do
+					n += 1
+				end
+				redeemed.Text = string.format("Codes redeemed: %d", n)
+			end
+		end,
+	}
+end
+
+return Codes
+]]></string>
+              </Properties>
+            </Item>
+            <Item class="ModuleScript" referent="45">
               <Properties>
                 <string name="Name">Egg</string>
                 <string name="Source"><![CDATA[-- Egg shop: shows exact odds (incl. your luck) BEFORE buying - required for
@@ -7500,7 +9037,7 @@ return Egg
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="42">
+            <Item class="ModuleScript" referent="46">
               <Properties>
                 <string name="Name">Gifts</string>
                 <string name="Source"><![CDATA[-- Playtime gifts: claimable after N minutes in this session (session length)
@@ -7573,7 +9110,7 @@ return Gifts
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="43">
+            <Item class="ModuleScript" referent="47">
               <Properties>
                 <string name="Name">Pass</string>
                 <string name="Source"><![CDATA[-- Season pass: free + premium tracks, XP bar, premium / skip upsells
@@ -7707,7 +9244,7 @@ return Pass
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="44">
+            <Item class="ModuleScript" referent="48">
               <Properties>
                 <string name="Name">Pets</string>
                 <string name="Source"><![CDATA[-- Pet inventory: equip / unequip / equip best / delete, slot upsell
@@ -7752,9 +9289,8 @@ function Pets.Build(content, ctx)
 	local signature = ""
 	local confirmDelete = {} -- [petId] = os.clock()
 
-	local function power(name)
-		local info = Config.Pets[name]
-		return if info then info.Power else 0
+	local function power(pet)
+		return Util.PetPower(Config, pet.Name, pet.Variant)
 	end
 
 	local function rebuild(data)
@@ -7769,8 +9305,8 @@ function Pets.Build(content, ctx)
 			if ea ~= eb then
 				return ea > eb
 			end
-			if power(a.Name) ~= power(b.Name) then
-				return power(a.Name) > power(b.Name)
+			if power(a) ~= power(b) then
+				return power(a) > power(b)
 			end
 			return a.Id < b.Id
 		end)
@@ -7785,18 +9321,37 @@ function Pets.Build(content, ctx)
 					BackgroundColor3 = if isEquipped then Color3.fromRGB(45, 95, 60) else C.Card,
 					LayoutOrder = order,
 					Parent = grid,
-				}, { Lib.Corner(12), Lib.Stroke(rarity.Color, 3, 0) })
+				}, {
+					Lib.Corner(12),
+					Lib.Stroke(
+						if pet.Variant == "Rainbow"
+							then Color3.fromRGB(255, 120, 230)
+							elseif pet.Variant == "Golden" then Color3.fromRGB(255, 210, 60)
+							else rarity.Color,
+						if pet.Variant then 4 else 3,
+						0
+					),
+				})
 				local swatch = New("Frame", {
 					Size = UDim2.fromOffset(42, 42),
 					Position = UDim2.new(0.5, 0, 0, 8),
 					AnchorPoint = Vector2.new(0.5, 0),
-					BackgroundColor3 = info.Color,
+					BackgroundColor3 = if pet.Variant == "Golden"
+						then Color3.fromRGB(255, 205, 50)
+						elseif pet.Variant == "Rainbow" then Color3.fromRGB(255, 90, 210)
+						else info.Color,
 					Parent = card,
 				}, { Lib.Corner(if info.Shape == "Ball" then 21 else 8), Lib.Stroke(Color3.new(0, 0, 0), 2, 0.3) })
 				Lib.Text({ Text = "• •", TextColor3 = Color3.new(0, 0, 0), Outline = false, Size = UDim2.fromScale(1, 0.5), Position = UDim2.fromScale(0, 0.15), Parent = swatch })
-				Lib.Text({ Text = pet.Name, Size = UDim2.new(1, -6, 0, 20), Position = UDim2.fromOffset(3, 54), MaxTextSize = 15, Parent = card })
 				Lib.Text({
-					Text = "+" .. Util.Format(info.Power) .. "x",
+					Text = (if pet.Variant then "✨" else "") .. Util.PetDisplayName(pet.Name, pet.Variant),
+					Size = UDim2.new(1, -6, 0, 20),
+					Position = UDim2.fromOffset(3, 54),
+					MaxTextSize = 15,
+					Parent = card,
+				})
+				Lib.Text({
+					Text = "+" .. Util.Format(power(pet)) .. "x",
 					TextColor3 = rarity.Color,
 					Size = UDim2.new(1, -6, 0, 18),
 					Position = UDim2.fromOffset(3, 74),
@@ -7868,7 +9423,7 @@ function Pets.Build(content, ctx)
 		slotsButton.Visible = not State.HasPass("ExtraPets")
 		local parts = {}
 		for _, pet in data.Pets do
-			table.insert(parts, pet.Id)
+			table.insert(parts, pet.Id .. (pet.Variant or ""))
 		end
 		local sig = table.concat(parts, ",") .. "|" .. table.concat(data.Equipped, ",")
 		if sig ~= signature then
@@ -7884,7 +9439,7 @@ return Pets
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="45">
+            <Item class="ModuleScript" referent="49">
               <Properties>
                 <string name="Name">Quests</string>
                 <string name="Source"><![CDATA[-- Daily login streak, daily quests, weekly ranked ladder, VIP chest, group reward
@@ -8149,7 +9704,7 @@ return Quests
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="46">
+            <Item class="ModuleScript" referent="50">
               <Properties>
                 <string name="Name">Rebirth</string>
                 <string name="Source"><![CDATA[-- Rebirth: reset coins/upgrades for a permanent coin multiplier + gems
@@ -8220,7 +9775,7 @@ return Rebirth
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="47">
+            <Item class="ModuleScript" referent="51">
               <Properties>
                 <string name="Name">Shop</string>
                 <string name="Source"><![CDATA[-- Pickaxe & backpack upgrades (coins sink, sequential tiers)
@@ -8354,7 +9909,215 @@ return Shop
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="48">
+            <Item class="ModuleScript" referent="52">
+              <Properties>
+                <string name="Name">Spin</string>
+                <string name="Source"><![CDATA[-- Free prize wheel: one spin every few hours (VIP: faster). The server picks
+-- the prize; the wheel animation reveals it. Odds are always visible.
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local Spin = { Title = "🎡 PRIZE WHEEL", Color = Color3.fromRGB(255, 170, 40) }
+
+local BOOST_ICON = { Coins2x = "2x🪙", Luck2x = "2x🍀", Power2x = "2x💥" }
+
+local function short(Util, reward): string
+	if reward.Gems then
+		return Util.Format(reward.Gems) .. "💎"
+	elseif reward.Stardust then
+		return Util.Format(reward.Stardust) .. "✨"
+	elseif reward.Boost then
+		return (BOOST_ICON[reward.Boost[1]] or "Boost") .. "\n" .. math.floor(reward.Boost[2] / 60) .. "m"
+	elseif reward.Pet then
+		return "🐾 " .. reward.Pet
+	end
+	return "?"
+end
+
+function Spin.Build(content, ctx)
+	local Lib, State, Net, Config, Util = ctx.Lib, ctx.State, ctx.Net, ctx.Config, ctx.Util
+	local New, C = Lib.New, Lib.Colors
+	local rewards = Config.Spin.Rewards
+	local count = #rewards
+	local step = 360 / count
+	local spinning = false
+
+	-- wheel ------------------------------------------------------------------
+	local holder = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(340, 340), Position = UDim2.fromOffset(6, 40), Parent = content })
+	local wheel = New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(34, 36, 58),
+		Parent = holder,
+	}, {
+		New("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+		Lib.Stroke(C.Gold, 5, 0),
+	})
+	for i = 1, count / 2 do
+		New("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(0, 3, 1, -10),
+			Rotation = (i - 1) * step + step / 2,
+			BackgroundColor3 = Color3.fromRGB(70, 72, 100),
+			BorderSizePixel = 0,
+			Parent = wheel,
+		})
+	end
+	for i, entry in rewards do
+		local angle = math.rad((i - 1) * step)
+		local radius = 0.34
+		New("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5 + math.sin(angle) * radius, 0.5 - math.cos(angle) * radius),
+			Size = UDim2.fromOffset(84, 52),
+			Rotation = (i - 1) * step,
+			BackgroundColor3 = entry.Color or C.Blue,
+			Parent = wheel,
+		}, {
+			Lib.Corner(12),
+			Lib.Stroke(if entry.Jackpot then Color3.new(1, 1, 1) else Color3.new(0, 0, 0), if entry.Jackpot then 3 else 2, 0.2),
+			Lib.Gradient(Color3.new(1, 1, 1), Color3.fromRGB(190, 190, 190)),
+			Lib.Text({ Text = short(Util, entry.Reward), Size = UDim2.new(1, -6, 1, -4), Position = UDim2.fromOffset(3, 2), MaxTextSize = 20 }),
+		})
+	end
+	New("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(54, 54),
+		BackgroundColor3 = C.Gold,
+		Parent = wheel,
+	}, { New("UICorner", { CornerRadius = UDim.new(0.5, 0) }), Lib.Stroke(Color3.new(0, 0, 0), 3, 0.2) })
+	Lib.Text({ Text = "▼", TextColor3 = C.Gold, Size = UDim2.fromOffset(50, 44), Position = UDim2.new(0.5, -25, 0, -36), MaxTextSize = 44, Parent = holder })
+
+	-- info -------------------------------------------------------------------
+	local right = New("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(362, 0), Size = UDim2.new(1, -362, 1, 0), Parent = content })
+	local result = Lib.Text({ Text = "Spin for free prizes!", Size = UDim2.new(1, 0, 0, 44), MaxTextSize = 30, Parent = right })
+	local oddsLines = {}
+	local total = 0
+	for _, entry in rewards do
+		total += entry.Weight
+	end
+	for i, entry in rewards do
+		local text = Util.RewardText(entry.Reward)
+		table.insert(oddsLines, string.format("%s  <font color='#BBBBBB'>%s</font>", text, Util.FormatPercent(entry.Weight / total * 100)))
+		if entry.Jackpot then
+			oddsLines[i] ..= "  🎰 JACKPOT"
+		end
+	end
+	Lib.Text({
+		Text = table.concat(oddsLines, "\n"),
+		Font = Lib.BodyFont,
+		Size = UDim2.new(1, 0, 0, 200),
+		Position = UDim2.fromOffset(0, 50),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		MaxTextSize = 15,
+		Parent = right,
+	})
+	local vipHint = Lib.Text({
+		Text = "👑 VIP spins every 2 hours",
+		Font = Lib.BodyFont,
+		TextColor3 = C.Gold,
+		Size = UDim2.new(1, 0, 0, 20),
+		Position = UDim2.fromOffset(0, 258),
+		MaxTextSize = 14,
+		Parent = right,
+	})
+	local spinButton = Lib.Button({
+		Text = "🎡 SPIN!",
+		Size = UDim2.new(1, -10, 0, 64),
+		Position = UDim2.fromOffset(0, 290),
+		TextSize = 30,
+		Color = C.Gold,
+		Parent = right,
+	})
+
+	local function readyIn(): number
+		local data = State.Data
+		if not data then
+			return math.huge
+		end
+		return (data.FreeSpinAt or 0) - State.Now()
+	end
+
+	local function refresh()
+		if spinning then
+			return
+		end
+		local remaining = readyIn()
+		if remaining <= 0 then
+			Lib.SetButton(spinButton, "🎡 SPIN!", C.Gold)
+		else
+			Lib.SetButton(spinButton, "Free spin in " .. Util.FormatTime(remaining), C.Gray)
+		end
+		vipHint.Visible = not State.HasPass("VIP")
+	end
+
+	local function animateTo(index: number, text: string)
+		spinning = true
+		local start = wheel.Rotation
+		local jitter = math.random(-math.floor(step * 0.3), math.floor(step * 0.3))
+		local landing = (-(index - 1) * step) % 360
+		local final = math.ceil(start / 360) * 360 + 360 * 5 + landing + jitter
+		local tween = TweenService:Create(wheel, TweenInfo.new(4.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Rotation = final })
+		local lastSlot = math.floor((start + step / 2) / step)
+		local ticker = RunService.RenderStepped:Connect(function()
+			local slot = math.floor((wheel.Rotation + step / 2) / step)
+			if slot ~= lastSlot then
+				lastSlot = slot
+				Lib.PlaySound("SpinTick")
+			end
+		end)
+		tween:Play()
+		tween.Completed:Wait()
+		ticker:Disconnect()
+		wheel.Rotation = final % 360
+		local entry = rewards[index]
+		result.Text = "🎉 " .. text
+		result.TextColor3 = if entry.Jackpot then C.Gold else C.Green
+		Lib.Pop(result)
+		Lib.PlaySound(if entry.Jackpot then "Legendary" else "Reward")
+		if ctx.Toast then
+			ctx.Toast("🎡 Prize: " .. text, C.Gold)
+		end
+		spinning = false
+		refresh()
+	end
+
+	spinButton.Activated:Connect(function()
+		if spinning then
+			return
+		end
+		if readyIn() > 0 then
+			if not State.HasPass("VIP") and ctx.Upsell then
+				ctx.Upsell.Pass("VIP", true)
+			end
+			return
+		end
+		spinning = true
+		Lib.SetButton(spinButton, "...", C.Gray)
+		local res = Net.Invoke("Spin")
+		if type(res) ~= "table" or not res.Index then
+			spinning = false
+			if ctx.Toast then
+				ctx.Toast((type(res) == "table" and res.Error) or "Try again in a moment", C.Red)
+			end
+			refresh()
+			return
+		end
+		animateTo(res.Index, res.Text or "")
+	end)
+
+	return { Refresh = refresh, Tick = refresh }
+end
+
+return Spin
+]]></string>
+              </Properties>
+            </Item>
+            <Item class="ModuleScript" referent="53">
               <Properties>
                 <string name="Name">Store</string>
                 <string name="Source"><![CDATA[-- Robux store: game passes, consumables (gems/boosts/server luck/meteor),
@@ -8549,7 +10312,7 @@ return Store
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="49">
+            <Item class="ModuleScript" referent="54">
               <Properties>
                 <string name="Name">Teleport</string>
                 <string name="Source"><![CDATA[-- Zone list: teleport to unlocked zones, unlock the next one
@@ -8620,7 +10383,7 @@ return Teleport
               </Properties>
             </Item>
           </Item>
-          <Item class="ModuleScript" referent="50">
+          <Item class="ModuleScript" referent="55">
             <Properties>
               <string name="Name">Root</string>
               <string name="Source"><![CDATA[--[[
@@ -8696,7 +10459,7 @@ return Root
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="51">
+          <Item class="ModuleScript" referent="56">
             <Properties>
               <string name="Name">Upsell</string>
               <string name="Source"><![CDATA[--[[
@@ -8815,13 +10578,13 @@ return Upsell
       </Item>
     </Item>
   </Item>
-  <Item class="TextChatService" referent="52">
+  <Item class="TextChatService" referent="57">
     <Properties>
       <string name="Name">TextChatService</string>
       <token name="ChatVersion">1</token>
     </Properties>
   </Item>
-  <Item class="Workspace" referent="53">
+  <Item class="Workspace" referent="58">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>

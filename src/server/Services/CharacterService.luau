@@ -54,6 +54,24 @@ local function buildPickaxe(tier: number): Tool
 		light.Range = 8
 		light.Parent = head
 	end
+	-- swing trail from tier 4: upgrades you can SEE are upgrades people buy
+	if tier >= 4 then
+		local a0 = Instance.new("Attachment")
+		a0.Position = Vector3.new(-1.3, 0, 0)
+		a0.Parent = head
+		local a1 = Instance.new("Attachment")
+		a1.Position = Vector3.new(1.3, 0, 0)
+		a1.Parent = head
+		local trail = Instance.new("Trail")
+		trail.Attachment0 = a0
+		trail.Attachment1 = a1
+		trail.Color = ColorSequence.new(info.Color)
+		trail.LightEmission = if tier >= 7 then 1 else 0.4
+		trail.Lifetime = 0.18
+		trail.Transparency = NumberSequence.new(0.2, 1)
+		trail.FaceCamera = true
+		trail.Parent = head
+	end
 	return tool
 end
 
@@ -139,7 +157,7 @@ function CharacterService:RefreshOverhead(player: Player)
 
 	local rank = Util.RankFor(Config, data.Weekly.Points)
 	local rankLabel = gui:FindFirstChild("Rank") :: TextLabel
-	rankLabel.Text = string.format("%s  •  ♻️%d", string.upper(rank.Name), data.Rebirths)
+	rankLabel.Text = string.format("Lv.%d  •  %s  •  ♻️%d", data.Level, string.upper(rank.Name), data.Rebirths)
 	rankLabel.TextColor3 = rank.Color
 
 	local tags = {}

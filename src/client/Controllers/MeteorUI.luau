@@ -8,7 +8,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Config = require(Shared.Config)
 local Util = require(Shared.Util)
 
 local Client = script.Parent.Parent
@@ -132,7 +131,7 @@ Net.On("MeteorResult", function(info)
 	resultBody.Text = table.concat(parts, "   ") .. (if info.Destroyed then "" else "\n<font color='#FF8888'>The meteor escaped - half rewards</font>")
 	result.Visible = true
 	Lib.Pop(result)
-	Lib.PlaySound(Config.Sounds.Coins, 0.8)
+	Lib.PlaySound(if info.Place <= 3 then "RankUp" else "Reward")
 	task.delay(7, function()
 		result.Visible = false
 	end)
@@ -143,7 +142,7 @@ local lastHitSound = 0
 Net.On("MeteorHit", function(score)
 	if os.clock() - lastHitSound > 0.15 then
 		lastHitSound = os.clock()
-		Lib.PlaySound(Config.Sounds.Break, 0.35)
+		Lib.PlaySound("HitStone", 0.8)
 	end
 	if type(score) == "number" then
 		myLine.Text = string.format("+%.1f pts!", score)
@@ -152,6 +151,7 @@ end)
 
 -- camera shake on impact -------------------------------------------------------
 Net.On("MeteorImpact", function(position)
+	Lib.PlaySound("Impact")
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart
@@ -175,10 +175,22 @@ Net.On("MeteorImpact", function(position)
 end)
 
 -- countdown loop ---------------------------------------------------------------
+local lastStateName = "Idle"
 task.spawn(function()
 	while true do
 		task.wait(0.25)
 		local stateName = workspace:GetAttribute("MeteorState") or "Idle"
+		if stateName ~= lastStateName then
+			if stateName == "Warning" then
+				-- siren-like warning: three low hits
+				for i = 0, 2 do
+					task.delay(i * 0.45, function()
+						Lib.PlaySound("MeteorWarn")
+					end)
+				end
+			end
+			lastStateName = stateName
+		end
 		local now = State.Now()
 		local stroke = pill:FindFirstChildOfClass("UIStroke")
 		if stateName == "Idle" then

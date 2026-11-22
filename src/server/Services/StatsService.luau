@@ -15,6 +15,7 @@ local Services
 local Data
 
 local friendCache = {} -- ["a:b"] = bool
+local serverRank
 
 local function has(player, key)
 	return Services.MonetizationService:HasPass(player, key)
@@ -32,10 +33,7 @@ function Stats:PetPower(_player, data): number
 	local total = 0
 	for _, pet in data.Pets do
 		if equipped[pet.Id] then
-			local info = Config.Pets[pet.Name]
-			if info then
-				total += info.Power
-			end
+			total += Util.PetPower(Config, pet.Name, pet.Variant)
 		end
 	end
 	return total
@@ -93,6 +91,7 @@ function Stats:CoinMultiplier(player, data): number
 		mult *= 2
 	end
 	local bonus = self:SocialBonus(player)
+	bonus += (data.Level - 1) * Config.Levels.CoinBonusPer
 	if has(player, "VIP") then
 		bonus += Config.Social.VipCoinBonus
 	end
@@ -123,6 +122,32 @@ function Stats:Capacity(player, data): number
 		cap *= 2
 	end
 	return cap
+end
+
+-- weekly-points standing among players in THIS server (+ who to beat next)
+serverRank = function(player: Player, data)
+	local list = {}
+	for _, other in Data:LoadedPlayers() do
+		local otherData = Data:Get(other)
+		if otherData then
+			table.insert(list, { Player = other, Points = otherData.Weekly.Points })
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.Points > b.Points
+	end)
+	for place, entry in list do
+		if entry.Player == player then
+			local ahead = list[place - 1]
+			return {
+				Place = place,
+				Count = #list,
+				NextName = ahead and ahead.Player.DisplayName or nil,
+				NextGap = ahead and (ahead.Points - data.Weekly.Points + 1) or nil,
+			}
+		end
+	end
+	return { Place = 1, Count = 1 }
 end
 
 function Stats:BuildDerived(player)
@@ -156,6 +181,11 @@ function Stats:BuildDerived(player)
 		GiftsClaimed = progression and progression:GiftsClaimed(player) or {},
 		PaidRandomRestricted = player:GetAttribute("PaidRandomRestricted") == true,
 		AdsEnabled = Config.RewardedAds.Enabled,
+		XPNeeded = Util.XPForLevel(Config, data.Level),
+		SpinCooldown = if Services.MonetizationService:HasPass(player, "VIP")
+			then Config.Spin.VipCooldownSeconds
+			else Config.Spin.CooldownSeconds,
+		ServerRank = serverRank(player, data),
 		ServerTime = os.time(),
 	}
 end

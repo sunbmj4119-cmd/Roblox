@@ -31,7 +31,7 @@ local function weld(a, b)
 	w.Parent = a
 end
 
-function PetModel.Build(petName: string): Model
+function PetModel.Build(petName: string, variant: string?): Model
 	local custom = ReplicatedStorage:FindFirstChild("PetModels")
 	if custom and custom:FindFirstChild(petName) then
 		local clone = (custom :: any)[petName]:Clone()
@@ -141,6 +141,33 @@ function PetModel.Build(petName: string): Model
 		light.Brightness = 1.5
 		light.Parent = body
 	end
+	-- Golden / Rainbow variants: shiny material + glow + sparkles
+	if variant == "Golden" or variant == "Rainbow" then
+		local tint = if variant == "Golden" then Color3.fromRGB(255, 205, 50) else Color3.fromRGB(255, 90, 210)
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") and d.Name ~= "Eye" and d.Name ~= "Shine" then
+				d.Color = if variant == "Golden" then d.Color:Lerp(tint, 0.75) else tint
+				d.Material = if variant == "Golden" then Enum.Material.Foil else Enum.Material.Neon
+			end
+		end
+		model:SetAttribute("Variant", variant)
+		local glow = Instance.new("PointLight")
+		glow.Color = tint
+		glow.Range = 9
+		glow.Brightness = 2
+		glow.Parent = body
+		local shimmer = Instance.new("ParticleEmitter")
+		shimmer.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		shimmer.Color = ColorSequence.new(if variant == "Golden" then Color3.fromRGB(255, 240, 150) else Color3.new(1, 1, 1))
+		shimmer.Size = NumberSequence.new(0.35, 0)
+		shimmer.Lifetime = NumberRange.new(0.5, 0.9)
+		shimmer.Rate = 8
+		shimmer.Speed = NumberRange.new(0.5, 1.5)
+		shimmer.SpreadAngle = Vector2.new(180, 180)
+		shimmer.LightEmission = 1
+		shimmer.Parent = body
+	end
+
 	if rarity.Order >= 6 then
 		local sparkle = Instance.new("ParticleEmitter")
 		sparkle.Texture = "rbxasset://textures/particles/sparkles_main.dds"

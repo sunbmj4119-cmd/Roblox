@@ -22,6 +22,7 @@ local blockInfo = {} -- [part] = { Slot, Ore, HP, Zone }
 local zoneBlocks = {} -- [zone] = { [part] = true }
 local lastSwing = {} -- [player] = os.clock()
 local immunity = {} -- [player] = os.clock() until
+local combos = {} -- [player] = { Count, Last }
 local oreFolder: Folder
 local dropFolder: Folder
 
@@ -31,12 +32,60 @@ local function pickOre(zoneIndex: number): string
 	return Util.WeightedPick(Config.Zones[zoneIndex].Ores, nil, oreRng)
 end
 
-local function spawnBlock(slot)
+local function rollLucky()
+	local mult = Services.EventService:Get("LuckyMult", 1)
+	for _, def in Config.LuckyOres do
+		if oreRng:NextNumber() < def.Chance * mult then
+			return def
+		end
+	end
+	return nil
+end
+
+local function addSparkles(part: BasePart, color: Color3, rate: number)
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Name = "Sparkles"
+	emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	emitter.Color = ColorSequence.new(color)
+	emitter.LightEmission = 1
+	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
+	emitter.Lifetime = NumberRange.new(0.6, 1.2)
+	emitter.Speed = NumberRange.new(1, 3)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Rate = rate
+	emitter.Parent = part
+end
+
+-- small crystal spikes on top of rare ores so they read as "valuable" at a glance
+local function addCrystals(part: BasePart, color: Color3, material: Enum.Material)
+	local size = Config.World.OreSize
+	for i = 1, 3 do
+		local spike = Instance.new("Part")
+		spike.Name = "Crystal"
+		spike.Anchored = true
+		spike.CanCollide = false
+		spike.CanQuery = false
+		spike.CanTouch = false
+		spike.CastShadow = false
+		spike.Material = material
+		spike.Color = color
+		spike.Size = Vector3.new(0.9, 2 + i * 0.5, 0.9)
+		local angle = i * 2.1
+		spike.CFrame = part.CFrame
+			* CFrame.new(math.cos(angle) * size * 0.22, size / 2 + spike.Size.Y * 0.35, math.sin(angle) * size * 0.22)
+			* CFrame.Angles(math.rad(18) * math.cos(angle), 0, math.rad(18) * math.sin(angle))
+		spike.Parent = part
+	end
+end
+
+local function spawnBlock(slot, forcedLucky)
 	if slot.Part and slot.Part.Parent then
 		return
 	end
 	local oreId = pickOre(slot.Zone)
 	local ore = Config.Ores[oreId]
+	local lucky = forcedLucky or rollLucky()
+	local hp = ore.HP * (if lucky then lucky.HPMult or 1 else 1)
 	local size = Config.World.OreSize
 	local part = Instance.new("Part")
 	part.Name = oreId
@@ -48,20 +97,41 @@ local function spawnBlock(slot)
 	part.BottomSurface = Enum.SurfaceType.Smooth
 	part.CFrame = CFrame.new(slot.Position) * CFrame.Angles(0, math.rad(oreRng:NextInteger(0, 3) * 90), 0)
 	part:SetAttribute("Ore", oreId)
-	part:SetAttribute("HP", ore.HP)
-	part:SetAttribute("MaxHP", ore.HP)
+	part:SetAttribute("HP", hp)
+	part:SetAttribute("MaxHP", hp)
 	part:SetAttribute("Zone", slot.Zone)
-	if ore.Glow then
+	if lucky then
+		part:SetAttribute("Lucky", lucky.Id)
+		if lucky.Id == "Golden" then
+			part.Color = Color3.fromRGB(255, 205, 50)
+			part.Material = Enum.Material.Foil
+			addSparkles(part, Color3.fromRGB(255, 230, 120), 8)
+		else
+			part.Color = Color3.fromRGB(255, 80, 200) -- clients cycle the hue
+			part.Material = Enum.Material.Neon
+			addSparkles(part, Color3.new(1, 1, 1), 20)
+		end
+		local light = Instance.new("PointLight")
+		light.Color = part.Color
+		light.Range = 16
+		light.Brightness = 2
+		light.Parent = part
+		addCrystals(part, part.Color, part.Material)
+	elseif ore.Glow then
 		local light = Instance.new("PointLight")
 		light.Color = ore.Color
 		light.Range = 10
 		light.Brightness = 1.4
 		light.Parent = part
+		addCrystals(part, ore.Color, Enum.Material.Neon)
 	end
 	part.Parent = oreFolder
 	slot.Part = part
-	blockInfo[part] = { Slot = slot, Ore = oreId, HP = ore.HP, Zone = slot.Zone }
+	blockInfo[part] = { Slot = slot, Ore = oreId, HP = hp, MaxHP = hp, Zone = slot.Zone, Lucky = lucky }
 	zoneBlocks[slot.Zone][part] = true
+	if lucky and lucky.Announce then
+		Net:Announce("🌈 A RAINBOW ORE appeared in " .. Config.Zones[slot.Zone].Name .. "! (50x value)", Color3.fromRGB(255, 120, 230))
+	end
 end
 
 local function removeBlock(part: BasePart, info)
@@ -69,7 +139,8 @@ local function removeBlock(part: BasePart, info)
 	zoneBlocks[info.Zone][part] = nil
 	info.Slot.Part = nil
 	part:Destroy()
-	task.delay(Config.World.OreRespawnSeconds, spawnBlock, info.Slot)
+	local delay = Config.World.OreRespawnSeconds * Services.EventService:Get("RespawnMult", 1)
+	task.delay(delay, spawnBlock, info.Slot)
 end
 
 local function withinReach(root: BasePart, part: BasePart, extra: number?): boolean
@@ -117,20 +188,55 @@ local function mineBlock(player: Player, data, part: BasePart)
 	end
 
 	local ore = Config.Ores[info.Ore]
-	info.HP -= stats:Damage(player, data)
+	local damage = stats:Damage(player, data)
+	local crit = math.random() < Config.Crit.Chance
+	if crit then
+		damage *= Config.Crit.Multiplier
+		data.Stats.Crits += 1
+	end
+	info.HP -= damage
 	if info.HP > 0 then
 		part:SetAttribute("HP", info.HP)
-		Net:Send(player, "MineHit", part, info.HP / ore.HP)
+		Net:Send(player, "MineHit", part, info.HP / info.MaxHP, crit, damage)
 		return
 	end
 
-	local gained = math.min(ore.Value, capacity - data.Backpack)
+	-- combo: consecutive breaks within the window
+	local now = os.clock()
+	local combo = combos[player]
+	if combo and now - combo.Last <= Config.Combo.Window then
+		combo.Count += 1
+	else
+		combo = { Count = 1, Last = now }
+		combos[player] = combo
+	end
+	combo.Last = now
+	data.Stats.BestCombo = math.max(data.Stats.BestCombo, combo.Count)
+	local comboBonus = math.min(Config.Combo.MaxBonus, (combo.Count - 1) * Config.Combo.BonusPer)
+
+	local events = Services.EventService
+	local lucky = info.Lucky
+	local value = ore.Value * (if lucky then lucky.ValueMult else 1) * events:Get("ValueMult", 1) * (1 + comboBonus)
+	local gained = math.min(math.floor(value), capacity - data.Backpack)
 	data.Backpack += gained
 	data.Stats.BlocksMined += 1
-	local extra = {}
+
+	local extra = { Crit = crit, Combo = combo.Count, Lucky = if lucky then lucky.Id else nil, Damage = damage }
+	local gems = 0
 	if ore.GemChance and math.random() < ore.GemChance then
-		data.Gems += ore.Gems
-		extra.Gems = ore.Gems
+		gems += ore.Gems
+	end
+	local stormChance = events:Get("GemChance", 0)
+	if stormChance > 0 and math.random() < stormChance then
+		gems += info.Zone
+	end
+	if lucky then
+		gems += lucky.Gems
+		data.Stats.LuckyOres += 1
+	end
+	if gems > 0 then
+		data.Gems += gems
+		extra.Gems = gems
 	end
 	if ore.Stardust then
 		data.Stardust += ore.Stardust
@@ -138,13 +244,34 @@ local function mineBlock(player: Player, data, part: BasePart)
 	end
 	local position = part.Position
 	removeBlock(part, info)
-	Services.ProgressionService:OnBlockMined(player, info.Zone)
+	local progression = Services.ProgressionService
+	progression:OnBlockMined(player, info.Zone)
+	progression:AddXP(player, info.Zone * (if lucky then 10 else 1))
 	Net:Send(player, "MineBreak", position, info.Ore, gained, extra)
+	if lucky and lucky.Announce then
+		Net:Announce(
+			string.format("🌈 %s mined a RAINBOW %s! (+%d 💎)", player.DisplayName, ore.Name, gems),
+			Color3.fromRGB(255, 120, 230)
+		)
+	end
 
 	if data.Backpack >= capacity and monetization:HasPass(player, "AutoSell") then
 		Services.EconomyService:Sell(player, true)
 	end
 	Data:MarkDirty(player)
+end
+
+-- DEV: turn the block closest to the player into a Rainbow ore
+function Mining:DevRainbow(player: Player)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart
+	local target = root and nearestBlock(root)
+	if not target then
+		return false
+	end
+	local slot = blockInfo[target].Slot
+	removeBlock(target, blockInfo[target]) -- the scheduled respawn no-ops because we refill now
+	spawnBlock(slot, Config.LuckyOres[1])
+	return true
 end
 
 ---------------------------------------------------------------------------
@@ -312,6 +439,7 @@ function Mining:Start()
 	Players.PlayerRemoving:Connect(function(player)
 		lastSwing[player] = nil
 		immunity[player] = nil
+		combos[player] = nil
 	end)
 end
 

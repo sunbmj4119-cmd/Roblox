@@ -218,4 +218,53 @@ function Util.CanTest(config, player: Player): boolean
 	return config.OwnerTestMode == true and Util.IsOwner(player)
 end
 
+-- XP needed to go from `level` to `level + 1`
+function Util.XPForLevel(config, level: number): number
+	return math.max(1, math.floor(config.Levels.XPBase * level ^ config.Levels.XPExponent))
+end
+
+function Util.VariantDef(config, variant: string?)
+	if not variant then
+		return nil
+	end
+	for _, def in config.PetVariants do
+		if def.Id == variant then
+			return def
+		end
+	end
+	return nil
+end
+
+-- pet power including Golden / Rainbow multiplier
+function Util.PetPower(config, petName: string, variant: string?): number
+	local info = config.Pets[petName]
+	if not info then
+		return 0
+	end
+	local def = Util.VariantDef(config, variant)
+	return info.Power * (if def then def.PowerMult else 1)
+end
+
+function Util.PetDisplayName(petName: string, variant: string?): string
+	return if variant then variant .. " " .. petName else petName
+end
+
+-- 0 = hub, 1..n = zone index, nil = outside (mirrors WorldService layout)
+function Util.ZoneAt(config, position: Vector3): number?
+	local layout = config.World.Layout
+	if math.abs(position.X) <= layout.HubHalf and math.abs(position.Z) <= layout.HubHalf then
+		return 0
+	end
+	if math.abs(position.X) > layout.ZoneWidth / 2 + 1 then
+		return nil
+	end
+	for index = 1, #config.Zones do
+		local zStart = layout.FirstZ + (index - 1) * (layout.ZoneLength + layout.Gap)
+		if position.Z >= zStart and position.Z <= zStart + layout.ZoneLength then
+			return index
+		end
+	end
+	return nil
+end
+
 return Util

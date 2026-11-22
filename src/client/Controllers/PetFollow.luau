@@ -38,9 +38,14 @@ local function rebuild(player: Player)
 		names = {}
 	end
 	local models = {}
-	for i, name in names do
-		if type(name) == "string" then
-			local model = PetModel.Build(name)
+	for i, entry in names do
+		if type(entry) == "string" then
+			-- entries look like "Golden|Fox" or "|Fox"
+			local variant, name = string.match(entry, "^(.-)|(.+)$")
+			if not name then
+				variant, name = "", entry
+			end
+			local model = PetModel.Build(name, if variant ~= "" then variant else nil)
 			model.Name = player.Name .. "_" .. i
 			model.Parent = folder
 			table.insert(models, model)
@@ -64,6 +69,7 @@ end
 
 RunService.RenderStepped:Connect(function(dt)
 	local t = os.clock()
+	local rainbow = Color3.fromHSV((t * 0.3) % 1, 0.7, 1)
 	local alpha = 1 - math.exp(-dt * 9)
 	for player, entry in owners do
 		local character = player.Character
@@ -82,6 +88,9 @@ RunService.RenderStepped:Connect(function(dt)
 				local cf = CFrame.lookAt(position, position + Vector3.new(look.X, 0, look.Z) + Vector3.new(0, 0.001, 0))
 				entry.Positions[i] = cf
 				model:PivotTo(cf)
+				if model:GetAttribute("Variant") == "Rainbow" and model.PrimaryPart then
+					model.PrimaryPart.Color = rainbow
+				end
 			end
 		end
 	end

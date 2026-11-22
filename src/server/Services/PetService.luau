@@ -30,9 +30,19 @@ local function luckFn(luck: number)
 end
 PetService.LuckFn = luckFn
 
-local function power(name: string): number
-	local info = Config.Pets[name]
-	return if info then info.Power else 0
+local function power(pet): number
+	return Util.PetPower(Config, pet.Name, pet.Variant)
+end
+
+-- Golden / Rainbow roll; luck raises the chance (capped at x4)
+local function rollVariant(luck: number): string?
+	local mult = math.clamp(luck, 1, 4)
+	for _, def in Config.PetVariants do
+		if math.random() < def.Chance * mult then
+			return def.Id
+		end
+	end
+	return nil
 end
 
 function PetService:RefreshEquipped(player: Player)
@@ -49,7 +59,8 @@ function PetService:RefreshEquipped(player: Player)
 	for _, id in data.Equipped do
 		if byId[id] and not table.find(valid, id) and #valid < slots then
 			table.insert(valid, id)
-			table.insert(names, byId[id].Name)
+			-- "Variant|Name" so every client can render golden/rainbow pets
+			table.insert(names, (byId[id].Variant or "") .. "|" .. byId[id].Name)
 		end
 	end
 	data.Equipped = valid
@@ -57,8 +68,8 @@ function PetService:RefreshEquipped(player: Player)
 	Data:MarkDirty(player)
 end
 
-local function addPet(player: Player, data, name: string)
-	local pet = { Id = data.NextPetUid, Name = name }
+local function addPet(player: Player, data, name: string, variant: string?)
+	local pet = { Id = data.NextPetUid, Name = name, Variant = variant }
 	data.NextPetUid += 1
 	table.insert(data.Pets, pet)
 	data.PetIndex[name] = true
@@ -68,13 +79,17 @@ local function addPet(player: Player, data, name: string)
 	return pet
 end
 
-local function announceIfRare(player: Player, name: string, eggName: string)
+local function announceIfRare(player: Player, name: string, variant: string?, eggName: string)
 	local info = Config.Pets[name]
 	local rarity = info and Config.Rarities[info.Rarity]
-	if rarity and rarity.Order >= Config.AnnounceRarity then
+	if not rarity then
+		return
+	end
+	if rarity.Order >= Config.AnnounceRarity or variant == "Rainbow" then
+		local label = if variant then string.upper(variant) .. " " .. string.upper(info.Rarity) else string.upper(info.Rarity)
 		Net:Announce(
-			string.format("🥚 %s hatched a %s %s from the %s!", player.DisplayName, string.upper(info.Rarity), name, eggName),
-			rarity.Color
+			string.format("🥚 %s hatched a %s %s from the %s!", player.DisplayName, label, name, eggName),
+			if variant == "Rainbow" then Color3.fromRGB(255, 120, 230) else rarity.Color
 		)
 	end
 end
@@ -86,9 +101,10 @@ local function roll(player: Player, data, eggId: string, count: number)
 	local results = {}
 	for _ = 1, count do
 		local name = Util.WeightedPick(egg.Pets, fn)
-		addPet(player, data, name)
-		table.insert(results, name)
-		announceIfRare(player, name, egg.Name)
+		local variant = rollVariant(luck)
+		addPet(player, data, name, variant)
+		table.insert(results, { Name = name, Variant = variant })
+		announceIfRare(player, name, variant, egg.Name)
 	end
 	data.Stats.EggsHatched += count
 	Services.ProgressionService:AddQuest(player, "Hatch", count)
@@ -97,14 +113,14 @@ local function roll(player: Player, data, eggId: string, count: number)
 	return results
 end
 
-function PetService:GrantPet(player: Player, name: string)
+function PetService:GrantPet(player: Player, name: string, variant: string?)
 	local data = Data:Get(player)
 	if not data or not Config.Pets[name] then
 		return
 	end
-	addPet(player, data, name)
+	addPet(player, data, name, variant)
 	self:RefreshEquipped(player)
-	Net:Send(player, "HatchResult", { name }, nil)
+	Net:Send(player, "HatchResult", { { Name = name, Variant = variant } }, nil)
 end
 
 function PetService:PaidHatch(player: Player, eggId: string, count: number)
@@ -196,7 +212,7 @@ function PetService:Start()
 		end
 		local sorted = table.clone(data.Pets)
 		table.sort(sorted, function(a, b)
-			return power(a.Name) > power(b.Name)
+			return power(a) > power(b)
 		end)
 		local slots = Services.StatsService:PetSlots(player, data)
 		data.Equipped = {}
@@ -232,7 +248,8 @@ function PetService:Start()
 		local removed = 0
 		for _, pet in data.Pets do
 			local info = Config.Pets[pet.Name]
-			if info and info.Rarity == rarity and not table.find(data.Equipped, pet.Id) then
+			-- golden / rainbow pets are never bulk-deleted
+			if info and info.Rarity == rarity and not pet.Variant and not table.find(data.Equipped, pet.Id) then
 				removed += 1
 			else
 				table.insert(kept, pet)

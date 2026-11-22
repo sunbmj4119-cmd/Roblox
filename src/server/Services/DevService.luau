@@ -40,6 +40,14 @@ function Dev:Start()
 			Services.ProgressionService:AddSeasonXP(player, 5 * 2000)
 		elseif command == "Meteor" then
 			Services.MeteorService:Summon(player)
+		elseif command == "Level" then
+			Services.ProgressionService:AddXP(player, 2000)
+		elseif command == "Event" then
+			Services.EventService:Trigger()
+		elseif command == "Rainbow" then
+			Services.MiningService:DevRainbow(player)
+		elseif command == "Spin" then
+			data.FreeSpinAt = 0
 		elseif command == "Fill" then
 			data.Backpack = Services.StatsService:Capacity(player, data)
 		elseif command == "Reset" then

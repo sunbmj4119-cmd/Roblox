@@ -129,13 +129,29 @@ function Lib.Text(props)
 	return label
 end
 
-function Lib.PlaySound(id: string?, volume: number?)
+-- Play a named sound from Config.Sounds (random variant + pitch variance),
+-- or a raw sound id. pitchOffset lets combos/coins rise in pitch.
+function Lib.PlaySound(name: string?, volumeMult: number?, pitchOffset: number?)
+	if not name or name == "" then
+		return
+	end
+	local def = Config.Sounds[name]
+	local id, volume, pitch
+	if type(def) == "table" then
+		id = def.Ids[math.random(1, #def.Ids)]
+		volume = (def.Volume or 0.5) * (volumeMult or 1)
+		pitch = (def.Pitch or 1) + (pitchOffset or 0) + (math.random() * 2 - 1) * (def.Variance or 0)
+	else
+		id = name
+		volume = volumeMult or 0.5
+		pitch = 1 + (pitchOffset or 0)
+	end
 	if not id or id == "" then
 		return
 	end
-	local sound = New("Sound", { SoundId = id, Volume = volume or 0.5, Parent = SoundService })
+	local sound = New("Sound", { SoundId = id, Volume = volume, PlaybackSpeed = math.max(0.1, pitch), Parent = SoundService })
 	sound:Play()
-	Debris:AddItem(sound, 3)
+	Debris:AddItem(sound, 5)
 end
 
 -- Big chunky game button. props.Color, props.Text, props.OnClick
@@ -177,7 +193,7 @@ function Lib.Button(props)
 	button.Activated:Connect(function()
 		scale.Scale = 0.92
 		TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-		Lib.PlaySound(Config.Sounds.UI, 0.35)
+		Lib.PlaySound("UI")
 		if props.OnClick then
 			props.OnClick()
 		end
