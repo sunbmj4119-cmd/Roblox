@@ -3,18 +3,28 @@
 # Place Publishing API - no Studio needed after the experience exists.
 #
 # Usage:
-#   ROBLOX_API_KEY=xxxx tools/publish.sh <universeId> <placeId> [Published|Saved]
+#   ROBLOX_API_KEY=xxxx tools/publish.sh [universeId placeId [Published|Saved]]
+#   (IDs default to tools/place.env)
 #
 # The API key needs the place-write permission (universe-places / Write)
 # for this experience. Create it at Creator Hub -> Open Cloud -> API Keys.
 # "Saved" uploads a version without making it live; "Published" makes it live.
 set -euo pipefail
 
-UNIVERSE_ID="${1:?usage: tools/publish.sh <universeId> <placeId> [Published|Saved]}"
-PLACE_ID="${2:?usage: tools/publish.sh <universeId> <placeId> [Published|Saved]}"
-VERSION_TYPE="${3:-Published}"
-
 cd "$(dirname "$0")/.."
+
+# default IDs come from tools/place.env; arguments override them
+if [ -f tools/place.env ]; then
+	# shellcheck disable=SC1091
+	source tools/place.env
+fi
+UNIVERSE_ID="${1:-${UNIVERSE_ID:-}}"
+PLACE_ID="${2:-${PLACE_ID:-}}"
+VERSION_TYPE="${3:-Published}"
+if [ -z "$UNIVERSE_ID" ] || [ -z "$PLACE_ID" ]; then
+	echo "usage: tools/publish.sh [universeId placeId [Published|Saved]]"
+	exit 1
+fi
 
 # safety checks before anything goes live
 if command -v stylua >/dev/null 2>&1; then
