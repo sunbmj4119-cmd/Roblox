@@ -7,6 +7,7 @@
 	Plus toasts, announcements and celebrations (level up, rank up, tutorial).
 ]]
 local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -25,6 +26,7 @@ local Upsell = require(Client.UI.Upsell)
 
 local New, C, T = Lib.New, Lib.Colors, Lib.T
 local HUD = {}
+local player = Players.LocalPlayer
 
 local DARK = Color3.fromRGB(20, 22, 34)
 
@@ -363,6 +365,49 @@ local rankSub = Lib.Text({
 	Parent = rankChip,
 })
 
+-- base chip: income per second + bank; tap to go home
+local baseChip = chip(6, 48, Color3.fromRGB(120, 230, 255))
+local baseTitle = Lib.Text({
+	Text = "",
+	TextColor3 = Color3.fromRGB(140, 235, 255),
+	Size = UDim2.new(1, -12, 0, 23),
+	Position = UDim2.fromOffset(6, 3),
+	MaxTextSize = 18,
+	Parent = baseChip,
+})
+local baseSub = Lib.Text({
+	Text = "",
+	Font = Lib.BodyFont,
+	TextColor3 = C.Sub,
+	Size = UDim2.new(1, -12, 0, 17),
+	Position = UDim2.fromOffset(6, 27),
+	MaxTextSize = 13,
+	Parent = baseChip,
+})
+local baseButton = New("TextButton", {
+	BackgroundTransparency = 1,
+	Text = "",
+	Size = UDim2.fromScale(1, 1),
+	ZIndex = 5,
+	Parent = baseChip,
+})
+baseButton.Activated:Connect(function()
+	Lib.PlaySound("UI")
+	Net.Fire("GoBase")
+end)
+local function refreshBaseChip()
+	local data = State.Data
+	local hasBase = player:GetAttribute("BaseIndex") ~= nil
+	baseChip.Visible = hasBase and data ~= nil and (data.Tutorial == nil or data.Tutorial.Done == true)
+	if baseChip.Visible then
+		baseTitle.Text = T("🏠 BASE  💰%s/s", Util.Format(player:GetAttribute("BaseRate") or 0))
+		baseSub.Text = T("Bank: 💰%s  •  tap to go", Util.Format(player:GetAttribute("BaseBank") or 0))
+	end
+end
+player:GetAttributeChangedSignal("BaseBank"):Connect(refreshBaseChip)
+player:GetAttributeChangedSignal("BaseIndex"):Connect(refreshBaseChip)
+State.OnChanged(refreshBaseChip)
+
 local boostRows = {}
 local BOOSTS = {
 	{ "Coins2x", "2x💰", C.Coins },
@@ -466,8 +511,18 @@ Lib.Button({
 ---------------------------------------------------------------------------
 local function nextGoal(data, derived): string
 	local capacity = derived.Capacity or 1
+	if player:GetAttribute("Carrying") then
+		return T("Run to your base 🏠 before someone bonks you!")
+	end
 	if data.Backpack >= capacity then
 		return T("Sell your ore at the 💰 SELL pad in the hub!")
+	end
+	local base = data.Base
+	if base and #base.Shards == 0 then
+		return T("Grab a falling star 🌠 and carry it to your base 🏠")
+	end
+	if base and (player:GetAttribute("BaseBank") or 0) >= math.max(100, data.Coins * 0.25) then
+		return T("Collect 💰%s at your base 🏠", Util.Format(player:GetAttribute("BaseBank") or 0))
 	end
 	local pick = Config.Pickaxes[data.PickaxeTier + 1]
 	local bag = Config.Backpacks[data.BackpackTier + 1]
@@ -795,6 +850,7 @@ local function celebrate(title: string, sub: string, color: Color3, withConfetti
 	end)
 end
 HUD.Celebrate = celebrate
+HUD.FlyCoins = flyCoins
 
 ---------------------------------------------------------------------------
 -- server messages

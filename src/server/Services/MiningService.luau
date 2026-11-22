@@ -23,6 +23,9 @@ local zoneBlocks = {} -- [zone] = { [part] = true }
 local lastSwing = {} -- [player] = os.clock()
 local immunity = {} -- [player] = os.clock() until
 local combos = {} -- [player] = { Count, Last }
+local feverUntil = {} -- [player] = server time
+local feverStart = {} -- [player] = server time
+local lastWarn = {} -- [player] = os.clock() (throttles hint messages)
 local oreFolder: Folder
 local dropFolder: Folder
 
@@ -78,6 +81,56 @@ local function addCrystals(part: BasePart, color: Color3, material: Enum.Materia
 	end
 end
 
+-- rock chunks around the base + ore "veins" so blocks read as rocks, not cubes
+local function decorate(part: BasePart, ore, size: number)
+	local function chunk(cf: CFrame, chunkSize: Vector3, color: Color3, material: Enum.Material, name: string)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.CastShadow = false
+		p.Size = chunkSize
+		p.CFrame = cf
+		p.Color = color
+		p.Material = material
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		p.Parent = part
+	end
+	local dark = part.Color:Lerp(Color3.new(0, 0, 0), 0.3)
+	local base = part.CFrame
+	chunk(
+		base * CFrame.new(size * 0.42, -size * 0.28, size * 0.36) * CFrame.Angles(0.3, oreRng:NextNumber(0, 3), 0.2),
+		Vector3.new(size * 0.5, size * 0.42, size * 0.48),
+		dark,
+		part.Material,
+		"Rock"
+	)
+	chunk(
+		base * CFrame.new(-size * 0.4, -size * 0.3, -size * 0.34) * CFrame.Angles(-0.2, oreRng:NextNumber(0, 3), 0.3),
+		Vector3.new(size * 0.44, size * 0.38, size * 0.42),
+		dark,
+		part.Material,
+		"Rock"
+	)
+	if ore.Value >= 2 then
+		local vein = part.Color:Lerp(Color3.new(1, 1, 1), 0.2)
+		local material = if ore.Glow then Enum.Material.Neon else part.Material
+		for i = 1, 2 do
+			local side = if i == 1 then 1 else -1
+			chunk(
+				base * CFrame.new(side * size * 0.5, size * (0.05 + i * 0.12), side * size * 0.12) * CFrame.Angles(0.6, 0.7 * i, 0.4),
+				Vector3.new(1.1, 1.1, 1.1) * (0.8 + i * 0.25),
+				vein,
+				material,
+				"Vein"
+			)
+		end
+	end
+end
+
 local function spawnBlock(slot, forcedLucky)
 	if slot.Part and slot.Part.Parent then
 		return
@@ -95,7 +148,12 @@ local function spawnBlock(slot, forcedLucky)
 	part.Color = ore.Color
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
-	part.CFrame = CFrame.new(slot.Position) * CFrame.Angles(0, math.rad(oreRng:NextInteger(0, 3) * 90), 0)
+	part.CFrame = CFrame.new(slot.Position)
+		* CFrame.Angles(
+			math.rad(oreRng:NextNumber(-6, 6)),
+			math.rad(oreRng:NextInteger(0, 3) * 90 + oreRng:NextNumber(-14, 14)),
+			math.rad(oreRng:NextNumber(-6, 6))
+		)
 	part:SetAttribute("Ore", oreId)
 	part:SetAttribute("HP", hp)
 	part:SetAttribute("MaxHP", hp)
@@ -125,6 +183,7 @@ local function spawnBlock(slot, forcedLucky)
 		light.Parent = part
 		addCrystals(part, ore.Color, Enum.Material.Neon)
 	end
+	decorate(part, ore, size)
 	part.Parent = oreFolder
 	slot.Part = part
 	blockInfo[part] = { Slot = slot, Ore = oreId, HP = hp, MaxHP = hp, Zone = slot.Zone, Lucky = lucky }
@@ -166,62 +225,120 @@ local function nearestBlock(root: BasePart): BasePart?
 	return nil
 end
 
-local function mineBlock(player: Player, data, part: BasePart)
-	local info = blockInfo[part]
-	if not info then
+local function now(): number
+	return workspace:GetServerTimeNow()
+end
+
+local function warnOnce(player: Player, seconds: number, text: string, ...)
+	if lastWarn[player] and os.clock() - lastWarn[player] < seconds then
 		return
 	end
-	if info.Zone > data.ZoneLevel then
-		Net:Notify(player, "Unlock %s to mine here!", Color3.fromRGB(255, 110, 110), Config.Zones[info.Zone].Name)
+	lastWarn[player] = os.clock()
+	Net:Notify(player, text, Color3.fromRGB(255, 170, 110), ...)
+end
+
+---------------------------------------------------------------------------
+-- FEVER: a long combo turns into a short frenzy
+---------------------------------------------------------------------------
+function Mining:IsFever(player: Player): boolean
+	return (feverUntil[player] or 0) > now()
+end
+
+local function feverFX(player: Player, on: boolean)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not root then
 		return
 	end
-	local stats = Services.StatsService
-	local monetization = Services.MonetizationService
-	local capacity = stats:Capacity(player, data)
-	if data.Backpack >= capacity then
-		if monetization:HasPass(player, "AutoSell") then
-			Services.EconomyService:Sell(player, true)
-		else
-			Net:Send(player, "BackpackFull")
-			return
+	local existing = root:FindFirstChild("FeverFX")
+	if not on then
+		if existing then
+			existing:Destroy()
 		end
-	end
-
-	local ore = Config.Ores[info.Ore]
-	local damage = stats:Damage(player, data)
-	local crit = math.random() < Config.Crit.Chance
-	if crit then
-		damage *= Config.Crit.Multiplier
-		data.Stats.Crits += 1
-	end
-	info.HP -= damage
-	if info.HP > 0 then
-		part:SetAttribute("HP", info.HP)
-		Net:Send(player, "MineHit", part, info.HP / info.MaxHP, crit, damage)
 		return
 	end
+	if existing then
+		return
+	end
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Name = "FeverFX"
+	emitter.Texture = "rbxasset://textures/particles/fire_main.dds"
+	emitter.Color = ColorSequence.new(Color3.fromRGB(255, 170, 50), Color3.fromRGB(255, 60, 40))
+	emitter.LightEmission = 1
+	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.6), NumberSequenceKeypoint.new(1, 0) })
+	emitter.Lifetime = NumberRange.new(0.4, 0.7)
+	emitter.Speed = NumberRange.new(4, 8)
+	emitter.SpreadAngle = Vector2.new(25, 25)
+	emitter.Rate = 40
+	emitter.Parent = root
+end
 
+local function startFever(player: Player, data)
+	local t = now()
+	feverStart[player] = t
+	feverUntil[player] = t + Config.Fever.Duration
+	player:SetAttribute("FeverUntil", feverUntil[player])
+	data.Stats.Fevers = (data.Stats.Fevers or 0) + 1
+	feverFX(player, true)
+	Services.CharacterService:ApplyWalkSpeed(player)
+	Net:Send(player, "Fever", Config.Fever.Duration)
+end
+
+local function extendFever(player: Player)
+	local cap = (feverStart[player] or now()) + Config.Fever.MaxDuration
+	feverUntil[player] = math.min(cap, (feverUntil[player] or now()) + Config.Fever.Extend)
+	player:SetAttribute("FeverUntil", feverUntil[player])
+end
+
+local function endFever(player: Player)
+	feverUntil[player] = nil
+	feverStart[player] = nil
+	combos[player] = nil
+	if player.Parent then
+		player:SetAttribute("FeverUntil", nil)
+		feverFX(player, false)
+		Services.CharacterService:ApplyWalkSpeed(player)
+		Net:Send(player, "FeverEnd")
+	end
+end
+
+---------------------------------------------------------------------------
+-- hitting / breaking blocks
+---------------------------------------------------------------------------
+local function breakBlock(player: Player, data, part: BasePart, info, crit: boolean, capacity: number)
 	-- combo: consecutive breaks within the window
-	local now = os.clock()
+	local clock = os.clock()
 	local combo = combos[player]
-	if combo and now - combo.Last <= Config.Combo.Window then
+	if combo and clock - combo.Last <= Config.Combo.Window then
 		combo.Count += 1
 	else
-		combo = { Count = 1, Last = now }
+		combo = { Count = 1, Last = clock }
 		combos[player] = combo
 	end
-	combo.Last = now
+	combo.Last = clock
 	data.Stats.BestCombo = math.max(data.Stats.BestCombo, combo.Count)
 	local comboBonus = math.min(Config.Combo.MaxBonus, (combo.Count - 1) * Config.Combo.BonusPer)
 
+	local fever = Mining:IsFever(player)
+	if fever then
+		extendFever(player)
+	elseif combo.Count >= Config.Fever.Combo then
+		startFever(player, data)
+		fever = true
+	end
+
+	local ore = Config.Ores[info.Ore]
 	local events = Services.EventService
 	local lucky = info.Lucky
-	local value = ore.Value * (if lucky then lucky.ValueMult else 1) * events:Get("ValueMult", 1) * (1 + comboBonus)
+	local value = ore.Value
+		* (if lucky then lucky.ValueMult else 1)
+		* events:Get("ValueMult", 1)
+		* (1 + comboBonus)
+		* (if fever then Config.Fever.ValueMult else 1)
 	local gained = math.min(math.floor(value), capacity - data.Backpack)
 	data.Backpack += gained
 	data.Stats.BlocksMined += 1
 
-	local extra = { Crit = crit, Combo = combo.Count, Lucky = if lucky then lucky.Id else nil, Damage = damage }
+	local extra = { Crit = crit, Combo = combo.Count, Lucky = if lucky then lucky.Id else nil, Fever = fever }
 	local gems = 0
 	if ore.GemChance and math.random() < ore.GemChance then
 		gems += ore.Gems
@@ -251,9 +368,81 @@ local function mineBlock(player: Player, data, part: BasePart)
 	if lucky and lucky.Announce then
 		Net:Announce("🌈 %s mined a RAINBOW %s! (+%d 💎)", Color3.fromRGB(255, 120, 230), player.DisplayName, ore.Name, gems)
 	end
+end
 
+-- returns "hit" | "broken" | "full" | nil (not allowed)
+local function hitBlock(player: Player, data, part: BasePart, damage: number, crit: boolean, isSplash: boolean)
+	local info = blockInfo[part]
+	if not info then
+		return nil
+	end
+	if info.Zone > data.ZoneLevel then
+		if not isSplash then
+			warnOnce(player, 2, "Unlock %s to mine here!", Config.Zones[info.Zone].Name)
+		end
+		return nil
+	end
+	local stats = Services.StatsService
+	local monetization = Services.MonetizationService
+	local capacity = stats:Capacity(player, data)
+	if data.Backpack >= capacity then
+		if monetization:HasPass(player, "AutoSell") then
+			Services.EconomyService:Sell(player, true)
+		else
+			if not isSplash then
+				Net:Send(player, "BackpackFull")
+			end
+			return "full"
+		end
+	end
+	info.HP -= damage
+	if info.HP > 0 then
+		part:SetAttribute("HP", info.HP)
+		Net:Send(player, "MineHit", part, info.HP / info.MaxHP, crit, damage, isSplash)
+		return "hit"
+	end
+	breakBlock(player, data, part, info, crit, capacity)
 	if data.Backpack >= capacity and monetization:HasPass(player, "AutoSell") then
 		Services.EconomyService:Sell(player, true)
+	end
+	return "broken"
+end
+
+local function mineBlock(player: Player, data, part: BasePart)
+	local info = blockInfo[part]
+	if not info then
+		return
+	end
+	local zone = info.Zone
+	local center = part.Position
+	local damage = Services.StatsService:Damage(player, data)
+	local crit = math.random() < Config.Crit.Chance
+	if crit then
+		damage *= Config.Crit.Multiplier
+		data.Stats.Crits += 1
+	end
+	local result = hitBlock(player, data, part, damage, crit, false)
+	if result == "hit" or result == "broken" then
+		-- shockwave: crits (and every hit during FEVER) damage nearby blocks too
+		local fever = Mining:IsFever(player)
+		if crit or fever then
+			local radius = if fever then Config.Fever.SplashRadius else Config.Crit.SplashRadius
+			local mult = if fever then Config.Fever.SplashDamage else Config.Crit.SplashDamage
+			local targets = {}
+			for other in zoneBlocks[zone] do
+				if other ~= part and (other.Position - center).Magnitude <= radius then
+					table.insert(targets, other)
+				end
+			end
+			if #targets > 0 then
+				Net:Send(player, "Shockwave", center, radius, fever)
+				for _, other in targets do
+					if hitBlock(player, data, other, damage * mult, false, true) == "full" then
+						break
+					end
+				end
+			end
+		end
 	end
 	Data:MarkDirty(player)
 end
@@ -333,21 +522,34 @@ local function tryBonk(attacker: Player, victim: Player)
 	if (aRoot.Position - vRoot.Position).Magnitude > Config.PvP.BonkRange then
 		return
 	end
+	local shards = Services.ShardService
+	local carrying = shards:IsCarrying(victim)
 	local pvpZone = World.PvPZone
-	if World:ZoneAt(aRoot.Position) ~= pvpZone or World:ZoneAt(vRoot.Position) ~= pvpZone then
-		Net:Notify(attacker, "⚔️ You can only bonk players inside the Star Crater!")
+	local inPvP = World:ZoneAt(aRoot.Position) == pvpZone and World:ZoneAt(vRoot.Position) == pvpZone
+	if not carrying and not inPvP then
+		warnOnce(attacker, 3, "⚔️ You can only bonk shard carriers - or anyone in the Star Crater!")
 		return
 	end
-	local now = os.clock()
-	if (immunity[victim] or 0) > now then
+	if (vRoot.Position - World.HubSpawn.Position).Magnitude <= Config.World.SpawnSafeRadius then
+		warnOnce(attacker, 3, "🛡️ The spawn is a safe zone!")
 		return
 	end
-	immunity[victim] = now + Config.PvP.ImmunitySeconds
+	local clock = os.clock()
+	if (immunity[victim] or 0) > clock then
+		return
+	end
+	immunity[victim] = clock + Config.PvP.ImmunitySeconds
 
-	local drop = math.floor(vData.Backpack * Config.PvP.DropPercent)
-	if drop > 0 then
-		vData.Backpack -= drop
-		spawnOrbs(vRoot.Position, drop)
+	if carrying then
+		shards:Drop(victim, attacker)
+	end
+	local drop = 0
+	if inPvP then
+		drop = math.floor(vData.Backpack * Config.PvP.DropPercent)
+		if drop > 0 then
+			vData.Backpack -= drop
+			spawnOrbs(vRoot.Position, drop)
+		end
 	end
 	aData.Stats.Bonks += 1
 	local progression = Services.ProgressionService
@@ -357,10 +559,30 @@ local function tryBonk(attacker: Player, victim: Player)
 	local direction = (vRoot.Position - aRoot.Position) * Vector3.new(1, 0, 1)
 	direction = if direction.Magnitude > 0.01 then direction.Unit else Vector3.zAxis
 	Net:Send(victim, "Knockback", direction * Config.PvP.Knockback + Vector3.new(0, 35, 0))
-	Net:Send(victim, "Bonked", attacker.DisplayName, drop)
-	Net:Notify(attacker, "💥 Bonked %s! %s ore dropped", Color3.fromRGB(255, 140, 90), victim.DisplayName, Util.Format(drop))
+	Net:Send(victim, "Bonked", attacker.DisplayName, drop, carrying)
+	Net:Send(attacker, "BonkHit", vRoot.Position)
+	if drop > 0 then
+		Net:Notify(attacker, "💥 Bonked %s! %s ore dropped", Color3.fromRGB(255, 140, 90), victim.DisplayName, Util.Format(drop))
+	end
 	Data:MarkDirty(attacker)
 	Data:MarkDirty(victim)
+end
+
+-- the closest shard carrier in bonk range (mobile players just hold MINE)
+local function nearestCarrier(player: Player, root: BasePart): Player?
+	local best, bestDistance = nil, Config.PvP.BonkRange
+	for _, other in Players:GetPlayers() do
+		if other ~= player and Services.ShardService:IsCarrying(other) then
+			local otherRoot = other.Character and other.Character:FindFirstChild("HumanoidRootPart") :: BasePart
+			if otherRoot then
+				local distance = (otherRoot.Position - root.Position).Magnitude
+				if distance <= bestDistance then
+					best, bestDistance = other, distance
+				end
+			end
+		end
+	end
+	return best
 end
 
 ---------------------------------------------------------------------------
@@ -375,20 +597,32 @@ local function onSwing(player: Player, hint)
 	if not root or not humanoid or humanoid.Health <= 0 then
 		return
 	end
+	-- the pickaxe is always in hand; if it got unequipped, put it back
 	if not character:FindFirstChild("Pickaxe") then
-		return
+		local backpack = player:FindFirstChildOfClass("Backpack")
+		local tool = backpack and backpack:FindFirstChild("Pickaxe")
+		if tool and tool:IsA("Tool") then
+			humanoid:EquipTool(tool)
+		else
+			Services.CharacterService:GivePickaxe(player)
+		end
 	end
-	local now = os.clock()
+	local clock = os.clock()
 	local cooldown = Services.StatsService:SwingCooldown(player, data)
-	if lastSwing[player] and now - lastSwing[player] < cooldown * 0.8 then
+	if lastSwing[player] and clock - lastSwing[player] < cooldown * 0.8 then
 		return
 	end
-	lastSwing[player] = now
+	lastSwing[player] = clock
+
+	if Services.ShardService:IsCarrying(player) then
+		warnOnce(player, 4, "🌠 Hands full! Bring the shard to your base 🏠")
+		return
+	end
 
 	local hintPart = if typeof(hint) == "Instance" and hint:IsA("BasePart") then hint else nil
 	local meteor = Services.MeteorService
 
-	-- 1) explicit target: another player (PvP) or a block
+	-- 1) explicit target: another player (bonk) or a block
 	if hintPart then
 		local model = hintPart:FindFirstAncestorOfClass("Model")
 		local victim = model and Players:GetPlayerFromCharacter(model)
@@ -396,7 +630,7 @@ local function onSwing(player: Player, hint)
 			tryBonk(player, victim)
 			return
 		end
-		if blockInfo[hintPart] and withinReach(root, hintPart) then
+		if blockInfo[hintPart] and withinReach(root, hintPart, 3) then
 			mineBlock(player, data, hintPart)
 			return
 		end
@@ -408,7 +642,14 @@ local function onSwing(player: Player, hint)
 		return
 	end
 
-	-- 3) auto target the closest block (mobile friendly + auto mine pass)
+	-- 3) a shard carrier right next to us
+	local carrier = nearestCarrier(player, root)
+	if carrier then
+		tryBonk(player, carrier)
+		return
+	end
+
+	-- 4) auto target the closest block (mobile friendly + auto mine pass)
 	local target = nearestBlock(root)
 	if target then
 		mineBlock(player, data, target)
@@ -433,10 +674,26 @@ function Mining:Start()
 
 	Net:On("Swing", 0.08, onSwing)
 
+	-- fever expiry
+	task.spawn(function()
+		while true do
+			task.wait(0.25)
+			local t = now()
+			for player, untilTime in feverUntil do
+				if untilTime <= t then
+					endFever(player)
+				end
+			end
+		end
+	end)
+
 	Players.PlayerRemoving:Connect(function(player)
 		lastSwing[player] = nil
 		immunity[player] = nil
 		combos[player] = nil
+		feverUntil[player] = nil
+		feverStart[player] = nil
+		lastWarn[player] = nil
 	end)
 end
 

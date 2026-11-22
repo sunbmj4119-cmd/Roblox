@@ -62,8 +62,12 @@ function Stats:Damage(player, data): number
 	return pickaxe.Power * mult
 end
 
-function Stats:SwingCooldown(_player, data): number
+function Stats:SwingCooldown(player, data): number
 	local pickaxe = Config.Pickaxes[data.PickaxeTier] or Config.Pickaxes[1]
+	local mining = Services.MiningService
+	if mining and mining:IsFever(player) then
+		return pickaxe.Cooldown * Config.Fever.CooldownMult
+	end
 	return pickaxe.Cooldown
 end
 
@@ -163,7 +167,7 @@ function Stats:BuildDerived(player)
 		CoinMult = self:CoinMultiplier(player, data),
 		Luck = self:Luck(player, data),
 		Capacity = self:Capacity(player, data),
-		Cooldown = self:SwingCooldown(player, data),
+		Cooldown = (Config.Pickaxes[data.PickaxeTier] or Config.Pickaxes[1]).Cooldown, -- client applies FEVER itself
 		PetSlots = self:PetSlots(player, data),
 		PetPower = self:PetPower(player, data),
 		Passes = Services.MonetizationService:OwnedPasses(player),

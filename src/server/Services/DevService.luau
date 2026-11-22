@@ -48,6 +48,14 @@ function Dev:Start()
 			Services.MiningService:DevRainbow(player)
 		elseif command == "Spin" then
 			data.FreeSpinAt = 0
+		elseif command == "Star" then
+			-- a falling star in the zone you're standing in (hub if outside the mines)
+			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart
+			local zone = root and Services.WorldService:ZoneAt(root.Position) or 0
+			Services.ShardService:FallingStar(math.min(zone, data.ZoneLevel))
+		elseif command == "Shard" then
+			local id = Util.RollShard(Config, 4)
+			Services.ShardService:StartCarry(player, id, nil)
 		elseif command == "Fill" then
 			data.Backpack = Services.StatsService:Capacity(player, data)
 		elseif command == "Reset" then

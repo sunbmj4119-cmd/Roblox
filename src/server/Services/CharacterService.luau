@@ -77,41 +77,65 @@ end
 
 function CharacterService:GivePickaxe(player: Player)
 	local data = Data:Get(player)
-	if not data then
-		return
-	end
+	local tier = if data then data.PickaxeTier else 1 -- a basic pickaxe before data loads
 	local backpack = player:FindFirstChildOfClass("Backpack")
 	local character = player.Character
-	local wasEquipped = false
 	for _, container in { backpack, character } do
 		if container then
 			local existing = container:FindFirstChild("Pickaxe")
 			if existing then
-				if container == character then
-					wasEquipped = true
-				end
 				existing:Destroy()
 			end
 		end
 	end
-	local tool = buildPickaxe(data.PickaxeTier)
-	if wasEquipped and character then
+	local tool = buildPickaxe(tier)
+	-- always in hand: the hotbar is hidden, so an unequipped pickaxe = can't mine
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid.Health > 0 then
+		for _, other in character:GetChildren() do
+			if other:IsA("Tool") and other ~= tool then
+				other.Parent = backpack
+			end
+		end
 		tool.Parent = character
 	elseif backpack then
 		tool.Parent = backpack
 	end
 end
 
+local padUntil = {} -- [player] = os.clock() when the dash pad boost ends
+
 function CharacterService:ApplyWalkSpeed(player: Player)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
-		local speed = 18
+		local speed = Config.World.WalkSpeed
 		if Services.MonetizationService:HasPass(player, "Speed") then
 			speed *= 1.5
 		end
+		local shards = Services.ShardService
+		if shards then
+			speed *= shards:SpeedMult(player)
+		end
+		local mining = Services.MiningService
+		if mining and mining:IsFever(player) then
+			speed *= Config.Fever.SpeedMult
+		end
+		if (padUntil[player] or 0) > os.clock() then
+			speed *= Config.SpeedPads.Mult
+		end
 		humanoid.WalkSpeed = speed
 	end
+end
+
+function CharacterService:SpeedPad(player: Player)
+	padUntil[player] = os.clock() + Config.SpeedPads.Seconds
+	self:ApplyWalkSpeed(player)
+	task.delay(Config.SpeedPads.Seconds + 0.05, function()
+		if player.Parent and (padUntil[player] or 0) <= os.clock() then
+			self:ApplyWalkSpeed(player)
+		end
+	end)
 end
 
 function CharacterService:RefreshOverhead(player: Player)
@@ -179,11 +203,16 @@ function CharacterService:RefreshOverhead(player: Player)
 end
 
 local function onCharacter(player: Player, character: Model)
+	character:WaitForChild("Humanoid", 10)
+	-- pickaxe in hand right away, even while the save is still loading
+	if not Data:Get(player) then
+		CharacterService:GivePickaxe(player)
+		CharacterService:ApplyWalkSpeed(player)
+	end
 	local data = Data:WaitFor(player, 30)
 	if not data or player.Character ~= character then
 		return
 	end
-	character:WaitForChild("Humanoid", 10)
 	character:WaitForChild("Head", 10)
 	CharacterService:GivePickaxe(player)
 	CharacterService:ApplyWalkSpeed(player)
@@ -211,6 +240,22 @@ function CharacterService:Start()
 	Players.PlayerAdded:Connect(onPlayer)
 	for _, player in Players:GetPlayers() do
 		onPlayer(player)
+	end
+	Players.PlayerRemoving:Connect(function(player)
+		padUntil[player] = nil
+	end)
+
+	-- dash pads
+	local net = require(script.Parent.Net)
+	for _, pad in Services.WorldService.SpeedPads do
+		pad.Touched:Connect(function(hit)
+			local model = hit:FindFirstAncestorOfClass("Model")
+			local player = model and Players:GetPlayerFromCharacter(model)
+			if player and (padUntil[player] or 0) - os.clock() < Config.SpeedPads.Seconds - 0.4 then
+				self:SpeedPad(player)
+				net:Send(player, "SpeedPad")
+			end
+		end)
 	end
 end
 

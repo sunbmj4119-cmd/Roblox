@@ -26,6 +26,7 @@ local MOODS = {
 	[3] = { Title = "🔥 LAVA DEPTHS", Tint = Color3.fromRGB(255, 222, 200) },
 	[4] = { Title = "🔮 CRYSTAL VOID", Tint = Color3.fromRGB(232, 215, 255) },
 	[5] = { Title = "⚔️ STAR CRATER", Tint = Color3.fromRGB(255, 210, 232) },
+	[-2] = { Title = "🏠 BASES", Tint = Color3.fromRGB(225, 235, 255) }, -- base district
 }
 
 local tint = Instance.new("ColorCorrectionEffect")
@@ -91,6 +92,9 @@ task.spawn(function()
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart
 		if root then
 			local zone = Util.ZoneAt(Config, root.Position)
+			if zone == 0 and Util.InBases(Config, root.Position) then
+				zone = -2
+			end
 			if zone and zone ~= currentZone then
 				local first = currentZone == -1
 				currentZone = zone
@@ -104,7 +108,7 @@ task.spawn(function()
 			local meteorActive = workspace:GetAttribute("MeteorState") == "Active"
 			local wanted = if meteorActive and Config.Music.Meteor ~= ""
 				then Config.Music.Meteor
-				elseif currentZone == 0 then Config.Music.Hub
+				elseif currentZone == 0 or currentZone == -2 then Config.Music.Hub
 				else Config.Music.Mine
 			playTrack(wanted or "")
 		end

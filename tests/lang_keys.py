@@ -47,6 +47,15 @@ for path in client + server:
         add(m.group(1))
     for m in re.finditer(r"Net:Announce\(\s*" + STR, src):
         add(m.group(1))
+    # T(if cond then "a" else "b", ...) and SetText(label, if ... then "a" else "b")
+    for m in re.finditer(r"(?:\bT|SetText\([^,\n]+,)\(?\s*if [^\n]*?then\s*" + STR + r"\s*else\s*" + STR, src):
+        add(m.group(1))
+        add(m.group(2))
+    # throttled server hints + base prompts
+    for m in re.finditer(r"\bwarnOnce\([^,\n]+,[^,\n]+,\s*" + STR, src):
+        add(m.group(1))
+    for m in re.finditer(r"\bsetPrompt\([^,\n]+,\s*" + STR, src):
+        add(m.group(1))
     for m in re.finditer(r"GrantReward\([^\n]*?,\s*" + STR, src):
         add(m.group(1))
     for m in re.finditer(r"SetText\([^,\n]+,\s*" + STR, src):

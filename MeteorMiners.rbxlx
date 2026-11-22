@@ -174,28 +174,32 @@ Config.Ores = {
 Config.World = {
 	-- map geometry (shared by WorldService and client zone detection)
 	Layout = { HubHalf = 80, ZoneWidth = 100, ZoneLength = 100, Gap = 10, FirstZ = 90 },
-	OreRespawnSeconds = 7,
+	OreRespawnSeconds = 4,
 	OreSize = 5,
 	OreSpacing = 7,
 	Reach = 13, -- studs from character to the target
+	WalkSpeed = 22,
+	-- base district south of the hub (see BaseService)
+	Bases = { ZStart = -88, ZEnd = -250, HalfX = 54 },
+	SpawnSafeRadius = 24, -- nobody can be bonked near the spawn
 }
 
 ---------------------------------------------------------------------------
 -- Upgrades
 ---------------------------------------------------------------------------
 Config.Pickaxes = {
-	{ Name = "Wooden Pickaxe", Power = 1, Cooldown = 0.5, Cost = 0, Color = Color3.fromRGB(150, 105, 60) },
-	{ Name = "Stone Pickaxe", Power = 2, Cooldown = 0.48, Cost = 150, Color = Color3.fromRGB(130, 130, 130) },
-	{ Name = "Copper Pickaxe", Power = 4, Cooldown = 0.46, Cost = 800, Color = Color3.fromRGB(200, 115, 60) },
-	{ Name = "Iron Pickaxe", Power = 8, Cooldown = 0.44, Cost = 3500, Color = Color3.fromRGB(205, 190, 175) },
-	{ Name = "Gold Pickaxe", Power = 15, Cooldown = 0.42, Cost = 15000, Color = Color3.fromRGB(255, 200, 40) },
-	{ Name = "Diamond Pickaxe", Power = 30, Cooldown = 0.4, Cost = 60000, Color = Color3.fromRGB(150, 240, 255) },
-	{ Name = "Obsidian Pickaxe", Power = 60, Cooldown = 0.38, Cost = 250000, Color = Color3.fromRGB(60, 30, 80) },
-	{ Name = "Frost Fang", Power = 120, Cooldown = 0.36, Cost = 1000000, Color = Color3.fromRGB(120, 200, 255) },
-	{ Name = "Magma Breaker", Power = 250, Cooldown = 0.34, Cost = 4500000, Color = Color3.fromRGB(255, 90, 30) },
-	{ Name = "Void Splitter", Power = 550, Cooldown = 0.32, Cost = 20000000, Color = Color3.fromRGB(170, 90, 255) },
-	{ Name = "Starforged", Power = 1200, Cooldown = 0.3, Cost = 90000000, Color = Color3.fromRGB(255, 90, 200) },
-	{ Name = "Galaxy Crusher", Power = 2600, Cooldown = 0.28, Cost = 400000000, Color = Color3.fromRGB(60, 255, 230) },
+	{ Name = "Wooden Pickaxe", Power = 1, Cooldown = 0.36, Cost = 0, Color = Color3.fromRGB(150, 105, 60) },
+	{ Name = "Stone Pickaxe", Power = 2, Cooldown = 0.34, Cost = 150, Color = Color3.fromRGB(130, 130, 130) },
+	{ Name = "Copper Pickaxe", Power = 4, Cooldown = 0.32, Cost = 800, Color = Color3.fromRGB(200, 115, 60) },
+	{ Name = "Iron Pickaxe", Power = 8, Cooldown = 0.3, Cost = 3500, Color = Color3.fromRGB(205, 190, 175) },
+	{ Name = "Gold Pickaxe", Power = 15, Cooldown = 0.29, Cost = 15000, Color = Color3.fromRGB(255, 200, 40) },
+	{ Name = "Diamond Pickaxe", Power = 30, Cooldown = 0.28, Cost = 60000, Color = Color3.fromRGB(150, 240, 255) },
+	{ Name = "Obsidian Pickaxe", Power = 60, Cooldown = 0.27, Cost = 250000, Color = Color3.fromRGB(60, 30, 80) },
+	{ Name = "Frost Fang", Power = 120, Cooldown = 0.26, Cost = 1000000, Color = Color3.fromRGB(120, 200, 255) },
+	{ Name = "Magma Breaker", Power = 250, Cooldown = 0.25, Cost = 4500000, Color = Color3.fromRGB(255, 90, 30) },
+	{ Name = "Void Splitter", Power = 550, Cooldown = 0.24, Cost = 20000000, Color = Color3.fromRGB(170, 90, 255) },
+	{ Name = "Starforged", Power = 1200, Cooldown = 0.23, Cost = 90000000, Color = Color3.fromRGB(255, 90, 200) },
+	{ Name = "Galaxy Crusher", Power = 2600, Cooldown = 0.22, Cost = 400000000, Color = Color3.fromRGB(60, 255, 230) },
 }
 
 Config.Backpacks = {
@@ -646,7 +650,9 @@ Config.Quests = {
 		XP = 300,
 		Points = 250,
 	},
-	{ Id = "Bonk5", Type = "Bonk", Target = 5, Text = "Bonk 5 players in Star Crater", Reward = { Gems = 60 }, XP = 250, Points = 200 },
+	{ Id = "Bonk5", Type = "Bonk", Target = 5, Text = "Bonk 5 players", Reward = { Gems = 60 }, XP = 250, Points = 200 },
+	{ Id = "Shard3", Type = "Shard", Target = 3, Text = "Bring 3 shards to your base", Reward = { Gems = 60 }, XP = 250, Points = 200 },
+	{ Id = "Steal1", Type = "Steal", Target = 1, Text = "Steal a shard from another base", Reward = { Gems = 80 }, XP = 300, Points = 250 },
 	{ Id = "Play20", Type = "PlayMinutes", Target = 20, Text = "Play for 20 minutes", Reward = { Gems = 30 }, XP = 200, Points = 150 },
 	{ Id = "Upgrade1", Type = "Upgrade", Target = 1, Text = "Buy any upgrade", Reward = { Gems = 20 }, XP = 100, Points = 80 },
 }
@@ -683,7 +689,25 @@ Config.SeasonTiers[30].Premium = { Pet = "Impact Wolf", Gems = 500 }
 ---------------------------------------------------------------------------
 -- JUICE & DOPAMINE: crits, combos, lucky ores, pet variants, levels
 ---------------------------------------------------------------------------
-Config.Crit = { Chance = 0.1, Multiplier = 3 }
+-- crits send a shockwave that also damages nearby blocks (chain breaks!)
+Config.Crit = { Chance = 0.12, Multiplier = 3, SplashRadius = 9, SplashDamage = 0.5 }
+
+-- FEVER: reach a combo of 12 -> 8s of double ore, faster swings, every hit
+-- shockwaves, +20% speed. Each break while in fever adds a little time.
+Config.Fever = {
+	Combo = 12,
+	Duration = 8,
+	Extend = 0.35,
+	MaxDuration = 14,
+	ValueMult = 2,
+	CooldownMult = 0.65,
+	SpeedMult = 1.2,
+	SplashRadius = 11,
+	SplashDamage = 0.6,
+}
+
+-- neon dash pads on the main roads
+Config.SpeedPads = { Mult = 1.7, Seconds = 2.5 }
 
 -- breaking blocks quickly in a row builds a combo: +2% ore per step (max +60%)
 Config.Combo = { Window = 2.5, BonusPer = 0.02, MaxBonus = 0.6 }
@@ -755,6 +779,46 @@ Config.Tutorial = {
 		{ Id = "Hatch", Target = 1, Text = "Hatch your first pet from the Meadow Egg", Reward = { Gems = 30 } },
 	},
 	FinalReward = { Gems = 100, Boost = { "Coins2x", 600 } },
+}
+
+---------------------------------------------------------------------------
+-- Star Shards + Bases (the signature loop)
+-- Falling stars and meteors drop shards. Carry one home (you're slower and
+-- anyone can bonk you to make you drop it) and put it on a pedestal in your
+-- base: it earns coins every second, even while you're offline. Other players
+-- can sneak in and steal shards from your base - bonk them to get it back.
+---------------------------------------------------------------------------
+Config.Shards = {
+	Order = { "Common", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
+	Rarities = {
+		Common = { Name = "Star Shard", Income = 0.5, Weight = 55, Speed = 0.92, Color = Color3.fromRGB(190, 230, 255) },
+		Rare = { Name = "Comet Shard", Income = 1.5, Weight = 26, Speed = 0.88, Color = Color3.fromRGB(70, 160, 255) },
+		Epic = { Name = "Nebula Shard", Income = 5, Weight = 12, Speed = 0.82, Color = Color3.fromRGB(185, 80, 255) },
+		Legendary = { Name = "Solar Shard", Income = 15, Weight = 5, Speed = 0.76, Color = Color3.fromRGB(255, 195, 40) },
+		Mythic = { Name = "Supernova Core", Income = 50, Weight = 1.6, Speed = 0.7, Color = Color3.fromRGB(255, 70, 150) },
+		Secret = { Name = "Black Hole Heart", Income = 200, Weight = 0.4, Speed = 0.62, Color = Color3.fromRGB(120, 40, 255) },
+	},
+	-- income scales with the OWNER's progress (zone level), so shards matter all game
+	ZoneMult = { 1, 8, 60, 500, 4000 },
+	SellSeconds = 120, -- selling a shard pays this many seconds of its income
+	Points = { 10, 20, 45, 100, 250, 600 }, -- weekly ranked points per delivery, by rarity
+	GroundLifetime = 90,
+	ReturnSeconds = 10, -- a dropped STOLEN shard flies home if nobody grabs it
+	RegrabDelay = 1.5, -- the player who dropped it can't grab it back instantly
+	FallingStar = { MinInterval = 40, MaxInterval = 70, HubChance = 0.25, LuckPerZone = 0.6 },
+	Meteor = { Count = 4, PerParticipant = 1, Max = 10, Luck = 3, TopPriority = 5 },
+}
+
+Config.Base = {
+	Plots = 8, -- set the place's max players to 8 (Creator Dashboard -> Places -> Server size)
+	StartPedestals = 3,
+	MaxPedestals = 12,
+	PedestalCosts = { 0, 0, 0, 500, 3000, 15000, 75000, 400000, 2000000, 10000000, 50000000, 250000000 },
+	OfflineRate = 0.5, -- offline earnings = 50% of the normal rate
+	OfflineMaxSeconds = 7200, -- ... for up to 2 hours
+	LockSeconds = 60,
+	LockCooldown = 180,
+	StealHold = 1.2,
 }
 
 -- free prize wheel (retention): one free spin every few hours
@@ -1477,6 +1541,79 @@ return {
 	["🔇 Sound: OFF"] = "🔇 소리: 꺼짐",
 	["No thanks"] = "괜찮아요",
 	["Spin"] = "룰렛",
+	-- v8: star shards, bases, fever, mining input
+	["Star Shard"] = "별 조각",
+	["Comet Shard"] = "혜성 조각",
+	["Nebula Shard"] = "성운 조각",
+	["Solar Shard"] = "태양 조각",
+	["Supernova Core"] = "초신성 핵",
+	["Black Hole Heart"] = "블랙홀 심장",
+	["Hub"] = "허브",
+	["MINE"] = "채굴",
+	["RUN HOME!"] = "집으로!",
+	["⛏️ MINES"] = "⛏️ 광산",
+	["🏠 BASES"] = "🏠 기지",
+	["Steal"] = "훔치기",
+	["Sell"] = "판매",
+	["Buy pedestal"] = "진열대 구매",
+	["Bonk 5 players"] = "유저 5명 때리기",
+	["Bring 3 shards to your base"] = "기지에 조각 3개 가져오기",
+	["Steal a shard from another base"] = "다른 기지에서 조각 훔치기",
+	["%s grabbed your %s - bonk them!"] = "%s님이 내 %s을(를) 가져갔어요 - 때려서 되찾으세요!",
+	["+💰%s every second - even offline!"] = "매초 +💰%s - 접속 안 해도 쌓여요!",
+	["2x ore • faster swings • shockwaves!"] = "광석 2배 • 빠른 스윙 • 충격파!",
+	["All bases are taken - you'll get one when someone leaves."] = "기지가 모두 찼어요 - 누가 나가면 받을 수 있어요.",
+	["Bank: 💰%s  •  tap to go"] = "금고: 💰%s  •  눌러서 이동",
+	["Base full - sold it for 💰%s. Buy more pedestals!"] = "기지가 가득 차서 💰%s에 팔았어요. 진열대를 더 사세요!",
+	["Collect 💰%s at your base 🏠"] = "기지 🏠에서 💰%s 받기",
+	["Grab a falling star 🌠 and carry it to your base 🏠"] = "떨어진 별 🌠을 주워 기지 🏠로 가져가세요",
+	["Replaced your weakest shard (+💰%s)"] = "가장 약한 조각과 교체했어요 (+💰%s)",
+	["Run to your base 🏠 before someone bonks you!"] = "맞기 전에 기지 🏠로 달려가세요!",
+	["Run! You can't teleport while carrying a shard."] = "달려요! 조각을 들고는 순간이동할 수 없어요.",
+	["Sold %s for 💰%s"] = "%s을(를) 💰%s에 판매",
+	["The owner left - the shard vanished!"] = "주인이 나가서 조각이 사라졌어요!",
+	["You need a base to steal shards!"] = "조각을 훔치려면 기지가 필요해요!",
+	["You're slower and anyone can bonk you - don't get caught!"] = "느려지고 누구나 때릴 수 있어요 - 잡히지 마세요!",
+	["Your base is fully upgraded!"] = "기지를 최대로 업그레이드했어요!",
+	["Your hands are full!"] = "손이 꽉 찼어요!",
+	["while you were away (%d min) - collect it at your base!"] = "자리 비운 동안 (%d분) - 기지에서 받으세요!",
+	["⏳ %ds"] = "⏳ %d초",
+	["⚔️ You can only bonk shard carriers - or anyone in the Star Crater!"] = "⚔️ 조각을 든 유저만 때릴 수 있어요 - 별의 분화구에선 누구나!",
+	["🌟 %s brought a %s home!"] = "🌟 %s님이 %s을(를) 기지로 가져갔어요!",
+	["🌠 %s - RUN HOME! 🏠"] = "🌠 %s - 기지로 달려! 🏠",
+	["🌠 A falling star crashed in %s! Grab the %s!"] = "🌠 %s에 별이 떨어졌어요! %s을(를) 잡으세요!",
+	["🌠 GRAB THE SHARD"] = "🌠 조각 줍기",
+	["🌠 Hands full! Bring the shard to your base 🏠"] = "🌠 손이 꽉 찼어요! 조각을 기지 🏠로 가져가세요",
+	["🌠 You got a %s! Bring it to your base 🏠"] = "🌠 %s 획득! 기지 🏠로 가져가세요",
+	["🏃 STOLEN %s - RUN HOME! 🏠"] = "🏃 훔친 %s - 기지로 달려! 🏠",
+	["🏃 You stole a %s! Run to your base!"] = "🏃 %s을(를) 훔쳤어요! 기지로 달려요!",
+	["🏠 %s SECURED!"] = "🏠 %s 확보!",
+	["🏠 %s's BASE\n💰 %s/s"] = "🏠 %s의 기지\n💰 %s/초",
+	["%s\n💰 %s/s"] = "%s\n💰 %s/초",
+	["🏠 BASE  💰%s/s"] = "🏠 기지  💰%s/초",
+	["🏠 BRING IT HOME"] = "🏠 기지로 가져가기",
+	["🏠 FREE BASE"] = "🏠 빈 기지",
+	["🏠 New pedestal! (%d/%d)"] = "🏠 새 진열대! (%d/%d)",
+	["💔 %s stole your %s!"] = "💔 %s님이 내 %s을(를) 훔쳐 갔어요!",
+	["💤 Your base earned 💰%s"] = "💤 기지가 💰%s을(를) 벌었어요",
+	["💥 %s bonked you! You dropped your shard!"] = "💥 %s님에게 맞아서 조각을 떨어뜨렸어요!",
+	["💥 %s dropped a %s - grab it!"] = "💥 %s님이 %s을(를) 떨어뜨렸어요 - 주우세요!",
+	["💥 BONK!"] = "💥 퍽!",
+	["💥 You dropped the %s!"] = "💥 %s을(를) 떨어뜨렸어요!",
+	["💰 %s\nSTEP TO COLLECT"] = "💰 %s\n밟아서 받기",
+	["🔒 Base locked for %ds!"] = "🔒 기지를 %d초 동안 잠갔어요!",
+	["🔒 LOCK BASE"] = "🔒 기지 잠금",
+	["🔒 LOCKED %ds"] = "🔒 잠김 %d초",
+	["🔒 This base is locked!"] = "🔒 잠긴 기지예요!",
+	["🔥 FEVER!"] = "🔥 피버!",
+	["🚨 %s is stealing your %s! Bonk them!"] = "🚨 %s님이 내 %s을(를) 훔치는 중! 때려서 막으세요!",
+	["🚨 THIEF!"] = "🚨 도둑이야!",
+	["🛡️ RECOVERED!"] = "🛡️ 되찾았어요!",
+	["🛡️ The spawn is a safe zone!"] = "🛡️ 스폰 지점은 안전 구역이에요!",
+	["🛡️ You got your %s back!"] = "🛡️ %s을(를) 되찾았어요!",
+	["🛡️ Your %s flew back home!"] = "🛡️ %s이(가) 기지로 돌아왔어요!",
+	["🥇 Your %s prize shard is waiting - grab it!"] = "🥇 보상 %s이(가) 기다려요 - 주우세요!",
+	["⚠️ STOLEN!"] = "⚠️ 도난!",
 }
 ]]></string>
         </Properties>
@@ -1682,6 +1819,114 @@ return PetModel
         </Properties>
       </Item>
       <Item class="ModuleScript" referent="7">
+        <Properties>
+          <string name="Name">ShardModel</string>
+          <string name="Source"><![CDATA[--[[
+	ShardModel: procedural star-shard crystal (no assets needed).
+	ShardModel.Build(config, rarityId, scale) -> Model with PrimaryPart "Core".
+	Every part is unanchored-safe (welded to Core), non-colliding and
+	non-queryable; the caller decides Anchored / where to weld it.
+]]
+local ShardModel = {}
+
+local function piece(name: string, size: Vector3, color: Color3, material: Enum.Material, parent: Instance): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Size = size
+	part.Color = color
+	part.Material = material
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Massless = true
+	part.TopSurface = Enum.SurfaceType.Smooth
+	part.BottomSurface = Enum.SurfaceType.Smooth
+	part.Parent = parent
+	return part
+end
+
+function ShardModel.Build(config, rarityId: string, scale: number?): Model
+	local def = config.Shards.Rarities[rarityId] or config.Shards.Rarities.Common
+	local s = scale or 1
+	local index = table.find(config.Shards.Order, rarityId) or 1
+	local model = Instance.new("Model")
+	model.Name = "Shard_" .. rarityId
+	model:SetAttribute("Rarity", rarityId)
+
+	local secret = rarityId == "Secret"
+	local coreColor = if secret then Color3.fromRGB(20, 10, 35) else def.Color
+	local core = piece("Core", Vector3.new(1.3, 2.6, 1.3) * s, coreColor, if secret then Enum.Material.Glass else Enum.Material.Neon, model)
+	core.CFrame = CFrame.Angles(0, math.rad(45), math.rad(12))
+	model.PrimaryPart = core
+
+	-- side crystals: rarer shards grow more of them
+	local count = math.min(2 + index, 6)
+	for i = 1, count do
+		local angle = (i / count) * math.pi * 2
+		local crystal = piece(
+			"Crystal",
+			Vector3.new(0.6, 1.2 + (i % 2) * 0.5, 0.6) * s,
+			def.Color:Lerp(Color3.new(1, 1, 1), 0.25),
+			Enum.Material.Neon,
+			model
+		)
+		crystal.CFrame = core.CFrame
+			* CFrame.new(math.cos(angle) * 0.75 * s, -0.5 * s, math.sin(angle) * 0.75 * s)
+			* CFrame.Angles(math.cos(angle) * 0.6, 0, math.sin(angle) * 0.6)
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = core
+		weld.Part1 = crystal
+		weld.Parent = crystal
+	end
+
+	-- legendary+ get a spinning-looking halo ring
+	if index >= 4 then
+		local ring = piece("Ring", Vector3.new(0.2, 3.4, 3.4) * s, def.Color, Enum.Material.Neon, model)
+		ring.Shape = Enum.PartType.Cylinder
+		ring.Transparency = 0.35
+		ring.CFrame = CFrame.new(core.Position) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(math.rad(20), 0, 0)
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = core
+		weld.Part1 = ring
+		weld.Parent = ring
+	end
+
+	local light = Instance.new("PointLight")
+	light.Color = def.Color
+	light.Range = 8 + index * 2
+	light.Brightness = 1.5 + index * 0.3
+	light.Parent = core
+
+	local sparkles = Instance.new("ParticleEmitter")
+	sparkles.Name = "Sparkles"
+	sparkles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	sparkles.Color = ColorSequence.new(def.Color)
+	sparkles.LightEmission = 1
+	sparkles.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.45 * s), NumberSequenceKeypoint.new(1, 0) })
+	sparkles.Lifetime = NumberRange.new(0.6, 1.1)
+	sparkles.Speed = NumberRange.new(1, 3)
+	sparkles.SpreadAngle = Vector2.new(180, 180)
+	sparkles.Rate = 4 + index * 3
+	sparkles.Parent = core
+
+	return model
+end
+
+-- every part anchored (displays / ground drops) or not (carried)
+function ShardModel.SetAnchored(model: Model, anchored: boolean)
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.Anchored = anchored
+		end
+	end
+end
+
+return ShardModel
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="8">
         <Properties>
           <string name="Name">Util</string>
           <string name="Source"><![CDATA[local Util = {}
@@ -1945,9 +2190,44 @@ function Util.PetDisplayName(petName: string, variant: string?): string
 end
 
 -- 0 = hub, 1..n = zone index, nil = outside (mirrors WorldService layout)
+-- the base district (south of the hub) counts as hub (zone 0)
+function Util.InBases(config, position: Vector3): boolean
+	local bases = config.World.Bases
+	return math.abs(position.X) <= bases.HalfX and position.Z <= bases.ZStart + 8 and position.Z >= bases.ZEnd
+end
+
+-- weighted shard rarity roll; luck > 1 shifts weight toward rarer shards
+function Util.RollShard(config, luck: number?, rng: Random?, minIndex: number?): string
+	local order = config.Shards.Order
+	local entries = {}
+	for index, id in order do
+		if index >= (minIndex or 1) then
+			table.insert(entries, { id, config.Shards.Rarities[id].Weight * (luck or 1) ^ ((index - 1) / 2) })
+		end
+	end
+	return Util.WeightedPick(entries, nil, rng)
+end
+
+function Util.ShardIndex(config, id: string): number
+	return table.find(config.Shards.Order, id) or 1
+end
+
+-- coins per second of one shard for an owner at this zone level (before coin multiplier)
+function Util.ShardIncome(config, id: string, zoneLevel: number): number
+	local def = config.Shards.Rarities[id]
+	if not def then
+		return 0
+	end
+	local mult = config.Shards.ZoneMult
+	return def.Income * (mult[math.clamp(zoneLevel, 1, #mult)] or 1)
+end
+
 function Util.ZoneAt(config, position: Vector3): number?
 	local layout = config.World.Layout
 	if math.abs(position.X) <= layout.HubHalf and math.abs(position.Z) <= layout.HubHalf then
+		return 0
+	end
+	if Util.InBases(config, position) then
 		return 0
 	end
 	if math.abs(position.X) > layout.ZoneWidth / 2 + 1 then
@@ -1968,15 +2248,15 @@ return Util
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="8">
+  <Item class="ServerScriptService" referent="9">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="9">
+    <Item class="Folder" referent="10">
       <Properties>
         <string name="Name">Server</string>
       </Properties>
-      <Item class="Script" referent="10">
+      <Item class="Script" referent="11">
         <Properties>
           <string name="Name">Main</string>
           <token name="RunContext">0</token>
@@ -1997,6 +2277,8 @@ local ORDER = {
 	"EconomyService",
 	"PetService",
 	"MiningService",
+	"BaseService",
+	"ShardService",
 	"MeteorService",
 	"ProgressionService",
 	"LeaderboardService",
@@ -2032,11 +2314,789 @@ print("[Meteor Miners] server ready")
 ]]></string>
         </Properties>
       </Item>
-      <Item class="Folder" referent="11">
+      <Item class="Folder" referent="12">
         <Properties>
           <string name="Name">Services</string>
         </Properties>
-        <Item class="ModuleScript" referent="12">
+        <Item class="ModuleScript" referent="13">
+          <Properties>
+            <string name="Name">BaseService</string>
+            <string name="Source"><![CDATA[--[[
+	BaseService: every player gets a plot in the base district (south of the
+	hub). Star shards placed on its pedestals earn coins every second into
+	the base bank (collect it on the green pad), even while offline (50%, 2h).
+
+	Other players can sneak in and STEAL a shard (hold the prompt), then must
+	carry it to their own base; the owner gets an alarm and can bonk the thief
+	to make them drop it (a dropped stolen shard flies home after a few
+	seconds). The red pad locks the base for a minute (with a cooldown).
+
+	Shard entries live in data.Base.Shards as { Id = rarityId }; an entry
+	being carried away by a thief is marked Away = true until delivered.
+]]
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Util = require(Shared.Util)
+local ShardModel = require(Shared.ShardModel)
+local Net = require(script.Parent.Net)
+
+local Base = {}
+local Services
+local Data
+local World
+
+local SETTINGS = Config.Base
+local PLOT_HALF = 16
+local WALL_HEIGHT = 9
+
+local PLOT_COLORS = {
+	Color3.fromRGB(255, 190, 60),
+	Color3.fromRGB(80, 200, 255),
+	Color3.fromRGB(255, 90, 160),
+	Color3.fromRGB(110, 230, 120),
+	Color3.fromRGB(190, 110, 255),
+	Color3.fromRGB(255, 130, 70),
+	Color3.fromRGB(70, 230, 210),
+	Color3.fromRGB(255, 240, 110),
+}
+
+-- pedestal slots in plot space (front row first; -Z is the entrance side)
+local PEDESTAL_SPOTS = {}
+for _, z in { -1, 5.5, 12 } do
+	for _, x in { -10.5, -3.5, 3.5, 10.5 } do
+		table.insert(PEDESTAL_SPOTS, Vector3.new(x, 0, z))
+	end
+end
+
+local plots = {} -- [index] = plot record
+local plotOf = {} -- [player] = plot record
+local waiting = {} -- players without a plot yet (server fuller than Plots)
+local touchDebounce = {} -- [player] = os.clock()
+
+---------------------------------------------------------------------------
+-- helpers
+---------------------------------------------------------------------------
+local function part(props, parent: Instance): Part
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	for key, value in props do
+		(p :: any)[key] = value
+	end
+	p.Parent = parent
+	return p
+end
+
+local function billboard(adornee: BasePart, width: number, height: number, offsetY: number, color: Color3): TextLabel
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "Label"
+	gui.Size = UDim2.new(width, 0, height, 0)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, offsetY, 0)
+	gui.LightInfluence = 0
+	gui.MaxDistance = 140
+	local label = Instance.new("TextLabel")
+	label.Name = "Text"
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.FredokaOne
+	label.TextScaled = true
+	label.RichText = true
+	label.TextColor3 = color
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2.5
+	stroke.Parent = label
+	label.Parent = gui
+	gui.Parent = adornee
+	return label
+end
+
+local function now(): number
+	return workspace:GetServerTimeNow()
+end
+
+local function playerFromHit(hit: BasePart): Player?
+	local model = hit:FindFirstAncestorOfClass("Model")
+	return model and Players:GetPlayerFromCharacter(model)
+end
+
+local function debounced(player: Player, seconds: number): boolean
+	local last = touchDebounce[player]
+	if last and os.clock() - last < seconds then
+		return true
+	end
+	touchDebounce[player] = os.clock()
+	return false
+end
+
+---------------------------------------------------------------------------
+-- building the plots (static shells, built once)
+---------------------------------------------------------------------------
+local function buildPlot(index: number, center: Vector3): any
+	local side = if center.X > 0 then 1 else -1
+	-- local -Z (LookVector) faces the road
+	local cf = CFrame.lookAt(center, center + Vector3.new(-side, 0, 0))
+	local color = PLOT_COLORS[(index - 1) % #PLOT_COLORS + 1]
+	local model = Instance.new("Model")
+	model.Name = "Plot_" .. index
+	model:SetAttribute("OwnerId", 0)
+	model:SetAttribute("LockedUntil", 0)
+
+	local function at(x: number, y: number, z: number): CFrame
+		return cf * CFrame.new(x, y, z)
+	end
+
+	part({
+		Name = "Floor",
+		Size = Vector3.new(PLOT_HALF * 2, 0.4, PLOT_HALF * 2),
+		CFrame = at(0, 0.2, 0),
+		Color = Color3.fromRGB(44, 46, 64),
+		Material = Enum.Material.Slate,
+	}, model)
+	part({
+		Name = "Trim",
+		Size = Vector3.new(PLOT_HALF * 2 - 2, 0.42, PLOT_HALF * 2 - 2),
+		CFrame = at(0, 0.21, 0),
+		Color = color:Lerp(Color3.new(0, 0, 0), 0.55),
+		Material = Enum.Material.SmoothPlastic,
+	}, model)
+
+	-- glass walls with neon top trim; the front has an entrance gap
+	local function wallSegment(x: number, z: number, sizeX: number, sizeZ: number)
+		part({
+			Name = "Wall",
+			Size = Vector3.new(sizeX, WALL_HEIGHT, sizeZ),
+			CFrame = at(x, WALL_HEIGHT / 2, z),
+			Color = color:Lerp(Color3.new(1, 1, 1), 0.6),
+			Material = Enum.Material.Glass,
+			Transparency = 0.55,
+		}, model)
+		part({
+			Name = "WallTrim",
+			Size = Vector3.new(sizeX + 0.2, 0.5, sizeZ + 0.2),
+			CFrame = at(x, WALL_HEIGHT + 0.25, z),
+			Color = color,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+		}, model)
+	end
+	wallSegment(0, PLOT_HALF, PLOT_HALF * 2, 1) -- back
+	wallSegment(-PLOT_HALF, 0, 1, PLOT_HALF * 2) -- sides
+	wallSegment(PLOT_HALF, 0, 1, PLOT_HALF * 2)
+	wallSegment(-10.5, -PLOT_HALF, 11, 1) -- front, gap in the middle
+	wallSegment(10.5, -PLOT_HALF, 11, 1)
+
+	-- lock forcefield in the entrance (only blocks while locked)
+	local shield = part({
+		Name = "Shield",
+		Size = Vector3.new(10, WALL_HEIGHT, 0.6),
+		CFrame = at(0, WALL_HEIGHT / 2, -PLOT_HALF),
+		Color = Color3.fromRGB(255, 80, 90),
+		Material = Enum.Material.ForceField,
+		Transparency = 1,
+		CanCollide = false,
+	}, model)
+
+	-- sign above the entrance
+	local signAnchor = part({
+		Name = "SignAnchor",
+		Size = Vector3.one,
+		CFrame = at(0, 15, -PLOT_HALF),
+		Transparency = 1,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+	}, model)
+	local sign = billboard(signAnchor, 20, 5, 0, color)
+
+	-- pads: collect (green) and lock (red), just inside the entrance
+	local collect = part({
+		Name = "CollectPad",
+		Size = Vector3.new(7, 0.4, 7),
+		CFrame = at(-9, 0.45, -9.5),
+		Color = Color3.fromRGB(70, 255, 130),
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, model)
+	local bankLabel = billboard(collect, 9, 3, 3.5, Color3.fromRGB(140, 255, 170))
+	local lockPad = part({
+		Name = "LockPad",
+		Size = Vector3.new(7, 0.4, 7),
+		CFrame = at(9, 0.45, -9.5),
+		Color = Color3.fromRGB(255, 80, 90),
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, model)
+	local lockLabel = billboard(lockPad, 9, 2.4, 3.2, Color3.fromRGB(255, 150, 150))
+
+	local pedestals = {}
+	for slot, spot in PEDESTAL_SPOTS do
+		local pedestal = part({
+			Name = "Pedestal_" .. slot,
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(2.4, 4, 4),
+			CFrame = at(spot.X, 1.2 + 0.4, spot.Z) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = Color3.fromRGB(230, 230, 240),
+			Material = Enum.Material.Marble,
+		}, model)
+		local ring = part({
+			Name = "Ring",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.3, 4.3, 4.3),
+			CFrame = at(spot.X, 2.85, spot.Z) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = color,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+		}, model)
+		pedestals[slot] = { Part = pedestal, Ring = ring, Top = at(spot.X, 3, spot.Z).Position }
+	end
+
+	model.Parent = World:Folder("Bases")
+	local displays = Instance.new("Folder")
+	displays.Name = "Displays"
+	displays.Parent = model
+
+	return {
+		Index = index,
+		Model = model,
+		CFrame = cf,
+		Color = color,
+		Owner = nil,
+		Sign = sign,
+		BankLabel = bankLabel,
+		LockLabel = lockLabel,
+		Shield = shield,
+		CollectPad = collect,
+		LockPad = lockPad,
+		Pedestals = pedestals,
+		Displays = displays,
+		LockedUntil = 0,
+		LockReadyAt = 0,
+		LastLabel = "",
+	}
+end
+
+local function plotCenters(): { Vector3 }
+	local bases = Config.World.Bases
+	local centers = {}
+	local z = bases.ZStart - PLOT_HALF - 4
+	while #centers < SETTINGS.Plots do
+		table.insert(centers, Vector3.new(-34, 0, z))
+		table.insert(centers, Vector3.new(34, 0, z))
+		z -= PLOT_HALF * 2 + 4
+	end
+	return centers
+end
+
+---------------------------------------------------------------------------
+-- income
+---------------------------------------------------------------------------
+function Base:ShardRate(player: Player, data, id: string): number
+	return Util.ShardIncome(Config, id, data.ZoneLevel) * Services.StatsService:CoinMultiplier(player, data)
+end
+
+function Base:IncomeRate(player: Player, data): number
+	local total = 0
+	for _, entry in data.Base.Shards do
+		if not entry.Away then
+			total += self:ShardRate(player, data, entry.Id)
+		end
+	end
+	return total
+end
+
+local function sellValue(player: Player, data, id: string): number
+	return math.floor(Base:ShardRate(player, data, id) * Config.Shards.SellSeconds)
+end
+
+---------------------------------------------------------------------------
+-- rendering a plot for its owner
+---------------------------------------------------------------------------
+local function setPrompt(parent: BasePart, action: string, object: string, role: string, hold: number, handler)
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = action
+	prompt.ObjectText = object
+	prompt.HoldDuration = hold
+	prompt.MaxActivationDistance = 9
+	prompt.RequiresLineOfSight = false
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt:SetAttribute("Role", role) -- client shows Owner prompts only to the owner
+	prompt.Parent = parent
+	prompt.Triggered:Connect(function(player)
+		local ok, err = pcall(handler, player)
+		if not ok then
+			warn("[Base] prompt failed: " .. tostring(err))
+		end
+	end)
+	return prompt
+end
+
+function Base:Render(player: Player)
+	local plot = plotOf[player]
+	local data = Data:Get(player)
+	if not plot or not data then
+		return
+	end
+	plot.Displays:ClearAllChildren()
+	local shards = data.Base.Shards
+	for slot, pedestal in plot.Pedestals do
+		local owned = slot <= data.Base.Pedestals
+		pedestal.Part.Transparency = if owned then 0 else 0.7
+		pedestal.Ring.Transparency = if owned then 0 else 0.85
+		local entry = shards[slot]
+		if entry and not Config.Shards.Rarities[entry.Id] then
+			entry.Id = "Common" -- a rarity that no longer exists (config change)
+		end
+		if owned and entry and not entry.Away then
+			local def = Config.Shards.Rarities[entry.Id]
+			local model = ShardModel.Build(Config, entry.Id, 1)
+			ShardModel.SetAnchored(model, true)
+			model:PivotTo(CFrame.new(pedestal.Top + Vector3.new(0, 2.2, 0)))
+			model:SetAttribute("Spin", true)
+			model.Parent = plot.Displays
+			local label = billboard(model.PrimaryPart :: BasePart, 7, 2.2, 3.2, def.Color)
+			World.SetText(label, "%s\n💰 %s/s", def.Name, Util.Format(self:ShardRate(player, data, entry.Id)))
+			local core = model.PrimaryPart :: BasePart
+			setPrompt(core, "Steal", def.Name, "Thief", SETTINGS.StealHold, function(thief)
+				Base:TrySteal(thief, player, entry)
+			end)
+			setPrompt(core, "Sell", def.Name, "Owner", 0.6, function(who)
+				if who == player then
+					Base:SellEntry(player, entry)
+				end
+			end)
+		elseif owned and entry and entry.Away then
+			local anchor = part({
+				Name = "StolenMark",
+				Size = Vector3.one,
+				CFrame = CFrame.new(pedestal.Top + Vector3.new(0, 2, 0)),
+				Transparency = 1,
+				CanCollide = false,
+				CanQuery = false,
+				CanTouch = false,
+			}, plot.Displays)
+			World.SetText(billboard(anchor, 7, 2, 0, Color3.fromRGB(255, 90, 90)), "⚠️ STOLEN!")
+		elseif slot == data.Base.Pedestals + 1 and slot <= SETTINGS.MaxPedestals then
+			-- the next pedestal can be bought
+			local cost = SETTINGS.PedestalCosts[slot] or math.huge
+			local anchor = part({
+				Name = "BuyMark",
+				Size = Vector3.one,
+				CFrame = CFrame.new(pedestal.Top + Vector3.new(0, 1, 0)),
+				Transparency = 1,
+				CanCollide = false,
+				CanQuery = false,
+				CanTouch = false,
+			}, plot.Displays)
+			World.SetText(billboard(anchor, 6, 2, 0, Color3.fromRGB(255, 230, 140)), "🔒 💰 %s", Util.Format(cost))
+			setPrompt(anchor, "Buy pedestal", "💰 " .. Util.Format(cost), "Owner", 0, function(who)
+				if who == player then
+					Base:BuyPedestal(player)
+				end
+			end)
+		end
+	end
+	self:RefreshLabels(player, true)
+end
+
+function Base:RefreshLabels(player: Player, force: boolean?)
+	local plot = plotOf[player]
+	local data = Data:Get(player)
+	if not plot or not data then
+		return
+	end
+	local rate = self:IncomeRate(player, data)
+	local signText = Util.Format(rate)
+	if force or signText ~= plot.LastLabel then
+		plot.LastLabel = signText
+		World.SetText(plot.Sign, "🏠 %s's BASE\n💰 %s/s", player.DisplayName, signText)
+	end
+	World.SetText(plot.BankLabel, "💰 %s\nSTEP TO COLLECT", Util.Format(math.floor(data.Base.Bank)))
+	local t = now()
+	if plot.LockedUntil > t then
+		World.SetText(plot.LockLabel, "🔒 LOCKED %ds", math.ceil(plot.LockedUntil - t))
+	elseif plot.LockReadyAt > t then
+		World.SetText(plot.LockLabel, "⏳ %ds", math.ceil(plot.LockReadyAt - t))
+	else
+		World.SetText(plot.LockLabel, "🔒 LOCK BASE")
+	end
+	player:SetAttribute("BaseRate", rate)
+	player:SetAttribute("BaseBank", math.floor(data.Base.Bank))
+end
+
+local function clearPlot(plot)
+	plot.Owner = nil
+	plot.Displays:ClearAllChildren()
+	plot.Model:SetAttribute("OwnerId", 0)
+	plot.Model:SetAttribute("LockedUntil", 0)
+	plot.LockedUntil = 0
+	plot.LockReadyAt = 0
+	plot.Shield.Transparency = 1
+	plot.Shield.CanCollide = false
+	for _, pedestal in plot.Pedestals do
+		pedestal.Part.Transparency = 0.7
+		pedestal.Ring.Transparency = 0.85
+	end
+	World.SetText(plot.Sign, "🏠 FREE BASE")
+	World.SetText(plot.BankLabel, "")
+	World.SetText(plot.LockLabel, "")
+end
+
+---------------------------------------------------------------------------
+-- public API (used by ShardService / MiningService / UI)
+---------------------------------------------------------------------------
+function Base:PlotOf(player: Player)
+	return plotOf[player]
+end
+
+function Base:HasBase(player: Player): boolean
+	return plotOf[player] ~= nil
+end
+
+-- is this position inside the player's own plot?
+function Base:InOwnPlot(player: Player, position: Vector3): boolean
+	local plot = plotOf[player]
+	if not plot then
+		return false
+	end
+	local localPos = plot.CFrame:PointToObjectSpace(position)
+	return math.abs(localPos.X) <= PLOT_HALF and math.abs(localPos.Z) <= PLOT_HALF + 1
+end
+
+function Base:HomeCFrame(player: Player): CFrame?
+	local plot = plotOf[player]
+	return plot and (plot.CFrame * CFrame.new(0, 3, -PLOT_HALF + 4))
+end
+
+function Base:IsLocked(owner: Player): boolean
+	local plot = plotOf[owner]
+	return plot ~= nil and plot.LockedUntil > now()
+end
+
+-- a carried shard arrives home. Returns a short result for the client.
+function Base:AddShard(player: Player, id: string): (string, number)
+	local data = Data:Get(player)
+	if not data then
+		return "None", 0
+	end
+	local shards = data.Base.Shards
+	local result, coins = "Placed", 0
+	if #shards < data.Base.Pedestals then
+		table.insert(shards, { Id = id })
+	else
+		-- base full: the new shard replaces the weakest one if it's better, the other is sold
+		local worstIndex, worstValue = nil, math.huge
+		for i, entry in shards do
+			if not entry.Away then
+				local value = Util.ShardIndex(Config, entry.Id)
+				if value < worstValue then
+					worstIndex, worstValue = i, value
+				end
+			end
+		end
+		if worstIndex and Util.ShardIndex(Config, id) > worstValue then
+			coins = sellValue(player, data, shards[worstIndex].Id)
+			shards[worstIndex] = { Id = id }
+			result = "Replaced"
+		else
+			coins = sellValue(player, data, id)
+			result = "Sold"
+		end
+		data.Coins += coins
+		data.Stats.LifetimeCoins += coins
+	end
+	data.Stats.ShardsDelivered = (data.Stats.ShardsDelivered or 0) + 1
+	Data:MarkDirty(player)
+	self:Render(player)
+	return result, coins
+end
+
+function Base:SetAway(owner: Player, entry, away: boolean)
+	entry.Away = if away then true else nil
+	if owner.Parent then
+		Data:MarkDirty(owner)
+		self:Render(owner)
+	end
+end
+
+function Base:RemoveEntry(owner: Player, entry)
+	local data = Data:Get(owner)
+	if not data then
+		return
+	end
+	local index = table.find(data.Base.Shards, entry)
+	if index then
+		table.remove(data.Base.Shards, index)
+	end
+	Data:MarkDirty(owner)
+	self:Render(owner)
+end
+
+function Base:SellEntry(player: Player, entry)
+	local data = Data:Get(player)
+	if not data or entry.Away then
+		return
+	end
+	local index = table.find(data.Base.Shards, entry)
+	if not index then
+		return
+	end
+	local coins = sellValue(player, data, entry.Id)
+	table.remove(data.Base.Shards, index)
+	data.Coins += coins
+	data.Stats.LifetimeCoins += coins
+	local def = Config.Shards.Rarities[entry.Id]
+	Net:Notify(player, "Sold %s for 💰%s", Color3.fromRGB(255, 220, 120), def.Name, Util.Format(coins))
+	Data:MarkDirty(player)
+	self:Render(player)
+end
+
+function Base:BuyPedestal(player: Player)
+	local data = Data:Get(player)
+	if not data then
+		return
+	end
+	local nextSlot = data.Base.Pedestals + 1
+	if nextSlot > SETTINGS.MaxPedestals then
+		Net:Notify(player, "Your base is fully upgraded!")
+		return
+	end
+	local cost = SETTINGS.PedestalCosts[nextSlot] or math.huge
+	if data.Coins < cost then
+		Net:Notify(player, "Not enough %s! Need %s more.", Color3.fromRGB(255, 110, 110), "coins", Util.Format(cost - data.Coins))
+		return
+	end
+	data.Coins -= cost
+	data.Base.Pedestals = nextSlot
+	Net:Notify(player, "🏠 New pedestal! (%d/%d)", Color3.fromRGB(120, 255, 170), nextSlot, SETTINGS.MaxPedestals)
+	Services.ProgressionService:AddQuest(player, "Upgrade", 1)
+	Data:MarkDirty(player)
+	self:Render(player)
+end
+
+function Base:TrySteal(thief: Player, owner: Player, entry)
+	if thief == owner or not owner.Parent then
+		return
+	end
+	local shards = Services.ShardService
+	if shards:IsCarrying(thief) then
+		Net:Notify(thief, "Your hands are full!")
+		return
+	end
+	if not plotOf[thief] then
+		Net:Notify(thief, "You need a base to steal shards!")
+		return
+	end
+	if self:IsLocked(owner) then
+		Net:Notify(thief, "🔒 This base is locked!")
+		return
+	end
+	local data = Data:Get(owner)
+	if not data or entry.Away or not table.find(data.Base.Shards, entry) then
+		return
+	end
+	local def = Config.Shards.Rarities[entry.Id]
+	self:SetAway(owner, entry, true)
+	if not shards:StartCarry(thief, entry.Id, { From = owner, Entry = entry }) then
+		self:SetAway(owner, entry, false)
+		return
+	end
+	Net:Send(owner, "BaseAlarm", thief.DisplayName, def.Name)
+	Net:Notify(owner, "🚨 %s is stealing your %s! Bonk them!", Color3.fromRGB(255, 80, 80), thief.DisplayName, def.Name)
+	Net:Notify(thief, "🏃 You stole a %s! Run to your base!", Color3.fromRGB(255, 170, 80), def.Name)
+end
+
+function Base:Collect(player: Player)
+	local data = Data:Get(player)
+	if not data then
+		return
+	end
+	local amount = math.floor(data.Base.Bank)
+	if amount <= 0 then
+		return
+	end
+	data.Base.Bank -= amount
+	data.Coins += amount
+	data.Stats.LifetimeCoins += amount
+	Net:Send(player, "BaseCollected", amount)
+	Data:MarkDirty(player)
+	self:RefreshLabels(player)
+end
+
+function Base:Lock(player: Player)
+	local plot = plotOf[player]
+	if not plot then
+		return
+	end
+	local t = now()
+	if plot.LockedUntil > t or plot.LockReadyAt > t then
+		return
+	end
+	plot.LockedUntil = t + SETTINGS.LockSeconds
+	plot.LockReadyAt = plot.LockedUntil + SETTINGS.LockCooldown
+	plot.Model:SetAttribute("LockedUntil", plot.LockedUntil)
+	plot.Shield.Transparency = 0.3
+	plot.Shield.CanCollide = true -- the owner's client turns this off locally
+	Net:Notify(player, "🔒 Base locked for %ds!", Color3.fromRGB(255, 150, 150), SETTINGS.LockSeconds)
+	self:RefreshLabels(player)
+end
+
+---------------------------------------------------------------------------
+-- plot assignment
+---------------------------------------------------------------------------
+local function assign(player: Player, data)
+	if plotOf[player] then
+		return
+	end
+	local plot = nil
+	for _, candidate in plots do
+		if not candidate.Owner then
+			plot = candidate
+			break
+		end
+	end
+	if not plot then
+		if not table.find(waiting, player) then
+			table.insert(waiting, player)
+		end
+		Net:Notify(player, "All bases are taken - you'll get one when someone leaves.")
+		return
+	end
+	plot.Owner = player
+	plotOf[player] = plot
+	plot.Model:SetAttribute("OwnerId", player.UserId)
+	player:SetAttribute("BaseIndex", plot.Index)
+
+	-- offline earnings (lower rate, capped)
+	local base = data.Base
+	if base.LastOnline > 0 then
+		local away = math.clamp(os.time() - base.LastOnline, 0, SETTINGS.OfflineMaxSeconds)
+		local earned = math.floor(Base:IncomeRate(player, data) * away * SETTINGS.OfflineRate)
+		if earned > 0 and away >= 60 then
+			base.Bank += earned
+			task.delay(6, function()
+				if player.Parent then
+					Net:Send(player, "OfflineEarnings", earned, away)
+				end
+			end)
+		end
+	end
+	base.LastOnline = os.time()
+	Base:Render(player)
+end
+
+local function release(player: Player)
+	local plot = plotOf[player]
+	plotOf[player] = nil
+	local index = table.find(waiting, player)
+	if index then
+		table.remove(waiting, index)
+	end
+	if not plot then
+		return
+	end
+	clearPlot(plot)
+	-- give the plot to someone who's waiting
+	while #waiting > 0 do
+		local nextPlayer = table.remove(waiting, 1)
+		local data = nextPlayer.Parent and Data:Get(nextPlayer)
+		if data then
+			assign(nextPlayer, data)
+			break
+		end
+	end
+end
+
+---------------------------------------------------------------------------
+function Base:Init(services)
+	Services = services
+	Data = services.DataService
+	World = services.WorldService
+end
+
+function Base:Start()
+	for index, center in plotCenters() do
+		local plot = buildPlot(index, center)
+		plots[index] = plot
+		clearPlot(plot)
+		plot.CollectPad.Touched:Connect(function(hit)
+			local player = playerFromHit(hit)
+			if player and plot.Owner == player and not debounced(player, 0.6) then
+				Base:Collect(player)
+			end
+		end)
+		plot.LockPad.Touched:Connect(function(hit)
+			local player = playerFromHit(hit)
+			if player and plot.Owner == player and not debounced(player, 0.6) then
+				Base:Lock(player)
+			end
+		end)
+	end
+
+	Data:OnLoaded(function(player, data)
+		-- shards a thief was carrying when the server closed are still ours
+		for _, entry in data.Base.Shards do
+			entry.Away = nil
+		end
+		assign(player, data)
+	end)
+	Data:OnLeaving(function(_player, data)
+		data.Base.LastOnline = os.time()
+		for _, entry in data.Base.Shards do
+			entry.Away = nil
+		end
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		release(player)
+		touchDebounce[player] = nil
+	end)
+
+	-- income tick
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			for player, plot in plotOf do
+				local data = Data:Get(player)
+				if data and player.Parent then
+					data.Base.Bank += self:IncomeRate(player, data)
+					data.Base.LastOnline = os.time()
+					local ok, err = pcall(self.RefreshLabels, self, player)
+					if not ok then
+						warn("[Base] label refresh failed: " .. tostring(err))
+					end
+					if plot.LockedUntil > 0 and plot.LockedUntil <= now() then
+						plot.LockedUntil = 0
+						plot.Model:SetAttribute("LockedUntil", 0)
+						plot.Shield.Transparency = 1
+						plot.Shield.CanCollide = false
+					end
+				end
+			end
+		end
+	end)
+
+	Net:On("GoBase", 1, function(player)
+		if Services.ShardService:IsCarrying(player) then
+			Net:Notify(player, "Run! You can't teleport while carrying a shard.")
+			return
+		end
+		local home = self:HomeCFrame(player)
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart
+		if home and root then
+			character:PivotTo(home)
+		end
+	end)
+end
+
+return Base
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="14">
           <Properties>
             <string name="Name">BoostService</string>
             <string name="Source"><![CDATA[--[[
@@ -2142,7 +3202,7 @@ return Boosts
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="13">
+        <Item class="ModuleScript" referent="15">
           <Properties>
             <string name="Name">CharacterService</string>
             <string name="Source"><![CDATA[--[[
@@ -2224,41 +3284,65 @@ end
 
 function CharacterService:GivePickaxe(player: Player)
 	local data = Data:Get(player)
-	if not data then
-		return
-	end
+	local tier = if data then data.PickaxeTier else 1 -- a basic pickaxe before data loads
 	local backpack = player:FindFirstChildOfClass("Backpack")
 	local character = player.Character
-	local wasEquipped = false
 	for _, container in { backpack, character } do
 		if container then
 			local existing = container:FindFirstChild("Pickaxe")
 			if existing then
-				if container == character then
-					wasEquipped = true
-				end
 				existing:Destroy()
 			end
 		end
 	end
-	local tool = buildPickaxe(data.PickaxeTier)
-	if wasEquipped and character then
+	local tool = buildPickaxe(tier)
+	-- always in hand: the hotbar is hidden, so an unequipped pickaxe = can't mine
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid.Health > 0 then
+		for _, other in character:GetChildren() do
+			if other:IsA("Tool") and other ~= tool then
+				other.Parent = backpack
+			end
+		end
 		tool.Parent = character
 	elseif backpack then
 		tool.Parent = backpack
 	end
 end
 
+local padUntil = {} -- [player] = os.clock() when the dash pad boost ends
+
 function CharacterService:ApplyWalkSpeed(player: Player)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
-		local speed = 18
+		local speed = Config.World.WalkSpeed
 		if Services.MonetizationService:HasPass(player, "Speed") then
 			speed *= 1.5
 		end
+		local shards = Services.ShardService
+		if shards then
+			speed *= shards:SpeedMult(player)
+		end
+		local mining = Services.MiningService
+		if mining and mining:IsFever(player) then
+			speed *= Config.Fever.SpeedMult
+		end
+		if (padUntil[player] or 0) > os.clock() then
+			speed *= Config.SpeedPads.Mult
+		end
 		humanoid.WalkSpeed = speed
 	end
+end
+
+function CharacterService:SpeedPad(player: Player)
+	padUntil[player] = os.clock() + Config.SpeedPads.Seconds
+	self:ApplyWalkSpeed(player)
+	task.delay(Config.SpeedPads.Seconds + 0.05, function()
+		if player.Parent and (padUntil[player] or 0) <= os.clock() then
+			self:ApplyWalkSpeed(player)
+		end
+	end)
 end
 
 function CharacterService:RefreshOverhead(player: Player)
@@ -2326,11 +3410,16 @@ function CharacterService:RefreshOverhead(player: Player)
 end
 
 local function onCharacter(player: Player, character: Model)
+	character:WaitForChild("Humanoid", 10)
+	-- pickaxe in hand right away, even while the save is still loading
+	if not Data:Get(player) then
+		CharacterService:GivePickaxe(player)
+		CharacterService:ApplyWalkSpeed(player)
+	end
 	local data = Data:WaitFor(player, 30)
 	if not data or player.Character ~= character then
 		return
 	end
-	character:WaitForChild("Humanoid", 10)
 	character:WaitForChild("Head", 10)
 	CharacterService:GivePickaxe(player)
 	CharacterService:ApplyWalkSpeed(player)
@@ -2359,13 +3448,29 @@ function CharacterService:Start()
 	for _, player in Players:GetPlayers() do
 		onPlayer(player)
 	end
+	Players.PlayerRemoving:Connect(function(player)
+		padUntil[player] = nil
+	end)
+
+	-- dash pads
+	local net = require(script.Parent.Net)
+	for _, pad in Services.WorldService.SpeedPads do
+		pad.Touched:Connect(function(hit)
+			local model = hit:FindFirstAncestorOfClass("Model")
+			local player = model and Players:GetPlayerFromCharacter(model)
+			if player and (padUntil[player] or 0) - os.clock() < Config.SpeedPads.Seconds - 0.4 then
+				self:SpeedPad(player)
+				net:Send(player, "SpeedPad")
+			end
+		end)
+	end
 end
 
 return CharacterService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="14">
+        <Item class="ModuleScript" referent="16">
           <Properties>
             <string name="Name">DataService</string>
             <string name="Source"><![CDATA[--[[
@@ -2411,6 +3516,8 @@ local TEMPLATE = {
 	Codes = {}, -- [CODE] = true
 	Tutorial = { Step = 1, Progress = 0, Done = false },
 	Settings = { Lang = "auto" }, -- "auto" | "ko" | "en"
+	-- star-shard base: Shards = { { Id = rarityId }, ... } in pedestal order
+	Base = { Pedestals = 3, Shards = {}, Bank = 0, LastOnline = 0 },
 	Pets = {}, -- { { Id = 1, Name = "Bunny", Variant = "Golden"? }, ... }
 	Equipped = {}, -- { petId, ... }
 	NextPetUid = 1,
@@ -2428,6 +3535,9 @@ local TEMPLATE = {
 		LuckyOres = 0,
 		Crits = 0,
 		BestCombo = 0,
+		ShardsDelivered = 0,
+		ShardsStolen = 0,
+		Fevers = 0,
 	},
 	Daily = { Day = 0, Quests = {}, Streak = 0, LastClaimDay = 0, VipChestDay = 0, ClubDay = 0 },
 	Season = { Id = 0, XP = 0, Premium = false, ClaimedFree = {}, ClaimedPremium = {} },
@@ -2790,7 +3900,7 @@ return DataService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="15">
+        <Item class="ModuleScript" referent="17">
           <Properties>
             <string name="Name">DevService</string>
             <string name="Source"><![CDATA[--[[
@@ -2843,6 +3953,14 @@ function Dev:Start()
 			Services.MiningService:DevRainbow(player)
 		elseif command == "Spin" then
 			data.FreeSpinAt = 0
+		elseif command == "Star" then
+			-- a falling star in the zone you're standing in (hub if outside the mines)
+			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart
+			local zone = root and Services.WorldService:ZoneAt(root.Position) or 0
+			Services.ShardService:FallingStar(math.min(zone, data.ZoneLevel))
+		elseif command == "Shard" then
+			local id = Util.RollShard(Config, 4)
+			Services.ShardService:StartCarry(player, id, nil)
 		elseif command == "Fill" then
 			data.Backpack = Services.StatsService:Capacity(player, data)
 		elseif command == "Reset" then
@@ -2866,7 +3984,7 @@ return Dev
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="16">
+        <Item class="ModuleScript" referent="18">
           <Properties>
             <string name="Name">EconomyService</string>
             <string name="Source"><![CDATA[--[[
@@ -3063,7 +4181,7 @@ return Economy
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="17">
+        <Item class="ModuleScript" referent="19">
           <Properties>
             <string name="Name">EventService</string>
             <string name="Source"><![CDATA[--[[
@@ -3167,7 +4285,7 @@ return Events
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="18">
+        <Item class="ModuleScript" referent="20">
           <Properties>
             <string name="Name">LeaderboardService</string>
             <string name="Source"><![CDATA[--[[
@@ -3487,7 +4605,7 @@ return Leaderboards
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="19">
+        <Item class="ModuleScript" referent="21">
           <Properties>
             <string name="Name">MeteorService</string>
             <string name="Source"><![CDATA[--[[
@@ -3741,6 +4859,15 @@ local function finish(destroyed: boolean)
 		meteorPart = nil
 		shatter(position)
 	end
+	if destroyed then
+		-- the big payoff: a burst of star shards to race for
+		local ok, err = pcall(function()
+			Services.ShardService:SpillMeteor(Vector3.new(settings.Position.X, 0, settings.Position.Z), list)
+		end)
+		if not ok then
+			warn("[Meteor] shard spill failed: " .. tostring(err))
+		end
+	end
 	scores = {}
 	summoner = nil
 	hp, maxHp = 0, 0
@@ -3927,7 +5054,7 @@ return Meteor
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="20">
+        <Item class="ModuleScript" referent="22">
           <Properties>
             <string name="Name">MiningService</string>
             <string name="Source"><![CDATA[--[[
@@ -3955,6 +5082,9 @@ local zoneBlocks = {} -- [zone] = { [part] = true }
 local lastSwing = {} -- [player] = os.clock()
 local immunity = {} -- [player] = os.clock() until
 local combos = {} -- [player] = { Count, Last }
+local feverUntil = {} -- [player] = server time
+local feverStart = {} -- [player] = server time
+local lastWarn = {} -- [player] = os.clock() (throttles hint messages)
 local oreFolder: Folder
 local dropFolder: Folder
 
@@ -4010,6 +5140,56 @@ local function addCrystals(part: BasePart, color: Color3, material: Enum.Materia
 	end
 end
 
+-- rock chunks around the base + ore "veins" so blocks read as rocks, not cubes
+local function decorate(part: BasePart, ore, size: number)
+	local function chunk(cf: CFrame, chunkSize: Vector3, color: Color3, material: Enum.Material, name: string)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.CastShadow = false
+		p.Size = chunkSize
+		p.CFrame = cf
+		p.Color = color
+		p.Material = material
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		p.Parent = part
+	end
+	local dark = part.Color:Lerp(Color3.new(0, 0, 0), 0.3)
+	local base = part.CFrame
+	chunk(
+		base * CFrame.new(size * 0.42, -size * 0.28, size * 0.36) * CFrame.Angles(0.3, oreRng:NextNumber(0, 3), 0.2),
+		Vector3.new(size * 0.5, size * 0.42, size * 0.48),
+		dark,
+		part.Material,
+		"Rock"
+	)
+	chunk(
+		base * CFrame.new(-size * 0.4, -size * 0.3, -size * 0.34) * CFrame.Angles(-0.2, oreRng:NextNumber(0, 3), 0.3),
+		Vector3.new(size * 0.44, size * 0.38, size * 0.42),
+		dark,
+		part.Material,
+		"Rock"
+	)
+	if ore.Value >= 2 then
+		local vein = part.Color:Lerp(Color3.new(1, 1, 1), 0.2)
+		local material = if ore.Glow then Enum.Material.Neon else part.Material
+		for i = 1, 2 do
+			local side = if i == 1 then 1 else -1
+			chunk(
+				base * CFrame.new(side * size * 0.5, size * (0.05 + i * 0.12), side * size * 0.12) * CFrame.Angles(0.6, 0.7 * i, 0.4),
+				Vector3.new(1.1, 1.1, 1.1) * (0.8 + i * 0.25),
+				vein,
+				material,
+				"Vein"
+			)
+		end
+	end
+end
+
 local function spawnBlock(slot, forcedLucky)
 	if slot.Part and slot.Part.Parent then
 		return
@@ -4027,7 +5207,12 @@ local function spawnBlock(slot, forcedLucky)
 	part.Color = ore.Color
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
-	part.CFrame = CFrame.new(slot.Position) * CFrame.Angles(0, math.rad(oreRng:NextInteger(0, 3) * 90), 0)
+	part.CFrame = CFrame.new(slot.Position)
+		* CFrame.Angles(
+			math.rad(oreRng:NextNumber(-6, 6)),
+			math.rad(oreRng:NextInteger(0, 3) * 90 + oreRng:NextNumber(-14, 14)),
+			math.rad(oreRng:NextNumber(-6, 6))
+		)
 	part:SetAttribute("Ore", oreId)
 	part:SetAttribute("HP", hp)
 	part:SetAttribute("MaxHP", hp)
@@ -4057,6 +5242,7 @@ local function spawnBlock(slot, forcedLucky)
 		light.Parent = part
 		addCrystals(part, ore.Color, Enum.Material.Neon)
 	end
+	decorate(part, ore, size)
 	part.Parent = oreFolder
 	slot.Part = part
 	blockInfo[part] = { Slot = slot, Ore = oreId, HP = hp, MaxHP = hp, Zone = slot.Zone, Lucky = lucky }
@@ -4098,62 +5284,120 @@ local function nearestBlock(root: BasePart): BasePart?
 	return nil
 end
 
-local function mineBlock(player: Player, data, part: BasePart)
-	local info = blockInfo[part]
-	if not info then
+local function now(): number
+	return workspace:GetServerTimeNow()
+end
+
+local function warnOnce(player: Player, seconds: number, text: string, ...)
+	if lastWarn[player] and os.clock() - lastWarn[player] < seconds then
 		return
 	end
-	if info.Zone > data.ZoneLevel then
-		Net:Notify(player, "Unlock %s to mine here!", Color3.fromRGB(255, 110, 110), Config.Zones[info.Zone].Name)
+	lastWarn[player] = os.clock()
+	Net:Notify(player, text, Color3.fromRGB(255, 170, 110), ...)
+end
+
+---------------------------------------------------------------------------
+-- FEVER: a long combo turns into a short frenzy
+---------------------------------------------------------------------------
+function Mining:IsFever(player: Player): boolean
+	return (feverUntil[player] or 0) > now()
+end
+
+local function feverFX(player: Player, on: boolean)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not root then
 		return
 	end
-	local stats = Services.StatsService
-	local monetization = Services.MonetizationService
-	local capacity = stats:Capacity(player, data)
-	if data.Backpack >= capacity then
-		if monetization:HasPass(player, "AutoSell") then
-			Services.EconomyService:Sell(player, true)
-		else
-			Net:Send(player, "BackpackFull")
-			return
+	local existing = root:FindFirstChild("FeverFX")
+	if not on then
+		if existing then
+			existing:Destroy()
 		end
-	end
-
-	local ore = Config.Ores[info.Ore]
-	local damage = stats:Damage(player, data)
-	local crit = math.random() < Config.Crit.Chance
-	if crit then
-		damage *= Config.Crit.Multiplier
-		data.Stats.Crits += 1
-	end
-	info.HP -= damage
-	if info.HP > 0 then
-		part:SetAttribute("HP", info.HP)
-		Net:Send(player, "MineHit", part, info.HP / info.MaxHP, crit, damage)
 		return
 	end
+	if existing then
+		return
+	end
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Name = "FeverFX"
+	emitter.Texture = "rbxasset://textures/particles/fire_main.dds"
+	emitter.Color = ColorSequence.new(Color3.fromRGB(255, 170, 50), Color3.fromRGB(255, 60, 40))
+	emitter.LightEmission = 1
+	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.6), NumberSequenceKeypoint.new(1, 0) })
+	emitter.Lifetime = NumberRange.new(0.4, 0.7)
+	emitter.Speed = NumberRange.new(4, 8)
+	emitter.SpreadAngle = Vector2.new(25, 25)
+	emitter.Rate = 40
+	emitter.Parent = root
+end
 
+local function startFever(player: Player, data)
+	local t = now()
+	feverStart[player] = t
+	feverUntil[player] = t + Config.Fever.Duration
+	player:SetAttribute("FeverUntil", feverUntil[player])
+	data.Stats.Fevers = (data.Stats.Fevers or 0) + 1
+	feverFX(player, true)
+	Services.CharacterService:ApplyWalkSpeed(player)
+	Net:Send(player, "Fever", Config.Fever.Duration)
+end
+
+local function extendFever(player: Player)
+	local cap = (feverStart[player] or now()) + Config.Fever.MaxDuration
+	feverUntil[player] = math.min(cap, (feverUntil[player] or now()) + Config.Fever.Extend)
+	player:SetAttribute("FeverUntil", feverUntil[player])
+end
+
+local function endFever(player: Player)
+	feverUntil[player] = nil
+	feverStart[player] = nil
+	combos[player] = nil
+	if player.Parent then
+		player:SetAttribute("FeverUntil", nil)
+		feverFX(player, false)
+		Services.CharacterService:ApplyWalkSpeed(player)
+		Net:Send(player, "FeverEnd")
+	end
+end
+
+---------------------------------------------------------------------------
+-- hitting / breaking blocks
+---------------------------------------------------------------------------
+local function breakBlock(player: Player, data, part: BasePart, info, crit: boolean, capacity: number)
 	-- combo: consecutive breaks within the window
-	local now = os.clock()
+	local clock = os.clock()
 	local combo = combos[player]
-	if combo and now - combo.Last <= Config.Combo.Window then
+	if combo and clock - combo.Last <= Config.Combo.Window then
 		combo.Count += 1
 	else
-		combo = { Count = 1, Last = now }
+		combo = { Count = 1, Last = clock }
 		combos[player] = combo
 	end
-	combo.Last = now
+	combo.Last = clock
 	data.Stats.BestCombo = math.max(data.Stats.BestCombo, combo.Count)
 	local comboBonus = math.min(Config.Combo.MaxBonus, (combo.Count - 1) * Config.Combo.BonusPer)
 
+	local fever = Mining:IsFever(player)
+	if fever then
+		extendFever(player)
+	elseif combo.Count >= Config.Fever.Combo then
+		startFever(player, data)
+		fever = true
+	end
+
+	local ore = Config.Ores[info.Ore]
 	local events = Services.EventService
 	local lucky = info.Lucky
-	local value = ore.Value * (if lucky then lucky.ValueMult else 1) * events:Get("ValueMult", 1) * (1 + comboBonus)
+	local value = ore.Value
+		* (if lucky then lucky.ValueMult else 1)
+		* events:Get("ValueMult", 1)
+		* (1 + comboBonus)
+		* (if fever then Config.Fever.ValueMult else 1)
 	local gained = math.min(math.floor(value), capacity - data.Backpack)
 	data.Backpack += gained
 	data.Stats.BlocksMined += 1
 
-	local extra = { Crit = crit, Combo = combo.Count, Lucky = if lucky then lucky.Id else nil, Damage = damage }
+	local extra = { Crit = crit, Combo = combo.Count, Lucky = if lucky then lucky.Id else nil, Fever = fever }
 	local gems = 0
 	if ore.GemChance and math.random() < ore.GemChance then
 		gems += ore.Gems
@@ -4183,9 +5427,81 @@ local function mineBlock(player: Player, data, part: BasePart)
 	if lucky and lucky.Announce then
 		Net:Announce("🌈 %s mined a RAINBOW %s! (+%d 💎)", Color3.fromRGB(255, 120, 230), player.DisplayName, ore.Name, gems)
 	end
+end
 
+-- returns "hit" | "broken" | "full" | nil (not allowed)
+local function hitBlock(player: Player, data, part: BasePart, damage: number, crit: boolean, isSplash: boolean)
+	local info = blockInfo[part]
+	if not info then
+		return nil
+	end
+	if info.Zone > data.ZoneLevel then
+		if not isSplash then
+			warnOnce(player, 2, "Unlock %s to mine here!", Config.Zones[info.Zone].Name)
+		end
+		return nil
+	end
+	local stats = Services.StatsService
+	local monetization = Services.MonetizationService
+	local capacity = stats:Capacity(player, data)
+	if data.Backpack >= capacity then
+		if monetization:HasPass(player, "AutoSell") then
+			Services.EconomyService:Sell(player, true)
+		else
+			if not isSplash then
+				Net:Send(player, "BackpackFull")
+			end
+			return "full"
+		end
+	end
+	info.HP -= damage
+	if info.HP > 0 then
+		part:SetAttribute("HP", info.HP)
+		Net:Send(player, "MineHit", part, info.HP / info.MaxHP, crit, damage, isSplash)
+		return "hit"
+	end
+	breakBlock(player, data, part, info, crit, capacity)
 	if data.Backpack >= capacity and monetization:HasPass(player, "AutoSell") then
 		Services.EconomyService:Sell(player, true)
+	end
+	return "broken"
+end
+
+local function mineBlock(player: Player, data, part: BasePart)
+	local info = blockInfo[part]
+	if not info then
+		return
+	end
+	local zone = info.Zone
+	local center = part.Position
+	local damage = Services.StatsService:Damage(player, data)
+	local crit = math.random() < Config.Crit.Chance
+	if crit then
+		damage *= Config.Crit.Multiplier
+		data.Stats.Crits += 1
+	end
+	local result = hitBlock(player, data, part, damage, crit, false)
+	if result == "hit" or result == "broken" then
+		-- shockwave: crits (and every hit during FEVER) damage nearby blocks too
+		local fever = Mining:IsFever(player)
+		if crit or fever then
+			local radius = if fever then Config.Fever.SplashRadius else Config.Crit.SplashRadius
+			local mult = if fever then Config.Fever.SplashDamage else Config.Crit.SplashDamage
+			local targets = {}
+			for other in zoneBlocks[zone] do
+				if other ~= part and (other.Position - center).Magnitude <= radius then
+					table.insert(targets, other)
+				end
+			end
+			if #targets > 0 then
+				Net:Send(player, "Shockwave", center, radius, fever)
+				for _, other in targets do
+					if hitBlock(player, data, other, damage * mult, false, true) == "full" then
+						break
+					end
+				end
+			end
+		end
 	end
 	Data:MarkDirty(player)
 end
@@ -4265,21 +5581,34 @@ local function tryBonk(attacker: Player, victim: Player)
 	if (aRoot.Position - vRoot.Position).Magnitude > Config.PvP.BonkRange then
 		return
 	end
+	local shards = Services.ShardService
+	local carrying = shards:IsCarrying(victim)
 	local pvpZone = World.PvPZone
-	if World:ZoneAt(aRoot.Position) ~= pvpZone or World:ZoneAt(vRoot.Position) ~= pvpZone then
-		Net:Notify(attacker, "⚔️ You can only bonk players inside the Star Crater!")
+	local inPvP = World:ZoneAt(aRoot.Position) == pvpZone and World:ZoneAt(vRoot.Position) == pvpZone
+	if not carrying and not inPvP then
+		warnOnce(attacker, 3, "⚔️ You can only bonk shard carriers - or anyone in the Star Crater!")
 		return
 	end
-	local now = os.clock()
-	if (immunity[victim] or 0) > now then
+	if (vRoot.Position - World.HubSpawn.Position).Magnitude <= Config.World.SpawnSafeRadius then
+		warnOnce(attacker, 3, "🛡️ The spawn is a safe zone!")
 		return
 	end
-	immunity[victim] = now + Config.PvP.ImmunitySeconds
+	local clock = os.clock()
+	if (immunity[victim] or 0) > clock then
+		return
+	end
+	immunity[victim] = clock + Config.PvP.ImmunitySeconds
 
-	local drop = math.floor(vData.Backpack * Config.PvP.DropPercent)
-	if drop > 0 then
-		vData.Backpack -= drop
-		spawnOrbs(vRoot.Position, drop)
+	if carrying then
+		shards:Drop(victim, attacker)
+	end
+	local drop = 0
+	if inPvP then
+		drop = math.floor(vData.Backpack * Config.PvP.DropPercent)
+		if drop > 0 then
+			vData.Backpack -= drop
+			spawnOrbs(vRoot.Position, drop)
+		end
 	end
 	aData.Stats.Bonks += 1
 	local progression = Services.ProgressionService
@@ -4289,10 +5618,30 @@ local function tryBonk(attacker: Player, victim: Player)
 	local direction = (vRoot.Position - aRoot.Position) * Vector3.new(1, 0, 1)
 	direction = if direction.Magnitude > 0.01 then direction.Unit else Vector3.zAxis
 	Net:Send(victim, "Knockback", direction * Config.PvP.Knockback + Vector3.new(0, 35, 0))
-	Net:Send(victim, "Bonked", attacker.DisplayName, drop)
-	Net:Notify(attacker, "💥 Bonked %s! %s ore dropped", Color3.fromRGB(255, 140, 90), victim.DisplayName, Util.Format(drop))
+	Net:Send(victim, "Bonked", attacker.DisplayName, drop, carrying)
+	Net:Send(attacker, "BonkHit", vRoot.Position)
+	if drop > 0 then
+		Net:Notify(attacker, "💥 Bonked %s! %s ore dropped", Color3.fromRGB(255, 140, 90), victim.DisplayName, Util.Format(drop))
+	end
 	Data:MarkDirty(attacker)
 	Data:MarkDirty(victim)
+end
+
+-- the closest shard carrier in bonk range (mobile players just hold MINE)
+local function nearestCarrier(player: Player, root: BasePart): Player?
+	local best, bestDistance = nil, Config.PvP.BonkRange
+	for _, other in Players:GetPlayers() do
+		if other ~= player and Services.ShardService:IsCarrying(other) then
+			local otherRoot = other.Character and other.Character:FindFirstChild("HumanoidRootPart") :: BasePart
+			if otherRoot then
+				local distance = (otherRoot.Position - root.Position).Magnitude
+				if distance <= bestDistance then
+					best, bestDistance = other, distance
+				end
+			end
+		end
+	end
+	return best
 end
 
 ---------------------------------------------------------------------------
@@ -4307,20 +5656,32 @@ local function onSwing(player: Player, hint)
 	if not root or not humanoid or humanoid.Health <= 0 then
 		return
 	end
+	-- the pickaxe is always in hand; if it got unequipped, put it back
 	if not character:FindFirstChild("Pickaxe") then
-		return
+		local backpack = player:FindFirstChildOfClass("Backpack")
+		local tool = backpack and backpack:FindFirstChild("Pickaxe")
+		if tool and tool:IsA("Tool") then
+			humanoid:EquipTool(tool)
+		else
+			Services.CharacterService:GivePickaxe(player)
+		end
 	end
-	local now = os.clock()
+	local clock = os.clock()
 	local cooldown = Services.StatsService:SwingCooldown(player, data)
-	if lastSwing[player] and now - lastSwing[player] < cooldown * 0.8 then
+	if lastSwing[player] and clock - lastSwing[player] < cooldown * 0.8 then
 		return
 	end
-	lastSwing[player] = now
+	lastSwing[player] = clock
+
+	if Services.ShardService:IsCarrying(player) then
+		warnOnce(player, 4, "🌠 Hands full! Bring the shard to your base 🏠")
+		return
+	end
 
 	local hintPart = if typeof(hint) == "Instance" and hint:IsA("BasePart") then hint else nil
 	local meteor = Services.MeteorService
 
-	-- 1) explicit target: another player (PvP) or a block
+	-- 1) explicit target: another player (bonk) or a block
 	if hintPart then
 		local model = hintPart:FindFirstAncestorOfClass("Model")
 		local victim = model and Players:GetPlayerFromCharacter(model)
@@ -4328,7 +5689,7 @@ local function onSwing(player: Player, hint)
 			tryBonk(player, victim)
 			return
 		end
-		if blockInfo[hintPart] and withinReach(root, hintPart) then
+		if blockInfo[hintPart] and withinReach(root, hintPart, 3) then
 			mineBlock(player, data, hintPart)
 			return
 		end
@@ -4340,7 +5701,14 @@ local function onSwing(player: Player, hint)
 		return
 	end
 
-	-- 3) auto target the closest block (mobile friendly + auto mine pass)
+	-- 3) a shard carrier right next to us
+	local carrier = nearestCarrier(player, root)
+	if carrier then
+		tryBonk(player, carrier)
+		return
+	end
+
+	-- 4) auto target the closest block (mobile friendly + auto mine pass)
 	local target = nearestBlock(root)
 	if target then
 		mineBlock(player, data, target)
@@ -4365,10 +5733,26 @@ function Mining:Start()
 
 	Net:On("Swing", 0.08, onSwing)
 
+	-- fever expiry
+	task.spawn(function()
+		while true do
+			task.wait(0.25)
+			local t = now()
+			for player, untilTime in feverUntil do
+				if untilTime <= t then
+					endFever(player)
+				end
+			end
+		end
+	end)
+
 	Players.PlayerRemoving:Connect(function(player)
 		lastSwing[player] = nil
 		immunity[player] = nil
 		combos[player] = nil
+		feverUntil[player] = nil
+		feverStart[player] = nil
+		lastWarn[player] = nil
 	end)
 end
 
@@ -4376,7 +5760,7 @@ return Mining
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="21">
+        <Item class="ModuleScript" referent="23">
           <Properties>
             <string name="Name">MonetizationService</string>
             <string name="Source"><![CDATA[--[[
@@ -4782,7 +6166,7 @@ return Monetization
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="22">
+        <Item class="ModuleScript" referent="24">
           <Properties>
             <string name="Name">Net</string>
             <string name="Source"><![CDATA[--[[
@@ -4905,7 +6289,7 @@ return Net
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="23">
+        <Item class="ModuleScript" referent="25">
           <Properties>
             <string name="Name">PetService</string>
             <string name="Source"><![CDATA[--[[
@@ -5180,7 +6564,7 @@ return PetService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="24">
+        <Item class="ModuleScript" referent="26">
           <Properties>
             <string name="Name">ProgressionService</string>
             <string name="Source"><![CDATA[--[[
@@ -5699,7 +7083,503 @@ return Progression
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="25">
+        <Item class="ModuleScript" referent="27">
+          <Properties>
+            <string name="Name">ShardService</string>
+            <string name="Source"><![CDATA[--[[
+	ShardService: star shards in the world.
+
+	* Falling stars crash every ~40-70s somewhere players can reach (hub or an
+	  unlocked mine) and leave a shard with a tall light beacon.
+	* A destroyed meteor spills a burst of better shards (the top hitter gets
+	  an Epic+ one reserved for a few seconds).
+	* Touch a shard to pick it up: it floats over your head, you're slower,
+	  and ANYONE can bonk you (anywhere but the spawn) to make you drop it.
+	* Walk into your own base to put it on a pedestal (BaseService).
+	* Stolen shards remember their owner: if dropped and nobody grabs them
+	  they fly home; the owner can touch them to get them back instantly.
+]]
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Util = require(Shared.Util)
+local ShardModel = require(Shared.ShardModel)
+local Net = require(script.Parent.Net)
+
+local Shards = {}
+local Services
+local Data
+local World
+
+local SETTINGS = Config.Shards
+local rng = Random.new()
+
+local carrying = {} -- [player] = { Id, Meta, Model }
+local ground = {} -- [model] = record
+
+local HUB_SPOTS = {
+	Vector3.new(-30, 0, -10),
+	Vector3.new(30, 0, -10),
+	Vector3.new(-32, 0, 55),
+	Vector3.new(32, 0, 55),
+	Vector3.new(-20, 0, 20),
+	Vector3.new(22, 0, 18),
+	Vector3.new(0, 0, -5),
+	Vector3.new(-40, 0, -60),
+	Vector3.new(40, 0, -60),
+}
+
+local function now(): number
+	return workspace:GetServerTimeNow()
+end
+
+local function rootOf(player: Player): BasePart?
+	local character = player.Character
+	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart
+end
+
+local function rarityName(id: string): string
+	local def = SETTINGS.Rarities[id]
+	return if def then def.Name else id
+end
+
+---------------------------------------------------------------------------
+-- carrying
+---------------------------------------------------------------------------
+function Shards:IsCarrying(player: Player): boolean
+	return carrying[player] ~= nil
+end
+
+-- walk speed multiplier while carrying (heavier = rarer = slower)
+function Shards:SpeedMult(player: Player): number
+	local info = carrying[player]
+	local def = info and SETTINGS.Rarities[info.Id]
+	return if def then def.Speed else 1
+end
+
+local function attachModel(player: Player, id: string): Model?
+	local root = rootOf(player)
+	if not root then
+		return nil
+	end
+	local model = ShardModel.Build(Config, id, 0.8)
+	model.Name = "CarriedShard"
+	ShardModel.SetAnchored(model, false)
+	model:PivotTo(root.CFrame * CFrame.new(0, 5.2, 0))
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = root
+	weld.Part1 = model.PrimaryPart
+	weld.Parent = model.PrimaryPart
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "CarrierGlow"
+	highlight.FillTransparency = 1
+	highlight.OutlineColor = SETTINGS.Rarities[id].Color
+	highlight.OutlineTransparency = 0.1
+	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+	highlight.Parent = model
+	model.Parent = player.Character
+	-- the highlight outlines the whole character so hunters can spot carriers
+	highlight.Adornee = player.Character
+	return model
+end
+
+local function endCarry(player: Player)
+	local info = carrying[player]
+	carrying[player] = nil
+	if info and info.Model then
+		info.Model:Destroy()
+	end
+	player:SetAttribute("Carrying", nil)
+	player:SetAttribute("CarryStolen", nil)
+	Services.CharacterService:ApplyWalkSpeed(player)
+	return info
+end
+
+function Shards:StartCarry(player: Player, id: string, meta)
+	if carrying[player] then
+		return false
+	end
+	local model = attachModel(player, id)
+	if not model then
+		return false
+	end
+	carrying[player] = { Id = id, Meta = meta or {}, Model = model }
+	player:SetAttribute("Carrying", id)
+	player:SetAttribute("CarryStolen", meta ~= nil and meta.From ~= nil)
+	Services.CharacterService:ApplyWalkSpeed(player)
+	local fromName = if meta and meta.From then meta.From.DisplayName else nil
+	Net:Send(player, "CarryStart", id, fromName)
+	return true
+end
+
+-- the shard flies back to the base it was stolen from
+local function returnHome(meta, message: boolean)
+	local owner = meta and meta.From
+	if not owner or not owner.Parent or not meta.Entry then
+		return
+	end
+	Services.BaseService:SetAway(owner, meta.Entry, false)
+	if message then
+		Net:Notify(owner, "🛡️ Your %s flew back home!", Color3.fromRGB(120, 230, 255), rarityName(meta.Entry.Id))
+	end
+end
+
+---------------------------------------------------------------------------
+-- shards on the ground
+---------------------------------------------------------------------------
+local function destroyGround(model: Model)
+	ground[model] = nil
+	if model.Parent then
+		model:Destroy()
+	end
+end
+
+local tryPickup -- forward declaration
+
+-- opts: Beacon (bool), PriorityUser/PriorityUntil, BlockUser/BlockUntil
+function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
+	opts = opts or {}
+	local def = SETTINGS.Rarities[id]
+	local model = ShardModel.Build(Config, id, 1.15)
+	ShardModel.SetAnchored(model, true)
+	model:PivotTo(CFrame.new(position + Vector3.new(0, 7.5, 0)))
+	model:SetAttribute("Spin", true)
+	model:SetAttribute("Stolen", meta ~= nil and meta.From ~= nil)
+
+	local hitbox = Instance.new("Part")
+	hitbox.Name = "Hitbox"
+	hitbox.Size = Vector3.new(7, 13, 7)
+	hitbox.CFrame = CFrame.new(position + Vector3.new(0, 5.5, 0))
+	hitbox.Anchored = true
+	hitbox.CanCollide = false
+	hitbox.CanQuery = true -- so taps on it walk you there
+	hitbox.Transparency = 1
+	hitbox.Parent = model
+
+	if opts.Beacon ~= false then
+		local index = Util.ShardIndex(Config, id)
+		local beacon = Instance.new("Part")
+		beacon.Name = "Beacon"
+		beacon.Shape = Enum.PartType.Cylinder
+		beacon.Size = Vector3.new(180, 1 + index * 0.5, 1 + index * 0.5)
+		beacon.CFrame = CFrame.new(position + Vector3.new(0, 90, 0)) * CFrame.Angles(0, 0, math.rad(90))
+		beacon.Color = def.Color
+		beacon.Material = Enum.Material.Neon
+		beacon.Transparency = 0.45
+		beacon.Anchored = true
+		beacon.CanCollide = false
+		beacon.CanQuery = false
+		beacon.CanTouch = false
+		beacon.CastShadow = false
+		beacon.Parent = model
+	end
+
+	local label = Instance.new("BillboardGui")
+	label.Name = "Label"
+	label.Size = UDim2.new(8, 0, 2, 0)
+	label.StudsOffsetWorldSpace = Vector3.new(0, 4, 0)
+	label.LightInfluence = 0
+	label.MaxDistance = 220
+	label.AlwaysOnTop = true
+	local text = Instance.new("TextLabel")
+	text.BackgroundTransparency = 1
+	text.Size = UDim2.fromScale(1, 1)
+	text.Font = Enum.Font.FredokaOne
+	text.TextScaled = true
+	text.TextColor3 = def.Color
+	World.SetText(text, if meta and meta.From then "⚠️ %s" else "🌠 %s", def.Name)
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2.5
+	stroke.Parent = text
+	text.Parent = label
+	label.Parent = model.PrimaryPart
+
+	model.Parent = World:Folder("Shards")
+	local record = {
+		Id = id,
+		Meta = meta,
+		PriorityUser = opts.PriorityUser,
+		PriorityUntil = opts.PriorityUntil or 0,
+		BlockUser = opts.BlockUser,
+		BlockUntil = opts.BlockUntil or 0,
+	}
+	ground[model] = record
+
+	hitbox.Touched:Connect(function(hit)
+		if ground[model] then
+			tryPickup(model, record, hit)
+		end
+	end)
+
+	-- stolen shards fly home if nobody grabs them; others fade out eventually
+	local lifetime = if meta and meta.From then SETTINGS.ReturnSeconds else SETTINGS.GroundLifetime
+	task.delay(lifetime, function()
+		if ground[model] then
+			destroyGround(model)
+			returnHome(meta, true)
+		end
+	end)
+	return model
+end
+
+tryPickup = function(model: Model, record, hit: BasePart)
+	local character = hit:FindFirstAncestorOfClass("Model")
+	local player = character and Players:GetPlayerFromCharacter(character)
+	if not player or carrying[player] then
+		return
+	end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 or not Data:Get(player) then
+		return
+	end
+	local t = now()
+	if record.BlockUser == player.UserId and t < record.BlockUntil then
+		return
+	end
+	if record.PriorityUser and record.PriorityUser ~= player.UserId and t < record.PriorityUntil then
+		return
+	end
+	local meta = record.Meta
+	-- the owner of a stolen shard gets it back instantly
+	if meta and meta.From == player then
+		destroyGround(model)
+		Services.BaseService:SetAway(player, meta.Entry, false)
+		Net:Notify(player, "🛡️ You got your %s back!", Color3.fromRGB(120, 230, 255), rarityName(record.Id))
+		Net:Send(player, "ShardRecovered", record.Id)
+		return
+	end
+	if not Services.BaseService:HasBase(player) then
+		Net:Notify(player, "All bases are taken - you'll get one when someone leaves.")
+		return
+	end
+	destroyGround(model)
+	Shards:StartCarry(player, record.Id, meta)
+end
+
+-- drop whatever the player carries (bonked / died / left)
+function Shards:Drop(player: Player, attacker: Player?)
+	local info = carrying[player]
+	if not info then
+		return
+	end
+	local root = rootOf(player)
+	local position = if root then root.Position else nil
+	endCarry(player)
+	if not position then
+		returnHome(info.Meta, true)
+		return
+	end
+	local angle = rng:NextNumber(0, math.pi * 2)
+	local spot = Vector3.new(position.X + math.cos(angle) * 5, 0, position.Z + math.sin(angle) * 5)
+	local meta = if info.Meta and info.Meta.From then info.Meta else nil
+	self:SpawnGround(info.Id, spot, meta, {
+		Beacon = true,
+		BlockUser = player.UserId,
+		BlockUntil = now() + SETTINGS.RegrabDelay,
+	})
+	Net:Send(player, "CarryLost", info.Id, if attacker then attacker.DisplayName else nil)
+	if attacker then
+		Net:Notify(attacker, "💥 %s dropped a %s - grab it!", Color3.fromRGB(255, 170, 80), player.DisplayName, rarityName(info.Id))
+	end
+end
+
+---------------------------------------------------------------------------
+-- delivery
+---------------------------------------------------------------------------
+local function deliver(player: Player)
+	local info = endCarry(player)
+	if not info then
+		return
+	end
+	local id = info.Id
+	local meta = info.Meta
+	local data = Data:Get(player)
+	if meta and meta.From then
+		local owner = meta.From
+		if owner.Parent and meta.Entry then
+			Services.BaseService:RemoveEntry(owner, meta.Entry)
+			Net:Notify(owner, "💔 %s stole your %s!", Color3.fromRGB(255, 90, 90), player.DisplayName, rarityName(id))
+		end
+		if data then
+			data.Stats.ShardsStolen += 1
+		end
+		Services.ProgressionService:AddQuest(player, "Steal", 1)
+	end
+	local result, coins = Services.BaseService:AddShard(player, id)
+	Services.ProgressionService:AddQuest(player, "Shard", 1)
+	local index = Util.ShardIndex(Config, id)
+	Services.ProgressionService:AddPoints(player, SETTINGS.Points[index] or 10)
+	Net:Send(player, "ShardDelivered", id, result, coins)
+	if index >= 4 then
+		Net:Announce("🌟 %s brought a %s home!", SETTINGS.Rarities[id].Color, player.DisplayName, rarityName(id))
+	end
+end
+
+---------------------------------------------------------------------------
+-- falling stars + meteor spill
+---------------------------------------------------------------------------
+local function maxZoneInServer(): number
+	local best = 1
+	for _, player in Data:LoadedPlayers() do
+		local data = Data:Get(player)
+		if data then
+			best = math.max(best, data.ZoneLevel)
+		end
+	end
+	return math.min(best, #Config.Zones)
+end
+
+function Shards:FallingStar(forcedZone: number?)
+	local zone = forcedZone
+	if not zone then
+		zone = if rng:NextNumber() < SETTINGS.FallingStar.HubChance then 0 else rng:NextInteger(1, maxZoneInServer())
+	end
+	local position
+	if zone == 0 then
+		local spot = HUB_SPOTS[rng:NextInteger(1, #HUB_SPOTS)]
+		position = spot + Vector3.new(rng:NextNumber(-4, 4), 0, rng:NextNumber(-4, 4))
+	else
+		local info = World.Zones[zone]
+		position = Vector3.new(rng:NextNumber(-36, 36), 0, rng:NextNumber(info.ZStart + 18, info.ZEnd - 10))
+	end
+	local luck = 1 + math.max(0, zone - 1) * SETTINGS.FallingStar.LuckPerZone
+	local id = Util.RollShard(Config, luck, rng)
+	local flight = 1.8
+	Net:Broadcast("StarFall", position, id, flight)
+	task.delay(flight, function()
+		self:SpawnGround(id, position, nil, { Beacon = true })
+		local where = if zone == 0 then "Hub" else Config.Zones[zone].Name
+		Net:Announce("🌠 A falling star crashed in %s! Grab the %s!", SETTINGS.Rarities[id].Color, where, rarityName(id))
+	end)
+	return id
+end
+
+-- ranking = { { Player = p, Score = n }, ... } best first
+function Shards:SpillMeteor(position: Vector3, ranking)
+	local settings = SETTINGS.Meteor
+	local count = math.clamp(settings.Count + settings.PerParticipant * #ranking, 1, settings.Max)
+	for i = 1, count do
+		local angle = (i / count) * math.pi * 2 + rng:NextNumber(-0.2, 0.2)
+		local radius = rng:NextNumber(11, 19)
+		local spot = Vector3.new(position.X + math.cos(angle) * radius, 0, position.Z + math.sin(angle) * radius)
+		local top = ranking[1] and ranking[1].Player
+		if i == 1 and top then
+			-- the winner's prize: Epic or better, reserved for them for a moment
+			local id = Util.RollShard(Config, settings.Luck, rng, 3)
+			self:SpawnGround(id, spot, nil, {
+				Beacon = true,
+				PriorityUser = top.UserId,
+				PriorityUntil = now() + settings.TopPriority,
+			})
+			Net:Notify(top, "🥇 Your %s prize shard is waiting - grab it!", Color3.fromRGB(255, 220, 90), rarityName(id))
+		else
+			self:SpawnGround(Util.RollShard(Config, settings.Luck, rng), spot, nil, { Beacon = true })
+		end
+	end
+end
+
+---------------------------------------------------------------------------
+function Shards:Init(services)
+	Services = services
+	Data = services.DataService
+	World = services.WorldService
+end
+
+function Shards:Start()
+	-- delivery + safety checks
+	local accumulator = 0
+	RunService.Heartbeat:Connect(function(dt)
+		accumulator += dt
+		if accumulator < 0.15 then
+			return
+		end
+		accumulator = 0
+		for player, info in carrying do
+			local root = rootOf(player)
+			if not root or not info.Model or not info.Model.Parent then
+				-- character vanished (respawn/reset): the shard drops where it was
+				if root then
+					self:Drop(player)
+				else
+					endCarry(player)
+					returnHome(info.Meta, true)
+				end
+			elseif Services.BaseService:InOwnPlot(player, root.Position) then
+				local ok, err = pcall(deliver, player)
+				if not ok then
+					warn("[Shards] delivery failed: " .. tostring(err))
+				end
+			end
+		end
+	end)
+
+	local function onCharacter(player: Player, character: Model)
+		local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
+		if humanoid then
+			humanoid.Died:Connect(function()
+				if carrying[player] then
+					self:Drop(player)
+				end
+			end)
+		end
+	end
+	local function onPlayer(player: Player)
+		player.CharacterAdded:Connect(function(character)
+			onCharacter(player, character)
+		end)
+		if player.Character then
+			task.spawn(onCharacter, player, player.Character)
+		end
+	end
+	Players.PlayerAdded:Connect(onPlayer)
+	for _, player in Players:GetPlayers() do
+		onPlayer(player)
+	end
+
+	Players.PlayerRemoving:Connect(function(player)
+		local info = carrying[player]
+		if info then
+			endCarry(player)
+			returnHome(info.Meta, true) -- a thief who leaves gives the shard back
+		end
+		-- the owner left: shards stolen from them vanish (they keep theirs)
+		for carrier, other in carrying do
+			if other.Meta and other.Meta.From == player then
+				endCarry(carrier)
+				Net:Notify(carrier, "The owner left - the shard vanished!")
+			end
+		end
+		for model, record in ground do
+			if record.Meta and record.Meta.From == player then
+				destroyGround(model)
+			end
+		end
+	end)
+
+	-- falling stars
+	task.spawn(function()
+		task.wait(25)
+		while true do
+			local star = SETTINGS.FallingStar
+			task.wait(rng:NextNumber(star.MinInterval, star.MaxInterval))
+			if #Players:GetPlayers() > 0 then
+				local ok, err = pcall(self.FallingStar, self)
+				if not ok then
+					warn("[Shards] falling star failed: " .. tostring(err))
+				end
+			end
+		end
+	end)
+end
+
+return Shards
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="28">
           <Properties>
             <string name="Name">StatsService</string>
             <string name="Source"><![CDATA[--[[
@@ -5766,8 +7646,12 @@ function Stats:Damage(player, data): number
 	return pickaxe.Power * mult
 end
 
-function Stats:SwingCooldown(_player, data): number
+function Stats:SwingCooldown(player, data): number
 	local pickaxe = Config.Pickaxes[data.PickaxeTier] or Config.Pickaxes[1]
+	local mining = Services.MiningService
+	if mining and mining:IsFever(player) then
+		return pickaxe.Cooldown * Config.Fever.CooldownMult
+	end
 	return pickaxe.Cooldown
 end
 
@@ -5867,7 +7751,7 @@ function Stats:BuildDerived(player)
 		CoinMult = self:CoinMultiplier(player, data),
 		Luck = self:Luck(player, data),
 		Capacity = self:Capacity(player, data),
-		Cooldown = self:SwingCooldown(player, data),
+		Cooldown = (Config.Pickaxes[data.PickaxeTier] or Config.Pickaxes[1]).Cooldown, -- client applies FEVER itself
 		PetSlots = self:PetSlots(player, data),
 		PetPower = self:PetPower(player, data),
 		Passes = Services.MonetizationService:OwnedPasses(player),
@@ -5957,7 +7841,7 @@ return Stats
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="26">
+        <Item class="ModuleScript" referent="29">
           <Properties>
             <string name="Name">WorldService</string>
             <string name="Source"><![CDATA[--[[
@@ -6147,6 +8031,9 @@ function World:ZoneAt(position: Vector3): number?
 	if math.abs(position.X) <= HUB_HALF and math.abs(position.Z) <= HUB_HALF then
 		return 0
 	end
+	if Util.InBases(Config, position) then
+		return 0
+	end
 	if math.abs(position.X) > ZONE_W / 2 + 1 then
 		return nil
 	end
@@ -6316,6 +8203,84 @@ local function leaderboard(cf: CFrame, size: Vector3, key: string, title: string
 	return board
 end
 
+-- big gate arch with a sign, spanning a corridor
+local function arch(position: Vector3, text: string, color: Color3, parent)
+	for _, side in { -1, 1 } do
+		newPart({
+			Name = "ArchPillar",
+			Size = Vector3.new(3, 22, 3),
+			CFrame = CFrame.new(position + Vector3.new(side * (CORRIDOR_W / 2 + 1.5), 11, 0)),
+			Color = Color3.fromRGB(45, 45, 60),
+			Material = Enum.Material.Slate,
+		}, parent)
+		newPart({
+			Name = "ArchGlow",
+			Size = Vector3.new(3.4, 1, 3.4),
+			CFrame = CFrame.new(position + Vector3.new(side * (CORRIDOR_W / 2 + 1.5), 21.5, 0)),
+			Color = color,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+		}, parent)
+	end
+	local beam = newPart({
+		Name = "ArchBeam",
+		Size = Vector3.new(CORRIDOR_W + 8, 5, 2),
+		CFrame = CFrame.new(position + Vector3.new(0, 24, 0)),
+		Color = Color3.fromRGB(30, 30, 44),
+		Material = Enum.Material.Slate,
+	}, parent)
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 30
+		gui.LightInfluence = 0
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.FredokaOne
+		label.TextScaled = true
+		label.TextColor3 = color
+		World.SetText(label, text)
+		label.Parent = gui
+		gui.Parent = beam
+	end
+end
+
+World.SpeedPads = {}
+-- neon dash pad: touching it gives a short burst of speed (see CharacterService)
+local function speedPad(position: Vector3, yaw: number, parent)
+	local pad = newPart({
+		Name = "SpeedPad",
+		Size = Vector3.new(9, 0.3, 9),
+		CFrame = CFrame.new(position + Vector3.new(0, 0.16, 0)) * CFrame.Angles(0, yaw, 0),
+		Color = Color3.fromRGB(60, 230, 255),
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, parent)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Top
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 20
+	gui.LightInfluence = 0
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.FredokaOne
+	label.TextScaled = true
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.Text = "⏫"
+	label.Parent = gui
+	gui.Parent = pad
+	local light = Instance.new("PointLight")
+	light.Color = pad.Color
+	light.Range = 12
+	light.Brightness = 1.5
+	light.Parent = pad
+	table.insert(World.SpeedPads, pad)
+	return pad
+end
+
 ---------------------------------------------------------------------------
 -- hub
 ---------------------------------------------------------------------------
@@ -6349,8 +8314,9 @@ local function buildHub()
 	local half = HUB_HALF
 	wall(CFrame.new(-half - 1, WALL_H / 2, 0), Vector3.new(2, WALL_H, half * 2 + 4), wallColor, hub)
 	wall(CFrame.new(half + 1, WALL_H / 2, 0), Vector3.new(2, WALL_H, half * 2 + 4), wallColor, hub)
-	wall(CFrame.new(0, WALL_H / 2, -half - 1), Vector3.new(half * 2 + 4, WALL_H, 2), wallColor, hub)
 	local segment = half - CORRIDOR_W / 2
+	wall(CFrame.new(-(CORRIDOR_W / 2 + segment / 2), WALL_H / 2, -half - 1), Vector3.new(segment + 2, WALL_H, 2), wallColor, hub)
+	wall(CFrame.new(CORRIDOR_W / 2 + segment / 2, WALL_H / 2, -half - 1), Vector3.new(segment + 2, WALL_H, 2), wallColor, hub)
 	wall(CFrame.new(-(CORRIDOR_W / 2 + segment / 2), WALL_H / 2, half + 1), Vector3.new(segment + 2, WALL_H, 2), wallColor, hub)
 	wall(CFrame.new(CORRIDOR_W / 2 + segment / 2, WALL_H / 2, half + 1), Vector3.new(segment + 2, WALL_H, 2), wallColor, hub)
 
@@ -6473,6 +8439,15 @@ local function buildHub()
 		leaderboard(CFrame.new(50, 11, HUB_HALF - 2), Vector3.new(24, 18, 1), defs[3].Key, defs[3].Title, boards)
 	end
 
+	-- gates: mines to the north, bases to the south
+	arch(Vector3.new(0, 0, HUB_HALF - 2), "⛏️ MINES", Color3.fromRGB(255, 200, 80), hub)
+	arch(Vector3.new(0, 0, -HUB_HALF + 2), "🏠 BASES", Color3.fromRGB(120, 230, 255), hub)
+	-- dash pads along the main road (point toward the mines / the bases)
+	speedPad(Vector3.new(0, 0, -45), 0, hub)
+	speedPad(Vector3.new(0, 0, 8), 0, hub)
+	speedPad(Vector3.new(0, 0, 66), 0, hub)
+	speedPad(Vector3.new(0, 0, -72), math.pi, hub)
+
 	-- decor
 	for _, pos in
 		{
@@ -6490,6 +8465,102 @@ local function buildHub()
 		lamp(Vector3.new(-11, 0, z), Color3.fromRGB(255, 220, 160), hub)
 		lamp(Vector3.new(11, 0, z), Color3.fromRGB(255, 220, 160), hub)
 	end
+end
+
+---------------------------------------------------------------------------
+-- base district (south): floor, walls, road; plots come from BaseService
+---------------------------------------------------------------------------
+local function buildBaseDistrict()
+	local district = folder("District", map)
+	local bases = Config.World.Bases
+	local halfX = bases.HalfX
+	local length = bases.ZStart - bases.ZEnd
+	local centerZ = (bases.ZStart + bases.ZEnd) / 2
+	local wallColor = Color3.fromRGB(70, 72, 92)
+
+	-- corridor from the hub's south gate
+	newPart({
+		Name = "Corridor",
+		Size = Vector3.new(CORRIDOR_W, 4, -HUB_HALF - bases.ZStart + 2),
+		CFrame = CFrame.new(0, -2, (-HUB_HALF + bases.ZStart) / 2),
+		Color = Color3.fromRGB(150, 140, 130),
+		Material = Enum.Material.Cobblestone,
+	}, district)
+	for _, side in { -1, 1 } do
+		wall(
+			CFrame.new(side * (CORRIDOR_W / 2 + 1), WALL_H / 2, (-HUB_HALF + bases.ZStart) / 2),
+			Vector3.new(2, WALL_H, -HUB_HALF - bases.ZStart + 2),
+			wallColor,
+			district
+		)
+	end
+
+	newPart({
+		Name = "Floor",
+		Size = Vector3.new(halfX * 2, 4, length),
+		CFrame = CFrame.new(0, -2, centerZ),
+		Color = Color3.fromRGB(58, 62, 84),
+		Material = Enum.Material.Slate,
+	}, district)
+	newPart({
+		Name = "Road",
+		Size = Vector3.new(22, 0.2, length),
+		CFrame = CFrame.new(0, 0.05, centerZ),
+		Color = Color3.fromRGB(200, 190, 170),
+		Material = Enum.Material.Cobblestone,
+	}, district)
+	for _, side in { -1, 1 } do
+		newPart({
+			Name = "RoadLine",
+			Size = Vector3.new(0.6, 0.25, length),
+			CFrame = CFrame.new(side * 11.5, 0.08, centerZ),
+			Color = Color3.fromRGB(120, 230, 255),
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+		}, district)
+		wall(CFrame.new(side * (halfX + 1), WALL_H / 2, centerZ), Vector3.new(2, WALL_H, length + 2), wallColor, district)
+		local segment = halfX - CORRIDOR_W / 2
+		wall(
+			CFrame.new(side * (CORRIDOR_W / 2 + segment / 2), WALL_H / 2, bases.ZStart + 1),
+			Vector3.new(segment + 2, WALL_H, 2),
+			wallColor,
+			district
+		)
+	end
+	wall(CFrame.new(0, WALL_H / 2, bases.ZEnd - 1), Vector3.new(halfX * 2 + 4, WALL_H, 2), wallColor, district)
+
+	for z = bases.ZStart - 14, bases.ZEnd + 10, -36 do
+		lamp(Vector3.new(-13.5, 0, z), Color3.fromRGB(140, 220, 255), district)
+		lamp(Vector3.new(13.5, 0, z), Color3.fromRGB(140, 220, 255), district)
+	end
+	for z = bases.ZStart - 28, bases.ZEnd + 40, -40 do
+		speedPad(Vector3.new(0, 0, z), math.pi, district)
+	end
+
+	-- twinkling stars above the district (it's where the shards live)
+	local sky = newPart({
+		Name = "Ambience",
+		Size = Vector3.new(halfX * 2, 1, length),
+		CFrame = CFrame.new(0, 26, centerZ),
+		Transparency = 1,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+	}, district)
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	emitter.Color = ColorSequence.new(Color3.fromRGB(150, 220, 255))
+	emitter.LightEmission = 1
+	emitter.Size = NumberSequence.new(0.35)
+	emitter.Lifetime = NumberRange.new(3, 5)
+	emitter.Rate = 18
+	emitter.Speed = NumberRange.new(0.3, 1)
+	emitter.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.3, 0.2),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	emitter.Parent = sky
 end
 
 ---------------------------------------------------------------------------
@@ -6721,9 +8792,18 @@ local function setupLighting()
 	bloom.Parent = Lighting
 
 	local cc = Lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect")
-	cc.Saturation = 0.15
-	cc.Contrast = 0.05
+	cc.Saturation = 0.22
+	cc.Contrast = 0.08
 	cc.Parent = Lighting
+
+	local rays = Lighting:FindFirstChildOfClass("SunRaysEffect") or Instance.new("SunRaysEffect")
+	rays.Intensity = 0.06
+	rays.Spread = 0.6
+	rays.Parent = Lighting
+
+	-- shinier materials (metal ores, neon, glass) without extra parts
+	Lighting.EnvironmentDiffuseScale = 0.6
+	Lighting.EnvironmentSpecularScale = 1
 end
 
 function World:Init(services)
@@ -6733,9 +8813,12 @@ function World:Init(services)
 		old:Destroy()
 	end
 	buildHub()
+	buildBaseDistrict()
 	buildZones()
 	folder("Ores", map)
 	folder("Drops", map)
+	folder("Shards", map)
+	folder("Bases", map)
 	map.Parent = workspace
 	setupLighting()
 end
@@ -6751,23 +8834,23 @@ return World
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="27">
+  <Item class="StarterPlayer" referent="30">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="28">
+    <Item class="StarterPlayerScripts" referent="31">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="29">
+      <Item class="Folder" referent="32">
         <Properties>
           <string name="Name">Client</string>
         </Properties>
-        <Item class="Folder" referent="30">
+        <Item class="Folder" referent="33">
           <Properties>
             <string name="Name">Controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="31">
+          <Item class="ModuleScript" referent="34">
             <Properties>
               <string name="Name">Ambience</string>
               <string name="Source"><![CDATA[--[[
@@ -6798,6 +8881,7 @@ local MOODS = {
 	[3] = { Title = "🔥 LAVA DEPTHS", Tint = Color3.fromRGB(255, 222, 200) },
 	[4] = { Title = "🔮 CRYSTAL VOID", Tint = Color3.fromRGB(232, 215, 255) },
 	[5] = { Title = "⚔️ STAR CRATER", Tint = Color3.fromRGB(255, 210, 232) },
+	[-2] = { Title = "🏠 BASES", Tint = Color3.fromRGB(225, 235, 255) }, -- base district
 }
 
 local tint = Instance.new("ColorCorrectionEffect")
@@ -6863,6 +8947,9 @@ task.spawn(function()
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart
 		if root then
 			local zone = Util.ZoneAt(Config, root.Position)
+			if zone == 0 and Util.InBases(Config, root.Position) then
+				zone = -2
+			end
 			if zone and zone ~= currentZone then
 				local first = currentZone == -1
 				currentZone = zone
@@ -6876,7 +8963,7 @@ task.spawn(function()
 			local meteorActive = workspace:GetAttribute("MeteorState") == "Active"
 			local wanted = if meteorActive and Config.Music.Meteor ~= ""
 				then Config.Music.Meteor
-				elseif currentZone == 0 then Config.Music.Hub
+				elseif currentZone == 0 or currentZone == -2 then Config.Music.Hub
 				else Config.Music.Mine
 			playTrack(wanted or "")
 		end
@@ -6887,7 +8974,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="32">
+          <Item class="ModuleScript" referent="35">
             <Properties>
               <string name="Name">DevTools</string>
               <string name="Source"><![CDATA[--[[
@@ -6910,11 +8997,11 @@ local Root = require(Client.UI.Root)
 local C = Lib.Colors
 
 local function build()
-	local cluster = Root.Cluster("Dev", Vector2.new(0, 1), UDim2.new(0, 12, 1, -12), UDim2.fromOffset(150, 400))
+	local cluster = Root.Cluster("Dev", Vector2.new(0, 1), UDim2.new(0, 12, 1, -12), UDim2.fromOffset(150, 470))
 	local list = Lib.New("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, -40), Visible = false, Parent = cluster }, {
 		Lib.List(Enum.FillDirection.Vertical, 4, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Bottom),
 	})
-	for order, command in { "Coins", "Gems", "Level", "Points", "Event", "Rainbow", "Spin", "Meteor", "Fill", "Reset" } do
+	for order, command in { "Coins", "Gems", "Level", "Points", "Star", "Shard", "Event", "Rainbow", "Spin", "Meteor", "Fill", "Reset" } do
 		Lib.Button({
 			Text = command,
 			Color = if command == "Reset" then C.Red else C.Gray,
@@ -6951,7 +9038,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="33">
+          <Item class="ModuleScript" referent="36">
             <Properties>
               <string name="Name">Guide</string>
               <string name="Source"><![CDATA[--[[
@@ -7075,11 +9162,47 @@ local function sellTarget()
 	return pad and pad.Position + Vector3.new(0, 1, 0), T("💰 SELL HERE")
 end
 
+-- your base's entrance (collect pad)
+local function baseTarget()
+	local index = player:GetAttribute("BaseIndex")
+	local pad = index and part({ "Bases", "Plot_" .. tostring(index), "CollectPad" })
+	return pad and pad.Position + Vector3.new(0, 1, 0)
+end
+
+-- the closest shard lying around in a place we can reach
+local function shardTarget(root: BasePart, data)
+	local map = workspace:FindFirstChild("Map")
+	local folder = map and map:FindFirstChild("Shards")
+	if not folder then
+		return nil
+	end
+	local best, bestDistance = nil, math.huge
+	for _, model in folder:GetChildren() do
+		local hitbox = model:FindFirstChild("Hitbox")
+		if hitbox and hitbox:IsA("BasePart") then
+			local zone = Util.ZoneAt(Config, hitbox.Position)
+			if zone ~= nil and zone <= data.ZoneLevel then
+				local distance = (hitbox.Position - root.Position).Magnitude
+				if distance < bestDistance then
+					best, bestDistance = hitbox, distance
+				end
+			end
+		end
+	end
+	return best and best.Position
+end
+
 -- returns target position + label, or nil when the player needs no help
 local function pickTarget(root: BasePart)
 	local data, derived = State.Data, State.Derived
 	if not data or not derived then
 		return nil
+	end
+	if player:GetAttribute("Carrying") then
+		local home = baseTarget()
+		if home then
+			return home, T("🏠 BRING IT HOME")
+		end
 	end
 	local capacity = derived.Capacity or math.huge
 	local tutorial = data.Tutorial
@@ -7095,6 +9218,10 @@ local function pickTarget(root: BasePart)
 			return egg and egg.Position, T("🥚 HATCH HERE")
 		end
 		return mineTarget(root, data)
+	end
+	local shard = shardTarget(root, data)
+	if shard then
+		return shard, T("🌠 GRAB THE SHARD")
 	end
 	if (data.Level or 1) >= MAX_LEVEL or data.ZoneLevel >= 3 then
 		return nil
@@ -7159,7 +9286,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="34">
+          <Item class="ModuleScript" referent="37">
             <Properties>
               <string name="Name">HUD</string>
               <string name="Source"><![CDATA[--[[
@@ -7171,6 +9298,7 @@ return {}
 	Plus toasts, announcements and celebrations (level up, rank up, tutorial).
 ]]
 local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -7189,6 +9317,7 @@ local Upsell = require(Client.UI.Upsell)
 
 local New, C, T = Lib.New, Lib.Colors, Lib.T
 local HUD = {}
+local player = Players.LocalPlayer
 
 local DARK = Color3.fromRGB(20, 22, 34)
 
@@ -7527,6 +9656,49 @@ local rankSub = Lib.Text({
 	Parent = rankChip,
 })
 
+-- base chip: income per second + bank; tap to go home
+local baseChip = chip(6, 48, Color3.fromRGB(120, 230, 255))
+local baseTitle = Lib.Text({
+	Text = "",
+	TextColor3 = Color3.fromRGB(140, 235, 255),
+	Size = UDim2.new(1, -12, 0, 23),
+	Position = UDim2.fromOffset(6, 3),
+	MaxTextSize = 18,
+	Parent = baseChip,
+})
+local baseSub = Lib.Text({
+	Text = "",
+	Font = Lib.BodyFont,
+	TextColor3 = C.Sub,
+	Size = UDim2.new(1, -12, 0, 17),
+	Position = UDim2.fromOffset(6, 27),
+	MaxTextSize = 13,
+	Parent = baseChip,
+})
+local baseButton = New("TextButton", {
+	BackgroundTransparency = 1,
+	Text = "",
+	Size = UDim2.fromScale(1, 1),
+	ZIndex = 5,
+	Parent = baseChip,
+})
+baseButton.Activated:Connect(function()
+	Lib.PlaySound("UI")
+	Net.Fire("GoBase")
+end)
+local function refreshBaseChip()
+	local data = State.Data
+	local hasBase = player:GetAttribute("BaseIndex") ~= nil
+	baseChip.Visible = hasBase and data ~= nil and (data.Tutorial == nil or data.Tutorial.Done == true)
+	if baseChip.Visible then
+		baseTitle.Text = T("🏠 BASE  💰%s/s", Util.Format(player:GetAttribute("BaseRate") or 0))
+		baseSub.Text = T("Bank: 💰%s  •  tap to go", Util.Format(player:GetAttribute("BaseBank") or 0))
+	end
+end
+player:GetAttributeChangedSignal("BaseBank"):Connect(refreshBaseChip)
+player:GetAttributeChangedSignal("BaseIndex"):Connect(refreshBaseChip)
+State.OnChanged(refreshBaseChip)
+
 local boostRows = {}
 local BOOSTS = {
 	{ "Coins2x", "2x💰", C.Coins },
@@ -7630,8 +9802,18 @@ Lib.Button({
 ---------------------------------------------------------------------------
 local function nextGoal(data, derived): string
 	local capacity = derived.Capacity or 1
+	if player:GetAttribute("Carrying") then
+		return T("Run to your base 🏠 before someone bonks you!")
+	end
 	if data.Backpack >= capacity then
 		return T("Sell your ore at the 💰 SELL pad in the hub!")
+	end
+	local base = data.Base
+	if base and #base.Shards == 0 then
+		return T("Grab a falling star 🌠 and carry it to your base 🏠")
+	end
+	if base and (player:GetAttribute("BaseBank") or 0) >= math.max(100, data.Coins * 0.25) then
+		return T("Collect 💰%s at your base 🏠", Util.Format(player:GetAttribute("BaseBank") or 0))
 	end
 	local pick = Config.Pickaxes[data.PickaxeTier + 1]
 	local bag = Config.Backpacks[data.BackpackTier + 1]
@@ -7959,6 +10141,7 @@ local function celebrate(title: string, sub: string, color: Color3, withConfetti
 	end)
 end
 HUD.Celebrate = celebrate
+HUD.FlyCoins = flyCoins
 
 ---------------------------------------------------------------------------
 -- server messages
@@ -8052,7 +10235,7 @@ return HUD
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="35">
+          <Item class="ModuleScript" referent="38">
             <Properties>
               <string name="Name">MeteorUI</string>
               <string name="Source"><![CDATA[--[[
@@ -8337,21 +10520,26 @@ return MeteorUI
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="36">
+          <Item class="ModuleScript" referent="39">
             <Properties>
               <string name="Name">Mining</string>
               <string name="Source"><![CDATA[--[[
-	Client mining: pickaxe input (click/tap/hold), auto-mine pass, target
-	highlight + HP bar, and all the "juice": material hit sounds, block
-	squash, damage numbers, CRIT pops, combo counter with rising pitch,
-	golden/rainbow lucky-ore bursts, PvP knockback feedback.
-	The server re-validates range and cooldown for every swing.
+	Client mining.
+	Input: TAP / CLICK a block (or a shard carrier, a dropped shard, the
+	meteor) and your character walks there and keeps swinging until it
+	breaks. HOLD the mouse or the big ⛏️ button (phones) to mine the nearest
+	blocks nonstop. Moving with the joystick/WASD cancels the auto-walk.
+	The pickaxe is always kept in hand (no hotbar needed).
+	Juice: material hit sounds, block squash, damage numbers, CRIT pops and
+	shockwaves, combo counter with rising pitch, FEVER mode, lucky-ore
+	bursts, bonk feedback. The server re-validates range and cooldown.
 ]]
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
@@ -8372,7 +10560,6 @@ local T = Lib.T
 local Mining = {}
 
 local tool: Tool? = nil
-local holding = false
 local lastSwing = 0
 local oresFolder = nil
 local ORE_SIZE = Vector3.one * Config.World.OreSize
@@ -8540,7 +10727,47 @@ local function showCombo(count: number)
 	comboHideAt = os.clock() + Config.Combo.Window
 end
 
--- swinging ---------------------------------------------------------------
+-- input + targeting ---------------------------------------------------------
+local REACH = Config.World.Reach
+local target = nil -- { Kind = "Ore" | "Player" | "Meteor" | "Shard", Part = BasePart }
+local autoWalk = false
+local holdMouse = false
+local holdButton = false
+local lastMoveTo = 0
+local lastSearch = 0
+
+local targetHighlight = Instance.new("Highlight")
+targetHighlight.Name = "MineTarget"
+targetHighlight.FillColor = Color3.fromRGB(255, 230, 120)
+targetHighlight.FillTransparency = 0.82
+targetHighlight.OutlineColor = Color3.fromRGB(255, 230, 120)
+targetHighlight.OutlineTransparency = 0
+targetHighlight.DepthMode = Enum.HighlightDepthMode.Occluded
+targetHighlight.Parent = workspace
+
+-- the default PlayerModule tells us when the player steers by themselves
+local controls = nil
+task.spawn(function()
+	local scripts = player:WaitForChild("PlayerScripts", 20)
+	local module = scripts and scripts:WaitForChild("PlayerModule", 20)
+	if module and module:IsA("ModuleScript") then
+		local ok, result = pcall(require, module)
+		if ok and type(result) == "table" and result.GetControls then
+			controls = result:GetControls()
+		end
+	end
+end)
+
+local function userIsSteering(): boolean
+	if not controls then
+		return false
+	end
+	local ok, vector = pcall(function()
+		return controls:GetMoveVector()
+	end)
+	return ok and typeof(vector) == "Vector3" and vector.Magnitude > 0.2
+end
+
 local function playSwing()
 	if not tool then
 		return
@@ -8553,38 +10780,159 @@ local function playSwing()
 	Lib.PlaySound("Swing")
 end
 
-local function swing(useHint: boolean)
-	if not tool or not tool.Parent or tool.Parent ~= player.Character then
-		return
+local function feverActive(): boolean
+	local untilTime = player:GetAttribute("FeverUntil")
+	return type(untilTime) == "number" and untilTime > workspace:GetServerTimeNow()
+end
+
+local function cooldownNow(): number
+	local cooldown = (State.Derived and State.Derived.Cooldown) or 0.36
+	if feverActive() then
+		cooldown *= Config.Fever.CooldownMult
 	end
-	local cooldown = (State.Derived and State.Derived.Cooldown) or 0.5
+	return cooldown
+end
+
+local function setTarget(newTarget, walk: boolean)
+	target = newTarget
+	autoWalk = walk and newTarget ~= nil
+	lastMoveTo = 0
+	targetHighlight.Adornee = if newTarget and newTarget.Kind ~= "Meteor" then newTarget.Part else nil
+end
+
+-- what did the player tap on?
+local function classify(hit: Instance?)
+	if not hit or not hit:IsA("BasePart") then
+		return nil
+	end
+	local ores = getOres()
+	if ores then
+		if hit.Parent == ores then
+			return { Kind = "Ore", Part = hit }
+		end
+		local parent = hit.Parent
+		if parent and parent.Parent == ores and parent:IsA("BasePart") then
+			return { Kind = "Ore", Part = parent }
+		end
+	end
+	if hit.Name == "Meteor" then
+		return { Kind = "Meteor", Part = hit }
+	end
+	local model = hit:FindFirstAncestorOfClass("Model")
+	if model then
+		local other = Players:GetPlayerFromCharacter(model)
+		if other and other ~= player then
+			local otherRoot = model:FindFirstChild("HumanoidRootPart")
+			if otherRoot and otherRoot:IsA("BasePart") then
+				return { Kind = "Player", Part = otherRoot }
+			end
+		end
+		local map = workspace:FindFirstChild("Map")
+		local shardFolder = map and map:FindFirstChild("Shards")
+		if shardFolder and model.Parent == shardFolder then
+			local hitbox = model:FindFirstChild("Hitbox")
+			if hitbox and hitbox:IsA("BasePart") then
+				return { Kind = "Shard", Part = hitbox }
+			end
+		end
+	end
+	return nil
+end
+
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Exclude
+local function pickAt(position: Vector3)
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return nil
+	end
+	local ray = camera:ScreenPointToRay(position.X, position.Y)
+	rayParams.FilterDescendantsInstances = { player.Character :: Instance }
+	local result = workspace:Raycast(ray.Origin, ray.Direction * 500, rayParams)
+	return classify(result and result.Instance)
+end
+
+local function reachFor(kind: string): number
+	if kind == "Player" then
+		return Config.PvP.BonkRange - 1.5
+	elseif kind == "Meteor" then
+		return Config.Meteor.Radius + REACH - 2
+	elseif kind == "Shard" then
+		return 2
+	end
+	return REACH
+end
+
+local function flatDistance(a: Vector3, b: Vector3): number
+	return ((a - b) * Vector3.new(1, 0, 1)).Magnitude
+end
+
+local function swingAt(root: BasePart, current)
 	local now = os.clock()
-	if now - lastSwing < cooldown then
+	if now - lastSwing < cooldownNow() then
 		return
 	end
 	lastSwing = now
+	if current and current.Part then
+		local p = current.Part.Position
+		local look = Vector3.new(p.X, root.Position.Y, p.Z)
+		if (look - root.Position).Magnitude > 0.5 then
+			root.CFrame = CFrame.lookAt(root.Position, look)
+		end
+	end
 	playSwing()
-	local hint = if useHint then mouse.Target else nil
+	local hint = if current and (current.Kind == "Ore" or current.Kind == "Player") then current.Part else nil
 	Net.Fire("Swing", hint)
+end
+
+-- the closest block in the zone we're standing in
+local function nearestOre(root: BasePart): BasePart?
+	local ores = getOres()
+	local zone = Util.ZoneAt(Config, root.Position)
+	local data = State.Data
+	if not ores or not zone or zone == 0 or not data or zone > data.ZoneLevel then
+		return nil
+	end
+	local best, bestDistance = nil, math.huge
+	for _, part in ores:GetChildren() do
+		if part:IsA("BasePart") and part:GetAttribute("Zone") == zone then
+			local distance = (part.Position - root.Position).Magnitude
+			if distance < bestDistance then
+				best, bestDistance = part, distance
+			end
+		end
+	end
+	return best
+end
+
+local function nearestCarrier(root: BasePart): BasePart?
+	local best, bestDistance = nil, Config.PvP.BonkRange + 6
+	for _, other in Players:GetPlayers() do
+		if other ~= player and other:GetAttribute("Carrying") then
+			local otherRoot = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+			if otherRoot and otherRoot:IsA("BasePart") then
+				local distance = (otherRoot.Position - root.Position).Magnitude
+				if distance < bestDistance then
+					best, bestDistance = otherRoot, distance
+				end
+			end
+		end
+	end
+	return best
+end
+
+local function backpackFull(): boolean
+	local data, derived = State.Data, State.Derived
+	return data ~= nil and derived ~= nil and derived.Capacity ~= nil and data.Backpack >= derived.Capacity
 end
 
 local function bindTool(newTool: Tool)
 	tool = newTool
-	newTool.Activated:Connect(function()
-		holding = true
-		swing(true)
-	end)
-	newTool.Deactivated:Connect(function()
-		holding = false
-	end)
-	newTool.Unequipped:Connect(function()
-		holding = false
-	end)
 end
 
 local function onCharacter(character: Model)
 	tool = nil
-	holding = false
+	setTarget(nil, false)
 	character.ChildAdded:Connect(function(child)
 		if child:IsA("Tool") and child.Name == "Pickaxe" then
 			bindTool(child)
@@ -8594,15 +10942,6 @@ local function onCharacter(character: Model)
 	if existing and existing:IsA("Tool") then
 		bindTool(existing)
 	end
-	-- auto equip the pickaxe on spawn: one less step for new players
-	task.spawn(function()
-		local backpack = player:WaitForChild("Backpack")
-		local pickaxe = backpack:WaitForChild("Pickaxe", 15)
-		local humanoid = character:FindFirstChildOfClass("Humanoid")
-		if pickaxe and humanoid and not character:FindFirstChildOfClass("Tool") then
-			humanoid:EquipTool(pickaxe)
-		end
-	end)
 end
 
 player.CharacterAdded:Connect(onCharacter)
@@ -8610,16 +10949,145 @@ if player.Character then
 	onCharacter(player.Character)
 end
 
+-- keep the pickaxe in hand no matter what (the hotbar is hidden)
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if humanoid and humanoid.Health > 0 and not character:FindFirstChildOfClass("Tool") then
+			local backpack = player:FindFirstChildOfClass("Backpack")
+			local pickaxe = backpack and backpack:FindFirstChild("Pickaxe")
+			if pickaxe and pickaxe:IsA("Tool") then
+				humanoid:EquipTool(pickaxe)
+			end
+		end
+	end
+end)
+
+-- tap / click ------------------------------------------------------------------
+local touches = {} -- [InputObject] = { Start = Vector3, Time = number, Drag = bool }
+
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed then
+		return
+	end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		holdMouse = true
+		local picked = pickAt(input.Position)
+		if picked then
+			setTarget(picked, true)
+		end
+	elseif input.UserInputType == Enum.UserInputType.Touch then
+		touches[input] = { Start = input.Position, Time = os.clock(), Drag = false }
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	local touch = touches[input]
+	if touch and (input.Position - touch.Start).Magnitude > 16 then
+		touch.Drag = true -- that was a camera swipe, not a tap
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		holdMouse = false
+	elseif input.UserInputType == Enum.UserInputType.Touch then
+		local touch = touches[input]
+		touches[input] = nil
+		if touch and not touch.Drag and os.clock() - touch.Time < 0.45 then
+			local picked = pickAt(input.Position)
+			if picked then
+				setTarget(picked, true)
+			end
+		end
+	end
+end)
+
+-- big MINE button for phones (left of the jump button) ------------------------
+local mineGui = New("ScreenGui", {
+	Name = "MineButtonGui",
+	ResetOnSpawn = false,
+	IgnoreGuiInset = true,
+	DisplayOrder = 6,
+	Enabled = UserInputService.TouchEnabled,
+	Parent = player:WaitForChild("PlayerGui"),
+})
+local mineButton = New("TextButton", {
+	Name = "Mine",
+	AnchorPoint = Vector2.new(1, 1),
+	BackgroundColor3 = Color3.fromRGB(255, 170, 50),
+	BackgroundTransparency = 0.08,
+	AutoButtonColor = false,
+	Text = "",
+	Parent = mineGui,
+}, {
+	Lib.Corner(999),
+	Lib.Stroke(Color3.new(1, 1, 1), 3, 0.1),
+	Lib.Gradient(Color3.new(1, 1, 1), Color3.fromRGB(200, 130, 60)),
+})
+local mineIcon = Lib.Text({
+	Text = "⛏️",
+	Size = UDim2.fromScale(0.62, 0.55),
+	Position = UDim2.fromScale(0.5, 0.42),
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	MaxTextSize = 60,
+	Parent = mineButton,
+})
+local mineCaption = Lib.Text({
+	Text = "MINE",
+	Size = UDim2.fromScale(0.8, 0.22),
+	Position = UDim2.fromScale(0.5, 0.78),
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	MaxTextSize = 18,
+	Parent = mineButton,
+})
+local mineScale = New("UIScale", { Parent = mineButton })
+
+local function layoutMineButton()
+	local camera = workspace.CurrentCamera
+	local size = if camera then camera.ViewportSize else Vector2.new(800, 400)
+	local small = math.min(size.X, size.Y) <= 500
+	local diameter = if small then 80 else 118
+	mineButton.Size = UDim2.fromOffset(diameter, diameter)
+	-- sits just left of Roblox's jump button
+	mineButton.Position = if small then UDim2.new(1, -108, 1, -20) else UDim2.new(1, -186, 1, -88)
+end
+layoutMineButton()
+task.spawn(function()
+	local camera = workspace.CurrentCamera
+	if camera then
+		camera:GetPropertyChangedSignal("ViewportSize"):Connect(layoutMineButton)
+	end
+end)
+UserInputService:GetPropertyChangedSignal("TouchEnabled"):Connect(function()
+	mineGui.Enabled = UserInputService.TouchEnabled
+end)
+
+mineButton.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+		holdButton = true
+		mineScale.Scale = 0.9
+	end
+end)
+mineButton.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+		holdButton = false
+		TweenService:Create(mineScale, TweenInfo.new(0.15, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	end
+end)
+
+-- main loop -------------------------------------------------------------------
 RunService.Heartbeat:Connect(function()
 	-- hover highlight (PC)
 	local ores = getOres()
-	local target = mouse.Target
-	if tool and tool.Parent == player.Character and target and ores and target.Parent == ores then
-		selection.Adornee = target
+	local hover = mouse.Target
+	if not UserInputService.TouchEnabled and hover and ores and hover.Parent == ores and hover ~= targetHighlight.Adornee then
+		selection.Adornee = hover
 	else
 		selection.Adornee = nil
 	end
-
 	if hpGui.Enabled and (os.clock() > hpHideAt or not hpTarget or not hpTarget.Parent) then
 		hpGui.Enabled = false
 	end
@@ -8628,10 +11096,79 @@ RunService.Heartbeat:Connect(function()
 		comboSub.Visible = false
 	end
 
-	if holding then
-		swing(true)
-	elseif State.AutoMine and State.HasPass("AutoMine") then
-		swing(false)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart
+	if not humanoid or not root or humanoid.Health <= 0 then
+		return
+	end
+
+	-- hands full while carrying a shard: no mining (but you can still walk to things)
+	local carrying = player:GetAttribute("Carrying") ~= nil
+	local icon = if carrying then "🏃" elseif feverActive() then "🔥" else "⛏️"
+	if mineIcon.Text ~= icon then
+		mineIcon.Text = icon
+		mineCaption.Text = T(if carrying then "RUN HOME!" else "MINE")
+		mineButton.BackgroundTransparency = if carrying then 0.55 else 0.08
+	end
+	if carrying and target and target.Kind ~= "Shard" then
+		setTarget(nil, false)
+	end
+
+	-- drop targets that vanished (block broken, player left, meteor gone)
+	if target and (not target.Part or not target.Part.Parent) then
+		setTarget(nil, false)
+	end
+	if target and autoWalk and userIsSteering() then
+		autoWalk = false -- the player took over
+	end
+
+	local wantsMore = (holdMouse or holdButton or (State.AutoMine and State.HasPass("AutoMine"))) and not carrying
+	if not target and wantsMore and os.clock() - lastSearch > 0.12 then
+		lastSearch = os.clock()
+		local meteorActive = workspace:GetAttribute("MeteorState") == "Active"
+		local map = workspace:FindFirstChild("Map")
+		local drops = map and map:FindFirstChild("Drops")
+		local meteor = drops and drops:FindFirstChild("Meteor")
+		local carrierRoot = nearestCarrier(root)
+		if meteorActive and meteor and meteor:IsA("BasePart") and flatDistance(meteor.Position, root.Position) <= reachFor("Meteor") then
+			setTarget({ Kind = "Meteor", Part = meteor }, false)
+		elseif carrierRoot then
+			setTarget({ Kind = "Player", Part = carrierRoot }, true)
+		elseif not backpackFull() then
+			local ore = nearestOre(root)
+			if ore then
+				setTarget({ Kind = "Ore", Part = ore }, true)
+			end
+		end
+	end
+
+	if not target then
+		return
+	end
+	local distance = flatDistance(target.Part.Position, root.Position)
+	local reach = reachFor(target.Kind)
+	if distance > reach then
+		if autoWalk then
+			if os.clock() - lastMoveTo > 0.25 then
+				lastMoveTo = os.clock()
+				humanoid:MoveTo(target.Part.Position)
+			end
+		elseif not wantsMore or target.Kind ~= "Ore" then
+			setTarget(nil, false) -- walked away from it
+		else
+			autoWalk = true
+		end
+		return
+	end
+	if autoWalk then
+		autoWalk = false
+		humanoid:MoveTo(root.Position) -- arrived: stop here
+	end
+	if target.Kind == "Shard" then
+		setTarget(nil, false) -- touching it picks it up
+	elseif not carrying then
+		swingAt(root, target)
 	end
 end)
 
@@ -8672,13 +11209,17 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- server feedback ----------------------------------------------------------
-Net.On("MineHit", function(part, ratio, crit, damage)
+Net.On("MineHit", function(part, ratio, crit, damage, isSplash)
 	if typeof(part) ~= "Instance" or not part:IsA("BasePart") then
 		return
 	end
-	showHp(part, ratio)
 	squash(part)
 	local top = part.Position + Vector3.new(0, 2.5, 0)
+	if isSplash then
+		burst(top, part.Color, 3)
+		return
+	end
+	showHp(part, ratio)
 	burst(top, part.Color, if crit then 10 else 4)
 	Lib.PlaySound(hitSoundFor(part:GetAttribute("Ore")))
 	if crit then
@@ -8707,8 +11248,13 @@ Net.On("MineBreak", function(position, oreId, gained, extra)
 		shake(if rainbow then 0.8 else 0.4, 0.35)
 		floatText(position, (if rainbow then T("🌈 RAINBOW!") else T("✨ GOLDEN!")) .. " +" .. Util.Format(gained), luckyColor, 56, 6)
 	else
-		burst(position, color, 18)
-		floatText(position, "+" .. Util.Format(gained), Color3.fromRGB(255, 255, 255), 30)
+		burst(position, color, if extra.Fever then 26 else 18)
+		floatText(
+			position,
+			"+" .. Util.Format(gained),
+			if extra.Fever then Color3.fromRGB(255, 170, 60) else Color3.fromRGB(255, 255, 255),
+			if extra.Fever then 36 else 30
+		)
 	end
 	if extra.Crit then
 		Lib.PlaySound("Crit", 0.8)
@@ -8747,14 +11293,144 @@ Net.On("Knockback", function(velocity)
 	end
 end)
 
-Net.On("Bonked", function(attackerName, dropped)
+Net.On("Bonked", function(attackerName, dropped, hadShard)
 	flash.BackgroundTransparency = 0.55
 	TweenService:Create(flash, TweenInfo.new(0.6), { BackgroundTransparency = 1 }):Play()
 	Lib.PlaySound("Bonked")
 	shake(0.6, 0.3)
 	local hud = Mining.HUD
 	if hud then
-		hud.Toast(T("💥 %s bonked you! You dropped %s ore", attackerName, Util.Format(dropped)), C.Red)
+		if hadShard then
+			hud.Toast(T("💥 %s bonked you! You dropped your shard!", attackerName), C.Red)
+		end
+		if type(dropped) == "number" and dropped > 0 then
+			hud.Toast(T("💥 %s bonked you! You dropped %s ore", attackerName, Util.Format(dropped)), C.Red)
+		end
+	end
+end)
+
+Net.On("BonkHit", function(position)
+	if typeof(position) == "Vector3" then
+		burst(position + Vector3.new(0, 2, 0), Color3.fromRGB(255, 200, 80), 24, 1.4)
+		floatText(position, T("💥 BONK!"), Color3.fromRGB(255, 170, 60), 50, 5)
+		Lib.PlaySound("Crit")
+		shake(0.35, 0.15)
+	end
+end)
+
+-- crit / fever shockwave ring --------------------------------------------------
+Net.On("Shockwave", function(center, radius, fever)
+	if typeof(center) ~= "Vector3" then
+		return
+	end
+	local color = if fever then Color3.fromRGB(255, 120, 40) else Color3.fromRGB(255, 220, 120)
+	local ring = Instance.new("Part")
+	ring.Name = "Shockwave"
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.Material = Enum.Material.Neon
+	ring.Color = color
+	ring.Transparency = 0.2
+	ring.Size = Vector3.new(0.4, 2, 2)
+	ring.CFrame = CFrame.new(center.X, 0.6, center.Z) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Parent = workspace
+	local size = (radius or 9) * 2
+	TweenService:Create(ring, TweenInfo.new(0.32, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = Vector3.new(0.4, size, size),
+		Transparency = 1,
+	}):Play()
+	Debris:AddItem(ring, 0.4)
+	Lib.PlaySound("Crit", 0.6, -0.2)
+	shake(if fever then 0.3 else 0.45, 0.18)
+end)
+
+-- FEVER --------------------------------------------------------------------------
+local camera = workspace.CurrentCamera
+local BASE_FOV = 70
+local feverGlow = New("Frame", {
+	Name = "FeverGlow",
+	BackgroundColor3 = Color3.fromRGB(255, 110, 30),
+	BackgroundTransparency = 1,
+	Size = UDim2.fromScale(1, 1),
+	ZIndex = 80,
+	Parent = Root.Overlay,
+}, {
+	New("UIGradient", {
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(0.18, 0.85),
+			NumberSequenceKeypoint.new(0.82, 0.85),
+			NumberSequenceKeypoint.new(1, 0),
+		}),
+	}),
+})
+local feverOn = false
+
+local function setFov(fov: number, time: number)
+	camera = workspace.CurrentCamera
+	if camera then
+		TweenService:Create(camera, TweenInfo.new(time, Enum.EasingStyle.Quad), { FieldOfView = fov }):Play()
+	end
+end
+
+Net.On("Fever", function(duration)
+	feverOn = true
+	Lib.PlaySound("Lucky")
+	Lib.PlaySound("LevelUp", 0.8)
+	setFov(BASE_FOV + 10, 0.4)
+	shake(0.7, 0.35)
+	local hud = Mining.HUD
+	if hud and hud.Celebrate then
+		hud.Celebrate(T("🔥 FEVER!"), T("2x ore • faster swings • shockwaves!"), Color3.fromRGB(255, 130, 40))
+	end
+	comboLabel.TextColor3 = Color3.fromRGB(255, 120, 40)
+	task.spawn(function()
+		local started = os.clock()
+		while feverOn and os.clock() - started < (duration or 8) + 10 do
+			feverGlow.BackgroundTransparency = 0.55 + math.sin(os.clock() * 8) * 0.12
+			RunService.RenderStepped:Wait()
+		end
+		feverGlow.BackgroundTransparency = 1
+	end)
+end)
+
+Net.On("FeverEnd", function()
+	feverOn = false
+	feverGlow.BackgroundTransparency = 1
+	setFov(BASE_FOV, 0.6)
+end)
+
+-- dash pads ---------------------------------------------------------------------
+Net.On("SpeedPad", function()
+	Lib.PlaySound("Swing", 1.2, -0.3)
+	setFov(BASE_FOV + 14, 0.15)
+	task.delay(Config.SpeedPads.Seconds, function()
+		setFov(if feverOn then BASE_FOV + 10 else BASE_FOV, 0.5)
+	end)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if root and root:IsA("BasePart") and not root:FindFirstChild("DashTrail") then
+		local a0 = Instance.new("Attachment")
+		a0.Position = Vector3.new(0, 1, 0)
+		a0.Parent = root
+		local a1 = Instance.new("Attachment")
+		a1.Position = Vector3.new(0, -1.5, 0)
+		a1.Parent = root
+		local trail = Instance.new("Trail")
+		trail.Name = "DashTrail"
+		trail.Attachment0 = a0
+		trail.Attachment1 = a1
+		trail.Color = ColorSequence.new(Color3.fromRGB(90, 230, 255))
+		trail.LightEmission = 1
+		trail.Lifetime = 0.35
+		trail.Transparency = NumberSequence.new(0.2, 1)
+		trail.Parent = root
+		Debris:AddItem(trail, Config.SpeedPads.Seconds)
+		Debris:AddItem(a0, Config.SpeedPads.Seconds)
+		Debris:AddItem(a1, Config.SpeedPads.Seconds)
 	end
 end)
 
@@ -8762,7 +11438,7 @@ return Mining
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="37">
+          <Item class="ModuleScript" referent="40">
             <Properties>
               <string name="Name">PetFollow</string>
               <string name="Source"><![CDATA[--[[
@@ -8867,7 +11543,386 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="38">
+          <Item class="ModuleScript" referent="41">
+            <Properties>
+              <string name="Name">Shards</string>
+              <string name="Source"><![CDATA[--[[
+	Client side of the star-shard loop:
+	* falling-star streaks + impact FX
+	* carry banner ("run home!"), delivery / theft / recovery celebrations
+	* base alarm when a thief grabs one of your shards
+	* base prompts: you only see "Sell"/"Buy" on your own base and "Steal"
+	  on other people's (and not while they're locked); your own lock shield
+	  never blocks you
+	* displayed / dropped shards slowly spin and bob
+]]
+local Debris = game:GetService("Debris")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Util = require(Shared.Util)
+
+local Client = script.Parent.Parent
+local Net = require(Client.Net)
+local State = require(Client.State)
+local Lib = require(Client.UI.Lib)
+local Root = require(Client.UI.Root)
+
+local player = Players.LocalPlayer
+local C = Lib.Colors
+local New = Lib.New
+local T = Lib.T
+
+local Shards = {}
+
+local function rarity(id: string)
+	return Config.Shards.Rarities[id] or Config.Shards.Rarities.Common
+end
+
+local function hud()
+	return Shards.HUD
+end
+
+local function toast(text: string, color: Color3?)
+	local h = hud()
+	if h then
+		h.Toast(text, color)
+	end
+end
+
+local function celebrate(title: string, sub: string, color: Color3, confetti: boolean?)
+	local h = hud()
+	if h and h.Celebrate then
+		h.Celebrate(title, sub, color, confetti)
+	end
+end
+
+---------------------------------------------------------------------------
+-- carry banner (bottom center, above the action row)
+---------------------------------------------------------------------------
+local cluster = Root.Cluster("Carry", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -152), UDim2.fromOffset(500, 58))
+local banner = New("Frame", {
+	BackgroundColor3 = Color3.fromRGB(20, 22, 36),
+	BackgroundTransparency = 0.1,
+	Size = UDim2.fromScale(1, 1),
+	Visible = false,
+	Parent = cluster,
+}, { Lib.Corner(14), Lib.Stroke(C.Gold, 3, 0) })
+local bannerTitle = Lib.Text({
+	Text = "",
+	Size = UDim2.new(1, -16, 0, 30),
+	Position = UDim2.fromOffset(8, 3),
+	MaxTextSize = 24,
+	Parent = banner,
+})
+local bannerSub = Lib.Text({
+	Text = "",
+	Font = Lib.BodyFont,
+	TextColor3 = C.Sub,
+	Size = UDim2.new(1, -16, 0, 18),
+	Position = UDim2.fromOffset(8, 35),
+	MaxTextSize = 14,
+	Parent = banner,
+})
+local bannerStroke = banner:FindFirstChildOfClass("UIStroke") :: UIStroke
+local bannerScale = New("UIScale", { Parent = banner })
+
+local function refreshBanner()
+	local carrying = player:GetAttribute("Carrying")
+	if type(carrying) ~= "string" then
+		banner.Visible = false
+		return
+	end
+	local def = rarity(carrying)
+	local stolen = player:GetAttribute("CarryStolen") == true
+	bannerTitle.Text = T(if stolen then "🏃 STOLEN %s - RUN HOME! 🏠" else "🌠 %s - RUN HOME! 🏠", T(def.Name))
+	bannerTitle.TextColor3 = def.Color
+	bannerSub.Text = T("You're slower and anyone can bonk you - don't get caught!")
+	bannerStroke.Color = def.Color
+	banner.Visible = true
+	bannerScale.Scale = 1.25
+	TweenService:Create(bannerScale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+end
+player:GetAttributeChangedSignal("Carrying"):Connect(refreshBanner)
+player:GetAttributeChangedSignal("CarryStolen"):Connect(refreshBanner)
+refreshBanner()
+
+RunService.RenderStepped:Connect(function()
+	if banner.Visible then
+		bannerStroke.Thickness = 3 + math.sin(os.clock() * 6) * 1.2
+	end
+end)
+
+---------------------------------------------------------------------------
+-- events
+---------------------------------------------------------------------------
+Net.On("CarryStart", function(id, fromName)
+	Lib.PlaySound("Lucky", 0.8)
+	if not fromName then
+		toast(T("🌠 You got a %s! Bring it to your base 🏠", T(rarity(id).Name)), rarity(id).Color)
+	end
+end)
+
+Net.On("CarryLost", function(id)
+	toast(T("💥 You dropped the %s!", T(rarity(id).Name)), C.Red)
+end)
+
+Net.On("ShardDelivered", function(id, result, coins)
+	local def = rarity(id)
+	local data, derived = State.Data, State.Derived
+	local income = Util.ShardIncome(Config, id, if data then data.ZoneLevel else 1) * ((derived and derived.CoinMult) or 1)
+	local sub
+	if result == "Sold" then
+		sub = T("Base full - sold it for 💰%s. Buy more pedestals!", Util.Format(coins or 0))
+	elseif result == "Replaced" then
+		sub = T("Replaced your weakest shard (+💰%s)", Util.Format(coins or 0))
+	else
+		sub = T("+💰%s every second - even offline!", Util.Format(income))
+	end
+	Lib.PlaySound("LevelUp")
+	celebrate(T("🏠 %s SECURED!", T(def.Name)), sub, def.Color, Util.ShardIndex(Config, id) >= 3)
+end)
+
+Net.On("ShardRecovered", function(id)
+	Lib.PlaySound("Reward")
+	celebrate(T("🛡️ RECOVERED!"), T(rarity(id).Name), C.Cyan)
+end)
+
+Net.On("BaseCollected", function(amount)
+	Lib.PlaySound("Coin", 1, 0.2)
+	local h = hud()
+	if h and h.FlyCoins then
+		h.FlyCoins(amount)
+	end
+	toast("+💰" .. Util.Format(amount), C.Coins)
+end)
+
+Net.On("OfflineEarnings", function(amount, seconds)
+	local minutes = math.floor((seconds or 0) / 60)
+	celebrate(
+		T("💤 Your base earned 💰%s", Util.Format(amount)),
+		T("while you were away (%d min) - collect it at your base!", minutes),
+		C.Coins,
+		true
+	)
+end)
+
+-- base alarm: a thief took one of your shards
+local alarm = New("Frame", {
+	BackgroundColor3 = Color3.fromRGB(255, 30, 50),
+	BackgroundTransparency = 1,
+	Size = UDim2.fromScale(1, 1),
+	ZIndex = 85,
+	Parent = Root.Overlay,
+})
+Net.On("BaseAlarm", function(thiefName, shardName)
+	Lib.PlaySound("Bonked", 1.2)
+	celebrate(T("🚨 THIEF!"), T("%s grabbed your %s - bonk them!", thiefName, T(shardName)), C.Red)
+	task.spawn(function()
+		for _ = 1, 4 do
+			alarm.BackgroundTransparency = 0.6
+			TweenService:Create(alarm, TweenInfo.new(0.35), { BackgroundTransparency = 1 }):Play()
+			Lib.PlaySound("Swing", 0.6, 0.5)
+			task.wait(0.45)
+		end
+	end)
+end)
+
+---------------------------------------------------------------------------
+-- falling stars: a bright streak from the sky, then a flash + shake
+---------------------------------------------------------------------------
+local function shakeCamera(strength: number, duration: number)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
+	local start = os.clock()
+	local connection
+	connection = RunService.RenderStepped:Connect(function()
+		local t = os.clock() - start
+		if t > duration then
+			humanoid.CameraOffset = Vector3.zero
+			connection:Disconnect()
+			return
+		end
+		local fade = 1 - t / duration
+		humanoid.CameraOffset = Vector3.new(math.random() - 0.5, math.random() - 0.5, 0) * strength * fade
+	end)
+end
+
+Net.On("StarFall", function(position, id, flight)
+	if typeof(position) ~= "Vector3" then
+		return
+	end
+	local def = rarity(id)
+	local duration = flight or 1.8
+	local landing = position + Vector3.new(0, 5, 0)
+	local start = landing + Vector3.new(90, 320, 70)
+
+	local star = Instance.new("Part")
+	star.Name = "FallingStar"
+	star.Shape = Enum.PartType.Ball
+	star.Size = Vector3.one * 5
+	star.Material = Enum.Material.Neon
+	star.Color = def.Color
+	star.Anchored = true
+	star.CanCollide = false
+	star.CanQuery = false
+	star.CanTouch = false
+	star.CFrame = CFrame.new(start)
+	local a0 = Instance.new("Attachment")
+	a0.Position = Vector3.new(0, 2, 0)
+	a0.Parent = star
+	local a1 = Instance.new("Attachment")
+	a1.Position = Vector3.new(0, -2, 0)
+	a1.Parent = star
+	local trail = Instance.new("Trail")
+	trail.Attachment0 = a0
+	trail.Attachment1 = a1
+	trail.Color = ColorSequence.new(Color3.new(1, 1, 1), def.Color)
+	trail.LightEmission = 1
+	trail.Lifetime = 0.6
+	trail.WidthScale = NumberSequence.new(1, 0)
+	trail.Transparency = NumberSequence.new(0, 1)
+	trail.FaceCamera = true
+	trail.Parent = star
+	local light = Instance.new("PointLight")
+	light.Color = def.Color
+	light.Range = 40
+	light.Brightness = 4
+	light.Parent = star
+	star.Parent = workspace
+	Lib.PlaySound("Swing", 1.5, -0.5)
+	TweenService:Create(star, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { CFrame = CFrame.new(landing) })
+		:Play()
+
+	task.delay(duration, function()
+		star:Destroy()
+		-- impact
+		local flashPart = Instance.new("Part")
+		flashPart.Shape = Enum.PartType.Ball
+		flashPart.Anchored = true
+		flashPart.CanCollide = false
+		flashPart.CanQuery = false
+		flashPart.CanTouch = false
+		flashPart.Material = Enum.Material.Neon
+		flashPart.Color = def.Color
+		flashPart.Size = Vector3.one * 4
+		flashPart.CFrame = CFrame.new(landing)
+		flashPart.Parent = workspace
+		TweenService:Create(flashPart, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = Vector3.one * 26,
+			Transparency = 1,
+		}):Play()
+		Debris:AddItem(flashPart, 0.5)
+		Lib.PlaySound("Break", 1.3, -0.3)
+		Lib.PlaySound("Crit", 0.9, -0.4)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if root and root:IsA("BasePart") then
+			local distance = (root.Position - landing).Magnitude
+			if distance < 120 then
+				shakeCamera(math.clamp(1.2 - distance / 100, 0.2, 1.2), 0.4)
+			end
+		end
+	end)
+end)
+
+---------------------------------------------------------------------------
+-- base prompts / shields / spinning shards
+---------------------------------------------------------------------------
+local function refreshBases()
+	local map = workspace:FindFirstChild("Map")
+	local bases = map and map:FindFirstChild("Bases")
+	if not bases then
+		return
+	end
+	local serverNow = workspace:GetServerTimeNow()
+	for _, plot in bases:GetChildren() do
+		local ownerId = plot:GetAttribute("OwnerId")
+		if type(ownerId) == "number" then
+			local mine = ownerId == player.UserId
+			local locked = (plot:GetAttribute("LockedUntil") or 0) > serverNow
+			for _, prompt in plot:GetDescendants() do
+				if prompt:IsA("ProximityPrompt") then
+					local role = prompt:GetAttribute("Role")
+					local enabled = if role == "Owner" then mine elseif role == "Thief" then not mine and not locked else true
+					if prompt.Enabled ~= enabled then
+						prompt.Enabled = enabled
+					end
+				end
+			end
+			local shield = plot:FindFirstChild("Shield")
+			if shield and shield:IsA("BasePart") and mine and shield.CanCollide then
+				shield.CanCollide = false -- your own lock never blocks you
+			end
+		end
+	end
+end
+
+task.spawn(function()
+	while true do
+		local ok, err = pcall(refreshBases)
+		if not ok then
+			warn("[Shards] base refresh failed: " .. tostring(err))
+		end
+		task.wait(0.5)
+	end
+end)
+
+-- spin + bob: displayed and dropped shards (each keeps its server pivot)
+local spinning = {} -- [model] = base pivot
+local function track(inst: Instance)
+	if inst:IsA("Model") and inst:GetAttribute("Spin") then
+		spinning[inst] = inst:GetPivot()
+		inst.AncestryChanged:Connect(function()
+			if not inst:IsDescendantOf(workspace) then
+				spinning[inst] = nil
+			end
+		end)
+	end
+end
+task.spawn(function()
+	local map = workspace:WaitForChild("Map", 60)
+	if not map then
+		return
+	end
+	for _, name in { "Bases", "Shards" } do
+		local folder = map:WaitForChild(name, 30)
+		if folder then
+			folder.DescendantAdded:Connect(function(inst)
+				task.defer(track, inst)
+			end)
+			for _, inst in folder:GetDescendants() do
+				track(inst)
+			end
+		end
+	end
+end)
+RunService.RenderStepped:Connect(function()
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return
+	end
+	local eye = camera.CFrame.Position
+	local t = os.clock()
+	for model, pivot in spinning do
+		-- only animate what's near the camera (cheap on phones)
+		if model.Parent and (pivot.Position - eye).Magnitude < 140 then
+			model:PivotTo(pivot * CFrame.new(0, math.sin(t * 2 + pivot.X) * 0.4, 0) * CFrame.Angles(0, t * 1.6, 0))
+		end
+	end
+end)
+
+return Shards
+]]></string>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="42">
             <Properties>
               <string name="Name">WorldFX</string>
               <string name="Source"><![CDATA[--[[
@@ -9008,7 +12063,7 @@ return {}
             </Properties>
           </Item>
         </Item>
-        <Item class="LocalScript" referent="39">
+        <Item class="LocalScript" referent="43">
           <Properties>
             <string name="Name">Main</string>
             <string name="Source"><![CDATA[--[[
@@ -9064,6 +12119,7 @@ require(Controllers:WaitForChild("MeteorUI"))
 require(Controllers:WaitForChild("DevTools"))
 require(Controllers:WaitForChild("Guide"))
 require(Controllers:WaitForChild("Ambience"))
+require(Controllers:WaitForChild("Shards")).HUD = HUD
 
 -- ask for a fresh snapshot in case the first one arrived before we listened
 Net.Fire("Sync")
@@ -9075,7 +12131,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="40">
+        <Item class="ModuleScript" referent="44">
           <Properties>
             <string name="Name">Net</string>
             <string name="Source"><![CDATA[local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9119,7 +12175,7 @@ return Net
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="41">
+        <Item class="ModuleScript" referent="45">
           <Properties>
             <string name="Name">State</string>
             <string name="Source"><![CDATA[--[[
@@ -9182,11 +12238,11 @@ return State
 ]]></string>
           </Properties>
         </Item>
-        <Item class="Folder" referent="42">
+        <Item class="Folder" referent="46">
           <Properties>
             <string name="Name">UI</string>
           </Properties>
-          <Item class="ModuleScript" referent="43">
+          <Item class="ModuleScript" referent="47">
             <Properties>
               <string name="Name">Hatch</string>
               <string name="Source"><![CDATA[--[[
@@ -9407,7 +12463,7 @@ return Hatch
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="44">
+          <Item class="ModuleScript" referent="48">
             <Properties>
               <string name="Name">Lib</string>
               <string name="Source"><![CDATA[--[[
@@ -9734,7 +12790,7 @@ return Lib
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="45">
+          <Item class="ModuleScript" referent="49">
             <Properties>
               <string name="Name">Panels</string>
               <string name="Source"><![CDATA[--[[
@@ -9946,7 +13002,7 @@ end
 return Panels
 ]]></string>
             </Properties>
-            <Item class="ModuleScript" referent="46">
+            <Item class="ModuleScript" referent="50">
               <Properties>
                 <string name="Name">Codes</string>
                 <string name="Source"><![CDATA[-- Promo codes: free rewards for players who find codes on YouTube / TikTok /
@@ -10047,7 +13103,7 @@ return Codes
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="47">
+            <Item class="ModuleScript" referent="51">
               <Properties>
                 <string name="Name">Egg</string>
                 <string name="Source"><![CDATA[-- Egg shop: shows exact odds (incl. your luck) BEFORE buying - required for
@@ -10281,7 +13337,7 @@ return Egg
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="48">
+            <Item class="ModuleScript" referent="52">
               <Properties>
                 <string name="Name">Gifts</string>
                 <string name="Source"><![CDATA[-- Playtime gifts: claimable after N minutes in this session (session length)
@@ -10363,7 +13419,7 @@ return Gifts
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="49">
+            <Item class="ModuleScript" referent="53">
               <Properties>
                 <string name="Name">Pass</string>
                 <string name="Source"><![CDATA[-- Season pass: free + premium tracks, XP bar, premium / skip upsells
@@ -10545,7 +13601,7 @@ return Pass
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="50">
+            <Item class="ModuleScript" referent="54">
               <Properties>
                 <string name="Name">Pets</string>
                 <string name="Source"><![CDATA[-- Pet inventory: equip / unequip / equip best / delete, slot upsell
@@ -10776,7 +13832,7 @@ return Pets
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="51">
+            <Item class="ModuleScript" referent="55">
               <Properties>
                 <string name="Name">Quests</string>
                 <string name="Source"><![CDATA[-- Daily login streak, daily quests, weekly ranked ladder, VIP chest, group reward
@@ -11084,7 +14140,7 @@ return Quests
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="52">
+            <Item class="ModuleScript" referent="56">
               <Properties>
                 <string name="Name">Rebirth</string>
                 <string name="Source"><![CDATA[-- Rebirth: reset coins/upgrades for a permanent coin multiplier + gems
@@ -11174,7 +14230,7 @@ return Rebirth
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="53">
+            <Item class="ModuleScript" referent="57">
               <Properties>
                 <string name="Name">Rewards</string>
                 <string name="Source"><![CDATA[-- One place for every free reward (instead of 4 separate menu buttons)
@@ -11259,7 +14315,7 @@ return Rewards
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="54">
+            <Item class="ModuleScript" referent="58">
               <Properties>
                 <string name="Name">Settings</string>
                 <string name="Source"><![CDATA[-- Settings: language (auto / 한국어 / English) and sound
@@ -11347,7 +14403,7 @@ return Settings
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="55">
+            <Item class="ModuleScript" referent="59">
               <Properties>
                 <string name="Name">Shop</string>
                 <string name="Source"><![CDATA[-- Pickaxe & backpack upgrades (coins sink, sequential tiers)
@@ -11482,7 +14538,7 @@ return Shop
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="56">
+            <Item class="ModuleScript" referent="60">
               <Properties>
                 <string name="Name">Spin</string>
                 <string name="Source"><![CDATA[-- Free prize wheel: one spin every few hours (VIP: faster). The server picks
@@ -11707,7 +14763,7 @@ return Spin
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="57">
+            <Item class="ModuleScript" referent="61">
               <Properties>
                 <string name="Name">Store</string>
                 <string name="Source"><![CDATA[-- Robux store: game passes, consumables (gems/boosts/server luck/meteor),
@@ -11965,7 +15021,7 @@ return Store
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="58">
+            <Item class="ModuleScript" referent="62">
               <Properties>
                 <string name="Name">Teleport</string>
                 <string name="Source"><![CDATA[-- Zone list: teleport to unlocked zones, unlock the next one
@@ -12048,7 +15104,7 @@ return Teleport
               </Properties>
             </Item>
           </Item>
-          <Item class="ModuleScript" referent="59">
+          <Item class="ModuleScript" referent="63">
             <Properties>
               <string name="Name">Root</string>
               <string name="Source"><![CDATA[--[[
@@ -12124,7 +15180,7 @@ return Root
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="60">
+          <Item class="ModuleScript" referent="64">
             <Properties>
               <string name="Name">Upsell</string>
               <string name="Source"><![CDATA[--[[
@@ -12257,13 +15313,13 @@ return Upsell
       </Item>
     </Item>
   </Item>
-  <Item class="TextChatService" referent="61">
+  <Item class="TextChatService" referent="65">
     <Properties>
       <string name="Name">TextChatService</string>
       <token name="ChatVersion">1</token>
     </Properties>
   </Item>
-  <Item class="Workspace" referent="62">
+  <Item class="Workspace" referent="66">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>

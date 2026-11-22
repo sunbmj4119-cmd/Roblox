@@ -119,11 +119,47 @@ local function sellTarget()
 	return pad and pad.Position + Vector3.new(0, 1, 0), T("💰 SELL HERE")
 end
 
+-- your base's entrance (collect pad)
+local function baseTarget()
+	local index = player:GetAttribute("BaseIndex")
+	local pad = index and part({ "Bases", "Plot_" .. tostring(index), "CollectPad" })
+	return pad and pad.Position + Vector3.new(0, 1, 0)
+end
+
+-- the closest shard lying around in a place we can reach
+local function shardTarget(root: BasePart, data)
+	local map = workspace:FindFirstChild("Map")
+	local folder = map and map:FindFirstChild("Shards")
+	if not folder then
+		return nil
+	end
+	local best, bestDistance = nil, math.huge
+	for _, model in folder:GetChildren() do
+		local hitbox = model:FindFirstChild("Hitbox")
+		if hitbox and hitbox:IsA("BasePart") then
+			local zone = Util.ZoneAt(Config, hitbox.Position)
+			if zone ~= nil and zone <= data.ZoneLevel then
+				local distance = (hitbox.Position - root.Position).Magnitude
+				if distance < bestDistance then
+					best, bestDistance = hitbox, distance
+				end
+			end
+		end
+	end
+	return best and best.Position
+end
+
 -- returns target position + label, or nil when the player needs no help
 local function pickTarget(root: BasePart)
 	local data, derived = State.Data, State.Derived
 	if not data or not derived then
 		return nil
+	end
+	if player:GetAttribute("Carrying") then
+		local home = baseTarget()
+		if home then
+			return home, T("🏠 BRING IT HOME")
+		end
 	end
 	local capacity = derived.Capacity or math.huge
 	local tutorial = data.Tutorial
@@ -139,6 +175,10 @@ local function pickTarget(root: BasePart)
 			return egg and egg.Position, T("🥚 HATCH HERE")
 		end
 		return mineTarget(root, data)
+	end
+	local shard = shardTarget(root, data)
+	if shard then
+		return shard, T("🌠 GRAB THE SHARD")
 	end
 	if (data.Level or 1) >= MAX_LEVEL or data.ZoneLevel >= 3 then
 		return nil

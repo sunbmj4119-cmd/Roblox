@@ -51,6 +51,8 @@ local QUEST_TYPES = {
 	Bonk = true,
 	PlayMinutes = true,
 	Upgrade = true,
+	Shard = true,
+	Steal = true,
 }
 local PRODUCT_KINDS = {
 	Gems = true,
@@ -272,6 +274,53 @@ do
 		coins += step.Reward.Coins or 0
 	end
 end
+
+-- star shards + bases
+do
+	local shards = Config.Shards
+	check(#shards.ZoneMult == #Config.Zones, "Shards.ZoneMult needs one entry per zone")
+	check(#shards.Points == #shards.Order, "Shards.Points needs one entry per rarity")
+	for index, id in shards.Order do
+		local def = shards.Rarities[id]
+		check(def ~= nil, "shard rarity " .. id .. " missing")
+		if def then
+			check(type(def.Name) == "string" and def.Name ~= "", "shard " .. id .. " missing Name")
+			check(def.Income > 0 and def.Weight > 0, "shard " .. id .. " bad Income/Weight")
+			check(def.Speed > 0.3 and def.Speed <= 1, "shard " .. id .. " Speed out of range")
+			local prev = shards.Rarities[shards.Order[index - 1] or ""]
+			if prev then
+				check(def.Income > prev.Income, "shard " .. id .. " should earn more than " .. shards.Order[index - 1])
+				check(def.Weight < prev.Weight, "shard " .. id .. " should be rarer than " .. shards.Order[index - 1])
+			end
+		end
+	end
+	local base = Config.Base
+	check(#base.PedestalCosts == base.MaxPedestals, "Base.PedestalCosts needs MaxPedestals entries")
+	check(base.StartPedestals >= 1 and base.StartPedestals <= base.MaxPedestals, "Base.StartPedestals out of range")
+	for i = 2, #base.PedestalCosts do
+		check(base.PedestalCosts[i] >= base.PedestalCosts[i - 1], "pedestal costs must not go down")
+	end
+	-- rolls: luck must shift odds toward rarer shards, min index respected
+	math.randomseed(3)
+	local rng = nil -- Util falls back to math.random (no Random in Lune)
+	local function shareOfRare(luck)
+		local rare = 0
+		for _ = 1, 4000 do
+			if Util.ShardIndex(Config, Util.RollShard(Config, luck, rng)) >= 3 then
+				rare += 1
+			end
+		end
+		return rare / 4000
+	end
+	local plain, lucky = shareOfRare(1), shareOfRare(3)
+	check(lucky > plain * 1.5, string.format("shard luck has little effect (%.3f vs %.3f)", plain, lucky))
+	for _ = 1, 200 do
+		check(Util.ShardIndex(Config, Util.RollShard(Config, 1, rng, 3)) >= 3, "RollShard ignored minIndex")
+	end
+	check(Util.ShardIncome(Config, "Rare", 2) == shards.Rarities.Rare.Income * shards.ZoneMult[2], "ShardIncome wrong")
+	print(string.format("Shard odds: Epic+ %.1f%% normal, %.1f%% with meteor luck", plain * 100, lucky * 100))
+end
+check(Config.Fever.Combo > 1 and Config.Fever.Duration > 0 and Config.Fever.MaxDuration >= Config.Fever.Duration, "Fever config")
 
 -- economy pacing printout
 local costs = {}

@@ -41,6 +41,8 @@ local TEMPLATE = {
 	Codes = {}, -- [CODE] = true
 	Tutorial = { Step = 1, Progress = 0, Done = false },
 	Settings = { Lang = "auto" }, -- "auto" | "ko" | "en"
+	-- star-shard base: Shards = { { Id = rarityId }, ... } in pedestal order
+	Base = { Pedestals = 3, Shards = {}, Bank = 0, LastOnline = 0 },
 	Pets = {}, -- { { Id = 1, Name = "Bunny", Variant = "Golden"? }, ... }
 	Equipped = {}, -- { petId, ... }
 	NextPetUid = 1,
@@ -58,6 +60,9 @@ local TEMPLATE = {
 		LuckyOres = 0,
 		Crits = 0,
 		BestCombo = 0,
+		ShardsDelivered = 0,
+		ShardsStolen = 0,
+		Fevers = 0,
 	},
 	Daily = { Day = 0, Quests = {}, Streak = 0, LastClaimDay = 0, VipChestDay = 0, ClubDay = 0 },
 	Season = { Id = 0, XP = 0, Premium = false, ClaimedFree = {}, ClaimedPremium = {} },

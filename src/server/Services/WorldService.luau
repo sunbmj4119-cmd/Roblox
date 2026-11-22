@@ -185,6 +185,9 @@ function World:ZoneAt(position: Vector3): number?
 	if math.abs(position.X) <= HUB_HALF and math.abs(position.Z) <= HUB_HALF then
 		return 0
 	end
+	if Util.InBases(Config, position) then
+		return 0
+	end
 	if math.abs(position.X) > ZONE_W / 2 + 1 then
 		return nil
 	end
@@ -354,6 +357,84 @@ local function leaderboard(cf: CFrame, size: Vector3, key: string, title: string
 	return board
 end
 
+-- big gate arch with a sign, spanning a corridor
+local function arch(position: Vector3, text: string, color: Color3, parent)
+	for _, side in { -1, 1 } do
+		newPart({
+			Name = "ArchPillar",
+			Size = Vector3.new(3, 22, 3),
+			CFrame = CFrame.new(position + Vector3.new(side * (CORRIDOR_W / 2 + 1.5), 11, 0)),
+			Color = Color3.fromRGB(45, 45, 60),
+			Material = Enum.Material.Slate,
+		}, parent)
+		newPart({
+			Name = "ArchGlow",
+			Size = Vector3.new(3.4, 1, 3.4),
+			CFrame = CFrame.new(position + Vector3.new(side * (CORRIDOR_W / 2 + 1.5), 21.5, 0)),
+			Color = color,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+		}, parent)
+	end
+	local beam = newPart({
+		Name = "ArchBeam",
+		Size = Vector3.new(CORRIDOR_W + 8, 5, 2),
+		CFrame = CFrame.new(position + Vector3.new(0, 24, 0)),
+		Color = Color3.fromRGB(30, 30, 44),
+		Material = Enum.Material.Slate,
+	}, parent)
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 30
+		gui.LightInfluence = 0
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.FredokaOne
+		label.TextScaled = true
+		label.TextColor3 = color
+		World.SetText(label, text)
+		label.Parent = gui
+		gui.Parent = beam
+	end
+end
+
+World.SpeedPads = {}
+-- neon dash pad: touching it gives a short burst of speed (see CharacterService)
+local function speedPad(position: Vector3, yaw: number, parent)
+	local pad = newPart({
+		Name = "SpeedPad",
+		Size = Vector3.new(9, 0.3, 9),
+		CFrame = CFrame.new(position + Vector3.new(0, 0.16, 0)) * CFrame.Angles(0, yaw, 0),
+		Color = Color3.fromRGB(60, 230, 255),
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, parent)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Top
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 20
+	gui.LightInfluence = 0
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.FredokaOne
+	label.TextScaled = true
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.Text = "⏫"
+	label.Parent = gui
+	gui.Parent = pad
+	local light = Instance.new("PointLight")
+	light.Color = pad.Color
+	light.Range = 12
+	light.Brightness = 1.5
+	light.Parent = pad
+	table.insert(World.SpeedPads, pad)
+	return pad
+end
+
 ---------------------------------------------------------------------------
 -- hub
 ---------------------------------------------------------------------------
@@ -387,8 +468,9 @@ local function buildHub()
 	local half = HUB_HALF
 	wall(CFrame.new(-half - 1, WALL_H / 2, 0), Vector3.new(2, WALL_H, half * 2 + 4), wallColor, hub)
 	wall(CFrame.new(half + 1, WALL_H / 2, 0), Vector3.new(2, WALL_H, half * 2 + 4), wallColor, hub)
-	wall(CFrame.new(0, WALL_H / 2, -half - 1), Vector3.new(half * 2 + 4, WALL_H, 2), wallColor, hub)
 	local segment = half - CORRIDOR_W / 2
+	wall(CFrame.new(-(CORRIDOR_W / 2 + segment / 2), WALL_H / 2, -half - 1), Vector3.new(segment + 2, WALL_H, 2), wallColor, hub)
+	wall(CFrame.new(CORRIDOR_W / 2 + segment / 2, WALL_H / 2, -half - 1), Vector3.new(segment + 2, WALL_H, 2), wallColor, hub)
 	wall(CFrame.new(-(CORRIDOR_W / 2 + segment / 2), WALL_H / 2, half + 1), Vector3.new(segment + 2, WALL_H, 2), wallColor, hub)
 	wall(CFrame.new(CORRIDOR_W / 2 + segment / 2, WALL_H / 2, half + 1), Vector3.new(segment + 2, WALL_H, 2), wallColor, hub)
 
@@ -511,6 +593,15 @@ local function buildHub()
 		leaderboard(CFrame.new(50, 11, HUB_HALF - 2), Vector3.new(24, 18, 1), defs[3].Key, defs[3].Title, boards)
 	end
 
+	-- gates: mines to the north, bases to the south
+	arch(Vector3.new(0, 0, HUB_HALF - 2), "⛏️ MINES", Color3.fromRGB(255, 200, 80), hub)
+	arch(Vector3.new(0, 0, -HUB_HALF + 2), "🏠 BASES", Color3.fromRGB(120, 230, 255), hub)
+	-- dash pads along the main road (point toward the mines / the bases)
+	speedPad(Vector3.new(0, 0, -45), 0, hub)
+	speedPad(Vector3.new(0, 0, 8), 0, hub)
+	speedPad(Vector3.new(0, 0, 66), 0, hub)
+	speedPad(Vector3.new(0, 0, -72), math.pi, hub)
+
 	-- decor
 	for _, pos in
 		{
@@ -528,6 +619,102 @@ local function buildHub()
 		lamp(Vector3.new(-11, 0, z), Color3.fromRGB(255, 220, 160), hub)
 		lamp(Vector3.new(11, 0, z), Color3.fromRGB(255, 220, 160), hub)
 	end
+end
+
+---------------------------------------------------------------------------
+-- base district (south): floor, walls, road; plots come from BaseService
+---------------------------------------------------------------------------
+local function buildBaseDistrict()
+	local district = folder("District", map)
+	local bases = Config.World.Bases
+	local halfX = bases.HalfX
+	local length = bases.ZStart - bases.ZEnd
+	local centerZ = (bases.ZStart + bases.ZEnd) / 2
+	local wallColor = Color3.fromRGB(70, 72, 92)
+
+	-- corridor from the hub's south gate
+	newPart({
+		Name = "Corridor",
+		Size = Vector3.new(CORRIDOR_W, 4, -HUB_HALF - bases.ZStart + 2),
+		CFrame = CFrame.new(0, -2, (-HUB_HALF + bases.ZStart) / 2),
+		Color = Color3.fromRGB(150, 140, 130),
+		Material = Enum.Material.Cobblestone,
+	}, district)
+	for _, side in { -1, 1 } do
+		wall(
+			CFrame.new(side * (CORRIDOR_W / 2 + 1), WALL_H / 2, (-HUB_HALF + bases.ZStart) / 2),
+			Vector3.new(2, WALL_H, -HUB_HALF - bases.ZStart + 2),
+			wallColor,
+			district
+		)
+	end
+
+	newPart({
+		Name = "Floor",
+		Size = Vector3.new(halfX * 2, 4, length),
+		CFrame = CFrame.new(0, -2, centerZ),
+		Color = Color3.fromRGB(58, 62, 84),
+		Material = Enum.Material.Slate,
+	}, district)
+	newPart({
+		Name = "Road",
+		Size = Vector3.new(22, 0.2, length),
+		CFrame = CFrame.new(0, 0.05, centerZ),
+		Color = Color3.fromRGB(200, 190, 170),
+		Material = Enum.Material.Cobblestone,
+	}, district)
+	for _, side in { -1, 1 } do
+		newPart({
+			Name = "RoadLine",
+			Size = Vector3.new(0.6, 0.25, length),
+			CFrame = CFrame.new(side * 11.5, 0.08, centerZ),
+			Color = Color3.fromRGB(120, 230, 255),
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+		}, district)
+		wall(CFrame.new(side * (halfX + 1), WALL_H / 2, centerZ), Vector3.new(2, WALL_H, length + 2), wallColor, district)
+		local segment = halfX - CORRIDOR_W / 2
+		wall(
+			CFrame.new(side * (CORRIDOR_W / 2 + segment / 2), WALL_H / 2, bases.ZStart + 1),
+			Vector3.new(segment + 2, WALL_H, 2),
+			wallColor,
+			district
+		)
+	end
+	wall(CFrame.new(0, WALL_H / 2, bases.ZEnd - 1), Vector3.new(halfX * 2 + 4, WALL_H, 2), wallColor, district)
+
+	for z = bases.ZStart - 14, bases.ZEnd + 10, -36 do
+		lamp(Vector3.new(-13.5, 0, z), Color3.fromRGB(140, 220, 255), district)
+		lamp(Vector3.new(13.5, 0, z), Color3.fromRGB(140, 220, 255), district)
+	end
+	for z = bases.ZStart - 28, bases.ZEnd + 40, -40 do
+		speedPad(Vector3.new(0, 0, z), math.pi, district)
+	end
+
+	-- twinkling stars above the district (it's where the shards live)
+	local sky = newPart({
+		Name = "Ambience",
+		Size = Vector3.new(halfX * 2, 1, length),
+		CFrame = CFrame.new(0, 26, centerZ),
+		Transparency = 1,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+	}, district)
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	emitter.Color = ColorSequence.new(Color3.fromRGB(150, 220, 255))
+	emitter.LightEmission = 1
+	emitter.Size = NumberSequence.new(0.35)
+	emitter.Lifetime = NumberRange.new(3, 5)
+	emitter.Rate = 18
+	emitter.Speed = NumberRange.new(0.3, 1)
+	emitter.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.3, 0.2),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	emitter.Parent = sky
 end
 
 ---------------------------------------------------------------------------
@@ -759,9 +946,18 @@ local function setupLighting()
 	bloom.Parent = Lighting
 
 	local cc = Lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect")
-	cc.Saturation = 0.15
-	cc.Contrast = 0.05
+	cc.Saturation = 0.22
+	cc.Contrast = 0.08
 	cc.Parent = Lighting
+
+	local rays = Lighting:FindFirstChildOfClass("SunRaysEffect") or Instance.new("SunRaysEffect")
+	rays.Intensity = 0.06
+	rays.Spread = 0.6
+	rays.Parent = Lighting
+
+	-- shinier materials (metal ores, neon, glass) without extra parts
+	Lighting.EnvironmentDiffuseScale = 0.6
+	Lighting.EnvironmentSpecularScale = 1
 end
 
 function World:Init(services)
@@ -771,9 +967,12 @@ function World:Init(services)
 		old:Destroy()
 	end
 	buildHub()
+	buildBaseDistrict()
 	buildZones()
 	folder("Ores", map)
 	folder("Drops", map)
+	folder("Shards", map)
+	folder("Bases", map)
 	map.Parent = workspace
 	setupLighting()
 end

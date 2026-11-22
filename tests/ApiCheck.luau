@@ -69,6 +69,15 @@ local function tableKeys(source: string, start: number)
 			elseif c == inString then
 				inString = nil
 			end
+		elseif c == "-" and string.sub(source, i + 1, i + 1) == "-" then
+			-- comment: skip it (apostrophes in "don't" are not strings)
+			if string.sub(source, i + 2, i + 3) == "[[" then
+				local close = string.find(source, "]]", i + 4, true)
+				i = close and close + 1 or len
+			else
+				local newline = string.find(source, "\n", i, true)
+				i = newline or len
+			end
 		elseif c == '"' or c == "'" then
 			inString = c
 		elseif c == "{" or c == "(" or c == "[" then

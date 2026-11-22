@@ -156,28 +156,32 @@ Config.Ores = {
 Config.World = {
 	-- map geometry (shared by WorldService and client zone detection)
 	Layout = { HubHalf = 80, ZoneWidth = 100, ZoneLength = 100, Gap = 10, FirstZ = 90 },
-	OreRespawnSeconds = 7,
+	OreRespawnSeconds = 4,
 	OreSize = 5,
 	OreSpacing = 7,
 	Reach = 13, -- studs from character to the target
+	WalkSpeed = 22,
+	-- base district south of the hub (see BaseService)
+	Bases = { ZStart = -88, ZEnd = -250, HalfX = 54 },
+	SpawnSafeRadius = 24, -- nobody can be bonked near the spawn
 }
 
 ---------------------------------------------------------------------------
 -- Upgrades
 ---------------------------------------------------------------------------
 Config.Pickaxes = {
-	{ Name = "Wooden Pickaxe", Power = 1, Cooldown = 0.5, Cost = 0, Color = Color3.fromRGB(150, 105, 60) },
-	{ Name = "Stone Pickaxe", Power = 2, Cooldown = 0.48, Cost = 150, Color = Color3.fromRGB(130, 130, 130) },
-	{ Name = "Copper Pickaxe", Power = 4, Cooldown = 0.46, Cost = 800, Color = Color3.fromRGB(200, 115, 60) },
-	{ Name = "Iron Pickaxe", Power = 8, Cooldown = 0.44, Cost = 3500, Color = Color3.fromRGB(205, 190, 175) },
-	{ Name = "Gold Pickaxe", Power = 15, Cooldown = 0.42, Cost = 15000, Color = Color3.fromRGB(255, 200, 40) },
-	{ Name = "Diamond Pickaxe", Power = 30, Cooldown = 0.4, Cost = 60000, Color = Color3.fromRGB(150, 240, 255) },
-	{ Name = "Obsidian Pickaxe", Power = 60, Cooldown = 0.38, Cost = 250000, Color = Color3.fromRGB(60, 30, 80) },
-	{ Name = "Frost Fang", Power = 120, Cooldown = 0.36, Cost = 1000000, Color = Color3.fromRGB(120, 200, 255) },
-	{ Name = "Magma Breaker", Power = 250, Cooldown = 0.34, Cost = 4500000, Color = Color3.fromRGB(255, 90, 30) },
-	{ Name = "Void Splitter", Power = 550, Cooldown = 0.32, Cost = 20000000, Color = Color3.fromRGB(170, 90, 255) },
-	{ Name = "Starforged", Power = 1200, Cooldown = 0.3, Cost = 90000000, Color = Color3.fromRGB(255, 90, 200) },
-	{ Name = "Galaxy Crusher", Power = 2600, Cooldown = 0.28, Cost = 400000000, Color = Color3.fromRGB(60, 255, 230) },
+	{ Name = "Wooden Pickaxe", Power = 1, Cooldown = 0.36, Cost = 0, Color = Color3.fromRGB(150, 105, 60) },
+	{ Name = "Stone Pickaxe", Power = 2, Cooldown = 0.34, Cost = 150, Color = Color3.fromRGB(130, 130, 130) },
+	{ Name = "Copper Pickaxe", Power = 4, Cooldown = 0.32, Cost = 800, Color = Color3.fromRGB(200, 115, 60) },
+	{ Name = "Iron Pickaxe", Power = 8, Cooldown = 0.3, Cost = 3500, Color = Color3.fromRGB(205, 190, 175) },
+	{ Name = "Gold Pickaxe", Power = 15, Cooldown = 0.29, Cost = 15000, Color = Color3.fromRGB(255, 200, 40) },
+	{ Name = "Diamond Pickaxe", Power = 30, Cooldown = 0.28, Cost = 60000, Color = Color3.fromRGB(150, 240, 255) },
+	{ Name = "Obsidian Pickaxe", Power = 60, Cooldown = 0.27, Cost = 250000, Color = Color3.fromRGB(60, 30, 80) },
+	{ Name = "Frost Fang", Power = 120, Cooldown = 0.26, Cost = 1000000, Color = Color3.fromRGB(120, 200, 255) },
+	{ Name = "Magma Breaker", Power = 250, Cooldown = 0.25, Cost = 4500000, Color = Color3.fromRGB(255, 90, 30) },
+	{ Name = "Void Splitter", Power = 550, Cooldown = 0.24, Cost = 20000000, Color = Color3.fromRGB(170, 90, 255) },
+	{ Name = "Starforged", Power = 1200, Cooldown = 0.23, Cost = 90000000, Color = Color3.fromRGB(255, 90, 200) },
+	{ Name = "Galaxy Crusher", Power = 2600, Cooldown = 0.22, Cost = 400000000, Color = Color3.fromRGB(60, 255, 230) },
 }
 
 Config.Backpacks = {
@@ -628,7 +632,9 @@ Config.Quests = {
 		XP = 300,
 		Points = 250,
 	},
-	{ Id = "Bonk5", Type = "Bonk", Target = 5, Text = "Bonk 5 players in Star Crater", Reward = { Gems = 60 }, XP = 250, Points = 200 },
+	{ Id = "Bonk5", Type = "Bonk", Target = 5, Text = "Bonk 5 players", Reward = { Gems = 60 }, XP = 250, Points = 200 },
+	{ Id = "Shard3", Type = "Shard", Target = 3, Text = "Bring 3 shards to your base", Reward = { Gems = 60 }, XP = 250, Points = 200 },
+	{ Id = "Steal1", Type = "Steal", Target = 1, Text = "Steal a shard from another base", Reward = { Gems = 80 }, XP = 300, Points = 250 },
 	{ Id = "Play20", Type = "PlayMinutes", Target = 20, Text = "Play for 20 minutes", Reward = { Gems = 30 }, XP = 200, Points = 150 },
 	{ Id = "Upgrade1", Type = "Upgrade", Target = 1, Text = "Buy any upgrade", Reward = { Gems = 20 }, XP = 100, Points = 80 },
 }
@@ -665,7 +671,25 @@ Config.SeasonTiers[30].Premium = { Pet = "Impact Wolf", Gems = 500 }
 ---------------------------------------------------------------------------
 -- JUICE & DOPAMINE: crits, combos, lucky ores, pet variants, levels
 ---------------------------------------------------------------------------
-Config.Crit = { Chance = 0.1, Multiplier = 3 }
+-- crits send a shockwave that also damages nearby blocks (chain breaks!)
+Config.Crit = { Chance = 0.12, Multiplier = 3, SplashRadius = 9, SplashDamage = 0.5 }
+
+-- FEVER: reach a combo of 12 -> 8s of double ore, faster swings, every hit
+-- shockwaves, +20% speed. Each break while in fever adds a little time.
+Config.Fever = {
+	Combo = 12,
+	Duration = 8,
+	Extend = 0.35,
+	MaxDuration = 14,
+	ValueMult = 2,
+	CooldownMult = 0.65,
+	SpeedMult = 1.2,
+	SplashRadius = 11,
+	SplashDamage = 0.6,
+}
+
+-- neon dash pads on the main roads
+Config.SpeedPads = { Mult = 1.7, Seconds = 2.5 }
 
 -- breaking blocks quickly in a row builds a combo: +2% ore per step (max +60%)
 Config.Combo = { Window = 2.5, BonusPer = 0.02, MaxBonus = 0.6 }
@@ -737,6 +761,46 @@ Config.Tutorial = {
 		{ Id = "Hatch", Target = 1, Text = "Hatch your first pet from the Meadow Egg", Reward = { Gems = 30 } },
 	},
 	FinalReward = { Gems = 100, Boost = { "Coins2x", 600 } },
+}
+
+---------------------------------------------------------------------------
+-- Star Shards + Bases (the signature loop)
+-- Falling stars and meteors drop shards. Carry one home (you're slower and
+-- anyone can bonk you to make you drop it) and put it on a pedestal in your
+-- base: it earns coins every second, even while you're offline. Other players
+-- can sneak in and steal shards from your base - bonk them to get it back.
+---------------------------------------------------------------------------
+Config.Shards = {
+	Order = { "Common", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
+	Rarities = {
+		Common = { Name = "Star Shard", Income = 0.5, Weight = 55, Speed = 0.92, Color = Color3.fromRGB(190, 230, 255) },
+		Rare = { Name = "Comet Shard", Income = 1.5, Weight = 26, Speed = 0.88, Color = Color3.fromRGB(70, 160, 255) },
+		Epic = { Name = "Nebula Shard", Income = 5, Weight = 12, Speed = 0.82, Color = Color3.fromRGB(185, 80, 255) },
+		Legendary = { Name = "Solar Shard", Income = 15, Weight = 5, Speed = 0.76, Color = Color3.fromRGB(255, 195, 40) },
+		Mythic = { Name = "Supernova Core", Income = 50, Weight = 1.6, Speed = 0.7, Color = Color3.fromRGB(255, 70, 150) },
+		Secret = { Name = "Black Hole Heart", Income = 200, Weight = 0.4, Speed = 0.62, Color = Color3.fromRGB(120, 40, 255) },
+	},
+	-- income scales with the OWNER's progress (zone level), so shards matter all game
+	ZoneMult = { 1, 8, 60, 500, 4000 },
+	SellSeconds = 120, -- selling a shard pays this many seconds of its income
+	Points = { 10, 20, 45, 100, 250, 600 }, -- weekly ranked points per delivery, by rarity
+	GroundLifetime = 90,
+	ReturnSeconds = 10, -- a dropped STOLEN shard flies home if nobody grabs it
+	RegrabDelay = 1.5, -- the player who dropped it can't grab it back instantly
+	FallingStar = { MinInterval = 40, MaxInterval = 70, HubChance = 0.25, LuckPerZone = 0.6 },
+	Meteor = { Count = 4, PerParticipant = 1, Max = 10, Luck = 3, TopPriority = 5 },
+}
+
+Config.Base = {
+	Plots = 8, -- set the place's max players to 8 (Creator Dashboard -> Places -> Server size)
+	StartPedestals = 3,
+	MaxPedestals = 12,
+	PedestalCosts = { 0, 0, 0, 500, 3000, 15000, 75000, 400000, 2000000, 10000000, 50000000, 250000000 },
+	OfflineRate = 0.5, -- offline earnings = 50% of the normal rate
+	OfflineMaxSeconds = 7200, -- ... for up to 2 hours
+	LockSeconds = 60,
+	LockCooldown = 180,
+	StealHold = 1.2,
 }
 
 -- free prize wheel (retention): one free spin every few hours

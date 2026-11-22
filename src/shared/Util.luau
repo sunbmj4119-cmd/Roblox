@@ -259,9 +259,44 @@ function Util.PetDisplayName(petName: string, variant: string?): string
 end
 
 -- 0 = hub, 1..n = zone index, nil = outside (mirrors WorldService layout)
+-- the base district (south of the hub) counts as hub (zone 0)
+function Util.InBases(config, position: Vector3): boolean
+	local bases = config.World.Bases
+	return math.abs(position.X) <= bases.HalfX and position.Z <= bases.ZStart + 8 and position.Z >= bases.ZEnd
+end
+
+-- weighted shard rarity roll; luck > 1 shifts weight toward rarer shards
+function Util.RollShard(config, luck: number?, rng: Random?, minIndex: number?): string
+	local order = config.Shards.Order
+	local entries = {}
+	for index, id in order do
+		if index >= (minIndex or 1) then
+			table.insert(entries, { id, config.Shards.Rarities[id].Weight * (luck or 1) ^ ((index - 1) / 2) })
+		end
+	end
+	return Util.WeightedPick(entries, nil, rng)
+end
+
+function Util.ShardIndex(config, id: string): number
+	return table.find(config.Shards.Order, id) or 1
+end
+
+-- coins per second of one shard for an owner at this zone level (before coin multiplier)
+function Util.ShardIncome(config, id: string, zoneLevel: number): number
+	local def = config.Shards.Rarities[id]
+	if not def then
+		return 0
+	end
+	local mult = config.Shards.ZoneMult
+	return def.Income * (mult[math.clamp(zoneLevel, 1, #mult)] or 1)
+end
+
 function Util.ZoneAt(config, position: Vector3): number?
 	local layout = config.World.Layout
 	if math.abs(position.X) <= layout.HubHalf and math.abs(position.Z) <= layout.HubHalf then
+		return 0
+	end
+	if Util.InBases(config, position) then
 		return 0
 	end
 	if math.abs(position.X) > layout.ZoneWidth / 2 + 1 then

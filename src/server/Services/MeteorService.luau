@@ -249,6 +249,15 @@ local function finish(destroyed: boolean)
 		meteorPart = nil
 		shatter(position)
 	end
+	if destroyed then
+		-- the big payoff: a burst of star shards to race for
+		local ok, err = pcall(function()
+			Services.ShardService:SpillMeteor(Vector3.new(settings.Position.X, 0, settings.Position.Z), list)
+		end)
+		if not ok then
+			warn("[Meteor] shard spill failed: " .. tostring(err))
+		end
+	end
 	scores = {}
 	summoner = nil
 	hp, maxHp = 0, 0
