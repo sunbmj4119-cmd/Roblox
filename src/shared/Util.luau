@@ -195,4 +195,27 @@ function Util.RankFor(config, points: number)
 	return config.Ranks[index], index
 end
 
+-- true for the experience owner (user-owned) or the group owner (rank 255)
+function Util.IsOwner(player: Player): boolean
+	if game.CreatorId == 0 then
+		return false
+	end
+	if game.CreatorType == Enum.CreatorType.User then
+		return player.UserId == game.CreatorId
+	elseif game.CreatorType == Enum.CreatorType.Group then
+		local ok, rank = pcall(player.GetRankInGroup, player, game.CreatorId)
+		return ok and rank == 255
+	end
+	return false
+end
+
+-- test features (DEV panel, simulated purchases) are allowed in Studio, or
+-- for the owner in live servers while Config.OwnerTestMode is on
+function Util.CanTest(config, player: Player): boolean
+	if game:GetService("RunService"):IsStudio() then
+		return true
+	end
+	return config.OwnerTestMode == true and Util.IsOwner(player)
+end
+
 return Util

@@ -15,10 +15,10 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local PolicyService = game:GetService("PolicyService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Util = require(Shared.Util)
 local Net = require(script.Parent.Net)
 
 local Monetization = {}
@@ -249,7 +249,7 @@ local function watchAd(player: Player)
 	end
 	local product = Config.Products.AdReward
 	if product.Id == 0 then
-		if RunService:IsStudio() then
+		if Util.CanTest(Config, player) then
 			data.LastAdTime = os.time()
 			grantProduct(player, "AdReward", data)
 			return true, "[TEST] Ad reward granted"
@@ -325,9 +325,9 @@ function Monetization:Start()
 			return
 		end
 		if pass.Id == 0 then
-			if RunService:IsStudio() then
+			if Util.CanTest(Config, player) then
 				applyPass(player, key, true)
-				Net:Notify(player, "[TEST] Simulated purchase: " .. pass.Name)
+				Net:Notify(player, "[TEST] Simulated purchase (no Robux charged): " .. pass.Name)
 			else
 				Net:Notify(player, "Coming soon!")
 			end
@@ -348,9 +348,9 @@ function Monetization:Start()
 			return
 		end
 		if product.Id == 0 then
-			if RunService:IsStudio() then
+			if Util.CanTest(Config, player) then
 				grantProduct(player, key, data)
-				Net:Notify(player, "[TEST] Simulated purchase: " .. product.Name)
+				Net:Notify(player, "[TEST] Simulated purchase (no Robux charged): " .. product.Name)
 			else
 				Net:Notify(player, "Coming soon!")
 			end
@@ -366,7 +366,7 @@ function Monetization:Start()
 			return
 		end
 		if sub.Id == "" then
-			if RunService:IsStudio() then
+			if Util.CanTest(Config, player) then
 				subscribed[player] = true
 				player:SetAttribute("Club", true)
 				Services.ProgressionService:CheckClubDaily(player)

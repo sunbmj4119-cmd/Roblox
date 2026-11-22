@@ -235,7 +235,9 @@ local function refresh()
 	-- push scores of everyone in this server
 	for _, player in Data:LoadedPlayers() do
 		local data = Data:Get(player)
-		if data then
+		-- owner test mode: DEV-panel coins must not pollute the global boards
+		local skip = Config.OwnerTestMode and Util.IsOwner(player)
+		if data and not skip then
 			for _, board in Config.Leaderboards.Boards do
 				-- weekly points always go to the week they were earned in, so a
 				-- refresh right after Monday 00:00 can't leak last week's points

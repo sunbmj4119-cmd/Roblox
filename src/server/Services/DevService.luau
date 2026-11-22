@@ -1,8 +1,11 @@
 --[[
-	DevService: Studio-only cheats for fast testing (never active in a live
-	server - every handler checks RunService:IsStudio()).
+	DevService: test cheats. Allowed in Studio, and for the game owner in live
+	servers while Config.OwnerTestMode is true (see Util.CanTest).
 ]]
-local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Util = require(ReplicatedStorage.Shared.Util)
 
 local Net = require(script.Parent.Net)
 
@@ -14,12 +17,9 @@ function Dev:Init(services)
 end
 
 function Dev:Start()
-	if not RunService:IsStudio() then
-		return
-	end
 	local Data = Services.DataService
 	Net:On("Dev", 0.2, function(player, command)
-		if not RunService:IsStudio() then
+		if not Util.CanTest(Config, player) then
 			return
 		end
 		local data = Data:Get(player)
@@ -43,7 +43,6 @@ function Dev:Start()
 		elseif command == "Fill" then
 			data.Backpack = Services.StatsService:Capacity(player, data)
 		elseif command == "Reset" then
-			local Util = require(game:GetService("ReplicatedStorage").Shared.Util)
 			local fresh = Util.DeepCopy(Data.Template)
 			fresh.FirstJoin = os.time()
 			for key in data do

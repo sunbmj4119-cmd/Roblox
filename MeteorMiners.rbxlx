@@ -497,6 +497,12 @@ Config.Subscription = {
 
 -- Native Roblox rewarded video ads (AdService). Requires eligibility on the
 -- Creator Hub and a developer product used as the reward (Products.AdReward).
+-- OWNER TEST MODE: while true, the game's owner (you) also gets the DEV panel
+-- and simulated purchases for products whose Id is still 0 in LIVE servers,
+-- so you can test everything on a phone. Owner scores are kept off the global
+-- leaderboards. >>> Set to false before the real public launch. <<<
+Config.OwnerTestMode = true
+
 Config.RewardedAds = {
 	Enabled = false,
 	CooldownSeconds = 900,
@@ -1021,6 +1027,29 @@ function Util.RankFor(config, points: number)
 		end
 	end
 	return config.Ranks[index], index
+end
+
+-- true for the experience owner (user-owned) or the group owner (rank 255)
+function Util.IsOwner(player: Player): boolean
+	if game.CreatorId == 0 then
+		return false
+	end
+	if game.CreatorType == Enum.CreatorType.User then
+		return player.UserId == game.CreatorId
+	elseif game.CreatorType == Enum.CreatorType.Group then
+		local ok, rank = pcall(player.GetRankInGroup, player, game.CreatorId)
+		return ok and rank == 255
+	end
+	return false
+end
+
+-- test features (DEV panel, simulated purchases) are allowed in Studio, or
+-- for the owner in live servers while Config.OwnerTestMode is on
+function Util.CanTest(config, player: Player): boolean
+	if game:GetService("RunService"):IsStudio() then
+		return true
+	end
+	return config.OwnerTestMode == true and Util.IsOwner(player)
 end
 
 return Util
@@ -1823,10 +1852,13 @@ return DataService
           <Properties>
             <string name="Name">DevService</string>
             <string name="Source"><![CDATA[--[[
-	DevService: Studio-only cheats for fast testing (never active in a live
-	server - every handler checks RunService:IsStudio()).
+	DevService: test cheats. Allowed in Studio, and for the game owner in live
+	servers while Config.OwnerTestMode is true (see Util.CanTest).
 ]]
-local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Util = require(ReplicatedStorage.Shared.Util)
 
 local Net = require(script.Parent.Net)
 
@@ -1838,12 +1870,9 @@ function Dev:Init(services)
 end
 
 function Dev:Start()
-	if not RunService:IsStudio() then
-		return
-	end
 	local Data = Services.DataService
 	Net:On("Dev", 0.2, function(player, command)
-		if not RunService:IsStudio() then
+		if not Util.CanTest(Config, player) then
 			return
 		end
 		local data = Data:Get(player)
@@ -1867,7 +1896,6 @@ function Dev:Start()
 		elseif command == "Fill" then
 			data.Backpack = Services.StatsService:Capacity(player, data)
 		elseif command == "Reset" then
-			local Util = require(game:GetService("ReplicatedStorage").Shared.Util)
 			local fresh = Util.DeepCopy(Data.Template)
 			fresh.FirstJoin = os.time()
 			for key in data do
@@ -2323,7 +2351,9 @@ local function refresh()
 	-- push scores of everyone in this server
 	for _, player in Data:LoadedPlayers() do
 		local data = Data:Get(player)
-		if data then
+		-- owner test mode: DEV-panel coins must not pollute the global boards
+		local skip = Config.OwnerTestMode and Util.IsOwner(player)
+		if data and not skip then
 			for _, board in Config.Leaderboards.Boards do
 				-- weekly points always go to the week they were earned in, so a
 				-- refresh right after Monday 00:00 can't leak last week's points
@@ -3180,10 +3210,10 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local PolicyService = game:GetService("PolicyService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Util = require(Shared.Util)
 local Net = require(script.Parent.Net)
 
 local Monetization = {}
@@ -3414,7 +3444,7 @@ local function watchAd(player: Player)
 	end
 	local product = Config.Products.AdReward
 	if product.Id == 0 then
-		if RunService:IsStudio() then
+		if Util.CanTest(Config, player) then
 			data.LastAdTime = os.time()
 			grantProduct(player, "AdReward", data)
 			return true, "[TEST] Ad reward granted"
@@ -3490,9 +3520,9 @@ function Monetization:Start()
 			return
 		end
 		if pass.Id == 0 then
-			if RunService:IsStudio() then
+			if Util.CanTest(Config, player) then
 				applyPass(player, key, true)
-				Net:Notify(player, "[TEST] Simulated purchase: " .. pass.Name)
+				Net:Notify(player, "[TEST] Simulated purchase (no Robux charged): " .. pass.Name)
 			else
 				Net:Notify(player, "Coming soon!")
 			end
@@ -3513,9 +3543,9 @@ function Monetization:Start()
 			return
 		end
 		if product.Id == 0 then
-			if RunService:IsStudio() then
+			if Util.CanTest(Config, player) then
 				grantProduct(player, key, data)
-				Net:Notify(player, "[TEST] Simulated purchase: " .. product.Name)
+				Net:Notify(player, "[TEST] Simulated purchase (no Robux charged): " .. product.Name)
 			else
 				Net:Notify(player, "Coming soon!")
 			end
@@ -3531,7 +3561,7 @@ function Monetization:Start()
 			return
 		end
 		if sub.Id == "" then
-			if RunService:IsStudio() then
+			if Util.CanTest(Config, player) then
 				subscribed[player] = true
 				player:SetAttribute("Club", true)
 				Services.ProgressionService:CheckClubDaily(player)
@@ -5147,47 +5177,62 @@ return World
           <Item class="ModuleScript" referent="28">
             <Properties>
               <string name="Name">DevTools</string>
-              <string name="Source"><![CDATA[-- Studio-only dev buttons (hidden in live servers). Pairs with DevService.
-local RunService = game:GetService("RunService")
+              <string name="Source"><![CDATA[--[[
+	DEV buttons: visible in Studio, and for the game owner in live servers
+	while Config.OwnerTestMode is on (so you can test from a phone).
+	The server re-checks permission for every command (DevService).
+]]
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Util = require(Shared.Util)
 
 local Client = script.Parent.Parent
 local Net = require(Client.Net)
 local Lib = require(Client.UI.Lib)
 local Root = require(Client.UI.Root)
 
-if not RunService:IsStudio() then
-	return {}
-end
-
 local C = Lib.Colors
-local cluster = Root.Cluster("Dev", Vector2.new(0, 1), UDim2.new(0, 12, 1, -12), UDim2.fromOffset(150, 330))
-local list = Lib.New("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, -40), Visible = false, Parent = cluster }, {
-	Lib.List(Enum.FillDirection.Vertical, 4, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Bottom),
-})
-for order, command in { "Coins", "Gems", "Stardust", "Points", "XP", "Meteor", "Fill", "Reset" } do
+
+local function build()
+	local cluster = Root.Cluster("Dev", Vector2.new(0, 1), UDim2.new(0, 12, 1, -12), UDim2.fromOffset(150, 330))
+	local list = Lib.New("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, -40), Visible = false, Parent = cluster }, {
+		Lib.List(Enum.FillDirection.Vertical, 4, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Bottom),
+	})
+	for order, command in { "Coins", "Gems", "Stardust", "Points", "XP", "Meteor", "Fill", "Reset" } do
+		Lib.Button({
+			Text = command,
+			Color = if command == "Reset" then C.Red else C.Gray,
+			Size = UDim2.fromOffset(140, 30),
+			LayoutOrder = order,
+			TextSize = 16,
+			Parent = list,
+			OnClick = function()
+				Net.Fire("Dev", command)
+			end,
+		})
+	end
 	Lib.Button({
-		Text = command,
-		Color = if command == "Reset" then C.Red else C.Gray,
-		Size = UDim2.fromOffset(140, 30),
-		LayoutOrder = order,
+		Text = "🛠 DEV",
+		Color = Color3.fromRGB(60, 60, 70),
+		Size = UDim2.fromOffset(100, 34),
+		Position = UDim2.new(0, 0, 1, -34),
 		TextSize = 16,
-		Parent = list,
+		Parent = cluster,
 		OnClick = function()
-			Net.Fire("Dev", command)
+			list.Visible = not list.Visible
 		end,
 	})
 end
-Lib.Button({
-	Text = "🛠 DEV",
-	Color = Color3.fromRGB(60, 60, 70),
-	Size = UDim2.fromOffset(100, 34),
-	Position = UDim2.new(0, 0, 1, -34),
-	TextSize = 16,
-	Parent = cluster,
-	OnClick = function()
-		list.Visible = not list.Visible
-	end,
-})
+
+-- Util.CanTest may do a web call (group rank), so check off the main thread
+task.spawn(function()
+	if Util.CanTest(Config, Players.LocalPlayer) then
+		build()
+	end
+end)
 
 return {}
 ]]></string>

@@ -479,6 +479,12 @@ Config.Subscription = {
 
 -- Native Roblox rewarded video ads (AdService). Requires eligibility on the
 -- Creator Hub and a developer product used as the reward (Products.AdReward).
+-- OWNER TEST MODE: while true, the game's owner (you) also gets the DEV panel
+-- and simulated purchases for products whose Id is still 0 in LIVE servers,
+-- so you can test everything on a phone. Owner scores are kept off the global
+-- leaderboards. >>> Set to false before the real public launch. <<<
+Config.OwnerTestMode = true
+
 Config.RewardedAds = {
 	Enabled = false,
 	CooldownSeconds = 900,

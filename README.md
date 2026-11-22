@@ -38,6 +38,23 @@
 
 ---
 
+## 📱 폰으로 테스트하면서 업데이트하기 (PC 없이 반복)
+
+게임이 로블록스에 한 번 올라가면, 그다음부터는 **Studio 없이** 새 버전을 올릴 수 있습니다 (Open Cloud Place Publishing API).
+
+1. **최초 1회:** 게임(experience)을 만들어 공개합니다. PC Studio에서 한 번 Publish하거나, 아이폰이라면 Build 앱으로 아무 게임이나 하나 만들어 올려도 됩니다. 그 게임에 이 파일을 덮어씁니다.
+2. **API 키 만들기 (폰 브라우저 가능):** Creator Hub → Open Cloud → API Keys → Create API Key
+   - Access Permissions: **universe-places** 추가 → 이 게임 선택 → **Write**
+   - Accepted IP Addresses: `0.0.0.0/0` (업로드하는 서버 IP가 고정이 아님)
+   - 만료일: 30~90일
+3. **Universe ID와 Place ID 확인:** Creator Hub에서 게임을 열면 주소창 URL에 숫자로 나옵니다.
+4. **배포:** `ROBLOX_API_KEY=키 tools/publish.sh <UniverseId> <PlaceId>`를 실행합니다. Claude 세션에서는 키를 채팅에 쓰지 말고 보안 입력창으로 넣습니다.
+5. **확인:** 폰에서 게임을 나갔다가 다시 들어가면 새 버전입니다. 옛 서버가 남아 있으면 Creator Hub의 서버 재시작 메뉴를 쓰세요.
+
+**폰에서 에러 보는 법:** 게임 메뉴 → Settings → **Developer Console → Open** (채팅에 `/console`을 쳐도 됨). 게임 주인은 서버 로그도 볼 수 있습니다. 에러 화면을 **스크린샷으로 보내 주면** 고칠 수 있습니다. Creator Hub → Monitoring → **Error Report**에도 에러가 모입니다.
+
+**오너 테스트 모드** (`Config.OwnerTestMode = true`): 게임 주인에게는 라이브 서버에서도 🛠 DEV 버튼이 보이고, ID가 아직 0인 상품은 **로벅스 차감 없이 테스트 구매**됩니다. 주인 점수는 글로벌 리더보드에 올라가지 않습니다. **정식 오픈 전에 반드시 false로 바꾸세요.**
+
 ## 💰 출시 전 수익화 설정 (필수)
 
 1. [Creator Dashboard](https://create.roblox.com/dashboard/creations)에서 게임을 퍼블리시합니다.
