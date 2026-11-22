@@ -5,17 +5,17 @@ local RunService = game:GetService("RunService")
 
 local Spin = { Title = "🎡 PRIZE WHEEL", Color = Color3.fromRGB(255, 170, 40) }
 
-local BOOST_ICON = { Coins2x = "2x🪙", Luck2x = "2x🍀", Power2x = "2x💥" }
+local BOOST_ICON = { Coins2x = "2x💰", Luck2x = "2x🍀", Power2x = "2x💥" }
 
-local function short(Util, reward): string
+local function short(Util, T, reward): string
 	if reward.Gems then
 		return Util.Format(reward.Gems) .. "💎"
 	elseif reward.Stardust then
 		return Util.Format(reward.Stardust) .. "✨"
 	elseif reward.Boost then
-		return (BOOST_ICON[reward.Boost[1]] or "Boost") .. "\n" .. math.floor(reward.Boost[2] / 60) .. "m"
+		return (BOOST_ICON[reward.Boost[1]] or "Boost") .. "\n" .. T("%dm", math.floor(reward.Boost[2] / 60))
 	elseif reward.Pet then
-		return "🐾 " .. reward.Pet
+		return "🐾 " .. T(reward.Pet)
 	end
 	return "?"
 end
@@ -23,13 +23,17 @@ end
 function Spin.Build(content, ctx)
 	local Lib, State, Net, Config, Util = ctx.Lib, ctx.State, ctx.Net, ctx.Config, ctx.Util
 	local New, C = Lib.New, Lib.Colors
+	local T = Lib.T
 	local rewards = Config.Spin.Rewards
 	local count = #rewards
 	local step = 360 / count
 	local spinning = false
 
 	-- wheel ------------------------------------------------------------------
-	local holder = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(340, 340), Position = UDim2.fromOffset(6, 40), Parent = content })
+	local holder = New(
+		"Frame",
+		{ BackgroundTransparency = 1, Size = UDim2.fromOffset(340, 340), Position = UDim2.fromOffset(6, 40), Parent = content }
+	)
 	local wheel = New("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
@@ -65,7 +69,12 @@ function Spin.Build(content, ctx)
 			Lib.Corner(12),
 			Lib.Stroke(if entry.Jackpot then Color3.new(1, 1, 1) else Color3.new(0, 0, 0), if entry.Jackpot then 3 else 2, 0.2),
 			Lib.Gradient(Color3.new(1, 1, 1), Color3.fromRGB(190, 190, 190)),
-			Lib.Text({ Text = short(Util, entry.Reward), Size = UDim2.new(1, -6, 1, -4), Position = UDim2.fromOffset(3, 2), MaxTextSize = 20 }),
+			Lib.Text({
+				Text = short(Util, T, entry.Reward),
+				Size = UDim2.new(1, -6, 1, -4),
+				Position = UDim2.fromOffset(3, 2),
+				MaxTextSize = 20,
+			}),
 		})
 	end
 	New("Frame", {
@@ -75,10 +84,18 @@ function Spin.Build(content, ctx)
 		BackgroundColor3 = C.Gold,
 		Parent = wheel,
 	}, { New("UICorner", { CornerRadius = UDim.new(0.5, 0) }), Lib.Stroke(Color3.new(0, 0, 0), 3, 0.2) })
-	Lib.Text({ Text = "▼", TextColor3 = C.Gold, Size = UDim2.fromOffset(50, 44), Position = UDim2.new(0.5, -25, 0, -36), MaxTextSize = 44, Parent = holder })
+	Lib.Text({
+		Text = "▼",
+		TextColor3 = C.Gold,
+		Size = UDim2.fromOffset(50, 44),
+		Position = UDim2.new(0.5, -25, 0, -36),
+		MaxTextSize = 44,
+		Parent = holder,
+	})
 
 	-- info -------------------------------------------------------------------
-	local right = New("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(362, 0), Size = UDim2.new(1, -362, 1, 0), Parent = content })
+	local right =
+		New("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(362, 0), Size = UDim2.new(1, -362, 1, 0), Parent = content })
 	local result = Lib.Text({ Text = "Spin for free prizes!", Size = UDim2.new(1, 0, 0, 44), MaxTextSize = 30, Parent = right })
 	local oddsLines = {}
 	local total = 0
@@ -86,7 +103,7 @@ function Spin.Build(content, ctx)
 		total += entry.Weight
 	end
 	for i, entry in rewards do
-		local text = Util.RewardText(entry.Reward)
+		local text = Util.RewardText(entry.Reward, T)
 		table.insert(oddsLines, string.format("%s  <font color='#BBBBBB'>%s</font>", text, Util.FormatPercent(entry.Weight / total * 100)))
 		if entry.Jackpot then
 			oddsLines[i] ..= "  🎰 JACKPOT"
@@ -136,7 +153,7 @@ function Spin.Build(content, ctx)
 		if remaining <= 0 then
 			Lib.SetButton(spinButton, "🎡 SPIN!", C.Gold)
 		else
-			Lib.SetButton(spinButton, "Free spin in " .. Util.FormatTime(remaining), C.Gray)
+			Lib.SetButton(spinButton, T("Free spin in %s", Util.FormatTime(remaining)), C.Gray)
 		end
 		vipHint.Visible = not State.HasPass("VIP")
 	end

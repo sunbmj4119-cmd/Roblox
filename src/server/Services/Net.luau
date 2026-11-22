@@ -6,6 +6,8 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Lang = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Lang"))
+
 local Net = {}
 
 local folder = Instance.new("Folder")
@@ -62,12 +64,20 @@ function Net:Broadcast(kind: string, ...)
 	messageRemote:FireAllClients(kind, ...)
 end
 
-function Net:Notify(player: Player, text: string, color: Color3?)
-	self:Send(player, "Notify", text, color)
+-- text is English source / format string; args are formatted in.
+-- Each player receives it in their own language.
+function Net:L(player: Player, text: string, ...): string
+	return Lang.F(Lang.LocaleOf(player), text, ...)
 end
 
-function Net:Announce(text: string, color: Color3?)
-	self:Broadcast("Announce", text, color)
+function Net:Notify(player: Player, text: string, color: Color3?, ...)
+	self:Send(player, "Notify", self:L(player, text, ...), color)
+end
+
+function Net:Announce(text: string, color: Color3?, ...)
+	for _, player in Players:GetPlayers() do
+		messageRemote:FireClient(player, "Announce", self:L(player, text, ...), color)
+	end
 end
 
 actionRemote.OnServerEvent:Connect(function(player, name, ...)

@@ -18,7 +18,7 @@ local RED = Color3.fromRGB(255, 110, 110)
 local REBIRTH_ANNOUNCE = { [1] = true, [5] = true, [10] = true, [25] = true, [50] = true, [100] = true }
 
 local function notEnough(player: Player, need: number, have: number, currency: string)
-	Net:Notify(player, string.format("Not enough %s! Need %s more.", currency, Util.Format(need - have)), RED)
+	Net:Notify(player, "Not enough %s! Need %s more.", RED, currency, Util.Format(need - have))
 end
 
 function Economy:Sell(player: Player, silent: boolean?): number
@@ -37,6 +37,7 @@ function Economy:Sell(player: Player, silent: boolean?): number
 	data.Stats.LifetimeCoins += coins
 	data.Backpack = 0
 	Services.ProgressionService:AddQuest(player, "Sell", 1)
+	Services.ProgressionService:TutorialEvent(player, "Sell", 1)
 	Net:Send(player, "Sold", coins)
 	Data:MarkDirty(player)
 	return coins
@@ -52,7 +53,7 @@ function Economy:UnlockZone(player: Player, index: number)
 		return
 	end
 	if data.ZoneLevel + 1 < index then
-		Net:Notify(player, "Unlock " .. Config.Zones[data.ZoneLevel + 1].Name .. " first!", RED)
+		Net:Notify(player, "Unlock %s first!", RED, Config.Zones[data.ZoneLevel + 1].Name)
 		return
 	end
 	if data.Coins < zone.Cost then
@@ -62,9 +63,9 @@ function Economy:UnlockZone(player: Player, index: number)
 	data.Coins -= zone.Cost
 	data.ZoneLevel = index
 	Net:Send(player, "ZoneUnlocked", index)
-	Net:Notify(player, "🔓 " .. zone.Name .. " unlocked!", Color3.fromRGB(120, 255, 170))
+	Net:Notify(player, "🔓 %s unlocked!", Color3.fromRGB(120, 255, 170), zone.Name)
 	if zone.PvP then
-		Net:Announce("⚔️ " .. player.DisplayName .. " entered the Star Crater!", Color3.fromRGB(255, 90, 120))
+		Net:Announce("⚔️ %s entered the Star Crater!", Color3.fromRGB(255, 90, 120), player.DisplayName)
 	end
 	Services.ProgressionService:AddQuest(player, "Upgrade", 1)
 	Data:MarkDirty(player)
@@ -90,9 +91,10 @@ local function buyUpgrade(player: Player, listName: string, field: string)
 	data[field] = nextTier
 	if field == "PickaxeTier" then
 		Services.CharacterService:GivePickaxe(player)
+		Services.ProgressionService:TutorialEvent(player, "Pickaxe", 1)
 	end
 	Services.ProgressionService:AddQuest(player, "Upgrade", 1)
-	Net:Notify(player, "✅ Bought " .. item.Name .. "!", Color3.fromRGB(120, 255, 170))
+	Net:Notify(player, "✅ Bought %s!", Color3.fromRGB(120, 255, 170), item.Name)
 	Data:MarkDirty(player)
 end
 
@@ -118,7 +120,7 @@ function Economy:Rebirth(player: Player)
 	Services.PetService:RefreshEquipped(player)
 	Net:Send(player, "Rebirthed", data.Rebirths, gems)
 	if REBIRTH_ANNOUNCE[data.Rebirths] then
-		Net:Announce(string.format("♻️ %s reached Rebirth %d!", player.DisplayName, data.Rebirths), Color3.fromRGB(200, 130, 255))
+		Net:Announce("♻️ %s reached Rebirth %d!", Color3.fromRGB(200, 130, 255), player.DisplayName, data.Rebirths)
 	end
 	Data:MarkDirty(player)
 end

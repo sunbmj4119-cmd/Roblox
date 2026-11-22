@@ -125,8 +125,8 @@ function CharacterService:RefreshOverhead(player: Player)
 	if not gui then
 		gui = Instance.new("BillboardGui")
 		gui.Name = "Overhead"
-		gui.Size = UDim2.fromOffset(220, 52)
-		gui.StudsOffset = Vector3.new(0, 3.1, 0)
+		gui.Size = UDim2.new(6, 0, 1.5, 0) -- studs: small up close, readable nearby
+		gui.StudsOffset = Vector3.new(0, 2.8, 0)
 		gui.MaxDistance = 90
 		gui.LightInfluence = 0
 
@@ -142,7 +142,7 @@ function CharacterService:RefreshOverhead(player: Player)
 			label.Name = name
 			label.LayoutOrder = i
 			label.BackgroundTransparency = 1
-			label.Size = UDim2.new(1, 0, 0, if name == "Rank" then 24 else 22)
+			label.Size = UDim2.new(1, 0, if name == "Rank" then 0.55 else 0.45, 0)
 			label.Font = Enum.Font.FredokaOne
 			label.TextScaled = true
 			label.RichText = true
@@ -157,7 +157,9 @@ function CharacterService:RefreshOverhead(player: Player)
 
 	local rank = Util.RankFor(Config, data.Weekly.Points)
 	local rankLabel = gui:FindFirstChild("Rank") :: TextLabel
-	rankLabel.Text = string.format("Lv.%d  •  %s  •  ♻️%d", data.Level, string.upper(rank.Name), data.Rebirths)
+	rankLabel.Text = if data.Rebirths > 0
+		then string.format("Lv.%d %s ♻️%d", data.Level, rank.Icon or "", data.Rebirths)
+		else string.format("Lv.%d %s", data.Level, rank.Icon or "")
 	rankLabel.TextColor3 = rank.Color
 
 	local tags = {}

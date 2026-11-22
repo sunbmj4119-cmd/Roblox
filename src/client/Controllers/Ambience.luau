@@ -98,7 +98,7 @@ task.spawn(function()
 				TweenService:Create(tint, TweenInfo.new(1.2), { TintColor = mood.Tint }):Play()
 				if not first then
 					local zoneConfig = Config.Zones[zone]
-					showTitle(mood.Title, if zoneConfig then zoneConfig.Accent else Color3.fromRGB(255, 230, 120))
+					showTitle(Lib.T(mood.Title), if zoneConfig then zoneConfig.Accent else Color3.fromRGB(255, 230, 120))
 				end
 			end
 			local meteorActive = workspace:GetAttribute("MeteorState") == "Active"

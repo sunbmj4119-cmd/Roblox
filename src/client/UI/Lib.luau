@@ -9,8 +9,11 @@ local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Lang = require(ReplicatedStorage.Shared.Lang)
 
 local Lib = {}
+Lib.T = Lang.T
+Lib.Muted = false
 
 Lib.Colors = {
 	Panel = Color3.fromRGB(26, 28, 44),
@@ -106,6 +109,9 @@ end
 function Lib.Text(props)
 	local maxSize = props.MaxTextSize or 28
 	props.MaxTextSize = nil
+	if type(props.Text) == "string" then
+		props.Text = Lang.T(props.Text)
+	end
 	local label = New("TextLabel", {
 		BackgroundTransparency = 1,
 		Font = props.Font or Lib.Font,
@@ -132,7 +138,7 @@ end
 -- Play a named sound from Config.Sounds (random variant + pitch variance),
 -- or a raw sound id. pitchOffset lets combos/coins rise in pitch.
 function Lib.PlaySound(name: string?, volumeMult: number?, pitchOffset: number?)
-	if not name or name == "" then
+	if not name or name == "" or Lib.Muted then
 		return
 	end
 	local def = Config.Sounds[name]
@@ -203,7 +209,7 @@ end
 
 function Lib.SetButton(button: TextButton, text: string?, color: Color3?)
 	if text then
-		(button:FindFirstChild("Label") :: TextLabel).Text = text
+		(button:FindFirstChild("Label") :: TextLabel).Text = Lang.T(text)
 	end
 	if color then
 		button.BackgroundColor3 = color

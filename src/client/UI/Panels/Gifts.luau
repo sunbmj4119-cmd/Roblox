@@ -4,6 +4,7 @@ local Gifts = { Title = "🎁 FREE GIFTS", Color = Color3.fromRGB(255, 90, 160) 
 function Gifts.Build(content, ctx)
 	local Lib, State, Net, Config, Util = ctx.Lib, ctx.State, ctx.Net, ctx.Config, ctx.Util
 	local New, C = Lib.New, Lib.Colors
+	local T = Lib.T
 
 	Lib.Text({
 		Text = "Stay in the game to unlock free gifts!",
@@ -13,15 +14,23 @@ function Gifts.Build(content, ctx)
 		MaxTextSize = 18,
 		Parent = content,
 	})
-	local grid = New("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 32), Size = UDim2.new(1, 0, 1, -32), Parent = content }, {
-		Lib.Grid(UDim2.fromOffset(150, 160), 12),
-	})
+	local grid = New(
+		"Frame",
+		{ BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 32), Size = UDim2.new(1, 0, 1, -32), Parent = content },
+		{
+			Lib.Grid(UDim2.fromOffset(150, 160), 12),
+		}
+	)
 	local boxes = {}
 	for i, gift in Config.PlaytimeGifts do
-		local box = New("Frame", { BackgroundColor3 = C.Card, LayoutOrder = i, Parent = grid }, { Lib.Corner(14), Lib.Stroke(C.Pink, 2, 0.2) })
+		local box = New(
+			"Frame",
+			{ BackgroundColor3 = C.Card, LayoutOrder = i, Parent = grid },
+			{ Lib.Corner(14), Lib.Stroke(C.Pink, 2, 0.2) }
+		)
 		Lib.Text({ Text = "🎁", Size = UDim2.new(1, 0, 0, 44), Position = UDim2.fromOffset(0, 6), MaxTextSize = 40, Parent = box })
 		Lib.Text({
-			Text = Util.RewardText(gift.Reward),
+			Text = Util.RewardText(gift.Reward, T),
 			Size = UDim2.new(1, -10, 0, 40),
 			Position = UDim2.fromOffset(5, 52),
 			TextWrapped = true,

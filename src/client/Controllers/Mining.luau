@@ -25,6 +25,7 @@ local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 local C = Lib.Colors
 local New = Lib.New
+local T = Lib.T
 
 local Mining = {}
 
@@ -80,10 +81,10 @@ local function showHp(part: BasePart, ratio: number)
 	hpGui.Adornee = part
 	hpGui.Enabled = true
 	local ore = Config.Ores[part:GetAttribute("Ore") or ""]
-	local name = if ore then ore.Name else ""
+	local name = if ore then T(ore.Name) else ""
 	local lucky = part:GetAttribute("Lucky")
 	if type(lucky) == "string" then
-		name = lucky .. " " .. name
+		name = T(lucky) .. " " .. name
 	end
 	setHp(ratio, name, if ratio > 0.5 then C.Green elseif ratio > 0.25 then C.Gold else C.Red)
 	hpHideAt = os.clock() + 2
@@ -184,12 +185,12 @@ local function showCombo(count: number)
 		return
 	end
 	local bonus = math.min(Config.Combo.MaxBonus, (count - 1) * Config.Combo.BonusPer)
-	comboLabel.Text = string.format("🔥 x%d COMBO", count)
+	comboLabel.Text = T("🔥 x%d COMBO", count)
 	comboLabel.TextColor3 = if count >= 30
 		then Color3.fromRGB(255, 80, 200)
 		elseif count >= 15 then Color3.fromRGB(255, 90, 60)
 		else Color3.fromRGB(255, 170, 60)
-	comboSub.Text = string.format("+%d%% ore", math.floor(bonus * 100 + 0.5))
+	comboSub.Text = T("+%d%% ore", math.floor(bonus * 100 + 0.5))
 	comboScale.Scale = 1.35
 	TweenService:Create(comboScale, TweenInfo.new(0.2, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	comboLabel.Visible = true
@@ -340,7 +341,7 @@ Net.On("MineHit", function(part, ratio, crit, damage)
 	Lib.PlaySound(hitSoundFor(part:GetAttribute("Ore")))
 	if crit then
 		Lib.PlaySound("Crit")
-		floatText(top, "💥 CRIT " .. Util.Format(damage or 0), Color3.fromRGB(255, 120, 60), 44, 5)
+		floatText(top, T("💥 CRIT %s", Util.Format(damage or 0)), Color3.fromRGB(255, 120, 60), 44, 5)
 		shake(0.25, 0.15)
 	elseif type(damage) == "number" then
 		floatText(top, Util.Format(damage), Color3.fromRGB(255, 255, 255), 26, 3)
@@ -362,7 +363,7 @@ Net.On("MineBreak", function(position, oreId, gained, extra)
 		burst(position, Color3.new(1, 1, 1), 25, 1.2)
 		Lib.PlaySound("Lucky")
 		shake(if rainbow then 0.8 else 0.4, 0.35)
-		floatText(position, (if rainbow then "🌈 RAINBOW! " else "✨ GOLDEN! ") .. "+" .. Util.Format(gained), luckyColor, 56, 6)
+		floatText(position, (if rainbow then T("🌈 RAINBOW!") else T("✨ GOLDEN!")) .. " +" .. Util.Format(gained), luckyColor, 56, 6)
 	else
 		burst(position, color, 18)
 		floatText(position, "+" .. Util.Format(gained), Color3.fromRGB(255, 255, 255), 30)
@@ -411,7 +412,7 @@ Net.On("Bonked", function(attackerName, dropped)
 	shake(0.6, 0.3)
 	local hud = Mining.HUD
 	if hud then
-		hud.Toast(string.format("💥 %s bonked you! You dropped %s ore", attackerName, Util.Format(dropped)), C.Red)
+		hud.Toast(T("💥 %s bonked you! You dropped %s ore", attackerName, Util.Format(dropped)), C.Red)
 	end
 end)
 

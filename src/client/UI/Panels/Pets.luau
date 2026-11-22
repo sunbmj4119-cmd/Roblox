@@ -4,6 +4,7 @@ local Pets = { Title = "🐾 PETS", Color = Color3.fromRGB(120, 200, 90) }
 function Pets.Build(content, ctx)
 	local Lib, State, Net, Config, Util = ctx.Lib, ctx.State, ctx.Net, ctx.Config, ctx.Util
 	local New, C = Lib.New, Lib.Colors
+	local T = Lib.T
 
 	local header = Lib.Text({
 		Text = "",
@@ -18,20 +19,48 @@ function Pets.Build(content, ctx)
 		Size = UDim2.new(1, 0, 0, 40),
 		Parent = content,
 	}, { Lib.List(Enum.FillDirection.Horizontal, 8, Enum.HorizontalAlignment.Left) })
-	Lib.Button({ Text = "⭐ Equip Best", Color = C.Green, Size = UDim2.fromOffset(140, 38), LayoutOrder = 1, Parent = actions, OnClick = function()
-		Net.Fire("EquipBest")
-	end })
-	Lib.Button({ Text = "🗑 Commons", Color = C.Red, Size = UDim2.fromOffset(130, 38), LayoutOrder = 2, Parent = actions, OnClick = function()
-		Net.Fire("DeleteRarity", "Common")
-	end })
-	Lib.Button({ Text = "🗑 Uncommons", Color = C.Red, Size = UDim2.fromOffset(140, 38), LayoutOrder = 3, Parent = actions, OnClick = function()
-		Net.Fire("DeleteRarity", "Uncommon")
-	end })
-	local slotsButton = Lib.Button({ Text = "🐾 +3 Slots", Color = C.Gold, Size = UDim2.fromOffset(130, 38), LayoutOrder = 4, Parent = actions, OnClick = function()
-		if ctx.Upsell then
-			ctx.Upsell.Pass("ExtraPets", true)
-		end
-	end })
+	Lib.Button({
+		Text = "⭐ Equip Best",
+		Color = C.Green,
+		Size = UDim2.fromOffset(140, 38),
+		LayoutOrder = 1,
+		Parent = actions,
+		OnClick = function()
+			Net.Fire("EquipBest")
+		end,
+	})
+	Lib.Button({
+		Text = "🗑 Commons",
+		Color = C.Red,
+		Size = UDim2.fromOffset(130, 38),
+		LayoutOrder = 2,
+		Parent = actions,
+		OnClick = function()
+			Net.Fire("DeleteRarity", "Common")
+		end,
+	})
+	Lib.Button({
+		Text = "🗑 Uncommons",
+		Color = C.Red,
+		Size = UDim2.fromOffset(140, 38),
+		LayoutOrder = 3,
+		Parent = actions,
+		OnClick = function()
+			Net.Fire("DeleteRarity", "Uncommon")
+		end,
+	})
+	local slotsButton = Lib.Button({
+		Text = "🐾 +3 Slots",
+		Color = C.Gold,
+		Size = UDim2.fromOffset(130, 38),
+		LayoutOrder = 4,
+		Parent = actions,
+		OnClick = function()
+			if ctx.Upsell then
+				ctx.Upsell.Pass("ExtraPets", true)
+			end
+		end,
+	})
 
 	local grid = Lib.Scroll({ Position = UDim2.fromOffset(0, 78), Size = UDim2.new(1, 0, 1, -78), Parent = content })
 	Lib.Grid(UDim2.fromOffset(118, 120), 8).Parent = grid
@@ -93,9 +122,16 @@ function Pets.Build(content, ctx)
 						else info.Color,
 					Parent = card,
 				}, { Lib.Corner(if info.Shape == "Ball" then 21 else 8), Lib.Stroke(Color3.new(0, 0, 0), 2, 0.3) })
-				Lib.Text({ Text = "• •", TextColor3 = Color3.new(0, 0, 0), Outline = false, Size = UDim2.fromScale(1, 0.5), Position = UDim2.fromScale(0, 0.15), Parent = swatch })
 				Lib.Text({
-					Text = (if pet.Variant then "✨" else "") .. Util.PetDisplayName(pet.Name, pet.Variant),
+					Text = "• •",
+					TextColor3 = Color3.new(0, 0, 0),
+					Outline = false,
+					Size = UDim2.fromScale(1, 0.5),
+					Position = UDim2.fromScale(0, 0.15),
+					Parent = swatch,
+				})
+				Lib.Text({
+					Text = (if pet.Variant then "✨" else "") .. Util.PetDisplayName(T(pet.Name), pet.Variant and T(pet.Variant)),
 					Size = UDim2.new(1, -6, 0, 20),
 					Position = UDim2.fromOffset(3, 54),
 					MaxTextSize = 15,
@@ -161,7 +197,7 @@ function Pets.Build(content, ctx)
 		for _ in Config.Pets do
 			totalPets += 1
 		end
-		header.Text = string.format(
+		header.Text = T(
 			"Equipped %d/%d  •  Power +%sx  •  Pets %d/%d  •  Index %d/%d",
 			#data.Equipped,
 			derived.PetSlots or 3,

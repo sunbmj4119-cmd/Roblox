@@ -40,7 +40,10 @@ local queue = {}
 
 local function slot(petName: string, variant: string?, eggColor: Color3)
 	local info = Config.Pets[petName]
-	local variantColor = if variant == "Rainbow" then Color3.fromRGB(255, 120, 230) elseif variant == "Golden" then Color3.fromRGB(255, 210, 60) else nil
+	local variantColor = if variant == "Rainbow"
+		then Color3.fromRGB(255, 120, 230)
+		elseif variant == "Golden" then Color3.fromRGB(255, 210, 60)
+		else nil
 	local rarity = Config.Rarities[info.Rarity]
 	local frame = New("Frame", {
 		BackgroundTransparency = 1,
@@ -71,7 +74,7 @@ local function slot(petName: string, variant: string?, eggColor: Color3)
 	camera.CFrame = CFrame.new(Vector3.new(0, 0.6, 11), Vector3.new(0, 0, 0))
 
 	local nameLabel = Lib.Text({
-		Text = Util.PetDisplayName(petName, variant),
+		Text = Util.PetDisplayName(Lib.T(petName), variant and Lib.T(variant)),
 		Size = UDim2.new(1, 0, 0, 40),
 		Position = UDim2.fromOffset(0, 262),
 		MaxTextSize = 34,
@@ -80,7 +83,7 @@ local function slot(petName: string, variant: string?, eggColor: Color3)
 		Parent = frame,
 	})
 	local rarityLabel = Lib.Text({
-		Text = (if variant then "✨ " .. string.upper(variant) .. " ✨  " else "") .. string.upper(info.Rarity),
+		Text = (if variant then "✨ " .. string.upper(Lib.T(variant)) .. " ✨  " else "") .. string.upper(Lib.T(info.Rarity)),
 		TextColor3 = variantColor or rarity.Color,
 		Size = UDim2.new(1, 0, 0, 34),
 		Position = UDim2.fromOffset(0, 302),
@@ -90,7 +93,7 @@ local function slot(petName: string, variant: string?, eggColor: Color3)
 		Parent = frame,
 	})
 	local powerLabel = Lib.Text({
-		Text = "💥 +" .. Util.Format(Util.PetPower(Config, petName, variant)) .. "x power",
+		Text = Lib.T("💥 +%sx power", Util.Format(Util.PetPower(Config, petName, variant))),
 		Font = Lib.BodyFont,
 		Size = UDim2.new(1, 0, 0, 26),
 		Position = UDim2.fromOffset(0, 340),

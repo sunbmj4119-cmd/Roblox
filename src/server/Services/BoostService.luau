@@ -25,7 +25,7 @@ function Boosts:Add(player: Player, key: string, seconds: number)
 		return
 	end
 	data.Boosts[key] = (data.Boosts[key] or 0) + seconds
-	Net:Notify(player, string.format("⏫ %s boost +%s!", Util.BoostNames[key] or key, Util.FormatTime(seconds)), Color3.fromRGB(120, 255, 170))
+	Net:Notify(player, "⏫ %s boost +%s!", Color3.fromRGB(120, 255, 170), Util.BoostNames[key] or key, Util.FormatTime(seconds))
 	Data:MarkDirty(player)
 end
 
@@ -39,8 +39,10 @@ function Boosts:AddServer(key: string, seconds: number, buyer: Player?)
 	workspace:SetAttribute("Server_" .. key, serverBoosts[key])
 	if buyer then
 		Net:Announce(
-			string.format("🌟 %s activated SERVER LUCK for everyone! (+%d min)", buyer.DisplayName, math.floor(seconds / 60)),
-			Color3.fromRGB(255, 230, 90)
+			"🌟 %s activated SERVER LUCK for everyone! (+%d min)",
+			Color3.fromRGB(255, 230, 90),
+			buyer.DisplayName,
+			math.floor(seconds / 60)
 		)
 	end
 	for _, player in Players:GetPlayers() do
@@ -66,7 +68,7 @@ function Boosts:Start()
 							data.Boosts[key] = math.max(0, remaining - 1)
 							if data.Boosts[key] == 0 then
 								changed = true
-								Net:Notify(player, (Util.BoostNames[key] or key) .. " boost ended")
+								Net:Notify(player, "%s boost ended", nil, Util.BoostNames[key] or key)
 							end
 						end
 					end

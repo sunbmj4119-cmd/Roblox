@@ -5,6 +5,7 @@ local Codes = { Title = "🎟 CODES", Color = Color3.fromRGB(120, 200, 90) }
 function Codes.Build(content, ctx)
 	local Lib, State, Net = ctx.Lib, ctx.State, ctx.Net
 	local New, C = Lib.New, Lib.Colors
+	local T = Lib.T
 
 	Lib.Text({
 		Text = "Enter a code for free rewards!",
@@ -14,7 +15,7 @@ function Codes.Build(content, ctx)
 		Parent = content,
 	})
 	local box = New("TextBox", {
-		PlaceholderText = "Type code here...",
+		PlaceholderText = T("Type code here..."),
 		Text = "",
 		ClearTextOnFocus = false,
 		Font = Lib.Font,
@@ -48,7 +49,7 @@ function Codes.Build(content, ctx)
 			busy = true
 			local ok, message = Net.Invoke("RedeemCode", box.Text)
 			busy = false
-			status.Text = (if ok then "✅ " else "❌ ") .. tostring(message or "Try again")
+			status.Text = (if ok then "✅ " else "❌ ") .. tostring(message or T("Try again"))
 			status.TextColor3 = if ok then C.Green else C.Red
 			Lib.Pop(status)
 			if ok then
@@ -85,7 +86,7 @@ function Codes.Build(content, ctx)
 				for _ in data.Codes do
 					n += 1
 				end
-				redeemed.Text = string.format("Codes redeemed: %d", n)
+				redeemed.Text = T("Codes redeemed: %d", n)
 			end
 		end,
 	}

@@ -86,10 +86,14 @@ local function announceIfRare(player: Player, name: string, variant: string?, eg
 		return
 	end
 	if rarity.Order >= Config.AnnounceRarity or variant == "Rainbow" then
-		local label = if variant then string.upper(variant) .. " " .. string.upper(info.Rarity) else string.upper(info.Rarity)
 		Net:Announce(
-			string.format("🥚 %s hatched a %s %s from the %s!", player.DisplayName, label, name, eggName),
-			if variant == "Rainbow" then Color3.fromRGB(255, 120, 230) else rarity.Color
+			"🥚 %s hatched a %s %s %s from the %s!",
+			if variant == "Rainbow" then Color3.fromRGB(255, 120, 230) else rarity.Color,
+			player.DisplayName,
+			variant or "",
+			info.Rarity,
+			name,
+			eggName
 		)
 	end
 end
@@ -107,6 +111,7 @@ local function roll(player: Player, data, eggId: string, count: number)
 		announceIfRare(player, name, variant, egg.Name)
 	end
 	data.Stats.EggsHatched += count
+	Services.ProgressionService:TutorialEvent(player, "Hatch", count)
 	Services.ProgressionService:AddQuest(player, "Hatch", count)
 	Services.ProgressionService:AddSeasonXP(player, 25 * count)
 	PetService:RefreshEquipped(player)
@@ -136,22 +141,22 @@ local function hatch(player: Player, eggId, count)
 	local data = Data:Get(player)
 	local egg = type(eggId) == "string" and Config.Eggs[eggId]
 	if not data or not egg or egg.Currency == "Robux" then
-		return { Error = "Invalid egg" }
+		return { Error = Net:L(player, "Invalid egg") }
 	end
 	count = if count == 3 then 3 else 1
 	if count == 3 and not Services.MonetizationService:HasPass(player, "TripleHatch") then
-		return { Error = "Triple Hatch requires the gamepass!", Upsell = "TripleHatch" }
+		return { Error = Net:L(player, "Triple Hatch requires the gamepass!"), Upsell = "TripleHatch" }
 	end
 	if data.ZoneLevel < egg.Zone then
-		return { Error = "Unlock " .. Config.Zones[egg.Zone].Name .. " first!" }
+		return { Error = Net:L(player, "Unlock %s first!", Config.Zones[egg.Zone].Name) }
 	end
 	if #data.Pets + count > Config.MaxPets then
-		return { Error = "Pet inventory full! Delete some pets first." }
+		return { Error = Net:L(player, "Pet inventory full! Delete some pets first.") }
 	end
 	local cost = egg.Price * count
 	local balance = data[egg.Currency] or 0
 	if balance < cost then
-		return { Error = string.format("Not enough %s! Need %s more.", CURRENCY_NAMES[egg.Currency], Util.Format(cost - balance)) }
+		return { Error = Net:L(player, "Not enough %s! Need %s more.", CURRENCY_NAMES[egg.Currency], Util.Format(cost - balance)) }
 	end
 	data[egg.Currency] -= cost
 	local results = roll(player, data, eggId, count)
@@ -257,7 +262,7 @@ function PetService:Start()
 		end
 		data.Pets = kept
 		self:RefreshEquipped(player)
-		Net:Notify(player, string.format("Deleted %d %s pets", removed, rarity))
+		Net:Notify(player, "Deleted %d %s pets", nil, removed, rarity)
 	end)
 end
 

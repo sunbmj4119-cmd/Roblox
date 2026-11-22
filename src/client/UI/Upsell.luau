@@ -22,8 +22,22 @@ local frame = New("Frame", {
 	ZIndex = 50,
 	Parent = cluster,
 }, { Lib.Corner(20), Lib.Stroke(C.Gold, 3, 0) })
-local icon = Lib.Text({ Text = "⭐", Size = UDim2.fromOffset(80, 80), Position = UDim2.new(0.5, -40, 0, 12), MaxTextSize = 70, ZIndex = 51, Parent = frame })
-local title = Lib.Text({ Text = "", Size = UDim2.new(1, -30, 0, 34), Position = UDim2.fromOffset(15, 96), MaxTextSize = 30, ZIndex = 51, Parent = frame })
+local icon = Lib.Text({
+	Text = "⭐",
+	Size = UDim2.fromOffset(80, 80),
+	Position = UDim2.new(0.5, -40, 0, 12),
+	MaxTextSize = 70,
+	ZIndex = 51,
+	Parent = frame,
+})
+local title = Lib.Text({
+	Text = "",
+	Size = UDim2.new(1, -30, 0, 34),
+	Position = UDim2.fromOffset(15, 96),
+	MaxTextSize = 30,
+	ZIndex = 51,
+	Parent = frame,
+})
 local description = Lib.Text({
 	Text = "",
 	Font = Lib.BodyFont,
@@ -76,8 +90,8 @@ local function show(kind: string, key: string, entry, force: boolean?)
 	lastShown[id] = os.clock()
 	current = { Kind = kind, Key = key }
 	icon.Text = entry.Icon or "⭐"
-	title.Text = entry.Name
-	description.Text = entry.Description or ""
+	title.Text = Lib.T(entry.Name)
+	description.Text = Lib.T(entry.Description or "")
 	Lib.SetButton(buy, "R$ " .. Lib.Price(kind, key), C.Green)
 	frame.Visible = true
 	Lib.Pop(frame)

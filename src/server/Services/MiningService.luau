@@ -130,7 +130,7 @@ local function spawnBlock(slot, forcedLucky)
 	blockInfo[part] = { Slot = slot, Ore = oreId, HP = hp, MaxHP = hp, Zone = slot.Zone, Lucky = lucky }
 	zoneBlocks[slot.Zone][part] = true
 	if lucky and lucky.Announce then
-		Net:Announce("🌈 A RAINBOW ORE appeared in " .. Config.Zones[slot.Zone].Name .. "! (50x value)", Color3.fromRGB(255, 120, 230))
+		Net:Announce("🌈 A RAINBOW ORE appeared in %s! (50x value)", Color3.fromRGB(255, 120, 230), Config.Zones[slot.Zone].Name)
 	end
 end
 
@@ -172,7 +172,7 @@ local function mineBlock(player: Player, data, part: BasePart)
 		return
 	end
 	if info.Zone > data.ZoneLevel then
-		Net:Notify(player, "Unlock " .. Config.Zones[info.Zone].Name .. " to mine here!", Color3.fromRGB(255, 110, 110))
+		Net:Notify(player, "Unlock %s to mine here!", Color3.fromRGB(255, 110, 110), Config.Zones[info.Zone].Name)
 		return
 	end
 	local stats = Services.StatsService
@@ -249,10 +249,7 @@ local function mineBlock(player: Player, data, part: BasePart)
 	progression:AddXP(player, info.Zone * (if lucky then 10 else 1))
 	Net:Send(player, "MineBreak", position, info.Ore, gained, extra)
 	if lucky and lucky.Announce then
-		Net:Announce(
-			string.format("🌈 %s mined a RAINBOW %s! (+%d 💎)", player.DisplayName, ore.Name, gems),
-			Color3.fromRGB(255, 120, 230)
-		)
+		Net:Announce("🌈 %s mined a RAINBOW %s! (+%d 💎)", Color3.fromRGB(255, 120, 230), player.DisplayName, ore.Name, gems)
 	end
 
 	if data.Backpack >= capacity and monetization:HasPass(player, "AutoSell") then
@@ -317,7 +314,7 @@ local function spawnOrbs(origin: Vector3, total: number)
 			taken = true
 			local added = math.min(value, capacity - data.Backpack)
 			data.Backpack += added
-			Net:Notify(player, "✨ +" .. Util.Format(added) .. " stolen ore!", Color3.fromRGB(255, 140, 230))
+			Net:Notify(player, "✨ +%s stolen ore!", Color3.fromRGB(255, 140, 230), Util.Format(added))
 			Data:MarkDirty(player)
 			orb:Destroy()
 		end)
@@ -361,7 +358,7 @@ local function tryBonk(attacker: Player, victim: Player)
 	direction = if direction.Magnitude > 0.01 then direction.Unit else Vector3.zAxis
 	Net:Send(victim, "Knockback", direction * Config.PvP.Knockback + Vector3.new(0, 35, 0))
 	Net:Send(victim, "Bonked", attacker.DisplayName, drop)
-	Net:Notify(attacker, string.format("💥 Bonked %s! %s ore dropped", victim.DisplayName, Util.Format(drop)), Color3.fromRGB(255, 140, 90))
+	Net:Notify(attacker, "💥 Bonked %s! %s ore dropped", Color3.fromRGB(255, 140, 90), victim.DisplayName, Util.Format(drop))
 	Data:MarkDirty(attacker)
 	Data:MarkDirty(victim)
 end

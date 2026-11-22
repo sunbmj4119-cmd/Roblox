@@ -60,7 +60,10 @@ function PetModel.Build(petName: string, variant: string?): Model
 		Shape = if info.Shape == "Block" then Enum.PartType.Block else Enum.PartType.Ball,
 		Size = Vector3.one * scale,
 		Color = info.Color,
-		Material = if rarity.Order >= 5 then Enum.Material.Neon elseif rarity.Order >= 4 then Enum.Material.Glass else Enum.Material.SmoothPlastic,
+		Material = if rarity.Order >= 5
+			then Enum.Material.Neon
+			elseif rarity.Order >= 4 then Enum.Material.Glass
+			else Enum.Material.SmoothPlastic,
 	})
 	if rarity.Order >= 5 then
 		body.Transparency = 0.05
@@ -113,7 +116,9 @@ function PetModel.Build(petName: string, variant: string?): Model
 				Size = Vector3.new(scale * 0.55, scale * 0.12, scale * 0.45),
 				Color = info.Color:Lerp(Color3.new(1, 1, 1), 0.3),
 				Material = body.Material,
-				CFrame = body.CFrame * CFrame.new(side * scale * 0.62, scale * 0.05, scale * 0.1) * CFrame.Angles(0, 0, math.rad(side * 25)),
+				CFrame = body.CFrame
+					* CFrame.new(side * scale * 0.62, scale * 0.05, scale * 0.1)
+					* CFrame.Angles(0, 0, math.rad(side * 25)),
 			})
 			wing.Parent = model
 			weld(body, wing)
@@ -127,7 +132,9 @@ function PetModel.Build(petName: string, variant: string?): Model
 				Size = Vector3.new(scale * 0.12, scale * 0.38, scale * 0.12),
 				Color = Color3.fromRGB(255, 240, 200),
 				Material = Enum.Material.SmoothPlastic,
-				CFrame = body.CFrame * CFrame.new(side * scale * 0.18, scale * 0.6, -scale * 0.1) * CFrame.Angles(math.rad(-15), 0, math.rad(-side * 10)),
+				CFrame = body.CFrame
+					* CFrame.new(side * scale * 0.18, scale * 0.6, -scale * 0.1)
+					* CFrame.Angles(math.rad(-15), 0, math.rad(-side * 10)),
 			})
 			horn.Parent = model
 			weld(body, horn)

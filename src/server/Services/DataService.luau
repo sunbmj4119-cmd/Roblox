@@ -39,6 +39,8 @@ local TEMPLATE = {
 	XP = 0,
 	FreeSpinAt = 0, -- unix time when the next free spin is ready
 	Codes = {}, -- [CODE] = true
+	Tutorial = { Step = 1, Progress = 0, Done = false },
+	Settings = { Lang = "auto" }, -- "auto" | "ko" | "en"
 	Pets = {}, -- { { Id = 1, Name = "Bunny", Variant = "Golden"? }, ... }
 	Equipped = {}, -- { petId, ... }
 	NextPetUid = 1,

@@ -1,0 +1,82 @@
+-- Settings: language (auto / 한국어 / English) and sound
+local TeleportService = game:GetService("TeleportService")
+
+local Settings = { Title = "⚙️ SETTINGS", Color = Color3.fromRGB(110, 115, 140) }
+
+function Settings.Build(content, ctx)
+	local Lib, State, Net = ctx.Lib, ctx.State, ctx.Net
+	local New, C, T = Lib.New, Lib.Colors, Lib.T
+
+	Lib.Text({
+		Text = "🌐 Language",
+		Size = UDim2.new(1, 0, 0, 34),
+		Position = UDim2.fromOffset(0, 10),
+		MaxTextSize = 28,
+		Parent = content,
+	})
+	local row = New(
+		"Frame",
+		{ BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 60), Position = UDim2.fromOffset(0, 54), Parent = content },
+		{
+			Lib.List(Enum.FillDirection.Horizontal, 12, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Center),
+		}
+	)
+	local note = Lib.Text({
+		Text = "",
+		Font = Lib.BodyFont,
+		TextColor3 = C.Sub,
+		Size = UDim2.new(1, -40, 0, 24),
+		Position = UDim2.fromOffset(20, 122),
+		MaxTextSize = 16,
+		Parent = content,
+	})
+	local buttons = {}
+	local OPTIONS = { { "auto", "Auto" }, { "ko", "한국어" }, { "en", "English" } }
+	for order, option in OPTIONS do
+		buttons[option[1]] = Lib.Button({
+			Text = option[2],
+			Size = UDim2.fromOffset(180, 54),
+			LayoutOrder = order,
+			TextSize = 26,
+			Parent = row,
+			OnClick = function()
+				local current = State.Data and State.Data.Settings and State.Data.Settings.Lang or "auto"
+				if current == option[1] then
+					return
+				end
+				Net.Fire("SetLanguage", option[1])
+				note.Text = T("Changing language... rejoining")
+				-- the whole UI is built in one language, so rejoin to switch cleanly
+				task.delay(1.5, function()
+					pcall(function()
+						TeleportService:Teleport(game.PlaceId)
+					end)
+				end)
+			end,
+		})
+	end
+
+	Lib.Text({ Text = "🔊 Sound", Size = UDim2.new(1, 0, 0, 34), Position = UDim2.fromOffset(0, 170), MaxTextSize = 28, Parent = content })
+	local soundButton = Lib.Button({
+		Size = UDim2.fromOffset(240, 54),
+		Position = UDim2.new(0.5, -120, 0, 214),
+		TextSize = 24,
+		Parent = content,
+		OnClick = function()
+			Lib.Muted = not Lib.Muted
+			ctx.Panels.RefreshCurrent()
+		end,
+	})
+
+	local function refresh()
+		local current = State.Data and State.Data.Settings and State.Data.Settings.Lang or "auto"
+		for id, button in buttons do
+			Lib.SetButton(button, nil, if id == current then C.Gold else C.Gray)
+		end
+		Lib.SetButton(soundButton, if Lib.Muted then "🔇 Sound: OFF" else "🔊 Sound: ON", if Lib.Muted then C.Gray else C.Green)
+	end
+
+	return { Refresh = refresh }
+end
+
+return Settings

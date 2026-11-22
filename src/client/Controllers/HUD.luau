@@ -1,7 +1,10 @@
 --[[
-	Main HUD: currencies, backpack, next-goal hint, menu buttons with
-	notification badges, active boosts, starter-pack timer, auto-mine toggle,
-	toasts and server-wide announcements.
+	Main HUD - designed for phones first and to reveal things gradually:
+	  * top center: ONE objective (tutorial step or next goal) + guide beam
+	  * top left: money, level, backpack, and a menu that grows with progress
+	  * right: server event, boosts, your rank in this server
+	  * bottom: backpack-full helper, auto mine / starter pack (after tutorial)
+	Plus toasts, announcements and celebrations (level up, rank up, tutorial).
 ]]
 local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -20,13 +23,15 @@ local Root = require(Client.UI.Root)
 local Panels = require(Client.UI.Panels)
 local Upsell = require(Client.UI.Upsell)
 
-local New, C = Lib.New, Lib.Colors
+local New, C, T = Lib.New, Lib.Colors, Lib.T
 local HUD = {}
+
+local DARK = Color3.fromRGB(20, 22, 34)
 
 ---------------------------------------------------------------------------
 -- toasts & announcements
 ---------------------------------------------------------------------------
-local toastCluster = Root.Cluster("Toasts", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 120), UDim2.fromOffset(520, 260))
+local toastCluster = Root.Cluster("Toasts", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 168), UDim2.fromOffset(520, 220))
 toastCluster.ZIndex = 40
 Lib.List(Enum.FillDirection.Vertical, 6).Parent = toastCluster
 
@@ -34,14 +39,22 @@ local toastOrder = 0
 function HUD.Toast(text: string, color: Color3?)
 	toastOrder += 1
 	local toast = New("Frame", {
-		BackgroundColor3 = Color3.fromRGB(20, 22, 34),
+		BackgroundColor3 = DARK,
 		BackgroundTransparency = 0.15,
 		Size = UDim2.fromOffset(500, 40),
 		LayoutOrder = toastOrder,
 		ZIndex = 40,
 		Parent = toastCluster,
 	}, { Lib.Corner(12), Lib.Stroke(color or C.Blue, 2, 0.2) })
-	Lib.Text({ Text = text, TextColor3 = color or C.Text, Size = UDim2.new(1, -16, 1, -8), Position = UDim2.fromOffset(8, 4), MaxTextSize = 20, ZIndex = 41, Parent = toast })
+	Lib.Text({
+		Text = text,
+		TextColor3 = color or C.Text,
+		Size = UDim2.new(1, -16, 1, -8),
+		Position = UDim2.fromOffset(8, 4),
+		MaxTextSize = 20,
+		ZIndex = 41,
+		Parent = toast,
+	})
 	Lib.Pop(toast)
 	local toasts = {}
 	for _, child in toastCluster:GetChildren() do
@@ -49,7 +62,7 @@ function HUD.Toast(text: string, color: Color3?)
 			table.insert(toasts, child)
 		end
 	end
-	if #toasts > 4 then
+	if #toasts > 3 then
 		table.sort(toasts, function(a, b)
 			return a.LayoutOrder < b.LayoutOrder
 		end)
@@ -64,7 +77,7 @@ function HUD.Toast(text: string, color: Color3?)
 	end)
 end
 
-local bannerCluster = Root.Cluster("Banner", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 60), UDim2.fromOffset(820, 56))
+local bannerCluster = Root.Cluster("Banner", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 112), UDim2.fromOffset(760, 50))
 bannerCluster.ZIndex = 45
 local banner = New("Frame", {
 	BackgroundColor3 = Color3.fromRGB(15, 15, 25),
@@ -74,7 +87,14 @@ local banner = New("Frame", {
 	ZIndex = 45,
 	Parent = bannerCluster,
 }, { Lib.Corner(16), Lib.Stroke(C.Gold, 3, 0) })
-local bannerText = Lib.Text({ Text = "", Size = UDim2.new(1, -20, 1, -10), Position = UDim2.fromOffset(10, 5), MaxTextSize = 28, ZIndex = 46, Parent = banner })
+local bannerText = Lib.Text({
+	Text = "",
+	Size = UDim2.new(1, -20, 1, -10),
+	Position = UDim2.fromOffset(10, 5),
+	MaxTextSize = 26,
+	ZIndex = 46,
+	Parent = banner,
+})
 local bannerQueue = {}
 local bannerBusy = false
 
@@ -92,7 +112,7 @@ function HUD.Announce(text: string, color: Color3?)
 			banner:FindFirstChildOfClass("UIStroke").Color = item.Color
 			banner.Visible = true
 			Lib.Pop(banner)
-			task.wait(if #bannerQueue > 2 then 2.5 else 4.5)
+			task.wait(if #bannerQueue > 2 then 2.5 else 4)
 		end
 		banner.Visible = false
 		bannerBusy = false
@@ -100,120 +120,190 @@ function HUD.Announce(text: string, color: Color3?)
 end
 
 ---------------------------------------------------------------------------
--- top left: currencies, backpack, goal
+-- objective card (top center, under the meteor timer)
 ---------------------------------------------------------------------------
-local topLeft = Root.Cluster("TopLeft", Vector2.zero, UDim2.fromOffset(12, 12), UDim2.fromOffset(360, 640))
-Lib.List(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Left).Parent = topLeft
+local objectiveCluster = Root.Cluster("Objective", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 60), UDim2.fromOffset(470, 46))
+local objective = New("Frame", {
+	BackgroundColor3 = DARK,
+	BackgroundTransparency = 0.1,
+	Size = UDim2.fromScale(1, 1),
+	Parent = objectiveCluster,
+}, { Lib.Corner(14), Lib.Stroke(C.Gold, 2.5, 0) })
+local objectiveText =
+	Lib.Text({ Text = "", Size = UDim2.new(1, -20, 1, -14), Position = UDim2.fromOffset(10, 3), MaxTextSize = 20, Parent = objective })
+local objectiveFill = New("Frame", {
+	BackgroundColor3 = C.Gold,
+	Size = UDim2.new(0, 0, 0, 5),
+	Position = UDim2.new(0, 12, 1, -9),
+	Parent = objective,
+}, { Lib.Corner(3) })
+
+---------------------------------------------------------------------------
+-- top left: money, level, backpack, menu
+---------------------------------------------------------------------------
+local topLeft = Root.Cluster("TopLeft", Vector2.zero, UDim2.fromOffset(12, 12), UDim2.fromOffset(260, 520))
+Lib.List(Enum.FillDirection.Vertical, 5, Enum.HorizontalAlignment.Left).Parent = topLeft
 
 local function pill(order: number, icon: string, color: Color3)
 	local frame = New("Frame", {
-		BackgroundColor3 = Color3.fromRGB(20, 22, 34),
+		BackgroundColor3 = DARK,
 		BackgroundTransparency = 0.1,
-		Size = UDim2.fromOffset(250, 42),
+		Size = UDim2.fromOffset(210, 36),
 		LayoutOrder = order,
 		Parent = topLeft,
-	}, { Lib.Corner(21), Lib.Stroke(color, 2.5, 0) })
-	Lib.Text({ Text = icon, Size = UDim2.fromOffset(36, 36), Position = UDim2.fromOffset(4, 3), MaxTextSize = 30, Parent = frame })
-	local label = Lib.Text({ Text = "0", TextColor3 = color, Size = UDim2.new(1, -54, 1, -8), Position = UDim2.fromOffset(44, 4), TextXAlignment = Enum.TextXAlignment.Left, MaxTextSize = 28, Parent = frame })
+	}, { Lib.Corner(18), Lib.Stroke(color, 2.5, 0) })
+	Lib.Text({
+		Text = icon,
+		Size = UDim2.fromOffset(30, 30),
+		Position = UDim2.fromOffset(4, 3),
+		MaxTextSize = 26,
+		Outline = false,
+		Parent = frame,
+	})
+	local label = Lib.Text({
+		Text = "0",
+		TextColor3 = color,
+		Size = UDim2.new(1, -48, 1, -6),
+		Position = UDim2.fromOffset(38, 3),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		MaxTextSize = 24,
+		Parent = frame,
+	})
 	return frame, label
 end
 
-local coinPill, coinLabel = pill(1, "🪙", C.Coins)
+local coinPill, coinLabel = pill(1, "💰", C.Coins)
 local _, gemLabel = pill(2, "💎", C.Gems)
-local _, dustLabel = pill(3, "✨", C.Stardust)
+local dustPill, dustLabel = pill(3, "✨", C.Stardust)
 
--- level bar: every block gives XP, level-ups are frequent early on
-local levelRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(290, 28), LayoutOrder = 4, Parent = topLeft })
-local levelBadge = Lib.Text({ Text = "Lv.1", TextColor3 = C.Gold, Size = UDim2.fromOffset(66, 28), MaxTextSize = 22, Parent = levelRow })
-local _, setLevel = Lib.Bar({ Size = UDim2.fromOffset(220, 22), Position = UDim2.fromOffset(68, 3), Color = C.Gold, TextSize = 14, Parent = levelRow })
+local levelRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(210, 24), LayoutOrder = 4, Parent = topLeft })
+local levelBadge = Lib.Text({ Text = "Lv.1", TextColor3 = C.Gold, Size = UDim2.fromOffset(54, 24), MaxTextSize = 20, Parent = levelRow })
+local _, setLevel =
+	Lib.Bar({ Size = UDim2.fromOffset(152, 18), Position = UDim2.fromOffset(56, 3), Color = C.Gold, TextSize = 12, Parent = levelRow })
 
-local backpackRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(290, 36), LayoutOrder = 5, Parent = topLeft })
-local _, setBackpack = Lib.Bar({ Size = UDim2.fromOffset(200, 32), Position = UDim2.fromOffset(0, 2), Color = C.Blue, TextSize = 18, Parent = backpackRow })
+local backpackRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(250, 34), LayoutOrder = 5, Parent = topLeft })
+local _, setBackpack =
+	Lib.Bar({ Size = UDim2.fromOffset(160, 30), Position = UDim2.fromOffset(0, 2), Color = C.Blue, TextSize = 16, Parent = backpackRow })
 Lib.Button({
 	Text = "💰 Sell",
 	Color = C.Green,
-	Size = UDim2.fromOffset(80, 34),
-	Position = UDim2.fromOffset(206, 1),
-	TextSize = 18,
+	Size = UDim2.fromOffset(82, 32),
+	Position = UDim2.fromOffset(166, 1),
+	TextSize = 16,
 	Parent = backpackRow,
 	OnClick = function()
 		if State.HasPass("AutoSell") then
 			Net.Fire("SellAnywhere")
 		else
+			HUD.Toast(T("Sell at the 💰 SELL pad in the hub - or anywhere with Auto Sell!"), C.Green)
 			Upsell.Pass("AutoSell", true)
-			HUD.Toast("Sell at the 💰 pad in the hub - or sell anywhere with Auto Sell!", C.Green)
 		end
 	end,
 })
 
-local statsLabel = Lib.Text({
-	Text = "",
-	Font = Lib.BodyFont,
-	Size = UDim2.fromOffset(290, 20),
-	LayoutOrder = 6,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	MaxTextSize = 15,
-	Parent = topLeft,
-})
-
-local goal = New("Frame", {
-	BackgroundColor3 = Color3.fromRGB(20, 22, 34),
-	BackgroundTransparency = 0.2,
-	Size = UDim2.fromOffset(290, 46),
-	LayoutOrder = 7,
-	Parent = topLeft,
-}, { Lib.Corner(12), Lib.Stroke(C.Gold, 2, 0.3) })
-local goalText = Lib.Text({
-	Text = "",
-	Size = UDim2.new(1, -14, 1, -8),
-	Position = UDim2.fromOffset(7, 4),
-	TextWrapped = true,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	MaxTextSize = 16,
-	Parent = goal,
-})
-
----------------------------------------------------------------------------
--- left menu
----------------------------------------------------------------------------
--- the menu flows right under the info box (same UIScale), so they never overlap
-local menu = New("Frame", { Name = "Menu", BackgroundTransparency = 1, Size = UDim2.fromOffset(352, 262), LayoutOrder = 8, Parent = topLeft })
-local menuGrid = Lib.Grid(UDim2.fromOffset(82, 82), 8)
+-- menu that grows as the player progresses (no wall of buttons on day one)
+local menu =
+	New("Frame", { Name = "Menu", BackgroundTransparency = 1, Size = UDim2.fromOffset(222, 300), LayoutOrder = 6, Parent = topLeft })
+local menuGrid = Lib.Grid(UDim2.fromOffset(68, 68), 6)
 menuGrid.HorizontalAlignment = Enum.HorizontalAlignment.Left
 menuGrid.Parent = menu
-local badges = {}
+
+local function tutorialAt(data, step: number): boolean
+	return data.Tutorial == nil or data.Tutorial.Done or data.Tutorial.Step >= step
+end
+local function tutorialDone(data): boolean
+	return data.Tutorial == nil or data.Tutorial.Done == true
+end
+
 local MENU = {
-	{ "Shop", "⛏️", "Upgrade", C.Gold },
-	{ "Pets", "🐾", "Pets", C.Green },
-	{ "Quests", "📜", "Daily", C.Blue },
-	{ "Pass", "🎫", "Pass", Color3.fromRGB(255, 120, 60) },
-	{ "Gifts", "🎁", "Gifts", C.Pink },
-	{ "Rebirth", "♻️", "Rebirth", C.Purple },
-	{ "Teleport", "🌀", "Zones", C.Cyan },
-	{ "Store", "🛒", "Store", Color3.fromRGB(60, 200, 110) },
-	{ "Spin", "🎡", "Spin", Color3.fromRGB(255, 170, 40) },
-	{ "Codes", "🎟", "Codes", Color3.fromRGB(120, 200, 90) },
+	{
+		"Shop",
+		"⛏️",
+		"Upgrade",
+		C.Gold,
+		function(d)
+			return tutorialAt(d, 3)
+		end,
+	},
+	{
+		"Pets",
+		"🐾",
+		"Pets",
+		C.Green,
+		function(d)
+			return tutorialAt(d, 4)
+		end,
+	},
+	{ "Rewards", "🎁", "Rewards", C.Pink, tutorialDone },
+	{
+		"Pass",
+		"🎫",
+		"Pass",
+		Color3.fromRGB(255, 120, 60),
+		function(d)
+			return tutorialDone(d) and (d.Level or 1) >= 3
+		end,
+	},
+	{
+		"Teleport",
+		"🌀",
+		"Zones",
+		C.Cyan,
+		function(d)
+			return tutorialDone(d) and d.ZoneLevel >= 2
+		end,
+	},
+	{
+		"Rebirth",
+		"♻️",
+		"Rebirth",
+		C.Purple,
+		function(d, derived)
+			return d.Rebirths > 0 or d.Coins >= (derived.RebirthCost or math.huge) * 0.5
+		end,
+	},
+	{ "Store", "🛒", "Store", Color3.fromRGB(60, 200, 110), tutorialDone },
+	{
+		"Settings",
+		"⚙️",
+		"Settings",
+		C.Gray,
+		function()
+			return true
+		end,
+	},
 }
+local menuButtons = {}
+local badges = {}
 for order, item in MENU do
 	local button = New("TextButton", {
 		Text = "",
 		AutoButtonColor = false,
 		BackgroundColor3 = item[4],
 		LayoutOrder = order,
+		Visible = false,
 		Parent = menu,
-	}, { Lib.Corner(16), Lib.Stroke(Color3.new(0, 0, 0), 2.5, 0.25), Lib.Gradient(Color3.new(1, 1, 1), Color3.fromRGB(170, 170, 170)) })
-	Lib.Text({ Text = item[2], Size = UDim2.new(1, 0, 0.62, 0), Position = UDim2.fromScale(0, 0.04), MaxTextSize = 40, Parent = button })
-	Lib.Text({ Text = item[3], Size = UDim2.new(1, -4, 0.3, 0), Position = UDim2.fromScale(0.02, 0.66), MaxTextSize = 17, Parent = button })
+	}, { Lib.Corner(14), Lib.Stroke(Color3.new(0, 0, 0), 2.5, 0.25), Lib.Gradient(Color3.new(1, 1, 1), Color3.fromRGB(170, 170, 170)) })
+	Lib.Text({
+		Text = item[2],
+		Size = UDim2.new(1, 0, 0.6, 0),
+		Position = UDim2.fromScale(0, 0.04),
+		MaxTextSize = 32,
+		Outline = false,
+		Parent = button,
+	})
+	Lib.Text({ Text = item[3], Size = UDim2.new(1, -4, 0.3, 0), Position = UDim2.fromScale(0.02, 0.66), MaxTextSize = 14, Parent = button })
 	local badge = New("Frame", {
 		BackgroundColor3 = C.Red,
-		Size = UDim2.fromOffset(24, 24),
-		Position = UDim2.new(1, -16, 0, -8),
+		Size = UDim2.fromOffset(20, 20),
+		Position = UDim2.new(1, -13, 0, -7),
 		Visible = false,
 		ZIndex = 3,
 		Parent = button,
-	}, { Lib.Corner(12), Lib.Stroke(Color3.new(1, 1, 1), 2, 0) })
-	Lib.Text({ Text = "!", Size = UDim2.fromScale(1, 1), MaxTextSize = 18, ZIndex = 4, Parent = badge })
+	}, { Lib.Corner(10), Lib.Stroke(Color3.new(1, 1, 1), 2, 0) })
+	Lib.Text({ Text = "!", Size = UDim2.fromScale(1, 1), MaxTextSize = 16, ZIndex = 4, Parent = badge })
 	badges[item[1]] = badge
+	menuButtons[item[1]] = button
 	local scale = New("UIScale", { Parent = button })
 	button.Activated:Connect(function()
 		scale.Scale = 0.9
@@ -224,82 +314,91 @@ for order, item in MENU do
 end
 
 ---------------------------------------------------------------------------
--- right side: boosts
+-- right side: event, boosts, server rank
 ---------------------------------------------------------------------------
-local right = Root.Cluster("RightColumn", Vector2.new(1, 0), UDim2.new(1, -12, 0, 70), UDim2.fromOffset(250, 520))
-HUD.RightColumn = right -- boosts + meteor live ranking stack here
+local right = Root.Cluster("RightColumn", Vector2.new(1, 0), UDim2.new(1, -12, 0, 60), UDim2.fromOffset(250, 520))
+HUD.RightColumn = right -- MeteorUI adds its live ranking here
 Lib.List(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Right).Parent = right
-local boostRows = {}
-local BOOSTS = {
-	{ "Coins2x", "⏫ 2x Coins", C.Coins },
-	{ "Luck2x", "🍀 2x Luck", C.Green },
-	{ "Power2x", "💥 2x Power", C.Red },
-	{ "ServerLuck", "🌟 Server Luck", C.Gold },
-}
--- active server event chip (top of the right column)
-local eventChip = New("Frame", {
-	BackgroundColor3 = Color3.fromRGB(20, 22, 34),
-	BackgroundTransparency = 0.1,
-	Size = UDim2.fromOffset(240, 54),
-	LayoutOrder = 0,
-	Visible = false,
-	Parent = right,
-}, { Lib.Corner(12), Lib.Stroke(C.Gold, 2.5, 0) })
-local eventTitle = Lib.Text({ Text = "", Size = UDim2.new(1, -12, 0, 26), Position = UDim2.fromOffset(6, 3), MaxTextSize = 20, Parent = eventChip })
+
+local function chip(order: number, height: number, strokeColor: Color3)
+	return New("Frame", {
+		BackgroundColor3 = DARK,
+		BackgroundTransparency = 0.12,
+		Size = UDim2.fromOffset(240, height),
+		LayoutOrder = order,
+		Visible = false,
+		Parent = right,
+	}, { Lib.Corner(12), Lib.Stroke(strokeColor, 2.5, 0) })
+end
+
+local eventChip = chip(0, 52, C.Gold)
+local eventTitle =
+	Lib.Text({ Text = "", Size = UDim2.new(1, -12, 0, 24), Position = UDim2.fromOffset(6, 3), MaxTextSize = 19, Parent = eventChip })
 local eventDesc = Lib.Text({
 	Text = "",
 	Font = Lib.BodyFont,
 	TextColor3 = C.Sub,
 	Size = UDim2.new(1, -12, 0, 18),
-	Position = UDim2.fromOffset(6, 31),
+	Position = UDim2.fromOffset(6, 29),
 	MaxTextSize = 13,
 	Parent = eventChip,
 })
 
--- where you stand in THIS server (competition you can see)
-local rankChip = New("Frame", {
-	BackgroundColor3 = Color3.fromRGB(20, 22, 34),
-	BackgroundTransparency = 0.15,
-	Size = UDim2.fromOffset(240, 50),
-	LayoutOrder = 5,
-	Visible = false,
-	Parent = right,
-}, { Lib.Corner(12), Lib.Stroke(Color3.fromRGB(255, 215, 80), 2, 0.2) })
-local rankTitle = Lib.Text({ Text = "", TextColor3 = C.Gold, Size = UDim2.new(1, -12, 0, 24), Position = UDim2.fromOffset(6, 3), MaxTextSize = 20, Parent = rankChip })
+local rankChip = chip(5, 48, Color3.fromRGB(255, 215, 80))
+local rankTitle = Lib.Text({
+	Text = "",
+	TextColor3 = C.Gold,
+	Size = UDim2.new(1, -12, 0, 23),
+	Position = UDim2.fromOffset(6, 3),
+	MaxTextSize = 18,
+	Parent = rankChip,
+})
 local rankSub = Lib.Text({
 	Text = "",
 	Font = Lib.BodyFont,
 	TextColor3 = C.Sub,
-	Size = UDim2.new(1, -12, 0, 18),
-	Position = UDim2.fromOffset(6, 28),
+	Size = UDim2.new(1, -12, 0, 17),
+	Position = UDim2.fromOffset(6, 27),
 	MaxTextSize = 13,
 	Parent = rankChip,
 })
 
+local boostRows = {}
+local BOOSTS = {
+	{ "Coins2x", "2x💰", C.Coins },
+	{ "Luck2x", "2x🍀", C.Green },
+	{ "Power2x", "2x💥", C.Red },
+	{ "ServerLuck", "🌟", C.Gold },
+}
 for order, def in BOOSTS do
-	local row = New("Frame", {
-		BackgroundColor3 = Color3.fromRGB(20, 22, 34),
-		BackgroundTransparency = 0.15,
-		Size = UDim2.fromOffset(220, 34),
-		LayoutOrder = order,
-		Visible = false,
-		Parent = right,
-	}, { Lib.Corner(10), Lib.Stroke(def[3], 2, 0.2) })
-	local label = Lib.Text({ Text = "", TextColor3 = def[3], Size = UDim2.new(1, -12, 1, -6), Position = UDim2.fromOffset(6, 3), MaxTextSize = 18, Parent = row })
+	local row = chip(order, 30, def[3])
+	local label = Lib.Text({
+		Text = "",
+		TextColor3 = def[3],
+		Size = UDim2.new(1, -12, 1, -6),
+		Position = UDim2.fromOffset(6, 3),
+		MaxTextSize = 17,
+		Parent = row,
+	})
 	boostRows[def[1]] = { Row = row, Label = label, Name = def[2] }
 end
 
 ---------------------------------------------------------------------------
--- bottom: auto mine, starter pack, backpack full helper
+-- bottom: backpack-full helper, auto mine, starter pack
 ---------------------------------------------------------------------------
-local bottom = Root.Cluster("Bottom", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -14), UDim2.fromOffset(700, 120))
-local bottomRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 54), Position = UDim2.new(0, 0, 1, -54), Parent = bottom }, {
-	Lib.List(Enum.FillDirection.Horizontal, 10, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Center),
-})
+local bottom = Root.Cluster("Bottom", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -12), UDim2.fromOffset(640, 116))
+local bottomRow = New(
+	"Frame",
+	{ BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 50), Position = UDim2.new(0, 0, 1, -50), Parent = bottom },
+	{
+		Lib.List(Enum.FillDirection.Horizontal, 10, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Center),
+	}
+)
 local autoButton = Lib.Button({
-	Size = UDim2.fromOffset(200, 50),
+	Size = UDim2.fromOffset(190, 46),
 	Color = C.Gray,
 	LayoutOrder = 1,
+	TextSize = 20,
 	Parent = bottomRow,
 	OnClick = function()
 		if State.HasPass("AutoMine") then
@@ -311,9 +410,10 @@ local autoButton = Lib.Button({
 	end,
 })
 local starterButton = Lib.Button({
-	Size = UDim2.fromOffset(260, 50),
+	Size = UDim2.fromOffset(230, 46),
 	Color = C.Pink,
 	LayoutOrder = 2,
+	TextSize = 20,
 	Parent = bottomRow,
 	OnClick = function()
 		Upsell.Product("StarterPack", true)
@@ -322,50 +422,67 @@ local starterButton = Lib.Button({
 local fullFrame = New("Frame", {
 	BackgroundColor3 = Color3.fromRGB(60, 20, 25),
 	BackgroundTransparency = 0.1,
-	Size = UDim2.fromOffset(560, 56),
+	Size = UDim2.fromOffset(540, 54),
 	Position = UDim2.new(0.5, 0, 0, 0),
 	AnchorPoint = Vector2.new(0.5, 0),
 	Visible = false,
 	Parent = bottom,
 }, { Lib.Corner(14), Lib.Stroke(C.Red, 2.5, 0) })
-Lib.Text({ Text = "🎒 BACKPACK FULL!", TextColor3 = C.Red, Size = UDim2.fromOffset(200, 40), Position = UDim2.fromOffset(10, 8), MaxTextSize = 24, Parent = fullFrame })
-Lib.Button({ Text = "🏠 Sell at Hub", Color = C.Green, Size = UDim2.fromOffset(160, 42), Position = UDim2.fromOffset(214, 7), Parent = fullFrame, OnClick = function()
-	if State.HasPass("AutoSell") then
-		Net.Fire("SellAnywhere")
-	else
-		Net.Fire("Teleport", 0)
-	end
-end })
-Lib.Button({ Text = "🎒 Upgrade", Color = C.Blue, Size = UDim2.fromOffset(170, 42), Position = UDim2.fromOffset(382, 7), Parent = fullFrame, OnClick = function()
-	Panels.Open("Shop", "Backpacks")
-end })
+Lib.Text({
+	Text = "🎒 BACKPACK FULL!",
+	TextColor3 = C.Red,
+	Size = UDim2.fromOffset(190, 40),
+	Position = UDim2.fromOffset(10, 7),
+	MaxTextSize = 22,
+	Parent = fullFrame,
+})
+Lib.Button({
+	Text = "🏠 Go sell",
+	Color = C.Green,
+	Size = UDim2.fromOffset(160, 42),
+	Position = UDim2.fromOffset(204, 6),
+	Parent = fullFrame,
+	OnClick = function()
+		if State.HasPass("AutoSell") then
+			Net.Fire("SellAnywhere")
+		else
+			Net.Fire("Teleport", 0)
+		end
+	end,
+})
+Lib.Button({
+	Text = "🎒 Upgrade",
+	Color = C.Blue,
+	Size = UDim2.fromOffset(160, 42),
+	Position = UDim2.fromOffset(372, 6),
+	Parent = fullFrame,
+	OnClick = function()
+		Panels.Open("Shop", "Backpacks")
+	end,
+})
 
 ---------------------------------------------------------------------------
--- refresh
+-- objective logic
 ---------------------------------------------------------------------------
 local function nextGoal(data, derived): string
 	local capacity = derived.Capacity or 1
 	if data.Backpack >= capacity then
-		return "🎯 Sell your ore at the 💰 SELL pad in the hub!"
+		return T("Sell your ore at the 💰 SELL pad in the hub!")
 	end
 	local pick = Config.Pickaxes[data.PickaxeTier + 1]
 	local bag = Config.Backpacks[data.BackpackTier + 1]
 	local zone = Config.Zones[data.ZoneLevel + 1]
-	local rebirthCost = derived.RebirthCost or math.huge
-	if data.Coins >= rebirthCost then
-		return "🎯 You can REBIRTH for a permanent coin boost!"
+	if data.Coins >= (derived.RebirthCost or math.huge) then
+		return T("You can REBIRTH for a permanent coin boost!")
 	end
 	if zone and data.Coins >= zone.Cost then
-		return "🎯 Unlock " .. zone.Name .. " at the gate!"
+		return T("Unlock %s at the gate!", zone.Name)
 	end
 	if pick and data.Coins >= pick.Cost then
-		return "🎯 Buy the " .. pick.Name .. "!"
+		return T("Buy the %s!", pick.Name)
 	end
 	if bag and data.Coins >= bag.Cost then
-		return "🎯 Buy the " .. bag.Name .. "!"
-	end
-	if data.Stats.EggsHatched == 0 and data.Coins >= Config.Eggs.Meadow.Price then
-		return "🎯 Hatch your first pet at the Meadow Egg!"
+		return T("Buy the %s!", bag.Name)
 	end
 	local cheapest = math.huge
 	for _, cost in { pick and pick.Cost, bag and bag.Cost, zone and zone.Cost } do
@@ -374,11 +491,39 @@ local function nextGoal(data, derived): string
 		end
 	end
 	if cheapest < math.huge then
-		return string.format("🎯 Mine & sell ore: %s / %s coins for your next upgrade", Util.Format(data.Coins), Util.Format(cheapest))
+		return T("Mine & sell: %s / %s coins for the next upgrade", Util.Format(data.Coins), Util.Format(cheapest))
 	end
-	return "🎯 Climb the weekly ranked leaderboard!"
+	return T("Climb the weekly ranked leaderboard!")
 end
 
+-- returns text, progress (0-1 or nil)
+local function currentObjective(data, derived)
+	local tutorial = data.Tutorial
+	if tutorial and not tutorial.Done then
+		local steps = Config.Tutorial.Steps
+		local step = steps[tutorial.Step]
+		if step then
+			local text = T(step.Text)
+			local progress = tutorial.Progress / step.Target
+			if step.Id == "Mine" then
+				text = string.format("%s  (%d/%d)", text, tutorial.Progress, step.Target)
+			elseif step.Id == "Pickaxe" and data.Coins < Config.Pickaxes[2].Cost then
+				text = T("Mine & sell ore until you have %s coins", Util.Format(Config.Pickaxes[2].Cost))
+				progress = data.Coins / Config.Pickaxes[2].Cost
+			elseif step.Id == "Hatch" and data.Coins < Config.Eggs.Meadow.Price then
+				text = T("Mine & sell ore until you have %s coins", Util.Format(Config.Eggs.Meadow.Price))
+				progress = data.Coins / Config.Eggs.Meadow.Price
+			end
+			return string.format("📘 %d/%d  %s", tutorial.Step, #steps, text), progress
+		end
+	end
+	return "🎯 " .. nextGoal(data, derived), nil
+end
+HUD.CurrentObjective = currentObjective
+
+---------------------------------------------------------------------------
+-- badge helpers
+---------------------------------------------------------------------------
 local function anyQuestClaimable(data): boolean
 	if data.Daily.LastClaimDay ~= (State.Derived.Today or -1) then
 		return true
@@ -420,6 +565,21 @@ local function anyGiftClaimable(derived): boolean
 	return false
 end
 
+function HUD.RewardsReady()
+	local data, derived = State.Data, State.Derived
+	if not data or not derived then
+		return {}
+	end
+	return {
+		Quests = anyQuestClaimable(data),
+		Gifts = anyGiftClaimable(derived),
+		Spin = (data.FreeSpinAt or 0) <= State.Now(),
+	}
+end
+
+---------------------------------------------------------------------------
+-- refresh
+---------------------------------------------------------------------------
 local lastCoins = nil
 local coinValue = Instance.new("NumberValue")
 coinValue.Changed:Connect(function(value)
@@ -429,16 +589,18 @@ local eventDefs = {}
 for _, def in Config.Events.List do
 	eventDefs[def.Id] = def
 end
+local revealed = {}
+local firstRefresh = true
 
 function HUD.Refresh()
 	local data, derived = State.Data, State.Derived
 	if not data then
 		return
 	end
+	-- money (numbers roll up instead of jumping)
 	if lastCoins == nil then
 		coinValue.Value = data.Coins
 	elseif data.Coins ~= lastCoins then
-		-- numbers roll up instead of jumping (feels rewarding)
 		TweenService:Create(coinValue, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Value = data.Coins }):Play()
 		if data.Coins > lastCoins then
 			Lib.Pop(coinPill)
@@ -447,10 +609,51 @@ function HUD.Refresh()
 	lastCoins = data.Coins
 	gemLabel.Text = Util.Format(data.Gems)
 	dustLabel.Text = Util.Format(data.Stardust)
+	dustPill.Visible = data.Stardust > 0
 
 	local need = derived.XPNeeded or 1
 	levelBadge.Text = "Lv." .. (data.Level or 1)
 	setLevel((data.XP or 0) / need, string.format("%s / %s XP", Util.Format(data.XP or 0), Util.Format(need)))
+
+	local capacity = derived.Capacity or 1
+	local full = data.Backpack >= capacity
+	setBackpack(
+		data.Backpack / capacity,
+		string.format("🎒 %s/%s", Util.Format(data.Backpack), Util.Format(capacity)),
+		if full then C.Red else C.Blue
+	)
+	fullFrame.Visible = full
+
+	-- objective
+	local text, progress = currentObjective(data, derived)
+	objectiveText.Text = text
+	objectiveFill.Visible = progress ~= nil
+	if progress then
+		objectiveFill.Size = UDim2.new(math.clamp(progress, 0, 1), -24, 0, 5)
+	end
+
+	-- menu reveal
+	for _, item in MENU do
+		local id = item[1]
+		local show = item[5](data, derived) == true
+		local button = menuButtons[id]
+		if show and not revealed[id] then
+			revealed[id] = true
+			button.Visible = true
+			if not firstRefresh then
+				Lib.Pop(button)
+				HUD.Toast(T("New menu unlocked: %s", item[3]), C.Gold)
+			end
+		elseif not show and revealed[id] then
+			revealed[id] = nil
+			button.Visible = false
+		end
+	end
+	firstRefresh = false
+	local ready = HUD.RewardsReady()
+	badges.Rewards.Visible = ready.Quests or ready.Gifts or ready.Spin
+	badges.Pass.Visible = anyTierClaimable(data)
+	badges.Rebirth.Visible = data.Coins >= (derived.RebirthCost or math.huge)
 
 	-- server event chip
 	local eventId = workspace:GetAttribute("EventId")
@@ -458,34 +661,21 @@ function HUD.Refresh()
 	local eventLeft = (workspace:GetAttribute("EventEnd") or 0) - State.Now()
 	eventChip.Visible = eventDef ~= nil and eventLeft > 0
 	if eventChip.Visible and eventDef then
-		eventTitle.Text = eventDef.Name .. "  " .. Util.FormatTime(eventLeft)
+		eventTitle.Text = T(eventDef.Name) .. "  " .. Util.FormatTime(eventLeft)
 		eventTitle.TextColor3 = eventDef.Color
-		eventDesc.Text = eventDef.Description
+		eventDesc.Text = T(eventDef.Description)
 		eventChip:FindFirstChildOfClass("UIStroke").Color = eventDef.Color
 	end
 
-	-- in-server ranking chip
+	-- rank in this server
 	local sr = derived.ServerRank
 	rankChip.Visible = type(sr) == "table" and (sr.Count or 0) >= 2
 	if rankChip.Visible then
-		rankTitle.Text = string.format("🏆 #%d of %d in server", sr.Place, sr.Count)
+		rankTitle.Text = T("🏆 #%d of %d in server", sr.Place, sr.Count)
 		rankSub.Text = if sr.NextName
-			then string.format("+%s pts to pass %s", Util.Comma(sr.NextGap or 0), sr.NextName)
-			else "You're #1 here - defend it!"
+			then T("+%s pts to pass %s", Util.Comma(sr.NextGap or 0), sr.NextName)
+			else T("You're #1 here - defend it!")
 	end
-	badges.Spin.Visible = (data.FreeSpinAt or 0) <= State.Now()
-
-	local capacity = derived.Capacity or 1
-	local full = data.Backpack >= capacity
-	setBackpack(data.Backpack / capacity, string.format("🎒 %s / %s", Util.Format(data.Backpack), Util.Format(capacity)), if full then C.Red else C.Blue)
-	fullFrame.Visible = full
-	statsLabel.Text = string.format("🪙 x%s   💥 %s   🍀 x%.1f", Util.Format(derived.CoinMult or 1), Util.Format(derived.Damage or 1), derived.Luck or 1)
-	goalText.Text = nextGoal(data, derived)
-
-	badges.Quests.Visible = anyQuestClaimable(data)
-	badges.Pass.Visible = anyTierClaimable(data)
-	badges.Gifts.Visible = anyGiftClaimable(derived)
-	badges.Rebirth.Visible = data.Coins >= (derived.RebirthCost or math.huge)
 
 	for key, row in boostRows do
 		local remaining
@@ -496,37 +686,29 @@ function HUD.Refresh()
 		end
 		row.Row.Visible = remaining > 0
 		if remaining > 0 then
-			row.Label.Text = row.Name .. "  " .. Util.FormatTime(remaining)
+			local name = if key == "ServerLuck" then T("🌟 Server Luck") else row.Name
+			row.Label.Text = name .. "  " .. Util.FormatTime(remaining)
 		end
 	end
 
+	-- bottom buttons only after the tutorial
+	local done = tutorialDone(data)
+	autoButton.Visible = done
 	if State.HasPass("AutoMine") then
-		Lib.SetButton(autoButton, if State.AutoMine then "🤖 AUTO MINE: ON" else "🤖 AUTO MINE: OFF", if State.AutoMine then C.Green else C.Gray)
+		Lib.SetButton(autoButton, if State.AutoMine then "🤖 AUTO: ON" else "🤖 AUTO: OFF", if State.AutoMine then C.Green else C.Gray)
 	else
-		Lib.SetButton(autoButton, "🤖 AUTO MINE 🔒", C.Gray)
+		Lib.SetButton(autoButton, "🤖 AUTO 🔒", C.Gray)
 	end
-
-	local offerEnds = data.FirstJoin + Config.StarterPack.OfferHours * 3600
-	local remainingOffer = offerEnds - State.Now()
-	starterButton.Visible = not data.Flags.StarterPack and remainingOffer > 0
+	local remainingOffer = data.FirstJoin + Config.StarterPack.OfferHours * 3600 - State.Now()
+	starterButton.Visible = done and not data.Flags.StarterPack and remainingOffer > 0
 	if starterButton.Visible then
-		Lib.SetButton(starterButton, "🎁 STARTER PACK  " .. Util.FormatTime(remainingOffer), C.Pink)
+		Lib.SetButton(starterButton, "🎁 " .. T("STARTER PACK") .. " " .. Util.FormatTime(remainingOffer), C.Pink)
 	end
 end
 
 ---------------------------------------------------------------------------
--- server messages
+-- effects
 ---------------------------------------------------------------------------
-Net.On("Notify", function(text, color)
-	HUD.Toast(text, color)
-end)
-Net.On("Announce", function(text, color)
-	HUD.Announce(text, color)
-end)
-Net.On("Reward", function(text, source)
-	HUD.Toast("🎁 " .. (if source then source .. ": " else "") .. text, C.Gold)
-	Lib.PlaySound("Reward")
-end)
 local function flyCoins(amount: number)
 	local inset = GuiService:GetGuiInset()
 	local target = coinPill.AbsolutePosition + coinPill.AbsoluteSize / 2 + inset
@@ -535,7 +717,7 @@ local function flyCoins(amount: number)
 	local n = math.clamp(math.floor(math.log10(math.max(10, amount)) * 2), 3, 12)
 	for i = 1, n do
 		local icon = Lib.Text({
-			Text = "🪙",
+			Text = "💰",
 			Size = UDim2.fromOffset(34, 34),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromOffset(center.X + math.random(-80, 80), center.Y + math.random(-60, 60)),
@@ -557,27 +739,6 @@ local function flyCoins(amount: number)
 	end
 end
 
-Net.On("Sold", function(coins)
-	Lib.PlaySound("Coin")
-	flyCoins(coins)
-	local popup = Lib.Text({
-		Text = "+" .. Util.Format(coins) .. " 🪙",
-		TextColor3 = C.Coins,
-		Size = UDim2.fromOffset(200, 36),
-		Position = UDim2.fromOffset(260, 4),
-		MaxTextSize = 30,
-		ZIndex = 10,
-		Parent = topLeft.Parent,
-	})
-	popup.Position = UDim2.fromOffset(topLeft.AbsolutePosition.X + 200, topLeft.AbsolutePosition.Y)
-	TweenService:Create(popup, TweenInfo.new(1.2), {
-		Position = popup.Position - UDim2.fromOffset(0, 40),
-		TextTransparency = 1,
-	}):Play()
-	task.delay(1.2, function()
-		popup:Destroy()
-	end)
-end)
 local function confetti()
 	local camera = workspace.CurrentCamera
 	local size = if camera then camera.ViewportSize else Vector2.new(1280, 760)
@@ -591,9 +752,8 @@ local function confetti()
 			ZIndex = 70,
 			Parent = Root.Overlay,
 		}, { Lib.Corner(3) })
-		local endPos = UDim2.fromOffset(size.X / 2 + math.random(-450, 450), size.Y * 0.4 + math.random(-250, 350))
 		TweenService:Create(piece, TweenInfo.new(1.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			Position = endPos,
+			Position = UDim2.fromOffset(size.X / 2 + math.random(-450, 450), size.Y * 0.4 + math.random(-250, 350)),
 			Rotation = piece.Rotation + math.random(-360, 360),
 			BackgroundTransparency = 1,
 		}):Play()
@@ -603,18 +763,19 @@ local function confetti()
 	end
 end
 
-local celebration = Root.Cluster("LevelUp", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.32), UDim2.fromOffset(520, 120))
-local celebrationTitle = Lib.Text({ Text = "", TextColor3 = C.Gold, Size = UDim2.fromScale(1, 0.62), MaxTextSize = 64, Visible = false, Parent = celebration })
+local celebration = Root.Cluster("Celebration", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.36), UDim2.fromOffset(560, 120))
+local celebrationTitle =
+	Lib.Text({ Text = "", TextColor3 = C.Gold, Size = UDim2.fromScale(1, 0.62), MaxTextSize = 60, Visible = false, Parent = celebration })
 local celebrationSub = Lib.Text({
 	Text = "",
 	Size = UDim2.fromScale(1, 0.34),
 	Position = UDim2.fromScale(0, 0.64),
-	MaxTextSize = 30,
+	MaxTextSize = 28,
 	Visible = false,
 	Parent = celebration,
 })
 local celebrationToken = 0
-local function celebrate(title: string, sub: string, color: Color3)
+local function celebrate(title: string, sub: string, color: Color3, withConfetti: boolean?)
 	celebrationToken += 1
 	local token = celebrationToken
 	celebrationTitle.Text = title
@@ -623,45 +784,76 @@ local function celebrate(title: string, sub: string, color: Color3)
 	celebrationTitle.Visible = true
 	celebrationSub.Visible = true
 	Lib.Pop(celebrationTitle)
-	confetti()
-	task.delay(2.2, function()
+	if withConfetti ~= false then
+		confetti()
+	end
+	task.delay(2.4, function()
 		if token == celebrationToken then
 			celebrationTitle.Visible = false
 			celebrationSub.Visible = false
 		end
 	end)
 end
+HUD.Celebrate = celebrate
 
+---------------------------------------------------------------------------
+-- server messages
+---------------------------------------------------------------------------
+Net.On("Notify", function(text, color)
+	HUD.Toast(text, color)
+end)
+Net.On("Announce", function(text, color)
+	HUD.Announce(text, color)
+end)
+Net.On("Reward", function(text, source)
+	HUD.Toast("🎁 " .. (if source then source .. ": " else "") .. text, C.Gold)
+	Lib.PlaySound("Reward")
+end)
+Net.On("Sold", function(coins)
+	Lib.PlaySound("Coin")
+	flyCoins(coins)
+end)
 Net.On("LevelUp", function(level, gems)
 	Lib.PlaySound("LevelUp")
-	celebrate("⭐ LEVEL " .. tostring(level) .. "!", "+" .. tostring(gems) .. " 💎  •  +2% coins forever", C.Gold)
+	celebrate(T("⭐ LEVEL %s!", tostring(level)), T("+%s 💎  •  +2%% coins forever", tostring(gems)), C.Gold)
 end)
 Net.On("RankUp", function(rankName)
 	Lib.PlaySound("RankUp")
-	celebrate("🏅 " .. string.upper(tostring(rankName)) .. " RANK!", "Weekly ranked - keep climbing!", C.Cyan)
+	celebrate(T("🏅 %s RANK!", tostring(rankName)), T("Weekly ranked - keep climbing!"), C.Cyan)
+end)
+Net.On("TutorialStep", function(_, rewardText)
+	Lib.PlaySound("Reward")
+	celebrate(T("✅ Step complete!"), "+" .. tostring(rewardText), C.Green, false)
+end)
+Net.On("TutorialDone", function(rewardText)
+	Lib.PlaySound("Legendary")
+	celebrate(T("🎉 Tutorial complete!"), "+" .. tostring(rewardText), C.Gold)
+	HUD.Toast(T("All menus unlocked - have fun!"), C.Gold)
 end)
 Net.On("EventStarted", function()
 	Lib.PlaySound("Event")
 end)
-
 Net.On("Rebirthed", function(count, gems)
-	HUD.Announce(string.format("♻️ REBIRTH %d!  +%s 💎", count, Util.Format(gems)), C.Purple)
+	HUD.Announce(T("♻️ REBIRTH %s!  +%s 💎", tostring(count), Util.Format(gems)), C.Purple)
 end)
 Net.On("ZoneUnlocked", function(index)
 	local zone = Config.Zones[index]
 	if zone then
-		HUD.Announce("🔓 " .. zone.Name .. " unlocked!", zone.Accent)
+		HUD.Announce(T("🔓 %s unlocked!", zone.Name), zone.Accent)
 	end
 end)
 Net.On("OpenPanel", function(panel, arg)
 	if panel == "Daily" then
-		Panels.Open("Quests")
+		local data = State.Data
+		if data and tutorialDone(data) then
+			Panels.Open("Quests")
+		end
 	else
 		Panels.Open(panel, arg)
 	end
 end)
 Net.On("BackpackFull", function()
-	if not State.HasPass("AutoSell") then
+	if not State.HasPass("AutoSell") and State.Data and tutorialDone(State.Data) then
 		Upsell.Pass("AutoSell")
 	end
 end)
@@ -690,5 +882,6 @@ end)
 
 Panels.Provide("Toast", HUD.Toast)
 Panels.Provide("Upsell", Upsell)
+Panels.Provide("HUD", HUD)
 
 return HUD

@@ -80,9 +80,9 @@ local function applyPass(player: Player, key: string, isNewPurchase: boolean)
 
 	if isNewPurchase then
 		local pass = Config.GamePasses[key]
-		Net:Notify(player, "🎉 Unlocked " .. pass.Name .. "!", GOLD)
+		Net:Notify(player, "🎉 Unlocked %s!", GOLD, pass.Name)
 		-- social proof: everyone sees supporters
-		Net:Announce(string.format("%s %s just got %s!", pass.Icon or "⭐", player.DisplayName, pass.Name), GOLD)
+		Net:Announce("%s %s just got %s!", GOLD, pass.Icon or "⭐", player.DisplayName, pass.Name)
 	end
 end
 
@@ -169,7 +169,7 @@ local function grantProduct(player: Player, key: string, data)
 
 	if kind == "Gems" then
 		data.Gems += product.Amount
-		Net:Notify(player, string.format("💎 +%d Gems! Thank you!", product.Amount), GOLD)
+		Net:Notify(player, "💎 +%d Gems! Thank you!", GOLD, product.Amount)
 	elseif kind == "CoinPack" then
 		local amount = math.max(2500, math.floor(stats:Capacity(player, data) * 15 * stats:CoinMultiplier(player, data)))
 		data.Coins += amount
@@ -184,7 +184,7 @@ local function grantProduct(player: Player, key: string, data)
 	elseif kind == "SeasonPremium" then
 		data.Season.Premium = true
 		Net:Notify(player, "🎫 Premium Pass unlocked! Claim your rewards.", GOLD)
-		Net:Announce("🎫 " .. player.DisplayName .. " unlocked the Premium Season Pass!", GOLD)
+		Net:Announce("🎫 %s unlocked the Premium Season Pass!", GOLD, player.DisplayName)
 	elseif kind == "SkipTiers" then
 		Services.ProgressionService:AddSeasonXP(player, Config.Season.XPPerTier * product.Amount)
 	elseif kind == "StarterPack" then
@@ -237,24 +237,24 @@ end
 local function watchAd(player: Player)
 	local settings = Config.RewardedAds
 	if not settings.Enabled then
-		return false, "Ads are not available."
+		return false, Net:L(player, "Ads are not available.")
 	end
 	local data = Data:Get(player)
 	if not data then
-		return false, "Loading..."
+		return false, Net:L(player, "Loading...")
 	end
 	local remaining = settings.CooldownSeconds - (os.time() - data.LastAdTime)
 	if remaining > 0 then
-		return false, string.format("Next free reward in %d min", math.ceil(remaining / 60))
+		return false, Net:L(player, "Next free reward in %d min", math.ceil(remaining / 60))
 	end
 	local product = Config.Products.AdReward
 	if product.Id == 0 then
 		if Util.CanTest(Config, player) then
 			data.LastAdTime = os.time()
 			grantProduct(player, "AdReward", data)
-			return true, "[TEST] Ad reward granted"
+			return true, Net:L(player, "[TEST] Ad reward granted")
 		end
-		return false, "Ad reward is not configured."
+		return false, Net:L(player, "Ad reward is not configured.")
 	end
 	-- NOTE: verify method names against the current AdService docs before enabling.
 	local ok, result = pcall(function()
@@ -269,15 +269,15 @@ local function watchAd(player: Player)
 	end)
 	if not ok then
 		warn("[Monetization] ad failed: " .. tostring(result))
-		return false, "No ad available right now."
+		return false, Net:L(player, "No ad available right now.")
 	end
 	if result ~= "shown" then
-		return false, "No ad available right now."
+		return false, Net:L(player, "No ad available right now.")
 	end
 	-- the reward itself arrives through ProcessReceipt
 	data.LastAdTime = os.time()
 	Data:MarkDirty(player)
-	return true, "Thanks for watching!"
+	return true, Net:L(player, "Thanks for watching!")
 end
 
 ---------------------------------------------------------------------------
@@ -321,13 +321,13 @@ function Monetization:Start()
 			return
 		end
 		if self:HasPass(player, key) then
-			Net:Notify(player, "You already own " .. pass.Name .. "!")
+			Net:Notify(player, "You already own %s!", nil, pass.Name)
 			return
 		end
 		if pass.Id == 0 then
 			if Util.CanTest(Config, player) then
 				applyPass(player, key, true)
-				Net:Notify(player, "[TEST] Simulated purchase (no Robux charged): " .. pass.Name)
+				Net:Notify(player, "[TEST] Simulated purchase (no Robux charged): %s", nil, pass.Name)
 			else
 				Net:Notify(player, "Coming soon!")
 			end
@@ -350,7 +350,7 @@ function Monetization:Start()
 		if product.Id == 0 then
 			if Util.CanTest(Config, player) then
 				grantProduct(player, key, data)
-				Net:Notify(player, "[TEST] Simulated purchase (no Robux charged): " .. product.Name)
+				Net:Notify(player, "[TEST] Simulated purchase (no Robux charged): %s", nil, product.Name)
 			else
 				Net:Notify(player, "Coming soon!")
 			end
@@ -362,7 +362,7 @@ function Monetization:Start()
 	Net:On("BuySubscription", 1, function(player)
 		local sub = Config.Subscription
 		if self:IsSubscribed(player) then
-			Net:Notify(player, "You're already in the " .. sub.Name .. "!")
+			Net:Notify(player, "You're already in the %s!", nil, sub.Name)
 			return
 		end
 		if sub.Id == "" then
@@ -372,7 +372,7 @@ function Monetization:Start()
 				Services.ProgressionService:CheckClubDaily(player)
 				Services.CharacterService:RefreshOverhead(player)
 				Data:MarkDirty(player)
-				Net:Notify(player, "[TEST] Simulated subscription: " .. sub.Name)
+				Net:Notify(player, "[TEST] Simulated subscription: %s", nil, sub.Name)
 			else
 				Net:Notify(player, "Coming soon!")
 			end

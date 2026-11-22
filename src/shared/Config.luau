@@ -232,27 +232,55 @@ Config.Pets = {
 	["Fire Fox"] = { Rarity = "Uncommon", Power = 6, Color = Color3.fromRGB(255, 60, 20), Shape = "Block", Ears = true },
 	["Lava Golem"] = { Rarity = "Rare", Power = 12, Color = Color3.fromRGB(90, 40, 30), Shape = "Block", Horns = true },
 	["Phoenix Chick"] = { Rarity = "Epic", Power = 30, Color = Color3.fromRGB(255, 150, 30), Shape = "Ball", Wings = true },
-	["Inferno Dragon"] = { Rarity = "Legendary", Power = 90, Color = Color3.fromRGB(200, 30, 20), Shape = "Block", Wings = true, Horns = true },
+	["Inferno Dragon"] = {
+		Rarity = "Legendary",
+		Power = 90,
+		Color = Color3.fromRGB(200, 30, 20),
+		Shape = "Block",
+		Wings = true,
+		Horns = true,
+	},
 	["Sun Serpent"] = { Rarity = "Mythic", Power = 250, Color = Color3.fromRGB(255, 220, 60), Shape = "Ball", Horns = true },
 	-- Void
 	["Void Bat"] = { Rarity = "Common", Power = 15, Color = Color3.fromRGB(70, 40, 110), Shape = "Ball", Wings = true },
 	["Shadow Cat"] = { Rarity = "Uncommon", Power = 30, Color = Color3.fromRGB(35, 25, 50), Shape = "Block", Ears = true },
 	["Nebula Fox"] = { Rarity = "Rare", Power = 60, Color = Color3.fromRGB(150, 80, 255), Shape = "Block", Ears = true },
 	["Rift Owl"] = { Rarity = "Epic", Power = 150, Color = Color3.fromRGB(90, 60, 200), Shape = "Ball", Wings = true },
-	["Galaxy Dragon"] = { Rarity = "Legendary", Power = 450, Color = Color3.fromRGB(60, 40, 160), Shape = "Block", Wings = true, Horns = true },
+	["Galaxy Dragon"] = {
+		Rarity = "Legendary",
+		Power = 450,
+		Color = Color3.fromRGB(60, 40, 160),
+		Shape = "Block",
+		Wings = true,
+		Horns = true,
+	},
 	["Void Emperor"] = { Rarity = "Mythic", Power = 1200, Color = Color3.fromRGB(20, 10, 40), Shape = "Block", Horns = true },
 	["Black Hole Kitty"] = { Rarity = "Secret", Power = 5000, Color = Color3.fromRGB(10, 10, 15), Shape = "Ball", Ears = true },
 	-- Gem egg
 	["Gem Pup"] = { Rarity = "Uncommon", Power = 2, Color = Color3.fromRGB(80, 230, 255), Shape = "Block", Ears = true },
 	["Crystal Cat"] = { Rarity = "Rare", Power = 5, Color = Color3.fromRGB(170, 240, 255), Shape = "Block", Ears = true },
 	["Prism Owl"] = { Rarity = "Epic", Power = 15, Color = Color3.fromRGB(255, 150, 255), Shape = "Ball", Wings = true },
-	["Diamond Dragon"] = { Rarity = "Legendary", Power = 60, Color = Color3.fromRGB(190, 250, 255), Shape = "Block", Wings = true, Horns = true },
+	["Diamond Dragon"] = {
+		Rarity = "Legendary",
+		Power = 60,
+		Color = Color3.fromRGB(190, 250, 255),
+		Shape = "Block",
+		Wings = true,
+		Horns = true,
+	},
 	["Jewel Phoenix"] = { Rarity = "Mythic", Power = 200, Color = Color3.fromRGB(255, 80, 200), Shape = "Ball", Wings = true },
 	-- Cosmic egg (stardust only - earned in meteor events)
 	["Comet Pup"] = { Rarity = "Rare", Power = 20, Color = Color3.fromRGB(120, 200, 255), Shape = "Block", Ears = true },
 	["Meteor Cat"] = { Rarity = "Epic", Power = 60, Color = Color3.fromRGB(255, 120, 60), Shape = "Block", Ears = true },
 	["Star Owl"] = { Rarity = "Legendary", Power = 200, Color = Color3.fromRGB(255, 240, 120), Shape = "Ball", Wings = true },
-	["Supernova Dragon"] = { Rarity = "Mythic", Power = 800, Color = Color3.fromRGB(255, 60, 160), Shape = "Block", Wings = true, Horns = true },
+	["Supernova Dragon"] = {
+		Rarity = "Mythic",
+		Power = 800,
+		Color = Color3.fromRGB(255, 60, 160),
+		Shape = "Block",
+		Wings = true,
+		Horns = true,
+	},
 	["Celestial Titan"] = { Rarity = "Secret", Power = 3000, Color = Color3.fromRGB(60, 255, 230), Shape = "Block", Horns = true },
 	-- Golden egg (Robux)
 	["Golden Pup"] = { Rarity = "Epic", Power = 50, Color = Color3.fromRGB(255, 210, 60), Shape = "Block", Ears = true },
@@ -387,7 +415,7 @@ Config.GamePasses = {
 		Icon = "👑",
 		Description = "+25% coins, +1 pet slot, [VIP] chat tag, daily VIP chest (100 gems)",
 	},
-	DoubleCoins = { Id = 0, Name = "2x Coins", Price = 249, Icon = "🪙", Description = "Permanently double all coins from selling" },
+	DoubleCoins = { Id = 0, Name = "2x Coins", Price = 249, Icon = "💰", Description = "Permanently double all coins from selling" },
 	MegaPower = { Id = 0, Name = "2x Mining Power", Price = 199, Icon = "💥", Description = "Permanently double your mining damage" },
 	AutoMine = { Id = 0, Name = "Auto Mine", Price = 149, Icon = "🤖", Description = "Mine automatically while holding your pickaxe" },
 	AutoSell = { Id = 0, Name = "Auto Sell", Price = 129, Icon = "💰", Description = "Sell automatically when full + sell from anywhere" },
@@ -397,7 +425,8 @@ Config.GamePasses = {
 	BigBackpack = { Id = 0, Name = "2x Backpack", Price = 99, Icon = "🎒", Description = "Double backpack capacity" },
 	Speed = { Id = 0, Name = "Rocket Boots", Price = 79, Icon = "👟", Description = "+50% walk speed" },
 }
-Config.GamePassOrder = { "VIP", "DoubleCoins", "MegaPower", "AutoMine", "AutoSell", "ExtraPets", "Lucky", "TripleHatch", "BigBackpack", "Speed" }
+Config.GamePassOrder =
+	{ "VIP", "DoubleCoins", "MegaPower", "AutoMine", "AutoSell", "ExtraPets", "Lucky", "TripleHatch", "BigBackpack", "Speed" }
 
 -- Kind decides how the product is granted (see MonetizationService)
 Config.Products = {
@@ -409,7 +438,7 @@ Config.Products = {
 		Id = 0,
 		Name = "Coin Crate",
 		Price = 49,
-		Icon = "🪙",
+		Icon = "💰",
 		Kind = "CoinPack",
 		Description = "Coins = 15 full backpacks (scales with you)",
 	},
@@ -541,12 +570,12 @@ Config.PvP = {
 
 -- Weekly ranked ladder (points come from activity, not wealth -> fair competition)
 Config.Ranks = {
-	{ Name = "Bronze", Min = 0, Color = Color3.fromRGB(205, 127, 50), RewardGems = 0 },
-	{ Name = "Silver", Min = 500, Color = Color3.fromRGB(200, 210, 220), RewardGems = 50 },
-	{ Name = "Gold", Min = 2000, Color = Color3.fromRGB(255, 205, 50), RewardGems = 150 },
-	{ Name = "Platinum", Min = 6000, Color = Color3.fromRGB(110, 230, 210), RewardGems = 400 },
-	{ Name = "Diamond", Min = 15000, Color = Color3.fromRGB(120, 190, 255), RewardGems = 1000 },
-	{ Name = "Master", Min = 35000, Color = Color3.fromRGB(255, 80, 160), RewardGems = 2500 },
+	{ Name = "Bronze", Icon = "🥉", Min = 0, Color = Color3.fromRGB(205, 127, 50), RewardGems = 0 },
+	{ Name = "Silver", Icon = "🥈", Min = 500, Color = Color3.fromRGB(200, 210, 220), RewardGems = 50 },
+	{ Name = "Gold", Icon = "🥇", Min = 2000, Color = Color3.fromRGB(255, 205, 50), RewardGems = 150 },
+	{ Name = "Platinum", Icon = "💠", Min = 6000, Color = Color3.fromRGB(110, 230, 210), RewardGems = 400 },
+	{ Name = "Diamond", Icon = "💎", Min = 15000, Color = Color3.fromRGB(120, 190, 255), RewardGems = 1000 },
+	{ Name = "Master", Icon = "👑", Min = 35000, Color = Color3.fromRGB(255, 80, 160), RewardGems = 2500 },
 }
 Config.PointsPerBlock = { 1, 2, 3, 4, 6 } -- by zone index
 
@@ -554,7 +583,7 @@ Config.Leaderboards = {
 	RefreshSeconds = 90,
 	Boards = {
 		{ Key = "Weekly", Title = "🏆 WEEKLY RANKED", Weekly = true },
-		{ Key = "LifetimeCoins", Title = "🪙 RICHEST MINERS" },
+		{ Key = "LifetimeCoins", Title = "💰 RICHEST MINERS" },
 		{ Key = "Rebirths", Title = "♻️ MOST REBIRTHS" },
 	},
 	WeeklyTopReward = { 5000, 3000, 2000, 1000, 1000, 500, 500, 500, 500, 500 }, -- gems for global top 10
@@ -616,8 +645,8 @@ Config.SeasonTiers = {}
 for tier = 1, 30 do
 	local free, premium
 	if tier % 5 == 0 then
-		free = { Gems = 25 * tier // 5 * 2 }
-		premium = { Gems = 60 * tier // 5 * 2 }
+		free = { Gems = math.floor(25 * tier / 5) * 2 }
+		premium = { Gems = math.floor(60 * tier / 5) * 2 }
 	elseif tier % 3 == 0 then
 		free = { Boost = { "Coins2x", 600 } }
 		premium = { Stardust = 100 + tier * 10 }
@@ -691,12 +720,23 @@ Config.Events = {
 		},
 		{
 			Id = "DoubleOre",
-			Name = "🪙 DOUBLE ORE",
+			Name = "💰 DOUBLE ORE",
 			Description = "All ore is worth 2x!",
 			Color = Color3.fromRGB(255, 170, 60),
 			ValueMult = 2,
 		},
 	},
+}
+
+-- first-time tutorial: one clear goal at a time, small reward per step
+Config.Tutorial = {
+	Steps = {
+		{ Id = "Mine", Target = 5, Text = "Tap ore blocks to mine them", Reward = { Coins = 60 } },
+		{ Id = "Sell", Target = 1, Text = "Sell your ore on the green SELL pad", Reward = { Coins = 120 } },
+		{ Id = "Pickaxe", Target = 1, Text = "Buy a better pickaxe at the shop", Reward = { Coins = 300 } },
+		{ Id = "Hatch", Target = 1, Text = "Hatch your first pet from the Meadow Egg", Reward = { Gems = 30 } },
+	},
+	FinalReward = { Gems = 100, Boost = { "Coins2x", 600 } },
 }
 
 -- free prize wheel (retention): one free spin every few hours

@@ -38,6 +38,10 @@ fi
 if command -v lune >/dev/null 2>&1; then
 	lune run tests/ConfigCheck.luau
 	lune run tests/ApiCheck.luau
+	lune run tests/LangCheck.luau
+fi
+if command -v python3 >/dev/null 2>&1; then
+	python3 tests/lang_keys.py
 fi
 
 rojo build default.project.json -o MeteorMiners.rbxlx

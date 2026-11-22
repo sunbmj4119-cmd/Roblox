@@ -34,6 +34,17 @@
 - 화면 왼쪽 아래 **🛠 DEV** 버튼(Studio에서만 보임)으로 코인·젬·랭크 점수·시즌 XP를 지급하고, 운석을 즉시 소환하고, 가방을 채우고, 데이터를 초기화할 수 있습니다. 라이브 서버에서는 서버가 차단합니다.
 - 운석이 빨리 보고 싶다면 DEV → Meteor를 누르거나 `Config.Meteor.IntervalSeconds`를 줄이세요. 서버 시작 후 첫 운석은 최대 150초 뒤에 떨어집니다.
 - 설정 검증: [Lune](https://lune-org.github.io/docs)을 설치한 뒤 `lune run tests/ConfigCheck.luau`를 실행하면 펫·광석·상품 이름 오타와 확률 합계를 검사합니다.
+- 번역 검증: `python3 tests/lang_keys.py`(코드의 모든 문구가 `src/shared/LangKO.luau`에 있는지 + `%s`/`%d` 순서 일치)와 `lune run tests/LangCheck.luau`(실제 포맷 동작). `tools/publish.sh`는 이 검사가 실패하면 게시하지 않습니다.
+
+### 🌐 언어 (한국어 / English)
+- 모든 문구는 영어 원문을 키로 쓰고 `src/shared/LangKO.luau`에서 한국어로 바꿉니다. 로블록스 언어가 한국어인 유저는 자동으로 한국어, 그 외는 영어로 보입니다.
+- 게임 안 **⚙️ 설정 → 🌐 언어**에서 자동/한국어/English를 직접 고를 수 있습니다 (저장 후 자동 재접속).
+- 새 문구를 추가하면 `python3 tests/lang_keys.py`가 빠진 번역을 알려 줍니다. 한국어 문장에서도 `%s`, `%d`의 **개수와 순서**는 영어와 같아야 합니다.
+
+### 📘 튜토리얼
+- 처음 들어온 유저는 화면 위 카드에 **한 번에 하나의 목표**만 봅니다: 광석 5개 캐기 → 판매 → 곡괭이 구매 → 첫 펫 부화 (단계마다 보상, 완료 시 젬 100 + 코인 2배 10분).
+- 메뉴 버튼은 튜토리얼 진행에 따라 하나씩 열립니다. 바닥의 빛줄기(가이드)가 다음 목적지를 가리킵니다.
+- 다시 보고 싶으면 DEV → Reset (데이터 초기화). 단계와 보상은 `Config.Tutorial`에서 바꿀 수 있습니다.
 - 멀티플레이 테스트 (PvP, 운석 경쟁): **Test → Clients and Servers → 2~3 Players → Start**
 
 ---

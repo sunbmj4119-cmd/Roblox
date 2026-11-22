@@ -4,6 +4,7 @@ local Shop = { Title = "⛏️ UPGRADES", Color = Color3.fromRGB(255, 160, 50) }
 function Shop.Build(content, ctx)
 	local Lib, State, Net, Config, Util = ctx.Lib, ctx.State, ctx.Net, ctx.Config, ctx.Util
 	local New, C = Lib.New, Lib.Colors
+	local T = Lib.T
 	local tab = "Pickaxes"
 
 	local tabs = New("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 44), Parent = content }, {
@@ -64,8 +65,8 @@ function Shop.Build(content, ctx)
 				Parent = row,
 			})
 			local statText = if tab == "Pickaxes"
-				then string.format("💥 Power %s  •  ⚡ %.2fs swing", Util.Format(item.Power), item.Cooldown)
-				else string.format("🎒 Holds %s ore", Util.Format(item.Capacity))
+				then T("💥 Power %s  •  ⚡ %ss swing", Util.Format(item.Power), string.format("%.2f", item.Cooldown))
+				else T("🎒 Holds %s ore", Util.Format(item.Capacity))
 			Lib.Text({
 				Text = statText,
 				Font = Lib.BodyFont,
@@ -108,7 +109,7 @@ function Shop.Build(content, ctx)
 				Lib.SetButton(row.Button, if tier == current then "EQUIPPED" else "OWNED", C.Gray)
 			elseif tier == current + 1 then
 				local affordable = data.Coins >= row.Item.Cost
-				Lib.SetButton(row.Button, "🪙 " .. Util.Format(row.Item.Cost), if affordable then C.Green else C.Red)
+				Lib.SetButton(row.Button, "💰 " .. Util.Format(row.Item.Cost), if affordable then C.Green else C.Red)
 			else
 				Lib.SetButton(row.Button, "🔒 " .. Util.Format(row.Item.Cost), Color3.fromRGB(70, 72, 92))
 			end

@@ -149,34 +149,43 @@ function Util.SecondsUntilNextWeek(t: number?): number
 	return (Util.WeekNumber(now) + 1) * 604800 + WEEK_OFFSET - now
 end
 
--- Human readable reward text: { Gems = 10, Boost = {"Coins2x", 600} } -> "10 Gems, 2x Coins 10:00"
+-- Human readable reward text: { Gems = 10, Boost = {"Coins2x", 600} } -> "10 💎 + 2x💰 10m"
+-- tr(text, ...) is an optional translator (server: Net:L for the player)
 local BOOST_NAMES = {
 	Coins2x = "2x Coins",
 	Luck2x = "2x Luck",
 	Power2x = "2x Power",
 }
 Util.BoostNames = BOOST_NAMES
+local BOOST_ICONS = { Coins2x = "2x💰", Luck2x = "2x🍀", Power2x = "2x💥" }
+Util.BoostIcons = BOOST_ICONS
 
-function Util.RewardText(reward): string
+function Util.RewardText(reward, tr): string
 	if not reward then
 		return ""
+	end
+	local translate = tr or function(text, ...)
+		if select("#", ...) > 0 then
+			return string.format(text, ...)
+		end
+		return text
 	end
 	local parts = {}
 	if reward.Gems then
 		table.insert(parts, Util.Format(reward.Gems) .. " 💎")
 	end
 	if reward.Coins then
-		table.insert(parts, Util.Format(reward.Coins) .. " 🪙")
+		table.insert(parts, Util.Format(reward.Coins) .. " 💰")
 	end
 	if reward.Stardust then
 		table.insert(parts, Util.Format(reward.Stardust) .. " ✨")
 	end
 	if reward.Boost then
-		local name = BOOST_NAMES[reward.Boost[1]] or reward.Boost[1]
-		table.insert(parts, string.format("%s %dm", name, math.floor(reward.Boost[2] / 60)))
+		local icon = BOOST_ICONS[reward.Boost[1]] or reward.Boost[1]
+		table.insert(parts, icon .. " " .. translate("%dm", math.floor(reward.Boost[2] / 60)))
 	end
 	if reward.Pet then
-		table.insert(parts, "🐾 " .. reward.Pet)
+		table.insert(parts, "🐾 " .. translate(reward.Pet))
 	end
 	return table.concat(parts, " + ")
 end

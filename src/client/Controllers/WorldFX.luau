@@ -49,6 +49,60 @@ task.spawn(function()
 	end
 end)
 
+-- world text translation -----------------------------------------------------
+-- Server-built signs carry LangFmt (+ JSON LangArgs); render them in OUR language.
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lang = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Lang"))
+
+local function applyLabel(label: TextLabel)
+	local fmt = label:GetAttribute("LangFmt")
+	if type(fmt) ~= "string" then
+		return
+	end
+	local args = {}
+	local raw = label:GetAttribute("LangArgs")
+	if type(raw) == "string" and raw ~= "" then
+		local ok, decoded = pcall(HttpService.JSONDecode, HttpService, raw)
+		if ok and type(decoded) == "table" then
+			args = decoded
+		end
+	end
+	local text = Lang.T(fmt, table.unpack(args))
+	if label.Text ~= text then
+		label.Text = text
+	end
+end
+
+local function hook(inst: Instance)
+	if inst:IsA("TextLabel") then
+		applyLabel(inst)
+		inst:GetAttributeChangedSignal("LangFmt"):Connect(function()
+			applyLabel(inst)
+		end)
+		inst:GetAttributeChangedSignal("LangArgs"):Connect(function()
+			applyLabel(inst)
+		end)
+		inst:GetPropertyChangedSignal("Text"):Connect(function()
+			task.defer(applyLabel, inst)
+		end)
+	elseif inst:IsA("ProximityPrompt") then
+		inst.ActionText = Lang.T(inst.ActionText)
+		inst.ObjectText = Lang.T(inst.ObjectText)
+	end
+end
+
+task.spawn(function()
+	local map = workspace:WaitForChild("Map", 60)
+	if not map then
+		return
+	end
+	map.DescendantAdded:Connect(hook)
+	for _, inst in map:GetDescendants() do
+		hook(inst)
+	end
+end)
+
 -- chat tags ----------------------------------------------------------------
 TextChatService.OnIncomingMessage = function(message: TextChatMessage)
 	local props = Instance.new("TextChatMessageProperties")

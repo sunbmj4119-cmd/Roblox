@@ -101,7 +101,7 @@ local function buildBoardGui(part: BasePart)
 	title.Font = Enum.Font.FredokaOne
 	title.TextScaled = true
 	title.TextColor3 = Color3.fromRGB(255, 215, 80)
-	title.Text = part:GetAttribute("Title") or "LEADERBOARD"
+	Services.WorldService.SetText(title, part:GetAttribute("Title") or "LEADERBOARD")
 	title.Parent = root
 
 	local sub = Instance.new("TextLabel")
@@ -141,11 +141,13 @@ local function buildBoardGui(part: BasePart)
 			elseif i == 2 then Color3.fromRGB(210, 220, 235)
 			elseif i == 3 then Color3.fromRGB(230, 150, 80)
 			else Color3.new(1, 1, 1)
-		for _, spec in {
-			{ "PlaceLabel", 0, 0.12, Enum.TextXAlignment.Center },
-			{ "NameLabel", 0.13, 0.55, Enum.TextXAlignment.Left },
-			{ "ValueLabel", 0.68, 0.31, Enum.TextXAlignment.Right },
-		} do
+		for _, spec in
+			{
+				{ "PlaceLabel", 0, 0.12, Enum.TextXAlignment.Center },
+				{ "NameLabel", 0.13, 0.55, Enum.TextXAlignment.Left },
+				{ "ValueLabel", 0.68, 0.31, Enum.TextXAlignment.Right },
+			}
+		do
 			local label = Instance.new("TextLabel")
 			label.Name = spec[1]
 			label.BackgroundTransparency = 1
@@ -181,9 +183,9 @@ local function render(board, entries)
 	end
 	local sub = root:FindFirstChild("Sub") :: TextLabel
 	if board.Weekly then
-		sub.Text = "Resets in " .. Util.FormatTime(Util.SecondsUntilNextWeek()) .. " • Top 10 win gems!"
+		Services.WorldService.SetText(sub, "Resets in %s • Top 10 win gems!", Util.FormatTime(Util.SecondsUntilNextWeek()))
 	else
-		sub.Text = "All-time • Global"
+		Services.WorldService.SetText(sub, "All-time • Global")
 	end
 end
 
@@ -218,9 +220,9 @@ local function updateTitles()
 	local titles = {}
 	for place, entry in weekly do
 		if place <= 3 then
-			titles[entry.UserId] = ({ "👑 #1 WEEKLY", "🥈 #2 WEEKLY", "🥉 #3 WEEKLY" })[place]
+			titles[entry.UserId] = ({ "👑 #1", "🥈 #2", "🥉 #3" })[place]
 		elseif place <= 10 then
-			titles[entry.UserId] = "⭐ TOP 10"
+			titles[entry.UserId] = "⭐ TOP10"
 		end
 	end
 	for _, player in Players:GetPlayers() do

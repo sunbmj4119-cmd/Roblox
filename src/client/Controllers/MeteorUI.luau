@@ -18,6 +18,7 @@ local Root = require(Client.UI.Root)
 local HUD = require(Client.Controllers.HUD)
 
 local New, C = Lib.New, Lib.Colors
+local T = Lib.T
 local player = Players.LocalPlayer
 local MeteorUI = {}
 
@@ -29,7 +30,14 @@ local pill = New("Frame", {
 	Size = UDim2.fromOffset(340, 46),
 	Parent = top,
 }, { Lib.Corner(23), Lib.Stroke(Color3.fromRGB(255, 150, 60), 2.5, 0) })
-local pillText = Lib.Text({ Text = "☄️ Meteor", TextColor3 = Color3.fromRGB(255, 190, 120), Size = UDim2.new(1, -20, 1, -10), Position = UDim2.fromOffset(10, 5), MaxTextSize = 24, Parent = pill })
+local pillText = Lib.Text({
+	Text = "☄️ Meteor",
+	TextColor3 = Color3.fromRGB(255, 190, 120),
+	Size = UDim2.new(1, -20, 1, -10),
+	Position = UDim2.fromOffset(10, 5),
+	MaxTextSize = 24,
+	Parent = pill,
+})
 local goButton = Lib.Button({
 	Text = "GO ☄️",
 	Color = Color3.fromRGB(255, 120, 40),
@@ -62,7 +70,14 @@ local rankFrame = New("Frame", {
 	Visible = false,
 	Parent = HUD.RightColumn,
 }, { Lib.Corner(14), Lib.Stroke(Color3.fromRGB(255, 150, 60), 2.5, 0) })
-Lib.Text({ Text = "☄️ LIVE RANKING", TextColor3 = Color3.fromRGB(255, 180, 100), Size = UDim2.new(1, -16, 0, 28), Position = UDim2.fromOffset(8, 6), MaxTextSize = 22, Parent = rankFrame })
+Lib.Text({
+	Text = "☄️ LIVE RANKING",
+	TextColor3 = Color3.fromRGB(255, 180, 100),
+	Size = UDim2.new(1, -16, 0, 28),
+	Position = UDim2.fromOffset(8, 6),
+	MaxTextSize = 22,
+	Parent = rankFrame,
+})
 local rankLines = {}
 for i = 1, 5 do
 	rankLines[i] = Lib.Text({
@@ -71,11 +86,22 @@ for i = 1, 5 do
 		Position = UDim2.fromOffset(8, 36 + (i - 1) * 30),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		MaxTextSize = 19,
-		TextColor3 = if i == 1 then C.Gold elseif i == 2 then Color3.fromRGB(220, 225, 240) elseif i == 3 then Color3.fromRGB(230, 150, 80) else C.Text,
+		TextColor3 = if i == 1
+			then C.Gold
+			elseif i == 2 then Color3.fromRGB(220, 225, 240)
+			elseif i == 3 then Color3.fromRGB(230, 150, 80)
+			else C.Text,
 		Parent = rankFrame,
 	})
 end
-local myLine = Lib.Text({ Text = "", TextColor3 = C.Green, Size = UDim2.new(1, -16, 0, 30), Position = UDim2.fromOffset(8, 192), MaxTextSize = 22, Parent = rankFrame })
+local myLine = Lib.Text({
+	Text = "",
+	TextColor3 = C.Green,
+	Size = UDim2.new(1, -16, 0, 30),
+	Position = UDim2.fromOffset(8, 192),
+	MaxTextSize = 22,
+	Parent = rankFrame,
+})
 local hint = Lib.Text({
 	Text = "Hit the meteor with your pickaxe!",
 	Font = Lib.BodyFont,
@@ -91,14 +117,16 @@ Net.On("MeteorRank", function(list, myPlace, myScore)
 	local entries = if type(list) == "table" then list else {}
 	for i = 1, 5 do
 		local entry = entries[i]
-		rankLines[i].Text = if entry then string.format("%s %s  <font color='#BBBBBB'>%d</font>", MEDALS[i], entry.Name, entry.Score) else ""
+		rankLines[i].Text = if entry
+			then string.format("%s %s  <font color='#BBBBBB'>%d</font>", MEDALS[i], entry.Name, entry.Score)
+			else ""
 	end
 	if myPlace then
-		myLine.Text = string.format("You: #%d  •  %d pts", myPlace, myScore or 0)
-		hint.Text = if myPlace <= 3 then "Top 3 wins big rewards - keep going!" else "Hit harder to reach the top 3!"
+		myLine.Text = T("You: #%d  •  %d pts", myPlace, myScore or 0)
+		hint.Text = if myPlace <= 3 then T("Top 3 wins big rewards - keep going!") else T("Hit harder to reach the top 3!")
 	else
-		myLine.Text = "You: not participating"
-		hint.Text = "Hit the meteor with your pickaxe!"
+		myLine.Text = T("You: not participating")
+		hint.Text = T("Hit the meteor with your pickaxe!")
 	end
 end)
 
@@ -110,25 +138,44 @@ local result = New("Frame", {
 	Visible = false,
 	Parent = resultCluster,
 }, { Lib.Corner(20), Lib.Stroke(C.Gold, 3, 0) })
-local resultTitle = Lib.Text({ Text = "", Size = UDim2.new(1, -20, 0, 50), Position = UDim2.fromOffset(10, 14), MaxTextSize = 40, Parent = result })
-local resultBody = Lib.Text({ Text = "", Size = UDim2.new(1, -20, 0, 70), Position = UDim2.fromOffset(10, 70), TextWrapped = true, MaxTextSize = 24, Parent = result })
-Lib.Button({ Text = "Awesome!", Size = UDim2.fromOffset(180, 46), Position = UDim2.new(0.5, -90, 1, -60), Parent = result, OnClick = function()
-	result.Visible = false
-end })
+local resultTitle =
+	Lib.Text({ Text = "", Size = UDim2.new(1, -20, 0, 50), Position = UDim2.fromOffset(10, 14), MaxTextSize = 40, Parent = result })
+local resultBody = Lib.Text({
+	Text = "",
+	Size = UDim2.new(1, -20, 0, 70),
+	Position = UDim2.fromOffset(10, 70),
+	TextWrapped = true,
+	MaxTextSize = 24,
+	Parent = result,
+})
+Lib.Button({
+	Text = "Awesome!",
+	Size = UDim2.fromOffset(180, 46),
+	Position = UDim2.new(0.5, -90, 1, -60),
+	Parent = result,
+	OnClick = function()
+		result.Visible = false
+	end,
+})
 
 Net.On("MeteorResult", function(info)
 	if type(info) ~= "table" then
 		return
 	end
-	local placeText = if info.Place == 1 then "🥇 1ST PLACE!" elseif info.Place == 2 then "🥈 2ND PLACE!" elseif info.Place == 3 then "🥉 3RD PLACE!" else string.format("#%d of %d", info.Place, info.Total)
+	local placeText = if info.Place == 1
+		then T("🥇 1ST PLACE!")
+		elseif info.Place == 2 then T("🥈 2ND PLACE!")
+		elseif info.Place == 3 then T("🥉 3RD PLACE!")
+		else T("#%d of %d", info.Place, info.Total)
 	resultTitle.Text = placeText
 	resultTitle.TextColor3 = if info.Place <= 3 then C.Gold else C.Text
 	local parts = { "+" .. Util.Format(info.Stardust) .. " ✨" }
 	if info.Gems > 0 then
 		table.insert(parts, "+" .. Util.Format(info.Gems) .. " 💎")
 	end
-	table.insert(parts, "+" .. info.Points .. " ranked pts")
-	resultBody.Text = table.concat(parts, "   ") .. (if info.Destroyed then "" else "\n<font color='#FF8888'>The meteor escaped - half rewards</font>")
+	table.insert(parts, T("+%d ranked pts", info.Points))
+	resultBody.Text = table.concat(parts, "   ")
+		.. (if info.Destroyed then "" else "\n<font color='#FF8888'>" .. T("The meteor escaped - half rewards") .. "</font>")
 	result.Visible = true
 	Lib.Pop(result)
 	Lib.PlaySound(if info.Place <= 3 then "RankUp" else "Reward")
@@ -145,7 +192,7 @@ Net.On("MeteorHit", function(score)
 		Lib.PlaySound("HitStone", 0.8)
 	end
 	if type(score) == "number" then
-		myLine.Text = string.format("+%.1f pts!", score)
+		myLine.Text = T("+%s pts!", string.format("%.1f", score))
 	end
 end)
 
@@ -195,7 +242,7 @@ task.spawn(function()
 		local stroke = pill:FindFirstChildOfClass("UIStroke")
 		if stateName == "Idle" then
 			local nextAt = workspace:GetAttribute("MeteorNext") or now
-			pillText.Text = "☄️ Next meteor in " .. Util.FormatTime(nextAt - now)
+			pillText.Text = T("☄️ Next meteor in %s", Util.FormatTime(nextAt - now))
 			pillText.TextColor3 = Color3.fromRGB(255, 190, 120)
 			stroke.Color = Color3.fromRGB(255, 150, 60)
 			goButton.Visible = false
@@ -204,7 +251,9 @@ task.spawn(function()
 		elseif stateName == "Warning" or stateName == "Falling" then
 			local warnEnd = workspace:GetAttribute("MeteorWarnEnd") or now
 			local blink = math.floor(os.clock() * 3) % 2 == 0
-			pillText.Text = if stateName == "Falling" then "☄️ IMPACT!" else "☄️ METEOR INCOMING  " .. Util.FormatTime(warnEnd - now)
+			pillText.Text = if stateName == "Falling"
+				then T("☄️ IMPACT!")
+				else T("☄️ METEOR INCOMING  %s", Util.FormatTime(warnEnd - now))
 			pillText.TextColor3 = if blink then C.Red else Color3.fromRGB(255, 220, 120)
 			stroke.Color = C.Red
 			goButton.Visible = true
@@ -214,7 +263,7 @@ task.spawn(function()
 			local endsAt = workspace:GetAttribute("MeteorEnd") or now
 			local hp = workspace:GetAttribute("MeteorHP") or 0
 			local maxHp = math.max(1, workspace:GetAttribute("MeteorMaxHP") or 1)
-			pillText.Text = string.format("☄️ METEOR %s  •  %d%%", Util.FormatTime(endsAt - now), math.ceil(hp / maxHp * 100))
+			pillText.Text = T("☄️ METEOR %s  •  %d%%", Util.FormatTime(endsAt - now), math.ceil(hp / maxHp * 100))
 			pillText.TextColor3 = C.Gold
 			stroke.Color = C.Gold
 			goButton.Visible = true

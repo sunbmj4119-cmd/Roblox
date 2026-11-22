@@ -58,7 +58,7 @@ function Events:Trigger(id: string?)
 	lastId = def.Id
 	endsAt = os.time() + settings.DurationSeconds
 	setAttributes()
-	Net:Announce(string.format("%s! %s (%ds)", def.Name, def.Description, settings.DurationSeconds), def.Color)
+	Net:Announce("%s! %s (%ds)", def.Color, def.Name, def.Description, settings.DurationSeconds)
 	Net:Broadcast("EventStarted", def.Id)
 end
 

@@ -102,7 +102,7 @@ local function buildMeteor(): BasePart
 
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "HPBar"
-	gui.Size = UDim2.fromOffset(300, 34)
+	gui.Size = UDim2.new(18, 0, 2, 0)
 	gui.StudsOffsetWorldSpace = Vector3.new(0, settings.Radius + 5, 0)
 	gui.AlwaysOnTop = true
 	gui.MaxDistance = 250
@@ -130,6 +130,7 @@ local function buildMeteor(): BasePart
 	text.TextScaled = true
 	text.TextColor3 = Color3.new(1, 1, 1)
 	text.Text = "☄️ METEOR"
+	text:SetAttribute("LangFmt", "☄️ METEOR")
 	text.ZIndex = 2
 	local stroke = Instance.new("UIStroke")
 	stroke.Thickness = 2
@@ -148,8 +149,8 @@ local function updateBar()
 	local back = gui and gui:FindFirstChildOfClass("Frame")
 	if back then
 		local ratio = if maxHp > 0 then math.clamp(hp / maxHp, 0, 1) else 0
-		(back :: any).Fill.Size = UDim2.fromScale(ratio, 1);
-		(back :: any).Text.Text = string.format("☄️ METEOR  %d%%", math.ceil(ratio * 100))
+		(back :: any).Fill.Size = UDim2.fromScale(ratio, 1)
+		Services.WorldService.SetText((back :: any).Text, "☄️ METEOR  %s%%", math.ceil(ratio * 100))
 	end
 end
 
@@ -239,8 +240,8 @@ local function finish(destroyed: boolean)
 	for i, name in topNames do
 		table.insert(parts, medals[i] .. " " .. name)
 	end
-	local headline = if destroyed then "☄️ Meteor destroyed! " else "☄️ The meteor escaped! "
-	Net:Announce(headline .. table.concat(parts, "  "), Color3.fromRGB(255, 170, 80))
+	local headline = if destroyed then "☄️ Meteor destroyed! %s" else "☄️ The meteor escaped! %s"
+	Net:Announce(headline, Color3.fromRGB(255, 170, 80), table.concat(parts, "  "))
 
 	if meteorPart then
 		local position = meteorPart.Position
@@ -324,11 +325,13 @@ local function startWarning()
 	setAttributes()
 	if summoned then
 		Net:Announce(
-			string.format("☄️ %s SUMMONED A METEOR! Get to the crater! (%ds)", summoned.DisplayName, warnEnd - os.time()),
-			Color3.fromRGB(255, 150, 60)
+			"☄️ %s SUMMONED A METEOR! Get to the crater! (%ds)",
+			Color3.fromRGB(255, 150, 60),
+			summoned.DisplayName,
+			warnEnd - os.time()
 		)
 	else
-		Net:Announce(string.format("☄️ A METEOR is about to crash into the crater! (%ds)", warnEnd - os.time()), Color3.fromRGB(255, 150, 60))
+		Net:Announce("☄️ A METEOR is about to crash into the crater! (%ds)", Color3.fromRGB(255, 150, 60), warnEnd - os.time())
 	end
 end
 

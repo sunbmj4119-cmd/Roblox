@@ -3,6 +3,7 @@
 	hub plaza, shops, egg stands, sell pad, meteor crater, leaderboards and
 	five mining zones separated by gates. Swap any part for a real model later.
 ]]
+local HttpService = game:GetService("HttpService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -110,10 +111,25 @@ local function newPart(props, parent: Instance?)
 	return p
 end
 
-local function billboard(adornee: BasePart, text: string, color: Color3, offsetY: number, width: number?, height: number?)
+-- marks a world TextLabel for client-side translation (LangFmt + JSON args)
+function World.SetText(label: TextLabel, fmt: string, ...)
+	local args = { ... }
+	for i, v in args do
+		if type(v) ~= "string" then
+			args[i] = tostring(v)
+		end
+	end
+	label:SetAttribute("LangFmt", fmt)
+	label:SetAttribute("LangArgs", HttpService:JSONEncode(args))
+	local ok, text = pcall(string.format, fmt, table.unpack(args))
+	label.Text = if ok then text else fmt
+end
+
+-- width / height are in STUDS so labels shrink with distance like real signs
+local function billboard(adornee: BasePart, fmt: string, color: Color3, offsetY: number, width: number?, height: number?, ...)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Label"
-	gui.Size = UDim2.fromOffset(width or 260, height or 70)
+	gui.Size = UDim2.new(width or 12, 0, height or 3, 0)
 	gui.StudsOffsetWorldSpace = Vector3.new(0, offsetY, 0)
 	gui.LightInfluence = 0
 	gui.MaxDistance = 160
@@ -125,8 +141,8 @@ local function billboard(adornee: BasePart, text: string, color: Color3, offsetY
 	label.Font = Enum.Font.FredokaOne
 	label.TextScaled = true
 	label.TextColor3 = color
-	label.Text = text
 	label.RichText = true
+	World.SetText(label, fmt, ...)
 	local stroke = Instance.new("UIStroke")
 	stroke.Thickness = 2.5
 	stroke.Color = Color3.new(0, 0, 0)
@@ -273,7 +289,7 @@ local function booth(position: Vector3, title: string, color: Color3, parent)
 		Color = color:Lerp(Color3.new(1, 1, 1), 0.25),
 		Material = Enum.Material.SmoothPlastic,
 	}, parent)
-	billboard(base, title, Color3.new(1, 1, 1), 13, 300, 70)
+	billboard(base, title, Color3.new(1, 1, 1), 13, 13, 3)
 	return counter
 end
 
@@ -308,10 +324,10 @@ local function eggStand(position: Vector3, eggId: string, parent)
 	if egg.Currency == "Robux" then
 		priceText = "<font color='#7CFF8A'>R$ " .. tostring(Config.Products[egg.ProductSingle].Price) .. "</font>"
 	else
-		local icon = if egg.Currency == "Gems" then "💎" elseif egg.Currency == "Stardust" then "✨" else "🪙"
+		local icon = if egg.Currency == "Gems" then "💎" elseif egg.Currency == "Stardust" then "✨" else "💰"
 		priceText = icon .. " " .. Util.Format(egg.Price)
 	end
-	billboard(eggPart, egg.Name .. "\n" .. priceText, Color3.new(1, 1, 1), 6, 220, 80)
+	billboard(eggPart, "%s\n%s", Color3.new(1, 1, 1), 6, 9, 3.4, egg.Name, priceText)
 	prompt(eggPart, "Open", egg.Name, openPanel("Egg", eggId))
 	eggPart:SetAttribute("EggId", eggId)
 	return eggPart
@@ -388,7 +404,7 @@ local function buildHub()
 	spawn.Duration = 0
 	spawn.TopSurface = Enum.SurfaceType.Smooth
 	spawn.Parent = hub
-	billboard(spawn, Config.GameName, Color3.fromRGB(255, 230, 120), 14, 360, 80)
+	billboard(spawn, "%s", Color3.fromRGB(255, 230, 120), 14, 18, 4, Config.GameName)
 
 	-- signs facing the spawn: the core hooks + "like & favorite" (algorithm signal)
 	local function sign(position: Vector3, text: string, color: Color3)
@@ -410,7 +426,7 @@ local function buildHub()
 		label.Font = Enum.Font.FredokaOne
 		label.TextScaled = true
 		label.TextColor3 = color
-		label.Text = text
+		World.SetText(label, text)
 		label.Parent = gui
 		gui.Parent = board
 		for _, x in { -7.6, 7.6 } do
@@ -436,7 +452,7 @@ local function buildHub()
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 	}, hub)
-	billboard(sell, "💰 SELL ORE", Color3.fromRGB(120, 255, 150), 6, 260, 70)
+	billboard(sell, "💰 SELL ORE", Color3.fromRGB(120, 255, 150), 6, 12, 3.2)
 	World.SellPad = sell
 
 	-- meteor crater
@@ -448,7 +464,7 @@ local function buildHub()
 		Color = Color3.fromRGB(60, 45, 40),
 		Material = Enum.Material.CrackedLava,
 	}, hub)
-	billboard(crater, "☄️ METEOR CRATER", Color3.fromRGB(255, 150, 80), 4, 300, 60)
+	billboard(crater, "☄️ METEOR CRATER", Color3.fromRGB(255, 150, 80), 4, 14, 2.8)
 	local rng = Random.new(7)
 	for i = 1, 14 do
 		local angle = (i / 14) * math.pi * 2
@@ -496,7 +512,16 @@ local function buildHub()
 	end
 
 	-- decor
-	for _, pos in { Vector3.new(-70, 0, -70), Vector3.new(70, 0, -70), Vector3.new(-72, 0, 62), Vector3.new(72, 0, 62), Vector3.new(-30, 0, -72), Vector3.new(30, 0, -72) } do
+	for _, pos in
+		{
+			Vector3.new(-70, 0, -70),
+			Vector3.new(70, 0, -70),
+			Vector3.new(-72, 0, 62),
+			Vector3.new(72, 0, 62),
+			Vector3.new(-30, 0, -72),
+			Vector3.new(30, 0, -72),
+		}
+	do
 		tree(pos, hub)
 	end
 	for z = -60, 60, 30 do
@@ -522,7 +547,12 @@ local function buildZones()
 		Material = Enum.Material.Cobblestone,
 	}, zonesFolder)
 	for _, side in { -1, 1 } do
-		wall(CFrame.new(side * (CORRIDOR_W / 2 + 1), WALL_H / 2, HUB_HALF + GAP / 2), Vector3.new(2, WALL_H, GAP + 2), wallColor, zonesFolder)
+		wall(
+			CFrame.new(side * (CORRIDOR_W / 2 + 1), WALL_H / 2, HUB_HALF + GAP / 2),
+			Vector3.new(2, WALL_H, GAP + 2),
+			wallColor,
+			zonesFolder
+		)
 	end
 
 	for index, zone in Config.Zones do
@@ -565,7 +595,9 @@ local function buildZones()
 		end
 
 		-- accent lights in the corners
-		for _, pos in { Vector3.new(-44, 0, zStart + 6), Vector3.new(44, 0, zStart + 6), Vector3.new(-44, 0, zEnd - 6), Vector3.new(44, 0, zEnd - 6) } do
+		for _, pos in
+			{ Vector3.new(-44, 0, zStart + 6), Vector3.new(44, 0, zStart + 6), Vector3.new(-44, 0, zEnd - 6), Vector3.new(44, 0, zEnd - 6) }
+		do
 			lamp(pos, zone.Accent, zf)
 		end
 
@@ -611,7 +643,9 @@ local function buildZones()
 				newPart({
 					Name = "WallCrystal",
 					Size = Vector3.new(1.4, height, 1.4),
-					CFrame = CFrame.new(base + Vector3.new(crystalRng:NextNumber(-1.5, 1.5), height / 2 - 0.5, crystalRng:NextNumber(-1.5, 1.5)))
+					CFrame = CFrame.new(
+						base + Vector3.new(crystalRng:NextNumber(-1.5, 1.5), height / 2 - 0.5, crystalRng:NextNumber(-1.5, 1.5))
+					)
 						* CFrame.Angles(crystalRng:NextNumber(-0.35, 0.35), crystalRng:NextNumber(0, 3), crystalRng:NextNumber(-0.35, 0.35)),
 					Color = zone.Accent,
 					Material = Enum.Material.Neon,
@@ -632,8 +666,19 @@ local function buildZones()
 			CanCollide = false,
 			CanQuery = false,
 		}, zf)
-		local subtitle = if zone.PvP then "\n<font color='#FF5A7A'>⚔️ PVP ZONE - bonk players to steal ore!</font>" else ""
-		billboard(titleAnchor, string.upper(zone.Name) .. subtitle, zone.Accent, 0, 520, if zone.PvP then 110 else 70)
+		if zone.PvP then
+			billboard(
+				titleAnchor,
+				"%s\n<font color='#FF5A7A'>⚔️ PVP ZONE - bonk players to steal ore!</font>",
+				zone.Accent,
+				0,
+				30,
+				7,
+				zone.Name
+			)
+		else
+			billboard(titleAnchor, "%s", zone.Accent, 0, 26, 4, zone.Name)
+		end
 
 		World.Zones[index] = {
 			ZStart = zStart,
@@ -656,11 +701,12 @@ local function buildZones()
 				Transparency = 0.1,
 			}, gates)
 			gate:SetAttribute("ZoneIndex", index)
-			local gateLabel = billboard(gate, "🔒 " .. zone.Name .. "\n🪙 " .. Util.Format(zone.Cost), Color3.new(1, 1, 1), -1, 300, 90)
+			local gateLabel = billboard(gate, "🔒 %s\n💰 %s", Color3.new(1, 1, 1), -1, 14, 4.2, zone.Name, Util.Format(zone.Cost))
 			gateLabel.StudsOffsetWorldSpace = Vector3.new(0, -1, -2) -- in front of the forcefield, facing the approach
-			prompt(gate, "Unlock", zone.Name .. " (" .. Util.Format(zone.Cost) .. ")", function(player)
+			prompt(gate, "Unlock", zone.Name, function(player)
 				Services.EconomyService:UnlockZone(player, index)
-			end).MaxActivationDistance = 14
+			end).MaxActivationDistance =
+				14
 			World.Zones[index].Gate = gate
 		end
 

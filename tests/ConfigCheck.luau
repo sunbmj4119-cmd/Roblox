@@ -112,7 +112,10 @@ for id, egg in Config.Eggs do
 	if egg.Currency == "Robux" then
 		for _, key in { egg.ProductSingle, egg.ProductTriple } do
 			local product = Config.Products[key]
-			check(product ~= nil and product.Kind == "PaidEgg" and product.Egg == id, "egg " .. id .. " product " .. tostring(key) .. " invalid")
+			check(
+				product ~= nil and product.Kind == "PaidEgg" and product.Egg == id,
+				"egg " .. id .. " product " .. tostring(key) .. " invalid"
+			)
 		end
 	else
 		check(egg.Currency == "Coins" or egg.Currency == "Gems" or egg.Currency == "Stardust", "egg " .. id .. " bad currency")
@@ -245,6 +248,30 @@ for _ = 1, 20000 do
 	counts[name] = (counts[name] or 0) + 1
 end
 check(math.abs(counts.Bunny / 20000 - 0.40) < 0.02, "WeightedPick distribution off: Bunny " .. tostring(counts.Bunny))
+
+-- tutorial: valid steps, and a brand-new player (0 coins) can always afford
+-- the pickaxe and the first egg from the step rewards alone (no dead end)
+local TUTORIAL_EVENTS = { Mine = true, Sell = true, Pickaxe = true, Hatch = true }
+for i, step in Config.Tutorial.Steps do
+	check(TUTORIAL_EVENTS[step.Id] == true, "tutorial step " .. i .. " has unknown Id " .. tostring(step.Id))
+	check(type(step.Target) == "number" and step.Target >= 1, "tutorial step " .. i .. " bad Target")
+	check(type(step.Text) == "string" and step.Text ~= "", "tutorial step " .. i .. " missing Text")
+	checkReward(step.Reward, "tutorial step " .. i)
+end
+checkReward(Config.Tutorial.FinalReward, "tutorial final reward")
+do
+	local coins = 0
+	for _, step in Config.Tutorial.Steps do
+		if step.Id == "Pickaxe" then
+			check(coins >= Config.Pickaxes[2].Cost, "tutorial: can't afford the 2nd pickaxe at its step")
+			coins -= Config.Pickaxes[2].Cost
+		elseif step.Id == "Hatch" then
+			local egg = Config.Eggs[Config.EggOrder[1]]
+			check(egg.Currency ~= "Coins" or coins >= egg.Price, "tutorial: can't afford the first egg at its step")
+		end
+		coins += step.Reward.Coins or 0
+	end
+end
 
 -- economy pacing printout
 local costs = {}

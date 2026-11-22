@@ -118,7 +118,7 @@ for _, file in listFiles("src", {}) do
 	local source = fs.readFile(file)
 
 	-- New("Class", { ... }) / Lib.New("Class", { ... })
-	for pos, className, brace in string.gmatch(source, "()New%(\"(%w+)\",%s*()") do
+	for pos, className, brace in string.gmatch(source, '()New%("(%w+)",%s*()') do
 		if string.sub(source, brace, brace) == "{" then
 			checkProps(file, source, className, tableKeys(source, brace))
 		end
@@ -148,9 +148,9 @@ for _, file in listFiles("src", {}) do
 	local lineNumber = 0
 	for line in string.gmatch(source .. "\n", "([^\n]*)\n") do
 		lineNumber += 1
-		local var, className = string.match(line, "local%s+([%w_]+)%s*=%s*Instance%.new%(\"(%w+)\"%)")
+		local var, className = string.match(line, 'local%s+([%w_]+)%s*=%s*Instance%.new%("(%w+)"%)')
 		if not var then
-			var, className = string.match(line, "^%s*([%w_]+)%s*=%s*Instance%.new%(\"(%w+)\"%)")
+			var, className = string.match(line, '^%s*([%w_]+)%s*=%s*Instance%.new%("(%w+)"%)')
 		end
 		if var then
 			if db:GetClass(className) == nil then
@@ -178,7 +178,7 @@ for _, file in listFiles("src", {}) do
 			end
 		end
 		-- services
-		for service in string.gmatch(line, "GetService%(\"(%w+)\"%)") do
+		for service in string.gmatch(line, 'GetService%("(%w+)"%)') do
 			if db:GetClass(service) == nil then
 				report(file, lineNumber, "unknown service " .. service)
 			end

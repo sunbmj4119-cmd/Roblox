@@ -17,6 +17,7 @@ local State = require(Client.State)
 local Lib = require(Client.UI.Lib)
 
 local player = Players.LocalPlayer
+local T = Lib.T
 
 local MAX_LEVEL = 8 -- guide disappears after this level / zone 3
 local PICKAXE_SHOP = Vector3.new(56, 4, -45)
@@ -60,8 +61,21 @@ local billboard = Lib.New("BillboardGui", {
 	ResetOnSpawn = false,
 	Parent = player:WaitForChild("PlayerGui"),
 })
-local label = Lib.Text({ Text = "", TextColor3 = Color3.fromRGB(255, 230, 120), Size = UDim2.fromScale(1, 0.55), MaxTextSize = 30, Parent = billboard })
-local arrow = Lib.Text({ Text = "⬇", TextColor3 = Color3.fromRGB(255, 230, 120), Size = UDim2.fromScale(1, 0.45), Position = UDim2.fromScale(0, 0.55), MaxTextSize = 30, Parent = billboard })
+local label = Lib.Text({
+	Text = "",
+	TextColor3 = Color3.fromRGB(255, 230, 120),
+	Size = UDim2.fromScale(1, 0.55),
+	MaxTextSize = 30,
+	Parent = billboard,
+})
+local arrow = Lib.Text({
+	Text = "⬇",
+	TextColor3 = Color3.fromRGB(255, 230, 120),
+	Size = UDim2.fromScale(1, 0.45),
+	Position = UDim2.fromScale(0, 0.55),
+	MaxTextSize = 30,
+	Parent = billboard,
+})
 
 local function part(path: { string }): BasePart?
 	local node: Instance? = workspace:FindFirstChild("Map")
@@ -71,35 +85,74 @@ local function part(path: { string }): BasePart?
 	return if node and node:IsA("BasePart") then node else nil
 end
 
+local function nearestOre(root: BasePart, maxZone: number): Vector3?
+	local map = workspace:FindFirstChild("Map")
+	local ores = map and map:FindFirstChild("Ores")
+	if not ores then
+		return nil
+	end
+	local best, bestDistance = nil, math.huge
+	for _, ore in ores:GetChildren() do
+		if ore:IsA("BasePart") and (ore:GetAttribute("Zone") or 99) <= maxZone then
+			local distance = (ore.Position - root.Position).Magnitude
+			if distance < bestDistance then
+				best, bestDistance = ore, distance
+			end
+		end
+	end
+	return best and best.Position + Vector3.new(0, 2.5, 0)
+end
+
+-- "go mine": the nearest ore when in a mine, else the mine entrance
+local function mineTarget(root: BasePart, data)
+	if Util.ZoneAt(Config, root.Position) ~= 0 then
+		local ore = nearestOre(root, data.ZoneLevel)
+		if ore then
+			return ore, T("⛏️ TAP ORE TO MINE")
+		end
+	end
+	return MINE_ENTRANCE, T("⛏️ MINE ORE HERE")
+end
+
+local function sellTarget()
+	local pad = part({ "Hub", "SellPad" })
+	return pad and pad.Position + Vector3.new(0, 1, 0), T("💰 SELL HERE")
+end
+
 -- returns target position + label, or nil when the player needs no help
 local function pickTarget(root: BasePart)
 	local data, derived = State.Data, State.Derived
 	if not data or not derived then
 		return nil
 	end
+	local capacity = derived.Capacity or math.huge
+	local tutorial = data.Tutorial
+	if tutorial and not tutorial.Done then
+		local step = Config.Tutorial.Steps[tutorial.Step]
+		local id = step and step.Id
+		if id == "Sell" or (data.Backpack >= capacity and id ~= "Mine") then
+			return sellTarget()
+		elseif id == "Pickaxe" and data.Coins >= Config.Pickaxes[2].Cost then
+			return PICKAXE_SHOP, T("⛏️ BUY A PICKAXE")
+		elseif id == "Hatch" and data.Coins >= Config.Eggs.Meadow.Price then
+			local egg = part({ "Hub", "Eggs", "MeadowEgg" })
+			return egg and egg.Position, T("🥚 HATCH HERE")
+		end
+		return mineTarget(root, data)
+	end
 	if (data.Level or 1) >= MAX_LEVEL or data.ZoneLevel >= 3 then
 		return nil
 	end
-	local capacity = derived.Capacity or math.huge
 	if data.Backpack >= capacity then
-		local pad = part({ "Hub", "SellPad" })
-		return pad and pad.Position + Vector3.new(0, 1, 0), "💰 SELL YOUR ORE"
-	end
-	if data.Stats.EggsHatched == 0 and data.Coins >= Config.Eggs.Meadow.Price then
-		local egg = part({ "Hub", "Eggs", "MeadowEgg" })
-		return egg and egg.Position, "🥚 HATCH A PET"
-	end
-	local pick = Config.Pickaxes[data.PickaxeTier + 1]
-	if pick and data.Coins >= pick.Cost and data.PickaxeTier < 4 then
-		return PICKAXE_SHOP, "⛏️ BETTER PICKAXE"
+		return sellTarget()
 	end
 	local zone = Config.Zones[data.ZoneLevel + 1]
 	if zone and data.Coins >= zone.Cost then
 		local gate = part({ "Gates", "Gate_" .. (data.ZoneLevel + 1) })
-		return gate and gate.Position, "🔓 UNLOCK " .. string.upper(zone.Name)
+		return gate and gate.Position, T("🔓 UNLOCK %s", zone.Name)
 	end
-	if Util.ZoneAt(Config, root.Position) == 0 and data.Backpack < capacity then
-		return MINE_ENTRANCE, "⛏️ MINE ORE HERE"
+	if Util.ZoneAt(Config, root.Position) == 0 then
+		return MINE_ENTRANCE, T("⛏️ MINE ORE HERE")
 	end
 	return nil
 end

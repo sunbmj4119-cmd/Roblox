@@ -47,7 +47,8 @@ function Progression:GiftsClaimed(player: Player)
 	return list
 end
 
-function Progression:GrantReward(player: Player, reward, source: string?, silent: boolean?)
+-- source is an English format string; sourceArgs are formatted into it
+function Progression:GrantReward(player: Player, reward, source: string?, silent: boolean?, ...)
 	local data = Data:Get(player)
 	if not data or not reward then
 		return
@@ -70,8 +71,44 @@ function Progression:GrantReward(player: Player, reward, source: string?, silent
 	end
 	Data:MarkDirty(player)
 	if not silent then
-		Net:Send(player, "Reward", Util.RewardText(reward), source)
+		Net:Send(player, "Reward", self:RewardText(player, reward), if source then Net:L(player, source, ...) else nil)
 	end
+end
+
+function Progression:RewardText(player: Player, reward): string
+	return Util.RewardText(reward, function(text, ...)
+		return Net:L(player, text, ...)
+	end)
+end
+
+-- tutorial: Event(id) advances the current step when it matches
+function Progression:TutorialEvent(player: Player, id: string, amount: number?)
+	local data = Data:Get(player)
+	local tutorial = data and data.Tutorial
+	if not tutorial or tutorial.Done then
+		return
+	end
+	local steps = Config.Tutorial.Steps
+	local step = steps[tutorial.Step]
+	if not step or step.Id ~= id then
+		return
+	end
+	tutorial.Progress += amount or 1
+	if tutorial.Progress < step.Target then
+		Data:MarkDirty(player)
+		return
+	end
+	self:GrantReward(player, step.Reward, nil, true)
+	tutorial.Step += 1
+	tutorial.Progress = 0
+	if tutorial.Step > #steps then
+		tutorial.Done = true
+		self:GrantReward(player, Config.Tutorial.FinalReward, nil, true)
+		Net:Send(player, "TutorialDone", self:RewardText(player, Config.Tutorial.FinalReward))
+	else
+		Net:Send(player, "TutorialStep", tutorial.Step, self:RewardText(player, step.Reward))
+	end
+	Data:MarkDirty(player)
 end
 
 -- player level: every block gives XP; level-ups give gems + a permanent coin bonus
@@ -90,7 +127,7 @@ function Progression:AddXP(player: Player, amount: number)
 		local gems = levels.GemsPerLevel
 		if data.Level % levels.MilestoneEvery == 0 then
 			gems += levels.MilestoneGems
-			Net:Announce(string.format("⭐ %s reached LEVEL %d!", player.DisplayName, data.Level), Color3.fromRGB(255, 220, 90))
+			Net:Announce("⭐ %s reached LEVEL %d!", Color3.fromRGB(255, 220, 90), player.DisplayName, data.Level)
 		end
 		data.Gems += gems
 		Net:Send(player, "LevelUp", data.Level, gems)
@@ -109,7 +146,7 @@ function Progression:AddQuest(player: Player, questType: string, amount: number)
 		if def and def.Type == questType and not quest.Claimed and quest.Progress < def.Target then
 			quest.Progress = math.min(def.Target, quest.Progress + amount)
 			if quest.Progress >= def.Target then
-				Net:Notify(player, "✅ Quest complete: " .. def.Text .. " - claim it!", GREEN)
+				Net:Notify(player, "✅ Quest complete: %s - claim it!", GREEN, def.Text)
 			end
 			Data:MarkDirty(player)
 		end
@@ -134,8 +171,8 @@ function Progression:AddPoints(player: Player, amount: number)
 				local key = player.UserId .. ">" .. other.UserId
 				if not overtakeCooldown[key] or now - overtakeCooldown[key] > 90 then
 					overtakeCooldown[key] = now
-					Net:Notify(player, "⬆️ You passed " .. other.DisplayName .. " in the weekly ranking!", Color3.fromRGB(120, 255, 170))
-					Net:Notify(other, "⬇️ " .. player.DisplayName .. " just passed you! Take it back!", Color3.fromRGB(255, 120, 120))
+					Net:Notify(player, "⬆️ You passed %s in the weekly ranking!", Color3.fromRGB(120, 255, 170), other.DisplayName)
+					Net:Notify(other, "⬇️ %s just passed you! Take it back!", Color3.fromRGB(255, 120, 120), player.DisplayName)
 				end
 			end
 		end
@@ -144,7 +181,7 @@ function Progression:AddPoints(player: Player, amount: number)
 	if after > before then
 		Net:Send(player, "RankUp", rank.Name)
 		if after >= 5 then
-			Net:Announce(string.format("🏅 %s reached %s rank this week!", player.DisplayName, string.upper(rank.Name)), rank.Color)
+			Net:Announce("🏅 %s reached %s rank this week!", rank.Color, player.DisplayName, rank.Name)
 		end
 		Services.CharacterService:RefreshOverhead(player)
 	end
@@ -160,12 +197,13 @@ function Progression:AddSeasonXP(player: Player, amount: number)
 	data.Season.XP += amount
 	local after = tierOf(data.Season.XP)
 	if after > before then
-		Net:Notify(player, "🎫 Season Pass tier " .. after .. " reached! Claim your rewards.", GOLD)
+		Net:Notify(player, "🎫 Season Pass tier %d reached! Claim your rewards.", GOLD, after)
 	end
 	Data:MarkDirty(player)
 end
 
 function Progression:OnBlockMined(player: Player, zone: number)
+	self:TutorialEvent(player, "Mine", 1)
 	self:AddQuest(player, "MineBlocks", 1)
 	self:AddSeasonXP(player, Config.Season.XPPerBlock * zone)
 	self:AddPoints(player, Config.PointsPerBlock[zone] or 1)
@@ -179,7 +217,7 @@ function Progression:CheckClubDaily(player: Player)
 	local today = Util.DayNumber()
 	if data.Daily.ClubDay ~= today then
 		data.Daily.ClubDay = today
-		self:GrantReward(player, { Gems = Config.Subscription.DailyGems }, Config.Subscription.Name .. " daily gems")
+		self:GrantReward(player, { Gems = Config.Subscription.DailyGems }, "%s daily gems", false, Config.Subscription.Name)
 	end
 end
 
@@ -250,6 +288,11 @@ function Progression:Start()
 	Data:OnLoaded(function(player, data)
 		sessionStart[player] = os.time()
 		giftsClaimed[player] = {}
+		player:SetAttribute("Lang", data.Settings.Lang)
+		-- veterans who already did everything skip the tutorial
+		if not data.Tutorial.Done and data.Stats.EggsHatched > 0 and data.PickaxeTier > 1 then
+			data.Tutorial.Done = true
+		end
 		checkRollovers(player, data, true)
 		-- daily reward reminder
 		if data.Daily.LastClaimDay ~= Util.DayNumber() then
@@ -300,7 +343,7 @@ function Progression:Start()
 		end
 		data.Daily.LastClaimDay = today
 		local index = ((data.Daily.Streak - 1) % #Config.DailyRewards) + 1
-		self:GrantReward(player, Config.DailyRewards[index], "Day " .. index .. " login reward")
+		self:GrantReward(player, Config.DailyRewards[index], "Day %d login reward", false, index)
 	end)
 
 	Net:On("ClaimQuest", 0.3, function(player, index)
@@ -311,7 +354,7 @@ function Progression:Start()
 			return
 		end
 		quest.Claimed = true
-		self:GrantReward(player, def.Reward, "Quest: " .. def.Text)
+		self:GrantReward(player, def.Reward, "Quest: %s", false, def.Text)
 		self:AddSeasonXP(player, def.XP)
 		self:AddPoints(player, def.Points)
 	end)
@@ -343,7 +386,7 @@ function Progression:Start()
 			return false
 		end
 		claimed[key] = true
-		self:GrantReward(player, tierDef[track], "Season tier " .. tier)
+		self:GrantReward(player, tierDef[track], "Season tier %d", false, tier)
 		return true
 	end
 
@@ -394,22 +437,22 @@ function Progression:Start()
 	Net:OnRequest("RedeemCode", 1, function(player, code)
 		local data = Data:Get(player)
 		if not data or type(code) ~= "string" then
-			return false, "Enter a code"
+			return false, Net:L(player, "Enter a code")
 		end
 		code = string.upper((code:gsub("%s+", "")))
 		local def = Config.Codes[code]
 		if not def then
-			return false, "Invalid code"
+			return false, Net:L(player, "Invalid code")
 		end
 		if def.ExpiresAt and def.ExpiresAt > 0 and os.time() > def.ExpiresAt then
-			return false, "This code has expired"
+			return false, Net:L(player, "This code has expired")
 		end
 		if data.Codes[code] then
-			return false, "Already redeemed"
+			return false, Net:L(player, "Already redeemed")
 		end
 		data.Codes[code] = true
-		self:GrantReward(player, def.Reward, "Code " .. code)
-		return true, "Redeemed: " .. Util.RewardText(def.Reward)
+		self:GrantReward(player, def.Reward, "Code %s", false, code)
+		return true, Net:L(player, "Redeemed: %s", self:RewardText(player, def.Reward))
 	end)
 
 	-- free prize wheel ------------------------------------------------------
@@ -420,7 +463,7 @@ function Progression:Start()
 		end
 		local now = os.time()
 		if data.FreeSpinAt > now then
-			return { Error = "Next free spin in " .. Util.FormatTime(data.FreeSpinAt - now) }
+			return { Error = Net:L(player, "Next free spin in %s", Util.FormatTime(data.FreeSpinAt - now)) }
 		end
 		local cooldown = if Services.MonetizationService:HasPass(player, "VIP")
 			then Config.Spin.VipCooldownSeconds
@@ -435,10 +478,20 @@ function Progression:Start()
 		-- granted now, revealed by the wheel animation on the client
 		self:GrantReward(player, entry.Reward, "Spin", true)
 		if entry.Jackpot then
-			Net:Announce("🎡 " .. player.DisplayName .. " hit the JACKPOT on the prize wheel!", Color3.fromRGB(255, 230, 120))
+			Net:Announce("🎡 %s hit the JACKPOT on the prize wheel!", Color3.fromRGB(255, 230, 120), player.DisplayName)
 		end
 		Data:MarkDirty(player)
-		return { Index = index, Text = Util.RewardText(entry.Reward) }
+		return { Index = index, Text = self:RewardText(player, entry.Reward) }
+	end)
+
+	Net:On("SetLanguage", 1, function(player, lang)
+		local data = Data:Get(player)
+		if not data or (lang ~= "ko" and lang ~= "en" and lang ~= "auto") then
+			return
+		end
+		data.Settings.Lang = lang
+		player:SetAttribute("Lang", lang)
+		Data:MarkDirty(player)
 	end)
 
 	Net:On("ClaimGroup", 2, function(player)
