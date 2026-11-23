@@ -1,15 +1,21 @@
 --[[
-	BaseService: every player gets a plot in the base district (south of the
-	hub). Star shards placed on its pedestals earn coins every second into
-	the base bank (collect it on the green pad), even while offline (50%, 2h).
+	BaseService: every player owns a 44x44 home in the base district.
 
-	Other players can sneak in and STEAL a shard (hold the prompt), then must
-	carry it to their own base; the owner gets an alarm and can bonk the thief
-	to make them drop it (a dropped stolen shard flies home after a few
-	seconds). The red pad locks the base for a minute (with a cooldown).
+	* DECORATE: buy any decoration from the build menu and place it anywhere
+	  on the grid (move / rotate / remove at any time - removing refunds
+	  100%, so redecorating is free). Saved with your data, seen by everyone.
+	* PEDESTALS are decorations too: each one shows a star shard that earns
+	  coins every second into the base bank (green pad), even offline (50%,
+	  2h). Your best shards automatically go on the pedestals; the rest wait
+	  in storage.
+	* DEFEND: stun traps freeze thieves (and send a stolen shard straight
+	  home), the red pad locks the entrance for a minute.
+	* SHOW OFF: visitors can ❤️ like your base once a day -> weekly ranked
+	  points + the "Best Bases" leaderboard.
+	* STEAL: hold the prompt on someone else's shard, then run it home.
 
-	Shard entries live in data.Base.Shards as { Id = rarityId }; an entry
-	being carried away by a thief is marked Away = true until delivered.
+	data.Base.Items  = { { Uid, Id, X, Z, R, Paid, Cur }, ... } (plot space)
+	data.Base.Shards = { { Id = rarityId, Away = true? }, ... } best first
 ]]
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18,6 +24,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Util = require(Shared.Util)
 local ShardModel = require(Shared.ShardModel)
+local DecorModel = require(Shared.DecorModel)
 local Net = require(script.Parent.Net)
 
 local Base = {}
@@ -26,26 +33,15 @@ local Data
 local World
 
 local SETTINGS = Config.Base
-local PLOT_HALF = 16
+local PLOT_HALF = SETTINGS.PlotSize / 2
 local WALL_HEIGHT = 9
-
--- every plot gets its own color (spread around the color wheel)
-local function plotColor(index: number): Color3
-	return Color3.fromHSV(((index - 1) * 0.618) % 1, 0.62, 1)
-end
-
--- pedestal slots in plot space (front row first; -Z is the entrance side)
-local PEDESTAL_SPOTS = {}
-for _, z in { -1, 5.5, 12 } do
-	for _, x in { -10.5, -3.5, 3.5, 10.5 } do
-		table.insert(PEDESTAL_SPOTS, Vector3.new(x, 0, z))
-	end
-end
+local FLOOR_Y = 0.42 -- top of the plot floor
 
 local plots = {} -- [index] = plot record
 local plotOf = {} -- [player] = plot record
 local waiting = {} -- players without a plot yet (server fuller than Plots)
-local touchDebounce = {} -- [player] = os.clock()
+local touchDebounce = {} -- ["userId:what"] = os.clock()
+local trapReady = {} -- [trap model] = os.clock() when it can fire again
 
 ---------------------------------------------------------------------------
 -- helpers
@@ -94,18 +90,45 @@ local function playerFromHit(hit: BasePart): Player?
 	return model and Players:GetPlayerFromCharacter(model)
 end
 
-local function debounced(player: Player, seconds: number): boolean
-	local last = touchDebounce[player]
+local function debounced(player: Player, what: string, seconds: number): boolean
+	local key = player.UserId .. ":" .. what
+	local last = touchDebounce[key]
 	if last and os.clock() - last < seconds then
 		return true
 	end
-	touchDebounce[player] = os.clock()
+	touchDebounce[key] = os.clock()
 	return false
+end
+
+local function setPrompt(parent: BasePart, action: string, object: string, role: string, hold: number, handler, distance: number?)
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = action
+	prompt.ObjectText = object
+	prompt.HoldDuration = hold
+	prompt.MaxActivationDistance = distance or 9
+	prompt.RequiresLineOfSight = false
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	-- the client shows Owner prompts only to the owner, Thief/Visitor ones to others
+	prompt:SetAttribute("Role", role)
+	prompt.Parent = parent
+	prompt.Triggered:Connect(function(player)
+		local ok, err = pcall(handler, player)
+		if not ok then
+			warn("[Base] prompt failed: " .. tostring(err))
+		end
+	end)
+	return prompt
+end
+
+local function plotColor(index: number): Color3
+	return Color3.fromHSV(((index - 1) * 0.618) % 1, 0.62, 1)
 end
 
 ---------------------------------------------------------------------------
 -- building the plots (static shells, built once)
 ---------------------------------------------------------------------------
+local tryLike -- forward declaration
+
 local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 	-- local -Z (LookVector) faces the street
 	local cf = CFrame.lookAt(center, center + facing)
@@ -130,7 +153,7 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		Name = "Trim",
 		Size = Vector3.new(PLOT_HALF * 2 - 2, 0.42, PLOT_HALF * 2 - 2),
 		CFrame = at(0, 0.21, 0),
-		Color = color:Lerp(Color3.new(0, 0, 0), 0.55),
+		Color = color:Lerp(Color3.new(0, 0, 0), 0.6),
 		Material = Enum.Material.SmoothPlastic,
 	}, model)
 
@@ -142,7 +165,7 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 			CFrame = at(x, WALL_HEIGHT / 2, z),
 			Color = color:Lerp(Color3.new(1, 1, 1), 0.6),
 			Material = Enum.Material.Glass,
-			Transparency = 0.55,
+			Transparency = 0.6,
 		}, model)
 		part({
 			Name = "WallTrim",
@@ -153,11 +176,12 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 			CanCollide = false,
 		}, model)
 	end
+	local sideLength = PLOT_HALF - 5
 	wallSegment(0, PLOT_HALF, PLOT_HALF * 2, 1) -- back
 	wallSegment(-PLOT_HALF, 0, 1, PLOT_HALF * 2) -- sides
 	wallSegment(PLOT_HALF, 0, 1, PLOT_HALF * 2)
-	wallSegment(-10.5, -PLOT_HALF, 11, 1) -- front, gap in the middle
-	wallSegment(10.5, -PLOT_HALF, 11, 1)
+	wallSegment(-(5 + sideLength / 2), -PLOT_HALF, sideLength, 1) -- front, gap in the middle
+	wallSegment(5 + sideLength / 2, -PLOT_HALF, sideLength, 1)
 
 	-- lock forcefield in the entrance (only blocks while locked)
 	local shield = part({
@@ -180,13 +204,35 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		CanQuery = false,
 		CanTouch = false,
 	}, model)
-	local sign = billboard(signAnchor, 20, 5, 0, color)
+	local sign = billboard(signAnchor, 22, 5.5, 0, color)
+
+	-- like post on the street side of the entrance
+	local heart = part({
+		Name = "LikeHeart",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.one * 2.2,
+		CFrame = at(-8, 4.4, -PLOT_HALF - 1.2),
+		Color = Color3.fromRGB(255, 80, 120),
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, model)
+	part({
+		Name = "LikePost",
+		Size = Vector3.new(0.4, 3.4, 0.4),
+		CFrame = at(-8, 1.7, -PLOT_HALF - 1.2),
+		Color = Color3.fromRGB(240, 240, 245),
+		Material = Enum.Material.Metal,
+		CanCollide = false,
+	}, model)
+	setPrompt(heart, "❤️ Like", "Base", "Visitor", 0, function(visitor)
+		tryLike(visitor, index)
+	end, 12)
 
 	-- pads: collect (green) and lock (red), just inside the entrance
 	local collect = part({
 		Name = "CollectPad",
 		Size = Vector3.new(7, 0.4, 7),
-		CFrame = at(-9, 0.45, -9.5),
+		CFrame = at(-14, 0.45, -PLOT_HALF + 5),
 		Color = Color3.fromRGB(70, 255, 130),
 		Material = Enum.Material.Neon,
 		CanCollide = false,
@@ -195,36 +241,17 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 	local lockPad = part({
 		Name = "LockPad",
 		Size = Vector3.new(7, 0.4, 7),
-		CFrame = at(9, 0.45, -9.5),
+		CFrame = at(14, 0.45, -PLOT_HALF + 5),
 		Color = Color3.fromRGB(255, 80, 90),
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 	}, model)
 	local lockLabel = billboard(lockPad, 9, 2.4, 3.2, Color3.fromRGB(255, 150, 150), 50)
 
-	local pedestals = {}
-	for slot, spot in PEDESTAL_SPOTS do
-		local pedestal = part({
-			Name = "Pedestal_" .. slot,
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(2.4, 4, 4),
-			CFrame = at(spot.X, 1.2 + 0.4, spot.Z) * CFrame.Angles(0, 0, math.rad(90)),
-			Color = Color3.fromRGB(230, 230, 240),
-			Material = Enum.Material.Marble,
-		}, model)
-		local ring = part({
-			Name = "Ring",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(0.3, 4.3, 4.3),
-			CFrame = at(spot.X, 2.85, spot.Z) * CFrame.Angles(0, 0, math.rad(90)),
-			Color = color,
-			Material = Enum.Material.Neon,
-			CanCollide = false,
-		}, model)
-		pedestals[slot] = { Part = pedestal, Ring = ring, Top = at(spot.X, 3, spot.Z).Position }
-	end
-
 	model.Parent = World:Folder("Bases")
+	local items = Instance.new("Folder")
+	items.Name = "Items"
+	items.Parent = model
 	local displays = Instance.new("Folder")
 	displays.Name = "Displays"
 	displays.Parent = model
@@ -241,8 +268,9 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		Shield = shield,
 		CollectPad = collect,
 		LockPad = lockPad,
-		Pedestals = pedestals,
+		Items = items,
 		Displays = displays,
+		ItemModels = {}, -- [uid] = Model
 		LockedUntil = 0,
 		LockReadyAt = 0,
 		LastLabel = "",
@@ -254,13 +282,14 @@ local function plotLayout(): { { Center: Vector3, Facing: Vector3 } }
 	local bases = Config.World.Bases
 	local layout = {}
 	local row = 0
+	local offset = 10 + 2 + PLOT_HALF -- half street + walkway + half plot
 	while #layout < SETTINGS.Plots do
-		local z = bases.ZStart - 32 - row * (PLOT_HALF * 2 + 4)
+		local z = bases.ZStart - 18 - PLOT_HALF - row * (SETTINGS.PlotSize + 4)
 		for _, streetX in SETTINGS.Streets do
 			for _, side in { -1, 1 } do
 				if #layout < SETTINGS.Plots then
 					table.insert(layout, {
-						Center = Vector3.new(streetX + side * 30, 0, z),
+						Center = Vector3.new(streetX + side * offset, 0, z),
 						Facing = Vector3.new(-side, 0, 0), -- toward the street
 					})
 				end
@@ -270,10 +299,37 @@ local function plotLayout(): { { Center: Vector3, Facing: Vector3 } }
 	end
 	return layout
 end
+Base.PlotLayout = plotLayout
 
 ---------------------------------------------------------------------------
--- income
+-- shards: best ones go on the pedestals, the rest wait in storage
 ---------------------------------------------------------------------------
+local function pedestalItems(data)
+	local list = {}
+	for _, item in data.Base.Items do
+		local def = Config.Decor[item.Id]
+		if def and def.Function == "Pedestal" then
+			table.insert(list, item)
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.Uid < b.Uid
+	end)
+	return list
+end
+
+local function sortShards(data)
+	local shards = data.Base.Shards
+	for _, entry in shards do
+		if not Config.Shards.Rarities[entry.Id] then
+			entry.Id = "Common" -- a rarity that no longer exists (config change)
+		end
+	end
+	table.sort(shards, function(a, b)
+		return Util.ShardIndex(Config, a.Id) > Util.ShardIndex(Config, b.Id)
+	end)
+end
+
 function Base:ShardRate(player: Player, data, id: string): number
 	local rate = Util.ShardIncome(Config, id, data.ZoneLevel) * Services.StatsService:CoinMultiplier(player, data)
 	if Services.MonetizationService:HasPass(player, "DoubleBase") then
@@ -284,8 +340,9 @@ end
 
 function Base:IncomeRate(player: Player, data): number
 	local total = 0
-	for _, entry in data.Base.Shards do
-		if not entry.Away then
+	local slots = #pedestalItems(data)
+	for index, entry in data.Base.Shards do
+		if index <= slots and not entry.Away then
 			total += self:ShardRate(player, data, entry.Id)
 		end
 	end
@@ -297,25 +354,89 @@ local function sellValue(player: Player, data, id: string): number
 end
 
 ---------------------------------------------------------------------------
--- rendering a plot for its owner
+-- rendering
 ---------------------------------------------------------------------------
-local function setPrompt(parent: BasePart, action: string, object: string, role: string, hold: number, handler)
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = action
-	prompt.ObjectText = object
-	prompt.HoldDuration = hold
-	prompt.MaxActivationDistance = 9
-	prompt.RequiresLineOfSight = false
-	prompt.KeyboardKeyCode = Enum.KeyCode.E
-	prompt:SetAttribute("Role", role) -- client shows Owner prompts only to the owner
-	prompt.Parent = parent
-	prompt.Triggered:Connect(function(player)
-		local ok, err = pcall(handler, player)
-		if not ok then
-			warn("[Base] prompt failed: " .. tostring(err))
+local function itemCFrame(plot, item): CFrame
+	return plot.CFrame * CFrame.new(item.X, FLOOR_Y + 0.1, item.Z) * CFrame.Angles(0, (item.R or 0) * math.pi / 2, 0)
+end
+
+local onTrap, onJump -- forward declarations
+
+local function renderItem(plot, item)
+	local existing = plot.ItemModels[item.Uid]
+	if existing then
+		existing:Destroy()
+	end
+	local model = DecorModel.Build(Config, item.Id)
+	model:PivotTo(itemCFrame(plot, item))
+	model:SetAttribute("Uid", item.Uid)
+	model:SetAttribute("DecorId", item.Id)
+	model.Parent = plot.Items
+	plot.ItemModels[item.Uid] = model
+	local def = Config.Decor[item.Id]
+	local trigger = model:FindFirstChild("Trigger")
+	if trigger and trigger:IsA("BasePart") and def then
+		trigger.Touched:Connect(function(hit)
+			local player = playerFromHit(hit)
+			if not player then
+				return
+			end
+			if def.Function == "Trap" then
+				onTrap(plot, model, player)
+			elseif def.Function == "Jump" then
+				onJump(player, model)
+			end
+		end)
+	end
+end
+
+function Base:RenderDisplays(player: Player)
+	local plot = plotOf[player]
+	local data = Data:Get(player)
+	if not plot or not data then
+		return
+	end
+	plot.Displays:ClearAllChildren()
+	sortShards(data)
+	local shards = data.Base.Shards
+	for slot, pedestal in pedestalItems(data) do
+		local model = plot.ItemModels[pedestal.Uid]
+		local top = model and model:FindFirstChild("Top")
+		local entry = shards[slot]
+		if top and top:IsA("BasePart") and entry then
+			if not entry.Away then
+				local def = Config.Shards.Rarities[entry.Id]
+				local shard = ShardModel.Build(Config, entry.Id, 1)
+				ShardModel.SetAnchored(shard, true)
+				shard:PivotTo(CFrame.new(top.Position + Vector3.new(0, 2.2, 0)))
+				shard:SetAttribute("Spin", true)
+				shard.Parent = plot.Displays
+				local label = billboard(shard.PrimaryPart :: BasePart, 7, 2.2, 3.2, def.Color, 60)
+				World.SetText(label, "%s\n💰 %s/s", def.Name, Util.Format(self:ShardRate(player, data, entry.Id)))
+				local core = shard.PrimaryPart :: BasePart
+				setPrompt(core, "Steal", def.Name, "Thief", SETTINGS.StealHold, function(thief)
+					Base:TrySteal(thief, player, entry)
+				end)
+				setPrompt(core, "Sell", def.Name, "Owner", 0.6, function(who)
+					if who == player then
+						Base:SellEntry(player, entry)
+					end
+				end)
+			else
+				local anchor = part({
+					Name = "StolenMark",
+					Size = Vector3.one,
+					CFrame = CFrame.new(top.Position + Vector3.new(0, 2, 0)),
+					Transparency = 1,
+					CanCollide = false,
+					CanQuery = false,
+					CanTouch = false,
+				}, plot.Displays)
+				World.SetText(billboard(anchor, 7, 2, 0, Color3.fromRGB(255, 90, 90), 80), "⚠️ STOLEN!")
+			end
 		end
-	end)
-	return prompt
+	end
+	self:RefreshLabels(player, true)
 end
 
 function Base:Render(player: Player)
@@ -324,66 +445,16 @@ function Base:Render(player: Player)
 	if not plot or not data then
 		return
 	end
-	plot.Displays:ClearAllChildren()
-	local shards = data.Base.Shards
-	for slot, pedestal in plot.Pedestals do
-		local owned = slot <= data.Base.Pedestals
-		pedestal.Part.Transparency = if owned then 0 else 0.7
-		pedestal.Ring.Transparency = if owned then 0 else 0.85
-		local entry = shards[slot]
-		if entry and not Config.Shards.Rarities[entry.Id] then
-			entry.Id = "Common" -- a rarity that no longer exists (config change)
-		end
-		if owned and entry and not entry.Away then
-			local def = Config.Shards.Rarities[entry.Id]
-			local model = ShardModel.Build(Config, entry.Id, 1)
-			ShardModel.SetAnchored(model, true)
-			model:PivotTo(CFrame.new(pedestal.Top + Vector3.new(0, 2.2, 0)))
-			model:SetAttribute("Spin", true)
-			model.Parent = plot.Displays
-			local label = billboard(model.PrimaryPart :: BasePart, 7, 2.2, 3.2, def.Color, 60)
-			World.SetText(label, "%s\n💰 %s/s", def.Name, Util.Format(self:ShardRate(player, data, entry.Id)))
-			local core = model.PrimaryPart :: BasePart
-			setPrompt(core, "Steal", def.Name, "Thief", SETTINGS.StealHold, function(thief)
-				Base:TrySteal(thief, player, entry)
-			end)
-			setPrompt(core, "Sell", def.Name, "Owner", 0.6, function(who)
-				if who == player then
-					Base:SellEntry(player, entry)
-				end
-			end)
-		elseif owned and entry and entry.Away then
-			local anchor = part({
-				Name = "StolenMark",
-				Size = Vector3.one,
-				CFrame = CFrame.new(pedestal.Top + Vector3.new(0, 2, 0)),
-				Transparency = 1,
-				CanCollide = false,
-				CanQuery = false,
-				CanTouch = false,
-			}, plot.Displays)
-			World.SetText(billboard(anchor, 7, 2, 0, Color3.fromRGB(255, 90, 90), 80), "⚠️ STOLEN!")
-		elseif slot == data.Base.Pedestals + 1 and slot <= SETTINGS.MaxPedestals then
-			-- the next pedestal can be bought
-			local cost = SETTINGS.PedestalCosts[slot] or math.huge
-			local anchor = part({
-				Name = "BuyMark",
-				Size = Vector3.one,
-				CFrame = CFrame.new(pedestal.Top + Vector3.new(0, 1, 0)),
-				Transparency = 1,
-				CanCollide = false,
-				CanQuery = false,
-				CanTouch = false,
-			}, plot.Displays)
-			World.SetText(billboard(anchor, 6, 2, 0, Color3.fromRGB(255, 230, 140), 45), "🔒 💰 %s", Util.Format(cost))
-			setPrompt(anchor, "Buy pedestal", "💰 " .. Util.Format(cost), "Owner", 0, function(who)
-				if who == player then
-					Base:BuyPedestal(player)
-				end
-			end)
+	for _, model in plot.ItemModels do
+		model:Destroy()
+	end
+	plot.ItemModels = {}
+	for _, item in data.Base.Items do
+		if Config.Decor[item.Id] then
+			renderItem(plot, item)
 		end
 	end
-	self:RefreshLabels(player, true)
+	self:RenderDisplays(player)
 end
 
 function Base:RefreshLabels(player: Player, force: boolean?)
@@ -393,10 +464,29 @@ function Base:RefreshLabels(player: Player, force: boolean?)
 		return
 	end
 	local rate = self:IncomeRate(player, data)
-	local signText = Util.Format(rate)
+	local slots = #pedestalItems(data)
+	local stored = math.max(0, #data.Base.Shards - slots)
+	local signText = Util.Format(rate) .. "|" .. data.Base.Likes .. "|" .. stored
 	if force or signText ~= plot.LastLabel then
 		plot.LastLabel = signText
-		World.SetText(plot.Sign, "🏠 %s's BASE\n💰 %s/s", player.DisplayName, signText)
+		if stored > 0 then
+			World.SetText(
+				plot.Sign,
+				"🏠 %s's BASE\n💰 %s/s  ❤️ %s  📦 %s",
+				player.DisplayName,
+				Util.Format(rate),
+				tostring(data.Base.Likes),
+				tostring(stored)
+			)
+		else
+			World.SetText(
+				plot.Sign,
+				"🏠 %s's BASE\n💰 %s/s  ❤️ %s",
+				player.DisplayName,
+				Util.Format(rate),
+				tostring(data.Base.Likes)
+			)
+		end
 	end
 	World.SetText(plot.BankLabel, "💰 %s\nSTEP TO COLLECT", Util.Format(math.floor(data.Base.Bank)))
 	local t = now()
@@ -409,10 +499,15 @@ function Base:RefreshLabels(player: Player, force: boolean?)
 	end
 	player:SetAttribute("BaseRate", rate)
 	player:SetAttribute("BaseBank", math.floor(data.Base.Bank))
+	player:SetAttribute("BaseStored", stored)
 end
 
 local function clearPlot(plot)
 	plot.Owner = nil
+	for _, model in plot.ItemModels do
+		model:Destroy()
+	end
+	plot.ItemModels = {}
 	plot.Displays:ClearAllChildren()
 	plot.Model:SetAttribute("OwnerId", 0)
 	plot.Model:SetAttribute("LockedUntil", 0)
@@ -420,10 +515,7 @@ local function clearPlot(plot)
 	plot.LockReadyAt = 0
 	plot.Shield.Transparency = 1
 	plot.Shield.CanCollide = false
-	for _, pedestal in plot.Pedestals do
-		pedestal.Part.Transparency = 0.7
-		pedestal.Ring.Transparency = 0.85
-	end
+	plot.LastLabel = ""
 	World.SetText(plot.Sign, "🏠 FREE BASE")
 	World.SetText(plot.BankLabel, "")
 	World.SetText(plot.LockLabel, "")
@@ -452,7 +544,7 @@ end
 
 function Base:HomeCFrame(player: Player): CFrame?
 	local plot = plotOf[player]
-	return plot and (plot.CFrame * CFrame.new(0, 3, -PLOT_HALF + 4))
+	return plot and (plot.CFrame * CFrame.new(0, 3, -PLOT_HALF + 5))
 end
 
 function Base:IsLocked(owner: Player): boolean
@@ -467,11 +559,18 @@ function Base:AddShard(player: Player, id: string): (string, number)
 		return "None", 0
 	end
 	local shards = data.Base.Shards
+	local capacity = #pedestalItems(data) + SETTINGS.StorageMax
 	local result, coins = "Placed", 0
-	if #shards < data.Base.Pedestals then
-		table.insert(shards, { Id = id })
+	local slots = #pedestalItems(data)
+	if #shards < capacity then
+		local entry = { Id = id }
+		table.insert(shards, entry)
+		sortShards(data)
+		if (table.find(shards, entry) or 0) > slots then
+			result = "Stored" -- every pedestal holds a better shard
+		end
 	else
-		-- base full: the new shard replaces the weakest one if it's better, the other is sold
+		-- completely full: the new shard replaces the weakest one if it's better, the other is sold
 		local worstIndex, worstValue = nil, math.huge
 		for i, entry in shards do
 			if not entry.Away then
@@ -494,7 +593,7 @@ function Base:AddShard(player: Player, id: string): (string, number)
 	end
 	data.Stats.ShardsDelivered = (data.Stats.ShardsDelivered or 0) + 1
 	Data:MarkDirty(player)
-	self:Render(player)
+	self:RenderDisplays(player)
 	return result, coins
 end
 
@@ -502,7 +601,7 @@ function Base:SetAway(owner: Player, entry, away: boolean)
 	entry.Away = if away then true else nil
 	if owner.Parent then
 		Data:MarkDirty(owner)
-		self:Render(owner)
+		self:RenderDisplays(owner)
 	end
 end
 
@@ -516,7 +615,7 @@ function Base:RemoveEntry(owner: Player, entry)
 		table.remove(data.Base.Shards, index)
 	end
 	Data:MarkDirty(owner)
-	self:Render(owner)
+	self:RenderDisplays(owner)
 end
 
 function Base:SellEntry(player: Player, entry)
@@ -535,30 +634,7 @@ function Base:SellEntry(player: Player, entry)
 	local def = Config.Shards.Rarities[entry.Id]
 	Net:Notify(player, "Sold %s for 💰%s", Color3.fromRGB(255, 220, 120), def.Name, Util.Format(coins))
 	Data:MarkDirty(player)
-	self:Render(player)
-end
-
-function Base:BuyPedestal(player: Player)
-	local data = Data:Get(player)
-	if not data then
-		return
-	end
-	local nextSlot = data.Base.Pedestals + 1
-	if nextSlot > SETTINGS.MaxPedestals then
-		Net:Notify(player, "Your base is fully upgraded!")
-		return
-	end
-	local cost = SETTINGS.PedestalCosts[nextSlot] or math.huge
-	if data.Coins < cost then
-		Net:Notify(player, "Not enough %s! Need %s more.", Color3.fromRGB(255, 110, 110), "coins", Util.Format(cost - data.Coins))
-		return
-	end
-	data.Coins -= cost
-	data.Base.Pedestals = nextSlot
-	Net:Notify(player, "🏠 New pedestal! (%d/%d)", Color3.fromRGB(120, 255, 170), nextSlot, SETTINGS.MaxPedestals)
-	Services.ProgressionService:AddQuest(player, "Upgrade", 1)
-	Data:MarkDirty(player)
-	self:Render(player)
+	self:RenderDisplays(player)
 end
 
 function Base:TrySteal(thief: Player, owner: Player, entry)
@@ -630,8 +706,216 @@ function Base:Lock(player: Player)
 end
 
 ---------------------------------------------------------------------------
+-- decorating
+---------------------------------------------------------------------------
+local function findItem(data, uid)
+	for index, item in data.Base.Items do
+		if item.Uid == uid then
+			return item, index
+		end
+	end
+	return nil, nil
+end
+
+local function cleanTransform(x, z, r): (number?, number?, number?)
+	if type(x) ~= "number" or type(z) ~= "number" or type(r) ~= "number" then
+		return nil, nil, nil
+	end
+	if x ~= x or z ~= z then -- NaN
+		return nil, nil, nil
+	end
+	return x, z, math.floor(r) % 4
+end
+
+-- returns ok, message
+function Base:Place(player: Player, id, x, z, r): (boolean, string?)
+	local data = Data:Get(player)
+	local plot = plotOf[player]
+	local def = type(id) == "string" and Config.Decor[id]
+	x, z, r = cleanTransform(x, z, r)
+	if not data or not plot or not def or not x then
+		return false, "Can't place that here"
+	end
+	x, z = DecorModel.Snap(Config, id, x, z, r)
+	local items = data.Base.Items
+	local ok, reason = DecorModel.Validate(Config, items, id, x, z, r, nil)
+	if not ok then
+		return false, reason
+	end
+	local currency, price = DecorModel.Price(Config, id, items)
+	local have = if currency == "Gems" then data.Gems else data.Coins
+	if have < price then
+		return false, if currency == "Gems" then "Not enough gems!" else "Not enough coins!"
+	end
+	if currency == "Gems" then
+		data.Gems -= price
+	else
+		data.Coins -= price
+	end
+	local item = { Uid = data.Base.NextUid, Id = id, X = x, Z = z, R = r, Paid = price, Cur = currency }
+	data.Base.NextUid += 1
+	table.insert(items, item)
+	renderItem(plot, item)
+	if def.Function == "Pedestal" then
+		self:RenderDisplays(player)
+	end
+	Services.ProgressionService:AddQuest(player, "Decorate", 1)
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+function Base:Move(player: Player, uid, x, z, r): (boolean, string?)
+	local data = Data:Get(player)
+	local plot = plotOf[player]
+	local item = data and type(uid) == "number" and findItem(data, uid)
+	x, z, r = cleanTransform(x, z, r)
+	if not item or not plot or not x then
+		return false, "Can't move that"
+	end
+	x, z = DecorModel.Snap(Config, item.Id, x, z, r)
+	local ok, reason = DecorModel.Validate(Config, data.Base.Items, item.Id, x, z, r, item.Uid)
+	if not ok then
+		return false, reason
+	end
+	item.X, item.Z, item.R = x, z, r
+	renderItem(plot, item)
+	if Config.Decor[item.Id].Function == "Pedestal" then
+		self:RenderDisplays(player)
+	end
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+function Base:Remove(player: Player, uid): (boolean, string?)
+	local data = Data:Get(player)
+	local plot = plotOf[player]
+	local item, index = nil, nil
+	if data and type(uid) == "number" then
+		item, index = findItem(data, uid)
+	end
+	if not item or not plot then
+		return false, "Can't remove that"
+	end
+	local def = Config.Decor[item.Id]
+	if def and def.Function == "Pedestal" and #pedestalItems(data) <= 1 then
+		return false, "Keep at least one pedestal!"
+	end
+	table.remove(data.Base.Items, index)
+	local refund = math.max(0, math.floor(item.Paid or 0))
+	if item.Cur == "Gems" then
+		data.Gems += refund
+	else
+		data.Coins += refund
+	end
+	local model = plot.ItemModels[item.Uid]
+	plot.ItemModels[item.Uid] = nil
+	if model then
+		model:Destroy()
+	end
+	if def and def.Function == "Pedestal" then
+		self:RenderDisplays(player)
+	end
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+-- traps: freeze intruders; a stolen shard from this base goes straight home
+onTrap = function(plot, model: Model, player: Player)
+	local owner = plot.Owner
+	if not owner or owner == player then
+		return
+	end
+	local ready = trapReady[model] or 0
+	if os.clock() < ready then
+		return
+	end
+	trapReady[model] = os.clock() + SETTINGS.TrapCooldown
+	model.AncestryChanged:Once(function()
+		trapReady[model] = nil
+	end)
+	Services.CharacterService:Stun(player, SETTINGS.TrapStun)
+	local recovered = Services.ShardService:Confiscate(player, owner)
+	Net:Send(player, "Stunned", SETTINGS.TrapStun)
+	Net:Notify(player, "⚡ You stepped on a trap!", Color3.fromRGB(255, 230, 80))
+	if recovered then
+		Net:Notify(owner, "⚡ Your trap caught %s - shard saved!", Color3.fromRGB(255, 230, 80), player.DisplayName)
+	else
+		Net:Notify(owner, "⚡ Your trap stunned %s!", Color3.fromRGB(255, 230, 80), player.DisplayName)
+	end
+end
+
+onJump = function(player: Player, model: Model)
+	if debounced(player, "jump", 0.8) then
+		return
+	end
+	local look = model:GetPivot().LookVector * Vector3.new(1, 0, 1)
+	Net:Send(player, "Launch", Vector3.new(0, 95, 0) + look * 25)
+end
+
+---------------------------------------------------------------------------
+-- likes
+---------------------------------------------------------------------------
+tryLike = function(visitor: Player, plotIndex: number)
+	local plot = plots[plotIndex]
+	local owner = plot and plot.Owner
+	if not owner or owner == visitor then
+		return
+	end
+	local data = Data:Get(owner)
+	if not data then
+		return
+	end
+	local base = data.Base
+	local key = tostring(visitor.UserId)
+	local today = Util.DayNumber()
+	if base.LikedBy[key] == today then
+		Net:Notify(visitor, "You already liked this base today ❤️")
+		return
+	end
+	base.LikedBy[key] = today
+	base.Likes += 1
+	local week = Util.WeekNumber()
+	if base.LikeWeek ~= week then
+		base.LikeWeek = week
+		base.WeeklyLikes = 0
+	end
+	base.WeeklyLikes += 1
+	Services.ProgressionService:AddPoints(owner, SETTINGS.LikePoints)
+	Services.ProgressionService:AddQuest(visitor, "Like", 1)
+	Net:Notify(owner, "❤️ %s liked your base!", Color3.fromRGB(255, 120, 160), visitor.DisplayName)
+	Net:Notify(visitor, "❤️ You liked %s's base!", Color3.fromRGB(255, 120, 160), owner.DisplayName)
+	Net:Send(owner, "BaseLiked", visitor.DisplayName)
+	Data:MarkDirty(owner)
+	Base:RefreshLabels(owner, true)
+end
+
+---------------------------------------------------------------------------
 -- plot assignment
 ---------------------------------------------------------------------------
+-- first visit (or a save from before decorating existed): starter layout
+local function seed(data)
+	local base = data.Base
+	if base.Seeded then
+		return
+	end
+	base.Seeded = true
+	local function add(id, x, z, r)
+		x, z = DecorModel.Snap(Config, id, x, z, r)
+		if DecorModel.Validate(Config, base.Items, id, x, z, r, nil) then
+			table.insert(base.Items, { Uid = base.NextUid, Id = id, X = x, Z = z, R = r, Paid = 0, Cur = "Coins" })
+			base.NextUid += 1
+		end
+	end
+	for _, entry in Config.StarterBase do
+		add(entry.Id, entry.X, entry.Z, entry.R)
+	end
+	-- pedestals bought before decorating existed are kept
+	local extra = math.max(0, (base.Pedestals or 0) - SETTINGS.StartPedestals)
+	for i = 1, extra do
+		add("Pedestal", -12 + ((i - 1) % 5) * 6, 9 + math.floor((i - 1) / 5) * 6, 0)
+	end
+end
+
 local function assign(player: Player, data)
 	if plotOf[player] then
 		return
@@ -709,23 +993,32 @@ function Base:Start()
 		clearPlot(plot)
 		plot.CollectPad.Touched:Connect(function(hit)
 			local player = playerFromHit(hit)
-			if player and plot.Owner == player and not debounced(player, 0.6) then
+			if player and plot.Owner == player and not debounced(player, "collect", 0.6) then
 				Base:Collect(player)
 			end
 		end)
 		plot.LockPad.Touched:Connect(function(hit)
 			local player = playerFromHit(hit)
-			if player and plot.Owner == player and not debounced(player, 0.6) then
+			if player and plot.Owner == player and not debounced(player, "lock", 0.6) then
 				Base:Lock(player)
 			end
 		end)
 	end
 
 	Data:OnLoaded(function(player, data)
+		local base = data.Base
 		-- shards a thief was carrying when the server closed are still ours
-		for _, entry in data.Base.Shards do
+		for _, entry in base.Shards do
 			entry.Away = nil
 		end
+		-- forget likes older than yesterday (keeps the save small)
+		local today = Util.DayNumber()
+		for key, day in base.LikedBy do
+			if type(day) ~= "number" or day < today - 1 then
+				base.LikedBy[key] = nil
+			end
+		end
+		seed(data)
 		assign(player, data)
 	end)
 	Data:OnLeaving(function(_player, data)
@@ -736,7 +1029,11 @@ function Base:Start()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		release(player)
-		touchDebounce[player] = nil
+		for key in touchDebounce do
+			if string.sub(key, 1, #tostring(player.UserId) + 1) == player.UserId .. ":" then
+				touchDebounce[key] = nil
+			end
+		end
 	end)
 
 	-- income tick
@@ -774,6 +1071,20 @@ function Base:Start()
 		if home and root then
 			character:PivotTo(home)
 		end
+	end)
+
+	-- build mode requests answer with ok, translated message
+	local function reply(player: Player, ok: boolean, message: string?)
+		return ok, if message then Net:L(player, message) else nil
+	end
+	Net:OnRequest("BasePlace", 0.15, function(player, id, x, z, r)
+		return reply(player, self:Place(player, id, x, z, r))
+	end)
+	Net:OnRequest("BaseMove", 0.15, function(player, uid, x, z, r)
+		return reply(player, self:Move(player, uid, x, z, r))
+	end)
+	Net:OnRequest("BaseRemove", 0.15, function(player, uid)
+		return reply(player, self:Remove(player, uid))
 	end)
 end
 

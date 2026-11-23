@@ -547,6 +547,13 @@ local function onSwing(player: Player, hint)
 			tryBonk(player, victim)
 			return
 		end
+		local shards = Services.ShardService
+		if model and shards:IsGuardian(model) then
+			if (hintPart.Position - root.Position).Magnitude <= Config.PvP.BonkRange + 2 then
+				shards:HitGuardian(player, model)
+			end
+			return
+		end
 		if blockInfo[hintPart] and withinReach(root, hintPart, 3) then
 			mineBlock(player, data, hintPart)
 			return
@@ -559,10 +566,15 @@ local function onSwing(player: Player, hint)
 		return
 	end
 
-	-- 3) a shard carrier right next to us
+	-- 3) a shard carrier (or a star guardian) right next to us
 	local carrier = nearestCarrier(player, root)
 	if carrier then
 		tryBonk(player, carrier)
+		return
+	end
+	local guardian = Services.ShardService:NearestGuardian(root.Position, Config.PvP.BonkRange)
+	if guardian then
+		Services.ShardService:HitGuardian(player, guardian)
 		return
 	end
 

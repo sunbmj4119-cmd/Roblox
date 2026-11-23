@@ -707,12 +707,16 @@ local function buildBaseDistrict()
 				CanCollide = false,
 			}, district)
 		end
-		for z = bases.ZStart - plazaDepth - 30, bases.ZEnd + 30, -36 do
-			speedPad(Vector3.new(x, 0, z), math.pi, district)
+		-- plot rows (see BaseService): first row center and row pitch
+		local plotSize = Config.Base.PlotSize
+		local pitch = plotSize + 4
+		local firstRow = bases.ZStart - 18 - plotSize / 2
+		for z = firstRow, bases.ZEnd + plotSize / 2, -pitch do
+			speedPad(Vector3.new(x, 0, z), math.pi, district) -- in front of each row
 		end
-		for z = bases.ZStart - plazaDepth, bases.ZEnd + 4, -36 do -- between plot rows
-			lamp(Vector3.new(x - 12, 0, z), Color3.fromRGB(140, 220, 255), district)
-			lamp(Vector3.new(x + 12, 0, z), Color3.fromRGB(140, 220, 255), district)
+		for z = firstRow + plotSize / 2 + 2, bases.ZEnd + 4, -pitch do -- between plot rows
+			lamp(Vector3.new(x - 11, 0, z), Color3.fromRGB(140, 220, 255), district)
+			lamp(Vector3.new(x + 11, 0, z), Color3.fromRGB(140, 220, 255), district)
 		end
 	end
 	-- dash pads on the plaza, pointing to each street

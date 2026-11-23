@@ -52,6 +52,7 @@ require(Controllers:WaitForChild("DevTools"))
 require(Controllers:WaitForChild("Guide"))
 require(Controllers:WaitForChild("Ambience"))
 require(Controllers:WaitForChild("Shards")).HUD = HUD
+require(Controllers:WaitForChild("Build")).HUD = HUD
 
 -- ask for a fresh snapshot in case the first one arrived before we listened
 Net.Fire("Sync")

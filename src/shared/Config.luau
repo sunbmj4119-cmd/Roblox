@@ -161,7 +161,7 @@ Config.World = {
 	Reach = 13, -- studs from character to the target
 	WalkSpeed = 22,
 	-- base district south of the hub (see BaseService)
-	Bases = { ZStart = -88, ZEnd = -250, HalfX = 112 },
+	Bases = { ZStart = -88, ZEnd = -304, HalfX = 124 },
 	SpawnSafeRadius = 24, -- nobody can be bonked near the spawn
 }
 
@@ -572,7 +572,7 @@ Config.Leaderboards = {
 	Boards = {
 		{ Key = "Weekly", Title = "🏆 WEEKLY RANKED", Weekly = true },
 		{ Key = "LifetimeCoins", Title = "💰 RICHEST MINERS" },
-		{ Key = "Rebirths", Title = "♻️ MOST REBIRTHS" },
+		{ Key = "Likes", Title = "❤️ BEST BASES" },
 	},
 	WeeklyTopReward = { 5000, 3000, 2000, 1000, 1000, 500, 500, 500, 500, 500 }, -- gems for global top 10
 }
@@ -627,6 +627,16 @@ Config.Quests = {
 	{ Id = "Bonk5", Type = "Bonk", Target = 5, Text = "Bonk 5 players", Reward = { Gems = 60 }, XP = 250, Points = 200 },
 	{ Id = "Shard3", Type = "Shard", Target = 3, Text = "Bring 3 shards to your base", Reward = { Gems = 60 }, XP = 250, Points = 200 },
 	{ Id = "Steal1", Type = "Steal", Target = 1, Text = "Steal a shard from another base", Reward = { Gems = 80 }, XP = 300, Points = 250 },
+	{
+		Id = "Decorate5",
+		Type = "Decorate",
+		Target = 5,
+		Text = "Place 5 decorations in your base",
+		Reward = { Gems = 40 },
+		XP = 200,
+		Points = 150,
+	},
+	{ Id = "Like3", Type = "Like", Target = 3, Text = "Like 3 other bases", Reward = { Gems = 30 }, XP = 150, Points = 100 },
 	{ Id = "Play20", Type = "PlayMinutes", Target = 20, Text = "Play for 20 minutes", Reward = { Gems = 30 }, XP = 200, Points = 150 },
 	{ Id = "Upgrade1", Type = "Upgrade", Target = 1, Text = "Buy any upgrade", Reward = { Gems = 20 }, XP = 100, Points = 80 },
 }
@@ -787,15 +797,137 @@ Config.Base = {
 	-- one base per player: set the place's server size to the same number
 	-- (Creator Dashboard -> Places -> Server size). Extra players wait for a free base.
 	Plots = 16,
-	Streets = { -56, 56 }, -- x of the district streets; plots line both sides
-	StartPedestals = 3,
+	PlotSize = 44, -- studs; room to decorate
+	Streets = { -64, 64 }, -- x of the district streets; plots line both sides
+	StartPedestals = 3, -- placed for free in every new base
 	MaxPedestals = 12,
+	-- price of the Nth pedestal (first 3 are free)
 	PedestalCosts = { 0, 0, 0, 500, 3000, 15000, 75000, 400000, 2000000, 10000000, 50000000, 250000000 },
+	StorageMax = 10, -- shards that don't fit on a pedestal wait here (earning nothing)
+	MaxItems = 70, -- decorations per base (keeps phones smooth)
+	Cell = 2, -- placement grid in studs
+	-- buildable area in plot space (the entrance strip stays clear)
+	Build = { MinX = -20, MaxX = 20, MinZ = -12, MaxZ = 20 },
 	OfflineRate = 0.5, -- offline earnings = 50% of the normal rate
 	OfflineMaxSeconds = 7200, -- ... for up to 2 hours
 	LockSeconds = 60,
 	LockCooldown = 180,
 	StealHold = 1.2,
+	TrapStun = 2.5, -- seconds a trap freezes a thief
+	TrapCooldown = 6,
+	LikePoints = 15, -- weekly ranked points per like received
+}
+
+-- Decorations: buy & place anything in your base. All refundable (100%),
+-- so redecorating is free. Size is the footprint in grid cells (2 studs).
+-- Layer "Floor" items sit under everything else.
+Config.DecorCategories = {
+	{ Id = "Base", Name = "Base", Icon = "🏠" },
+	{ Id = "Nature", Name = "Nature", Icon = "🌳" },
+	{ Id = "Furniture", Name = "Furniture", Icon = "🪑" },
+	{ Id = "Lights", Name = "Lights", Icon = "💡" },
+	{ Id = "Fun", Name = "Fun", Icon = "🗿" },
+	{ Id = "Floor", Name = "Floors", Icon = "🟫" },
+	{ Id = "Premium", Name = "Premium", Icon = "💎" },
+}
+Config.Decor = {
+	-- base (functional)
+	Pedestal = { Name = "Shard Pedestal", Category = "Base", Icon = "🌠", Size = { 2, 2 }, Price = 0, Function = "Pedestal" },
+	Trap = { Name = "Stun Trap", Category = "Base", Icon = "⚡", Size = { 2, 2 }, Price = 2500, Limit = 4, Function = "Trap" },
+	JumpPad = { Name = "Jump Pad", Category = "Base", Icon = "🦘", Size = { 2, 2 }, Price = 800, Limit = 4, Function = "Jump" },
+	-- nature
+	Tree = { Name = "Tree", Category = "Nature", Icon = "🌳", Size = { 2, 2 }, Price = 120 },
+	Pine = { Name = "Pine Tree", Category = "Nature", Icon = "🌲", Size = { 2, 2 }, Price = 150 },
+	Bush = { Name = "Bush", Category = "Nature", Icon = "🌿", Size = { 1, 1 }, Price = 40 },
+	Flowers = { Name = "Flower Bed", Category = "Nature", Icon = "🌷", Size = { 2, 1 }, Price = 60 },
+	Rock = { Name = "Rock", Category = "Nature", Icon = "🪨", Size = { 1, 1 }, Price = 30 },
+	-- furniture
+	Bench = { Name = "Bench", Category = "Furniture", Icon = "🪑", Size = { 2, 1 }, Price = 100 },
+	Table = { Name = "Table", Category = "Furniture", Icon = "🍽️", Size = { 2, 2 }, Price = 150 },
+	Chair = { Name = "Chair", Category = "Furniture", Icon = "💺", Size = { 1, 1 }, Price = 60 },
+	Sofa = { Name = "Sofa", Category = "Furniture", Icon = "🛋️", Size = { 3, 1 }, Price = 300 },
+	Fence = { Name = "Fence", Category = "Furniture", Icon = "🚧", Size = { 2, 1 }, Price = 25 },
+	-- lights
+	Lantern = { Name = "Lantern", Category = "Lights", Icon = "🏮", Size = { 1, 1 }, Price = 80 },
+	LampPost = { Name = "Lamp Post", Category = "Lights", Icon = "💡", Size = { 1, 1 }, Price = 140 },
+	Crystal = { Name = "Glow Crystal", Category = "Lights", Icon = "🔮", Size = { 1, 1 }, Price = 400 },
+	-- fun
+	Statue = { Name = "Star Statue", Category = "Fun", Icon = "⭐", Size = { 2, 2 }, Price = 1500 },
+	Fountain = { Name = "Fountain", Category = "Fun", Icon = "⛲", Size = { 3, 3 }, Price = 2500 },
+	Trophy = { Name = "Trophy", Category = "Fun", Icon = "🏆", Size = { 1, 1 }, Price = 5000 },
+	Flag = { Name = "Flag", Category = "Fun", Icon = "🚩", Size = { 1, 1 }, Price = 200 },
+	-- floors (4x4 tiles)
+	WoodFloor = { Name = "Wood Floor", Category = "Floor", Icon = "🟫", Size = { 2, 2 }, Price = 20, Layer = "Floor" },
+	StoneFloor = { Name = "Stone Floor", Category = "Floor", Icon = "⬜", Size = { 2, 2 }, Price = 20, Layer = "Floor" },
+	GrassFloor = { Name = "Grass Floor", Category = "Floor", Icon = "🟩", Size = { 2, 2 }, Price = 15, Layer = "Floor" },
+	Carpet = { Name = "Red Carpet", Category = "Floor", Icon = "🟥", Size = { 2, 2 }, Price = 40, Layer = "Floor" },
+	-- premium (gems)
+	Throne = { Name = "Galaxy Throne", Category = "Premium", Icon = "👑", Size = { 2, 2 }, Gems = 250 },
+	RainbowFountain = { Name = "Rainbow Fountain", Category = "Premium", Icon = "🌈", Size = { 3, 3 }, Gems = 500 },
+	NeonArch = { Name = "Neon Arch", Category = "Premium", Icon = "🌀", Size = { 3, 1 }, Gems = 150 },
+}
+-- display order inside each category
+Config.DecorOrder = {
+	"Pedestal",
+	"Trap",
+	"JumpPad",
+	"Tree",
+	"Pine",
+	"Bush",
+	"Flowers",
+	"Rock",
+	"Bench",
+	"Table",
+	"Chair",
+	"Sofa",
+	"Fence",
+	"Lantern",
+	"LampPost",
+	"Crystal",
+	"Statue",
+	"Fountain",
+	"Trophy",
+	"Flag",
+	"WoodFloor",
+	"StoneFloor",
+	"GrassFloor",
+	"Carpet",
+	"Throne",
+	"RainbowFountain",
+	"NeonArch",
+}
+-- what a brand-new base starts with (plot space, studs)
+Config.StarterBase = {
+	{ Id = "Pedestal", X = -6, Z = 2, R = 0 },
+	{ Id = "Pedestal", X = 0, Z = 2, R = 0 },
+	{ Id = "Pedestal", X = 6, Z = 2, R = 0 },
+	{ Id = "Tree", X = -16, Z = 16, R = 0 },
+	{ Id = "Tree", X = 16, Z = 16, R = 0 },
+	{ Id = "Lantern", X = -9, Z = -9, R = 0 },
+	{ Id = "Lantern", X = 9, Z = -9, R = 0 },
+}
+
+-- running speed upgrades: faster = steal more, escape guardians and thieves
+Config.Boots = {
+	{ Name = "Sneakers", Bonus = 0, Cost = 0 },
+	{ Name = "Runner Shoes", Bonus = 0.08, Cost = 400 },
+	{ Name = "Sprint Shoes", Bonus = 0.16, Cost = 2500 },
+	{ Name = "Turbo Boots", Bonus = 0.25, Cost = 15000 },
+	{ Name = "Jet Boots", Bonus = 0.35, Cost = 90000 },
+	{ Name = "Comet Boots", Bonus = 0.45, Cost = 600000 },
+	{ Name = "Warp Boots", Bonus = 0.55, Cost = 4000000 },
+	{ Name = "Lightspeed Boots", Bonus = 0.7, Cost = 30000000 },
+}
+
+-- star guardians: rock golems that protect fallen stars and chase whoever grabs one
+Config.Guardian = {
+	MinRarity = 2, -- Rare+ stars get a guardian
+	Speed = 16, -- + per rarity step
+	SpeedPerRarity = 0.8,
+	ChaseSeconds = 12,
+	ChaseRange = 140, -- gives up beyond this distance from its star
+	CatchRange = 4.5,
+	StunSeconds = 2.5, -- bonking a guardian stuns it
 }
 
 -- free prize wheel (retention): one free spin every few hours

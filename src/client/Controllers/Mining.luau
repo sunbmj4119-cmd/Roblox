@@ -304,6 +304,12 @@ local function classify(hit: Instance?)
 		end
 		local map = workspace:FindFirstChild("Map")
 		local shardFolder = map and map:FindFirstChild("Shards")
+		if shardFolder and model.Parent == shardFolder and model.Name == "StarGuardian" then
+			local guardianRoot = model:FindFirstChild("HumanoidRootPart")
+			if guardianRoot and guardianRoot:IsA("BasePart") then
+				return { Kind = "Player", Part = guardianRoot } -- walk up and bonk it
+			end
+		end
 		if shardFolder and model.Parent == shardFolder then
 			local hitbox = model:FindFirstChild("Hitbox")
 			if hitbox and hitbox:IsA("BasePart") then
@@ -380,6 +386,28 @@ local function nearestOre(root: BasePart): BasePart?
 	return best
 end
 
+-- star guardians (rock golems) near us - bonk them to stun them
+local function nearestGuardian(root: BasePart): BasePart?
+	local map = workspace:FindFirstChild("Map")
+	local folder = map and map:FindFirstChild("Shards")
+	if not folder then
+		return nil
+	end
+	local best, bestDistance = nil, Config.PvP.BonkRange + 6
+	for _, model in folder:GetChildren() do
+		if model.Name == "StarGuardian" then
+			local guardianRoot = model:FindFirstChild("HumanoidRootPart")
+			if guardianRoot and guardianRoot:IsA("BasePart") then
+				local distance = (guardianRoot.Position - root.Position).Magnitude
+				if distance < bestDistance then
+					best, bestDistance = guardianRoot, distance
+				end
+			end
+		end
+	end
+	return best
+end
+
 local function nearestCarrier(root: BasePart): BasePart?
 	local best, bestDistance = nil, Config.PvP.BonkRange + 6
 	for _, other in Players:GetPlayers() do
@@ -439,7 +467,7 @@ end)
 local touches = {} -- [InputObject] = { Start = Vector3, Time = number, Drag = bool }
 
 UserInputService.InputBegan:Connect(function(input, processed)
-	if processed then
+	if processed or State.BuildMode then
 		return
 	end
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -466,7 +494,7 @@ UserInputService.InputEnded:Connect(function(input)
 	elseif input.UserInputType == Enum.UserInputType.Touch then
 		local touch = touches[input]
 		touches[input] = nil
-		if touch and not touch.Drag and os.clock() - touch.Time < 0.45 then
+		if touch and not touch.Drag and os.clock() - touch.Time < 0.45 and not State.BuildMode then
 			local picked = pickAt(input.Position)
 			if picked then
 				setTarget(picked, true)
@@ -566,10 +594,17 @@ RunService.Heartbeat:Connect(function()
 		comboSub.Visible = false
 	end
 
+	mineGui.Enabled = UserInputService.TouchEnabled and not State.BuildMode
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart
 	if not humanoid or not root or humanoid.Health <= 0 then
+		return
+	end
+	if State.BuildMode then
+		if target then
+			setTarget(nil, false)
+		end
 		return
 	end
 
@@ -605,6 +640,8 @@ RunService.Heartbeat:Connect(function()
 			setTarget({ Kind = "Meteor", Part = meteor }, false)
 		elseif carrierRoot then
 			setTarget({ Kind = "Player", Part = carrierRoot }, true)
+		elseif nearestGuardian(root) then
+			setTarget({ Kind = "Player", Part = nearestGuardian(root) :: BasePart }, true)
 		else
 			local ore = nearestOre(root)
 			if ore then

@@ -128,7 +128,9 @@ Net.On("ShardDelivered", function(id, result, coins)
 	local data, derived = State.Data, State.Derived
 	local income = Util.ShardIncome(Config, id, if data then data.ZoneLevel else 1) * ((derived and derived.CoinMult) or 1)
 	local sub
-	if result == "Sold" then
+	if result == "Stored" then
+		sub = T("📦 Stored - your pedestals hold better shards. Place more pedestals!")
+	elseif result == "Sold" then
 		sub = T("Base full - sold it for 💰%s. Buy more pedestals!", Util.Format(coins or 0))
 	elseif result == "Replaced" then
 		sub = T("Replaced your weakest shard (+💰%s)", Util.Format(coins or 0))
@@ -182,6 +184,47 @@ Net.On("BaseAlarm", function(thiefName, shardName)
 			task.wait(0.45)
 		end
 	end)
+end)
+
+-- jump pads / traps / guardians / likes -----------------------------------------
+Net.On("Launch", function(velocity)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if root and root:IsA("BasePart") and typeof(velocity) == "Vector3" then
+		if humanoid then
+			humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+		end
+		root.AssemblyLinearVelocity = velocity
+		Lib.PlaySound("Swing", 1.3, 0.4)
+	end
+end)
+
+local stunFrame = New("Frame", {
+	BackgroundColor3 = Color3.fromRGB(255, 230, 80),
+	BackgroundTransparency = 1,
+	Size = UDim2.fromScale(1, 1),
+	ZIndex = 84,
+	Parent = Root.Overlay,
+})
+Net.On("Stunned", function(seconds)
+	Lib.PlaySound("Crit", 1, 0.3)
+	stunFrame.BackgroundTransparency = 0.5
+	TweenService:Create(stunFrame, TweenInfo.new(seconds or 2), { BackgroundTransparency = 1 }):Play()
+end)
+
+Net.On("GuardianChase", function(seconds)
+	Lib.PlaySound("MeteorWarn", 0.8)
+	celebrate(T("🗿 THE GUARDIAN WOKE UP!"), T("Run! It chases you for %d seconds", seconds or 12), Color3.fromRGB(255, 150, 80))
+end)
+
+Net.On("CaughtByGuardian", function(id)
+	Lib.PlaySound("Bonked")
+	toast(T("🗿 The guardian took the %s back!", T(rarity(id).Name)), C.Red)
+end)
+
+Net.On("BaseLiked", function()
+	Lib.PlaySound("Reward", 0.8, 0.2)
 end)
 
 ---------------------------------------------------------------------------
@@ -302,7 +345,11 @@ local function refreshBases()
 			for _, prompt in plot:GetDescendants() do
 				if prompt:IsA("ProximityPrompt") then
 					local role = prompt:GetAttribute("Role")
-					local enabled = if role == "Owner" then mine elseif role == "Thief" then not mine and not locked else true
+					local enabled = if role == "Owner"
+						then mine
+						elseif role == "Thief" then not mine and not locked
+						elseif role == "Visitor" then not mine
+						else true
 					if prompt.Enabled ~= enabled then
 						prompt.Enabled = enabled
 					end

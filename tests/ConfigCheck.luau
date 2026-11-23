@@ -53,6 +53,8 @@ local QUEST_TYPES = {
 	Upgrade = true,
 	Shard = true,
 	Steal = true,
+	Decorate = true,
+	Like = true,
 }
 local PRODUCT_KINDS = {
 	Gems = true,
@@ -298,11 +300,49 @@ do
 	check(#base.PedestalCosts == base.MaxPedestals, "Base.PedestalCosts needs MaxPedestals entries")
 	local district = Config.World.Bases
 	local rows = math.ceil(base.Plots / (2 * #base.Streets))
-	local lastRowEdge = district.ZStart - 32 - (rows - 1) * 36 - 16
+	local half = base.PlotSize / 2
+	local lastRowEdge = district.ZStart - 18 - half - (rows - 1) * (base.PlotSize + 4) - half
 	check(lastRowEdge > district.ZEnd, string.format("%d plots need %d rows - the district (ZEnd) is too short", base.Plots, rows))
 	for _, x in base.Streets do
-		check(math.abs(x) + 30 + 16 < district.HalfX, "street at x=" .. x .. " puts plots outside the district")
+		check(math.abs(x) + 12 + base.PlotSize < district.HalfX, "street at x=" .. x .. " puts plots outside the district")
 	end
+	-- decorations: every catalog item has a model, a valid category and fits the build area
+	local DecorModel = load("src/shared/DecorModel.luau")
+	local categories = {}
+	for _, cat in Config.DecorCategories do
+		categories[cat.Id] = true
+	end
+	local listed = {}
+	for _, id in Config.DecorOrder do
+		listed[id] = true
+		check(Config.Decor[id] ~= nil, "DecorOrder lists unknown item " .. id)
+	end
+	for id, def in Config.Decor do
+		check(listed[id] == true, "decor " .. id .. " missing from DecorOrder")
+		check(categories[def.Category] == true, "decor " .. id .. " has unknown category")
+		check(DecorModel.Has(id), "decor " .. id .. " has no model builder")
+		check(type(def.Size) == "table" and def.Size[1] >= 1 and def.Size[2] >= 1, "decor " .. id .. " bad Size")
+		check((def.Price ~= nil) ~= (def.Gems ~= nil) or def.Function == "Pedestal", "decor " .. id .. " needs Price or Gems")
+	end
+	-- the starter layout is valid and placement rules work
+	local items = {}
+	for i, entry in Config.StarterBase do
+		local x, z = DecorModel.Snap(Config, entry.Id, entry.X, entry.Z, entry.R)
+		local ok, reason = DecorModel.Validate(Config, items, entry.Id, x, z, entry.R, nil)
+		check(ok, "StarterBase item " .. i .. " (" .. entry.Id .. ") invalid: " .. tostring(reason))
+		table.insert(items, { Uid = i, Id = entry.Id, X = x, Z = z, R = entry.R })
+	end
+	local first = items[1]
+	check(not DecorModel.Validate(Config, items, first.Id, first.X, first.Z, 0, nil), "overlap not detected")
+	check(DecorModel.Validate(Config, items, first.Id, first.X, first.Z, 0, first.Uid), "moving onto itself should be allowed")
+	check(not DecorModel.Validate(Config, items, "Tree", 999, 0, 0, nil), "out of bounds not detected")
+	local sx, sz = DecorModel.Snap(Config, "Sofa", 0.7, 0.3, 1) -- 3x1 rotated: odd/even cells
+	check(sx % 1 == 0 and sz % 1 == 0, "snap produced off-grid values")
+	local currency, price = DecorModel.Price(Config, "Pedestal", items)
+	check(currency == "Coins" and price == base.PedestalCosts[4], "4th pedestal price wrong")
+	check(select(1, DecorModel.Price(Config, "Throne", items)) == "Gems", "gem decor should cost gems")
+	local w, d = DecorModel.Footprint(Config, "Bench", 1)
+	check(w == base.Cell and d == base.Cell * 2, "rotated footprint wrong")
 	check(base.StartPedestals >= 1 and base.StartPedestals <= base.MaxPedestals, "Base.StartPedestals out of range")
 	for i = 2, #base.PedestalCosts do
 		check(base.PedestalCosts[i] >= base.PedestalCosts[i - 1], "pedestal costs must not go down")

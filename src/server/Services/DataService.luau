@@ -42,7 +42,21 @@ local TEMPLATE = {
 	Tutorial = { Step = 1, Progress = 0, Done = false },
 	Settings = { Lang = "auto" }, -- "auto" | "ko" | "en"
 	-- star-shard base: Shards = { { Id = rarityId }, ... } in pedestal order
-	Base = { Pedestals = 3, Shards = {}, Bank = 0, LastOnline = 0 },
+	-- Items = placed decorations { Uid, Id, X, Z, R, Paid, Cur } in plot space
+	Base = {
+		Pedestals = 3, -- legacy (pre-decorating saves)
+		Shards = {},
+		Bank = 0,
+		LastOnline = 0,
+		Items = {},
+		NextUid = 1,
+		Seeded = false,
+		Likes = 0,
+		WeeklyLikes = 0,
+		LikeWeek = 0,
+		LikedBy = {}, -- ["userId"] = day number
+	},
+	SpeedTier = 1,
 	Pets = {}, -- { { Id = 1, Name = "Bunny", Variant = "Golden"? }, ... }
 	Equipped = {}, -- { petId, ... }
 	NextPetUid = 1,

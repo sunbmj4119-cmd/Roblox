@@ -104,12 +104,25 @@ function CharacterService:GivePickaxe(player: Player)
 end
 
 local padUntil = {} -- [player] = os.clock() when the dash pad boost ends
+local stunnedUntil = {} -- [player] = os.clock() when a trap/guardian stun ends
+local DEFAULT_JUMP = 7.2
 
 function CharacterService:ApplyWalkSpeed(player: Player)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
+		if (stunnedUntil[player] or 0) > os.clock() then
+			humanoid.WalkSpeed = 0
+			humanoid.JumpHeight = 0
+			return
+		end
+		humanoid.JumpHeight = DEFAULT_JUMP
 		local speed = Config.World.WalkSpeed
+		local data = Data:Get(player)
+		local boots = data and Config.Boots[data.SpeedTier or 1]
+		if boots then
+			speed *= 1 + boots.Bonus
+		end
 		if Services.MonetizationService:HasPass(player, "Speed") then
 			speed *= 1.5
 		end
@@ -126,6 +139,18 @@ function CharacterService:ApplyWalkSpeed(player: Player)
 		end
 		humanoid.WalkSpeed = speed
 	end
+end
+
+-- freeze a player for a moment (stun traps, guardians)
+function CharacterService:Stun(player: Player, seconds: number)
+	stunnedUntil[player] = os.clock() + seconds
+	self:ApplyWalkSpeed(player)
+	task.delay(seconds + 0.05, function()
+		if player.Parent and (stunnedUntil[player] or 0) <= os.clock() then
+			stunnedUntil[player] = nil
+			self:ApplyWalkSpeed(player)
+		end
+	end)
 end
 
 function CharacterService:SpeedPad(player: Player)
@@ -243,6 +268,7 @@ function CharacterService:Start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		padUntil[player] = nil
+		stunnedUntil[player] = nil
 	end)
 
 	-- dash pads

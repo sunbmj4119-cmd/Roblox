@@ -44,6 +44,8 @@ local function valueFor(key: string, data): number
 		return data.Stats.LifetimeCoins
 	elseif key == "Rebirths" then
 		return data.Rebirths
+	elseif key == "Likes" then
+		return data.Base and data.Base.Likes or 0
 	end
 	return 0
 end
@@ -51,6 +53,8 @@ end
 local function formatValue(key: string, value: number): string
 	if key == "Weekly" then
 		return Util.Comma(value) .. " pts"
+	elseif key == "Likes" then
+		return "❤️ " .. Util.Comma(value)
 	end
 	return Util.Format(value)
 end

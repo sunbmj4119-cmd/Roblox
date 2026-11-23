@@ -158,6 +158,142 @@ end
 
 local tryPickup -- forward declaration
 
+---------------------------------------------------------------------------
+-- star guardians: rock golems that protect a fallen star and chase the
+-- player who grabs it. If they catch you, they take the shard back to the
+-- crash site. Bonk one (swing at it) to stun it - friends can cover you!
+---------------------------------------------------------------------------
+local GUARDIAN = Config.Guardian
+local guardians = {} -- [model] = guardian record
+
+local function buildGuardian(color: Color3): (Model, Humanoid, BasePart)
+	local model = Instance.new("Model")
+	model.Name = "StarGuardian"
+	local root = Instance.new("Part")
+	root.Name = "HumanoidRootPart"
+	root.Size = Vector3.new(2, 2, 1)
+	root.Transparency = 1
+	root.CanCollide = false
+	root.Parent = model
+	local function limb(name: string, size: Vector3, offset: CFrame, partColor: Color3, material: Enum.Material)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = size
+		p.CFrame = root.CFrame * offset
+		p.Color = partColor
+		p.Material = material
+		p.CanCollide = false
+		p.Massless = true
+		p.CastShadow = false
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = root
+		weld.Part1 = p
+		weld.Parent = p
+		p.Parent = model
+		return p
+	end
+	local rock = Color3.fromRGB(85, 80, 95)
+	limb("Torso", Vector3.new(3.4, 3.2, 2.4), CFrame.new(0, 0.6, 0), rock, Enum.Material.Basalt)
+	limb("Head", Vector3.new(2.4, 2, 2.2), CFrame.new(0, 3.2, 0), rock, Enum.Material.Basalt)
+	for _, x in { -0.55, 0.55 } do
+		limb("Eye", Vector3.new(0.5, 0.35, 0.2), CFrame.new(x, 3.4, -1.1), color, Enum.Material.Neon)
+	end
+	for _, x in { -2.3, 2.3 } do
+		limb("Arm", Vector3.new(1.2, 3.4, 1.3), CFrame.new(x, 0.2, 0) * CFrame.Angles(0, 0, math.rad(x * 3)), rock, Enum.Material.Basalt)
+	end
+	local crystal =
+		limb("Crystal", Vector3.new(0.9, 2.4, 0.9), CFrame.new(0, 2.6, 1.2) * CFrame.Angles(0.5, 0, 0), color, Enum.Material.Neon)
+	local glow = Instance.new("PointLight")
+	glow.Color = color
+	glow.Range = 14
+	glow.Brightness = 2
+	glow.Parent = crystal
+
+	local humanoid = Instance.new("Humanoid")
+	humanoid.RigType = Enum.HumanoidRigType.R15 -- R15 so HipHeight lifts the legless golem
+	humanoid.HipHeight = 2.6
+	humanoid.RequiresNeck = false
+	humanoid.BreakJointsOnDeath = false
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	humanoid.Parent = model
+	model.PrimaryPart = root
+
+	local gui = Instance.new("BillboardGui")
+	gui.Size = UDim2.new(7, 0, 1.6, 0)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 5.5, 0)
+	gui.LightInfluence = 0
+	gui.MaxDistance = 120
+	local text = Instance.new("TextLabel")
+	text.BackgroundTransparency = 1
+	text.Size = UDim2.fromScale(1, 1)
+	text.Font = Enum.Font.FredokaOne
+	text.TextScaled = true
+	text.TextColor3 = color
+	World.SetText(text, "🗿 STAR GUARDIAN")
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Parent = text
+	text.Parent = gui
+	gui.Parent = root
+	return model, humanoid, root
+end
+
+local function spawnGuardian(id: string, home: Vector3)
+	local def = SETTINGS.Rarities[id]
+	local index = Util.ShardIndex(Config, id)
+	local model, humanoid, root = buildGuardian(def.Color)
+	root.CFrame = CFrame.new(home + Vector3.new(6, 4, 0))
+	humanoid.WalkSpeed = GUARDIAN.Speed + (index - 1) * GUARDIAN.SpeedPerRarity
+	model.Parent = World:Folder("Shards")
+	pcall(function()
+		root:SetNetworkOwner(nil) -- the server drives it, never a nearby client
+	end)
+	local record =
+		{ Model = model, Humanoid = humanoid, Root = root, Home = home, Target = nil, ChaseUntil = 0, StunnedUntil = 0, ShardId = id }
+	guardians[model] = record
+	return record
+end
+
+local function despawnGuardian(record)
+	if not record then
+		return
+	end
+	guardians[record.Model] = nil
+	if record.Model.Parent then
+		record.Model:Destroy()
+	end
+end
+
+function Shards:IsGuardian(model: Instance?): boolean
+	return model ~= nil and guardians[model] ~= nil
+end
+
+-- a bonk stuns the guardian for a moment
+function Shards:HitGuardian(player: Player, model: Model): boolean
+	local record = guardians[model]
+	if not record then
+		return false
+	end
+	record.StunnedUntil = os.clock() + GUARDIAN.StunSeconds
+	record.Humanoid:MoveTo(record.Root.Position)
+	Net:Notify(player, "💥 Guardian stunned!", Color3.fromRGB(255, 200, 90))
+	Net:Send(player, "BonkHit", record.Root.Position)
+	return true
+end
+
+function Shards:NearestGuardian(position: Vector3, range: number): Model?
+	local best, bestDistance = nil, range
+	for model, record in guardians do
+		local distance = (record.Root.Position - position).Magnitude
+		if distance <= bestDistance then
+			best, bestDistance = model, distance
+		end
+	end
+	return best
+end
+
 -- opts: Beacon (bool), PriorityUser/PriorityUntil, BlockUser/BlockUntil, Lifetime
 function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 	opts = opts or {}
@@ -226,6 +362,11 @@ function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 		BlockUntil = opts.BlockUntil or 0,
 	}
 	ground[model] = record
+	if opts.Guardian then
+		record.Guardian = opts.Guardian
+	elseif opts.WithGuardian and Util.ShardIndex(Config, id) >= GUARDIAN.MinRarity then
+		record.Guardian = spawnGuardian(id, position)
+	end
 
 	hitbox.Touched:Connect(function(hit)
 		if ground[model] then
@@ -239,6 +380,9 @@ function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 		if ground[model] then
 			destroyGround(model)
 			returnHome(meta, true)
+			if record.Guardian and not record.Guardian.Target then
+				despawnGuardian(record.Guardian)
+			end
 		end
 	end)
 	return model
@@ -275,7 +419,25 @@ tryPickup = function(model: Model, record, hit: BasePart)
 		return
 	end
 	destroyGround(model)
-	Shards:StartCarry(player, record.Id, meta)
+	if Shards:StartCarry(player, record.Id, meta) and record.Guardian then
+		local guardian = record.Guardian
+		guardian.Target = player
+		guardian.ChaseUntil = os.clock() + GUARDIAN.ChaseSeconds
+		carrying[player].Guardian = guardian
+		Net:Send(player, "GuardianChase", GUARDIAN.ChaseSeconds)
+	end
+end
+
+-- stun traps: a thief carrying a shard stolen from `owner` loses it instantly
+function Shards:Confiscate(player: Player, owner: Player): boolean
+	local info = carrying[player]
+	if not info or not info.Meta or info.Meta.From ~= owner then
+		return false
+	end
+	endCarry(player)
+	returnHome(info.Meta, false)
+	Net:Send(player, "CarryLost", info.Id, owner.DisplayName)
+	return true
 end
 
 -- drop whatever the player carries (bonked / died / left)
@@ -370,7 +532,7 @@ function Shards:FallingStar(forcedZone: number?)
 	local flight = 1.8
 	Net:Broadcast("StarFall", position, id, flight)
 	task.delay(flight, function()
-		self:SpawnGround(id, position, nil, { Beacon = true })
+		self:SpawnGround(id, position, nil, { Beacon = true, WithGuardian = true })
 		local where = if zone == 0 then "Hub" else Config.Zones[zone].Name
 		Net:Announce("🌠 A falling star crashed in %s! Grab the %s!", SETTINGS.Rarities[id].Color, where, rarityName(id))
 	end)
@@ -435,7 +597,77 @@ function Shards:Init(services)
 	World = services.WorldService
 end
 
+local function stepGuardians()
+	local clock = os.clock()
+	for model, g in guardians do
+		if not model.Parent or not g.Root.Parent then
+			guardians[model] = nil
+		elseif g.StunnedUntil > clock then
+			g.Humanoid:MoveTo(g.Root.Position) -- dazed
+		elseif g.Target then
+			local target = g.Target
+			local info = carrying[target]
+			local root = rootOf(target)
+			local giveUp = not target.Parent
+				or not info
+				or info.Guardian ~= g
+				or not root
+				or clock > g.ChaseUntil
+				or (g.Root.Position - g.Home).Magnitude > GUARDIAN.ChaseRange
+				or Util.InBases(Config, root.Position)
+			if giveUp then
+				g.Target = nil
+				g.Done = true -- the shard is gone: walk back and vanish
+				if info and info.Guardian == g then
+					info.Guardian = nil
+				end
+				g.Humanoid:MoveTo(g.Home)
+			elseif root then
+				g.Humanoid:MoveTo(root.Position)
+				if (root.Position - g.Root.Position).Magnitude <= GUARDIAN.CatchRange then
+					-- caught! the guardian takes the shard back to the crash site
+					local id = info.Id
+					endCarry(target)
+					Services.CharacterService:Stun(target, 1.2)
+					local push = (root.Position - g.Root.Position) * Vector3.new(1, 0, 1)
+					push = if push.Magnitude > 0.01 then push.Unit else Vector3.zAxis
+					Net:Send(target, "Knockback", push * 45 + Vector3.new(0, 30, 0))
+					Net:Send(target, "CaughtByGuardian", id)
+					g.Target = nil
+					g.Done = false
+					Shards:SpawnGround(id, g.Home, nil, {
+						Beacon = true,
+						Guardian = g,
+						BlockUser = target.UserId,
+						BlockUntil = now() + 2,
+					})
+					g.Humanoid:MoveTo(g.Home)
+				end
+			end
+		else
+			local distance = ((g.Root.Position - g.Home) * Vector3.new(1, 0, 1)).Magnitude
+			if g.Done and distance < 8 then
+				despawnGuardian(g)
+			elseif distance > 9 then
+				g.Humanoid:MoveTo(g.Home + Vector3.new(6, 0, 0))
+			end
+		end
+	end
+end
+
 function Shards:Start()
+	local guardianClock = 0
+	RunService.Heartbeat:Connect(function(dt)
+		guardianClock += dt
+		if guardianClock < 0.2 then
+			return
+		end
+		guardianClock = 0
+		local ok, err = pcall(stepGuardians)
+		if not ok then
+			warn("[Shards] guardian step failed: " .. tostring(err))
+		end
+	end)
 	-- delivery + safety checks
 	local accumulator = 0
 	RunService.Heartbeat:Connect(function(dt)

@@ -1,4 +1,4 @@
--- Pickaxe upgrades (coins sink, sequential tiers)
+-- Pickaxe + running-speed upgrades (coins sink, sequential tiers)
 local Shop = { Title = "⛏️ UPGRADES", Color = Color3.fromRGB(255, 160, 50) }
 
 function Shop.Build(content, ctx)
@@ -18,9 +18,13 @@ function Shop.Build(content, ctx)
 	local refresh
 
 	local tabButtons = {}
-	for i, name in { "Pickaxes" } do
+	local TABS = {
+		Pickaxes = { Label = "⛏️ Pickaxes", Field = "PickaxeTier", Buy = "BuyPickaxe", Icon = "⛏️" },
+		Boots = { Label = "👟 Speed", Field = "SpeedTier", Buy = "BuyBoots", Icon = "👟" },
+	}
+	for i, name in { "Pickaxes", "Boots" } do
 		local button = Lib.Button({
-			Text = "⛏️ Pickaxes",
+			Text = TABS[name].Label,
 			Color = C.Blue,
 			Size = UDim2.fromOffset(170, 40),
 			LayoutOrder = i,
@@ -51,7 +55,7 @@ function Shop.Build(content, ctx)
 				Parent = row,
 			}, { Lib.Corner(10), Lib.Stroke(Color3.new(0, 0, 0), 2, 0.4) })
 			Lib.Text({
-				Text = "⛏️",
+				Text = TABS[tab].Icon,
 				Size = UDim2.fromScale(0.8, 0.8),
 				Position = UDim2.fromScale(0.1, 0.1),
 				Parent = swatch,
@@ -64,7 +68,9 @@ function Shop.Build(content, ctx)
 				MaxTextSize = 24,
 				Parent = row,
 			})
-			local statText = T("💥 Power %s  •  ⚡ %ss swing", Util.Format(item.Power), string.format("%.2f", item.Cooldown))
+			local statText = if tab == "Boots"
+				then T("👟 +%s%% running speed", tostring(math.floor(item.Bonus * 100 + 0.5)))
+				else T("💥 Power %s  •  ⚡ %ss swing", Util.Format(item.Power), string.format("%.2f", item.Cooldown))
 			Lib.Text({
 				Text = statText,
 				Font = Lib.BodyFont,
@@ -81,7 +87,7 @@ function Shop.Build(content, ctx)
 				AnchorPoint = Vector2.new(0, 0.5),
 				Parent = row,
 				OnClick = function()
-					Net.Fire("BuyPickaxe")
+					Net.Fire(TABS[tab].Buy)
 				end,
 			})
 			rows[tier] = { Button = button, Item = item }
@@ -101,7 +107,7 @@ function Shop.Build(content, ctx)
 		for name, button in tabButtons do
 			Lib.SetButton(button, nil, if name == tab then C.Gold else C.Gray)
 		end
-		local current = data.PickaxeTier
+		local current = data[TABS[tab].Field] or 1
 		for tier, row in rows do
 			if tier <= current then
 				Lib.SetButton(row.Button, if tier == current then "EQUIPPED" else "OWNED", C.Gray)
@@ -115,8 +121,8 @@ function Shop.Build(content, ctx)
 	end
 
 	return {
-		OnOpen = function()
-			tab = "Pickaxes"
+		OnOpen = function(arg)
+			tab = if arg == "Boots" then "Boots" else "Pickaxes"
 		end,
 		Refresh = refresh,
 	}

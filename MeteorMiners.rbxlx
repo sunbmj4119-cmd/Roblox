@@ -179,7 +179,7 @@ Config.World = {
 	Reach = 13, -- studs from character to the target
 	WalkSpeed = 22,
 	-- base district south of the hub (see BaseService)
-	Bases = { ZStart = -88, ZEnd = -250, HalfX = 112 },
+	Bases = { ZStart = -88, ZEnd = -304, HalfX = 124 },
 	SpawnSafeRadius = 24, -- nobody can be bonked near the spawn
 }
 
@@ -590,7 +590,7 @@ Config.Leaderboards = {
 	Boards = {
 		{ Key = "Weekly", Title = "🏆 WEEKLY RANKED", Weekly = true },
 		{ Key = "LifetimeCoins", Title = "💰 RICHEST MINERS" },
-		{ Key = "Rebirths", Title = "♻️ MOST REBIRTHS" },
+		{ Key = "Likes", Title = "❤️ BEST BASES" },
 	},
 	WeeklyTopReward = { 5000, 3000, 2000, 1000, 1000, 500, 500, 500, 500, 500 }, -- gems for global top 10
 }
@@ -645,6 +645,16 @@ Config.Quests = {
 	{ Id = "Bonk5", Type = "Bonk", Target = 5, Text = "Bonk 5 players", Reward = { Gems = 60 }, XP = 250, Points = 200 },
 	{ Id = "Shard3", Type = "Shard", Target = 3, Text = "Bring 3 shards to your base", Reward = { Gems = 60 }, XP = 250, Points = 200 },
 	{ Id = "Steal1", Type = "Steal", Target = 1, Text = "Steal a shard from another base", Reward = { Gems = 80 }, XP = 300, Points = 250 },
+	{
+		Id = "Decorate5",
+		Type = "Decorate",
+		Target = 5,
+		Text = "Place 5 decorations in your base",
+		Reward = { Gems = 40 },
+		XP = 200,
+		Points = 150,
+	},
+	{ Id = "Like3", Type = "Like", Target = 3, Text = "Like 3 other bases", Reward = { Gems = 30 }, XP = 150, Points = 100 },
 	{ Id = "Play20", Type = "PlayMinutes", Target = 20, Text = "Play for 20 minutes", Reward = { Gems = 30 }, XP = 200, Points = 150 },
 	{ Id = "Upgrade1", Type = "Upgrade", Target = 1, Text = "Buy any upgrade", Reward = { Gems = 20 }, XP = 100, Points = 80 },
 }
@@ -805,15 +815,137 @@ Config.Base = {
 	-- one base per player: set the place's server size to the same number
 	-- (Creator Dashboard -> Places -> Server size). Extra players wait for a free base.
 	Plots = 16,
-	Streets = { -56, 56 }, -- x of the district streets; plots line both sides
-	StartPedestals = 3,
+	PlotSize = 44, -- studs; room to decorate
+	Streets = { -64, 64 }, -- x of the district streets; plots line both sides
+	StartPedestals = 3, -- placed for free in every new base
 	MaxPedestals = 12,
+	-- price of the Nth pedestal (first 3 are free)
 	PedestalCosts = { 0, 0, 0, 500, 3000, 15000, 75000, 400000, 2000000, 10000000, 50000000, 250000000 },
+	StorageMax = 10, -- shards that don't fit on a pedestal wait here (earning nothing)
+	MaxItems = 70, -- decorations per base (keeps phones smooth)
+	Cell = 2, -- placement grid in studs
+	-- buildable area in plot space (the entrance strip stays clear)
+	Build = { MinX = -20, MaxX = 20, MinZ = -12, MaxZ = 20 },
 	OfflineRate = 0.5, -- offline earnings = 50% of the normal rate
 	OfflineMaxSeconds = 7200, -- ... for up to 2 hours
 	LockSeconds = 60,
 	LockCooldown = 180,
 	StealHold = 1.2,
+	TrapStun = 2.5, -- seconds a trap freezes a thief
+	TrapCooldown = 6,
+	LikePoints = 15, -- weekly ranked points per like received
+}
+
+-- Decorations: buy & place anything in your base. All refundable (100%),
+-- so redecorating is free. Size is the footprint in grid cells (2 studs).
+-- Layer "Floor" items sit under everything else.
+Config.DecorCategories = {
+	{ Id = "Base", Name = "Base", Icon = "🏠" },
+	{ Id = "Nature", Name = "Nature", Icon = "🌳" },
+	{ Id = "Furniture", Name = "Furniture", Icon = "🪑" },
+	{ Id = "Lights", Name = "Lights", Icon = "💡" },
+	{ Id = "Fun", Name = "Fun", Icon = "🗿" },
+	{ Id = "Floor", Name = "Floors", Icon = "🟫" },
+	{ Id = "Premium", Name = "Premium", Icon = "💎" },
+}
+Config.Decor = {
+	-- base (functional)
+	Pedestal = { Name = "Shard Pedestal", Category = "Base", Icon = "🌠", Size = { 2, 2 }, Price = 0, Function = "Pedestal" },
+	Trap = { Name = "Stun Trap", Category = "Base", Icon = "⚡", Size = { 2, 2 }, Price = 2500, Limit = 4, Function = "Trap" },
+	JumpPad = { Name = "Jump Pad", Category = "Base", Icon = "🦘", Size = { 2, 2 }, Price = 800, Limit = 4, Function = "Jump" },
+	-- nature
+	Tree = { Name = "Tree", Category = "Nature", Icon = "🌳", Size = { 2, 2 }, Price = 120 },
+	Pine = { Name = "Pine Tree", Category = "Nature", Icon = "🌲", Size = { 2, 2 }, Price = 150 },
+	Bush = { Name = "Bush", Category = "Nature", Icon = "🌿", Size = { 1, 1 }, Price = 40 },
+	Flowers = { Name = "Flower Bed", Category = "Nature", Icon = "🌷", Size = { 2, 1 }, Price = 60 },
+	Rock = { Name = "Rock", Category = "Nature", Icon = "🪨", Size = { 1, 1 }, Price = 30 },
+	-- furniture
+	Bench = { Name = "Bench", Category = "Furniture", Icon = "🪑", Size = { 2, 1 }, Price = 100 },
+	Table = { Name = "Table", Category = "Furniture", Icon = "🍽️", Size = { 2, 2 }, Price = 150 },
+	Chair = { Name = "Chair", Category = "Furniture", Icon = "💺", Size = { 1, 1 }, Price = 60 },
+	Sofa = { Name = "Sofa", Category = "Furniture", Icon = "🛋️", Size = { 3, 1 }, Price = 300 },
+	Fence = { Name = "Fence", Category = "Furniture", Icon = "🚧", Size = { 2, 1 }, Price = 25 },
+	-- lights
+	Lantern = { Name = "Lantern", Category = "Lights", Icon = "🏮", Size = { 1, 1 }, Price = 80 },
+	LampPost = { Name = "Lamp Post", Category = "Lights", Icon = "💡", Size = { 1, 1 }, Price = 140 },
+	Crystal = { Name = "Glow Crystal", Category = "Lights", Icon = "🔮", Size = { 1, 1 }, Price = 400 },
+	-- fun
+	Statue = { Name = "Star Statue", Category = "Fun", Icon = "⭐", Size = { 2, 2 }, Price = 1500 },
+	Fountain = { Name = "Fountain", Category = "Fun", Icon = "⛲", Size = { 3, 3 }, Price = 2500 },
+	Trophy = { Name = "Trophy", Category = "Fun", Icon = "🏆", Size = { 1, 1 }, Price = 5000 },
+	Flag = { Name = "Flag", Category = "Fun", Icon = "🚩", Size = { 1, 1 }, Price = 200 },
+	-- floors (4x4 tiles)
+	WoodFloor = { Name = "Wood Floor", Category = "Floor", Icon = "🟫", Size = { 2, 2 }, Price = 20, Layer = "Floor" },
+	StoneFloor = { Name = "Stone Floor", Category = "Floor", Icon = "⬜", Size = { 2, 2 }, Price = 20, Layer = "Floor" },
+	GrassFloor = { Name = "Grass Floor", Category = "Floor", Icon = "🟩", Size = { 2, 2 }, Price = 15, Layer = "Floor" },
+	Carpet = { Name = "Red Carpet", Category = "Floor", Icon = "🟥", Size = { 2, 2 }, Price = 40, Layer = "Floor" },
+	-- premium (gems)
+	Throne = { Name = "Galaxy Throne", Category = "Premium", Icon = "👑", Size = { 2, 2 }, Gems = 250 },
+	RainbowFountain = { Name = "Rainbow Fountain", Category = "Premium", Icon = "🌈", Size = { 3, 3 }, Gems = 500 },
+	NeonArch = { Name = "Neon Arch", Category = "Premium", Icon = "🌀", Size = { 3, 1 }, Gems = 150 },
+}
+-- display order inside each category
+Config.DecorOrder = {
+	"Pedestal",
+	"Trap",
+	"JumpPad",
+	"Tree",
+	"Pine",
+	"Bush",
+	"Flowers",
+	"Rock",
+	"Bench",
+	"Table",
+	"Chair",
+	"Sofa",
+	"Fence",
+	"Lantern",
+	"LampPost",
+	"Crystal",
+	"Statue",
+	"Fountain",
+	"Trophy",
+	"Flag",
+	"WoodFloor",
+	"StoneFloor",
+	"GrassFloor",
+	"Carpet",
+	"Throne",
+	"RainbowFountain",
+	"NeonArch",
+}
+-- what a brand-new base starts with (plot space, studs)
+Config.StarterBase = {
+	{ Id = "Pedestal", X = -6, Z = 2, R = 0 },
+	{ Id = "Pedestal", X = 0, Z = 2, R = 0 },
+	{ Id = "Pedestal", X = 6, Z = 2, R = 0 },
+	{ Id = "Tree", X = -16, Z = 16, R = 0 },
+	{ Id = "Tree", X = 16, Z = 16, R = 0 },
+	{ Id = "Lantern", X = -9, Z = -9, R = 0 },
+	{ Id = "Lantern", X = 9, Z = -9, R = 0 },
+}
+
+-- running speed upgrades: faster = steal more, escape guardians and thieves
+Config.Boots = {
+	{ Name = "Sneakers", Bonus = 0, Cost = 0 },
+	{ Name = "Runner Shoes", Bonus = 0.08, Cost = 400 },
+	{ Name = "Sprint Shoes", Bonus = 0.16, Cost = 2500 },
+	{ Name = "Turbo Boots", Bonus = 0.25, Cost = 15000 },
+	{ Name = "Jet Boots", Bonus = 0.35, Cost = 90000 },
+	{ Name = "Comet Boots", Bonus = 0.45, Cost = 600000 },
+	{ Name = "Warp Boots", Bonus = 0.55, Cost = 4000000 },
+	{ Name = "Lightspeed Boots", Bonus = 0.7, Cost = 30000000 },
+}
+
+-- star guardians: rock golems that protect fallen stars and chase whoever grabs one
+Config.Guardian = {
+	MinRarity = 2, -- Rare+ stars get a guardian
+	Speed = 16, -- + per rarity step
+	SpeedPerRarity = 0.8,
+	ChaseSeconds = 12,
+	ChaseRange = 140, -- gives up beyond this distance from its star
+	CatchRange = 4.5,
+	StunSeconds = 2.5, -- bonking a guardian stuns it
 }
 
 -- free prize wheel (retention): one free spin every few hours
@@ -891,6 +1023,461 @@ return Config
       </Item>
       <Item class="ModuleScript" referent="4">
         <Properties>
+          <string name="Name">DecorModel</string>
+          <string name="Source"><![CDATA[--[[
+	DecorModel: procedural decorations for player bases (no assets needed).
+	DecorModel.Build(config, id) -> Model whose pivot is the footprint's
+	bottom center. PrimaryPart "Footprint" is an invisible plate matching the
+	grid footprint (used for selection in build mode).
+	Everything is anchored and non-colliding (decor never blocks anyone);
+	functional items expose a "Trigger" part that can be touched.
+]]
+local DecorModel = {}
+
+local function part(
+	model: Model,
+	name: string,
+	size: Vector3,
+	cf: CFrame,
+	color: Color3,
+	material: Enum.Material,
+	extra: { [string]: any }?
+)
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanTouch = false
+	p.CastShadow = false
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = material
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	if extra then
+		for key, value in extra do
+			(p :: any)[key] = value
+		end
+	end
+	p.Parent = model
+	return p
+end
+
+local function cylinder(
+	model: Model,
+	name: string,
+	height: number,
+	diameter: number,
+	y: number,
+	color: Color3,
+	material: Enum.Material,
+	extra
+)
+	return part(
+		model,
+		name,
+		Vector3.new(height, diameter, diameter),
+		CFrame.new(0, y, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		color,
+		material,
+		extra
+	)
+end
+
+local function light(parent: BasePart, color: Color3, range: number, brightness: number?)
+	local l = Instance.new("PointLight")
+	l.Color = color
+	l.Range = range
+	l.Brightness = brightness or 1.5
+	l.Parent = parent
+end
+
+local WOOD = Color3.fromRGB(150, 105, 65)
+local DARK_WOOD = Color3.fromRGB(105, 70, 45)
+local LEAF = Color3.fromRGB(80, 170, 75)
+local STONE = Color3.fromRGB(150, 150, 160)
+local GOLD = Color3.fromRGB(255, 200, 50)
+
+local BUILDERS = {}
+
+BUILDERS.Pedestal = function(m)
+	cylinder(m, "Base", 2.4, 3.8, 1.2, Color3.fromRGB(235, 235, 245), Enum.Material.Marble)
+	cylinder(m, "Ring", 0.3, 4.1, 2.45, Color3.fromRGB(120, 220, 255), Enum.Material.Neon)
+	local top = part(m, "Top", Vector3.one * 0.2, CFrame.new(0, 2.6, 0), Color3.new(), Enum.Material.SmoothPlastic, { Transparency = 1 })
+	top:SetAttribute("IsTop", true)
+end
+
+BUILDERS.Trap = function(m)
+	part(m, "Plate", Vector3.new(3.6, 0.3, 3.6), CFrame.new(0, 0.15, 0), Color3.fromRGB(60, 60, 75), Enum.Material.Metal)
+	local trigger = part(
+		m,
+		"Trigger",
+		Vector3.new(3.2, 0.35, 3.2),
+		CFrame.new(0, 0.2, 0),
+		Color3.fromRGB(255, 230, 60),
+		Enum.Material.Neon,
+		{ CanTouch = true, Transparency = 0.2 }
+	)
+	light(trigger, Color3.fromRGB(255, 230, 60), 8, 1)
+end
+
+BUILDERS.JumpPad = function(m)
+	part(m, "Plate", Vector3.new(3.6, 0.3, 3.6), CFrame.new(0, 0.15, 0), Color3.fromRGB(50, 50, 70), Enum.Material.Metal)
+	local trigger = part(
+		m,
+		"Trigger",
+		Vector3.new(3, 0.4, 3),
+		CFrame.new(0, 0.25, 0),
+		Color3.fromRGB(110, 255, 140),
+		Enum.Material.Neon,
+		{ CanTouch = true }
+	)
+	light(trigger, Color3.fromRGB(110, 255, 140), 8, 1)
+end
+
+BUILDERS.Tree = function(m)
+	part(m, "Trunk", Vector3.new(1, 5, 1), CFrame.new(0, 2.5, 0), WOOD, Enum.Material.Wood)
+	part(m, "Leaves", Vector3.one * 5, CFrame.new(0, 6, 0), LEAF, Enum.Material.LeafyGrass, { Shape = Enum.PartType.Ball })
+	part(m, "Leaves2", Vector3.one * 3.4, CFrame.new(1.2, 7.4, 0.6), LEAF:Lerp(Color3.new(1, 1, 1), 0.1), Enum.Material.LeafyGrass, {
+		Shape = Enum.PartType.Ball,
+	})
+end
+
+BUILDERS.Pine = function(m)
+	part(m, "Trunk", Vector3.new(0.9, 3, 0.9), CFrame.new(0, 1.5, 0), DARK_WOOD, Enum.Material.Wood)
+	for i, size in { 4.4, 3.4, 2.4 } do
+		part(
+			m,
+			"Needles",
+			Vector3.new(size, 2.2, size),
+			CFrame.new(0, 2.4 + i * 1.6, 0) * CFrame.Angles(0, math.rad(45 * i), 0),
+			Color3.fromRGB(40, 120, 70),
+			Enum.Material.Grass
+		)
+	end
+end
+
+BUILDERS.Bush = function(m)
+	part(m, "Bush", Vector3.new(1.9, 1.5, 1.9), CFrame.new(0, 0.75, 0), LEAF, Enum.Material.LeafyGrass, { Shape = Enum.PartType.Ball })
+end
+
+BUILDERS.Flowers = function(m)
+	part(m, "Bed", Vector3.new(3.8, 0.5, 1.8), CFrame.new(0, 0.25, 0), Color3.fromRGB(120, 80, 50), Enum.Material.Ground)
+	local colors = { Color3.fromRGB(255, 90, 140), Color3.fromRGB(255, 220, 80), Color3.fromRGB(170, 110, 255) }
+	for i = 1, 5 do
+		part(
+			m,
+			"Flower",
+			Vector3.one * 0.6,
+			CFrame.new(-1.6 + i * 0.55, 0.8, if i % 2 == 0 then 0.35 else -0.35),
+			colors[i % 3 + 1],
+			Enum.Material.SmoothPlastic,
+			{ Shape = Enum.PartType.Ball }
+		)
+	end
+end
+
+BUILDERS.Rock = function(m)
+	part(m, "Rock", Vector3.new(1.8, 1.2, 1.6), CFrame.new(0, 0.6, 0) * CFrame.Angles(0.2, 0.7, 0.1), STONE, Enum.Material.Rock)
+end
+
+BUILDERS.Bench = function(m)
+	part(m, "Seat", Vector3.new(3.6, 0.3, 1.2), CFrame.new(0, 1.2, 0), WOOD, Enum.Material.WoodPlanks)
+	part(m, "Back", Vector3.new(3.6, 1, 0.2), CFrame.new(0, 1.9, 0.55), WOOD, Enum.Material.WoodPlanks)
+	for _, x in { -1.5, 1.5 } do
+		part(m, "Leg", Vector3.new(0.25, 1.1, 1), CFrame.new(x, 0.55, 0), Color3.fromRGB(50, 50, 55), Enum.Material.Metal)
+	end
+end
+
+BUILDERS.Table = function(m)
+	part(m, "Top", Vector3.new(3.4, 0.3, 3.4), CFrame.new(0, 2.2, 0), WOOD, Enum.Material.WoodPlanks)
+	part(m, "Leg", Vector3.new(0.5, 2.1, 0.5), CFrame.new(0, 1.05, 0), DARK_WOOD, Enum.Material.Wood)
+	part(m, "Foot", Vector3.new(1.6, 0.2, 1.6), CFrame.new(0, 0.1, 0), DARK_WOOD, Enum.Material.Wood)
+end
+
+BUILDERS.Chair = function(m)
+	part(m, "Seat", Vector3.new(1.4, 0.25, 1.4), CFrame.new(0, 1.2, 0), Color3.fromRGB(220, 80, 80), Enum.Material.Fabric)
+	part(m, "Back", Vector3.new(1.4, 1.4, 0.2), CFrame.new(0, 2, 0.6), Color3.fromRGB(220, 80, 80), Enum.Material.Fabric)
+	part(m, "Leg", Vector3.new(0.3, 1.1, 0.3), CFrame.new(0, 0.55, 0), Color3.fromRGB(50, 50, 55), Enum.Material.Metal)
+end
+
+BUILDERS.Sofa = function(m)
+	local color = Color3.fromRGB(90, 120, 220)
+	part(m, "Seat", Vector3.new(5.6, 1, 1.8), CFrame.new(0, 0.7, 0), color, Enum.Material.Fabric)
+	part(m, "Back", Vector3.new(5.6, 1.4, 0.5), CFrame.new(0, 1.6, 0.65), color, Enum.Material.Fabric)
+	for _, x in { -2.6, 2.6 } do
+		part(m, "Arm", Vector3.new(0.5, 1.1, 1.8), CFrame.new(x, 1.15, 0), color:Lerp(Color3.new(0, 0, 0), 0.15), Enum.Material.Fabric)
+	end
+end
+
+BUILDERS.Fence = function(m)
+	for _, x in { -1.7, 1.7 } do
+		part(m, "Post", Vector3.new(0.4, 2.4, 0.4), CFrame.new(x, 1.2, 0), Color3.fromRGB(240, 240, 240), Enum.Material.WoodPlanks)
+	end
+	for _, y in { 0.9, 1.8 } do
+		part(m, "Rail", Vector3.new(3.8, 0.3, 0.2), CFrame.new(0, y, 0), Color3.fromRGB(240, 240, 240), Enum.Material.WoodPlanks)
+	end
+end
+
+BUILDERS.Lantern = function(m)
+	part(m, "Post", Vector3.new(0.3, 2.2, 0.3), CFrame.new(0, 1.1, 0), Color3.fromRGB(40, 40, 45), Enum.Material.Metal)
+	local lamp = part(m, "Lamp", Vector3.new(0.9, 1, 0.9), CFrame.new(0, 2.6, 0), Color3.fromRGB(255, 200, 120), Enum.Material.Neon)
+	light(lamp, Color3.fromRGB(255, 200, 120), 12, 1.2)
+end
+
+BUILDERS.LampPost = function(m)
+	part(m, "Post", Vector3.new(0.4, 6, 0.4), CFrame.new(0, 3, 0), Color3.fromRGB(40, 40, 45), Enum.Material.Metal)
+	local bulb = part(m, "Bulb", Vector3.one * 1.2, CFrame.new(0, 6.3, 0), Color3.fromRGB(255, 240, 200), Enum.Material.Neon, {
+		Shape = Enum.PartType.Ball,
+	})
+	light(bulb, Color3.fromRGB(255, 230, 180), 18, 1.4)
+end
+
+BUILDERS.Crystal = function(m)
+	local color = Color3.fromRGB(170, 110, 255)
+	for i, h in { 3, 2.2, 1.6 } do
+		local angle = i * 2.1
+		part(
+			m,
+			"Crystal",
+			Vector3.new(0.6, h, 0.6),
+			CFrame.new(math.cos(angle) * 0.35, h / 2, math.sin(angle) * 0.35)
+				* CFrame.Angles(math.cos(angle) * 0.3, 0, math.sin(angle) * 0.3),
+			color,
+			Enum.Material.Neon
+		)
+	end
+	light(m:FindFirstChild("Crystal") :: BasePart, color, 14, 2)
+end
+
+BUILDERS.Statue = function(m)
+	part(m, "Plinth", Vector3.new(3, 1.2, 3), CFrame.new(0, 0.6, 0), Color3.fromRGB(235, 235, 245), Enum.Material.Marble)
+	local star = part(
+		m,
+		"Star",
+		Vector3.new(1.6, 3.2, 1.6),
+		CFrame.new(0, 3, 0) * CFrame.Angles(0, math.rad(45), math.rad(15)),
+		GOLD,
+		Enum.Material.Foil
+	)
+	part(m, "Star2", Vector3.new(1.2, 2.4, 1.2), CFrame.new(0, 3, 0) * CFrame.Angles(math.rad(70), 0, 0), GOLD, Enum.Material.Foil)
+	light(star, GOLD, 12, 1.5)
+end
+
+BUILDERS.Fountain = function(m)
+	cylinder(m, "Basin", 1.2, 5.6, 0.6, Color3.fromRGB(235, 235, 245), Enum.Material.Marble)
+	cylinder(m, "Water", 0.2, 5, 1.15, Color3.fromRGB(90, 190, 255), Enum.Material.Glass, { Transparency = 0.25 })
+	cylinder(m, "Pillar", 2.4, 0.8, 1.8, Color3.fromRGB(235, 235, 245), Enum.Material.Marble)
+	cylinder(m, "Bowl", 0.4, 2.2, 3, Color3.fromRGB(235, 235, 245), Enum.Material.Marble)
+	local spout = part(m, "Spout", Vector3.one * 0.8, CFrame.new(0, 3.5, 0), Color3.fromRGB(140, 220, 255), Enum.Material.Neon, {
+		Shape = Enum.PartType.Ball,
+	})
+	light(spout, Color3.fromRGB(140, 220, 255), 10, 1)
+end
+
+BUILDERS.Trophy = function(m)
+	part(m, "Base", Vector3.new(1.4, 0.6, 1.4), CFrame.new(0, 0.3, 0), Color3.fromRGB(60, 40, 30), Enum.Material.Wood)
+	part(m, "Stem", Vector3.new(0.4, 1, 0.4), CFrame.new(0, 1.1, 0), GOLD, Enum.Material.Foil)
+	local cup = part(m, "Cup", Vector3.new(1.2, 1.2, 1.2), CFrame.new(0, 2.1, 0), GOLD, Enum.Material.Foil, { Shape = Enum.PartType.Ball })
+	light(cup, GOLD, 8, 1)
+end
+
+BUILDERS.Flag = function(m)
+	part(m, "Pole", Vector3.new(0.25, 6, 0.25), CFrame.new(0, 3, 0), Color3.fromRGB(220, 220, 225), Enum.Material.Metal)
+	part(m, "Cloth", Vector3.new(2.2, 1.4, 0.1), CFrame.new(1.2, 5.2, 0), Color3.fromRGB(255, 70, 90), Enum.Material.Fabric)
+end
+
+local function floorTile(m, color: Color3, material: Enum.Material)
+	part(m, "Tile", Vector3.new(4, 0.2, 4), CFrame.new(0, 0.1, 0), color, material)
+end
+BUILDERS.WoodFloor = function(m)
+	floorTile(m, Color3.fromRGB(165, 120, 75), Enum.Material.WoodPlanks)
+end
+BUILDERS.StoneFloor = function(m)
+	floorTile(m, Color3.fromRGB(200, 200, 205), Enum.Material.Cobblestone)
+end
+BUILDERS.GrassFloor = function(m)
+	floorTile(m, Color3.fromRGB(95, 170, 80), Enum.Material.Grass)
+end
+BUILDERS.Carpet = function(m)
+	floorTile(m, Color3.fromRGB(190, 40, 55), Enum.Material.Fabric)
+end
+
+BUILDERS.Throne = function(m)
+	local color = Color3.fromRGB(60, 30, 120)
+	part(m, "Seat", Vector3.new(2.6, 1.4, 2.4), CFrame.new(0, 0.7, 0), color, Enum.Material.Glass)
+	part(m, "Back", Vector3.new(2.6, 3.6, 0.5), CFrame.new(0, 2.6, 1), color, Enum.Material.Glass)
+	part(
+		m,
+		"Gem",
+		Vector3.one * 0.9,
+		CFrame.new(0, 4.2, 1),
+		Color3.fromRGB(120, 230, 255),
+		Enum.Material.Neon,
+		{ Shape = Enum.PartType.Ball }
+	)
+	for _, x in { -1.4, 1.4 } do
+		local glow = part(m, "Arm", Vector3.new(0.4, 1.6, 2.4), CFrame.new(x, 1.5, 0), Color3.fromRGB(255, 120, 230), Enum.Material.Neon)
+		light(glow, Color3.fromRGB(255, 120, 230), 10, 1.2)
+	end
+end
+
+BUILDERS.RainbowFountain = function(m)
+	BUILDERS.Fountain(m)
+	local colors = {
+		Color3.fromRGB(255, 80, 80),
+		Color3.fromRGB(255, 200, 60),
+		Color3.fromRGB(90, 230, 110),
+		Color3.fromRGB(80, 170, 255),
+		Color3.fromRGB(190, 100, 255),
+	}
+	for i, color in colors do
+		local angle = (i / #colors) * math.pi * 2
+		part(
+			m,
+			"Rainbow",
+			Vector3.new(0.5, 2.4, 0.5),
+			CFrame.new(math.cos(angle) * 2.2, 2.2, math.sin(angle) * 2.2),
+			color,
+			Enum.Material.Neon
+		)
+	end
+	m:SetAttribute("Rainbow", true)
+end
+
+BUILDERS.NeonArch = function(m)
+	local color = Color3.fromRGB(80, 240, 255)
+	for _, x in { -2.6, 2.6 } do
+		part(m, "Pillar", Vector3.new(0.6, 5, 0.6), CFrame.new(x, 2.5, 0), color, Enum.Material.Neon)
+	end
+	local top = part(m, "Top", Vector3.new(5.8, 0.6, 0.6), CFrame.new(0, 5.2, 0), color, Enum.Material.Neon)
+	light(top, color, 14, 1.5)
+end
+
+function DecorModel.Has(id: string): boolean
+	return BUILDERS[id] ~= nil
+end
+
+-- footprint in studs for a rotation (R odd swaps width/depth)
+function DecorModel.Footprint(config, id: string, rotation: number): (number, number)
+	local def = config.Decor[id]
+	local cell = config.Base.Cell
+	local w, d = def.Size[1] * cell, def.Size[2] * cell
+	if rotation % 2 == 1 then
+		return d, w
+	end
+	return w, d
+end
+
+---------------------------------------------------------------------------
+-- placement rules (shared by the server and the build-mode preview)
+---------------------------------------------------------------------------
+-- snap a center to the grid so the footprint lines up with cells
+function DecorModel.Snap(config, id: string, x: number, z: number, rotation: number): (number, number)
+	local cell = config.Base.Cell
+	local w, d = DecorModel.Footprint(config, id, rotation)
+	local function snap(value: number, size: number)
+		return math.floor((value - size / 2) / cell + 0.5) * cell + size / 2
+	end
+	return snap(x, w), snap(z, d)
+end
+
+local function rect(config, id: string, x: number, z: number, rotation: number)
+	local w, d = DecorModel.Footprint(config, id, rotation)
+	return x - w / 2, x + w / 2, z - d / 2, z + d / 2
+end
+
+local function layerOf(config, id: string): string
+	local def = config.Decor[id]
+	return def and def.Layer or "Object"
+end
+
+function DecorModel.Count(items, id: string): number
+	local count = 0
+	for _, item in items do
+		if item.Id == id then
+			count += 1
+		end
+	end
+	return count
+end
+
+-- currency, amount (pedestals get pricier the more you own)
+function DecorModel.Price(config, id: string, items): (string, number)
+	local def = config.Decor[id]
+	if def.Function == "Pedestal" then
+		local costs = config.Base.PedestalCosts
+		return "Coins", costs[DecorModel.Count(items, id) + 1] or math.huge
+	end
+	if def.Gems then
+		return "Gems", def.Gems
+	end
+	return "Coins", def.Price or 0
+end
+
+-- ok, reason (English text key) - ignoreUid lets an item be moved onto itself
+function DecorModel.Validate(config, items, id: string, x: number, z: number, rotation: number, ignoreUid: number?): (boolean, string?)
+	local def = config.Decor[id]
+	if not def then
+		return false, "Unknown item"
+	end
+	local bounds = config.Base.Build
+	local minX, maxX, minZ, maxZ = rect(config, id, x, z, rotation)
+	local eps = 0.01
+	if minX < bounds.MinX - eps or maxX > bounds.MaxX + eps or minZ < bounds.MinZ - eps or maxZ > bounds.MaxZ + eps then
+		return false, "Out of bounds"
+	end
+	local layer = layerOf(config, id)
+	for _, other in items do
+		if other.Uid ~= ignoreUid and config.Decor[other.Id] and layerOf(config, other.Id) == layer then
+			local oMinX, oMaxX, oMinZ, oMaxZ = rect(config, other.Id, other.X, other.Z, other.R)
+			if minX < oMaxX - eps and maxX > oMinX + eps and minZ < oMaxZ - eps and maxZ > oMinZ + eps then
+				return false, "Something is already there"
+			end
+		end
+	end
+	if not ignoreUid then
+		if #items >= config.Base.MaxItems then
+			return false, "Your base is full of decorations!"
+		end
+		local count = DecorModel.Count(items, id)
+		local limit = if def.Function == "Pedestal" then config.Base.MaxPedestals else def.Limit
+		if limit and count >= limit then
+			return false, "Limit reached for this item"
+		end
+	end
+	return true, nil
+end
+
+function DecorModel.Build(config, id: string): Model
+	local model = Instance.new("Model")
+	model.Name = id
+	local cell = config.Base.Cell
+	local def = config.Decor[id]
+	local footprint = Instance.new("Part")
+	footprint.Name = "Footprint"
+	footprint.Anchored = true
+	footprint.CanCollide = false
+	footprint.CanTouch = false
+	footprint.Transparency = 1
+	footprint.Size = Vector3.new(def.Size[1] * cell, 0.2, def.Size[2] * cell)
+	footprint.CFrame = CFrame.new(0, 0.1, 0)
+	footprint.Parent = model
+	model.PrimaryPart = footprint
+	local builder = BUILDERS[id]
+	if builder then
+		builder(model)
+	end
+	return model
+end
+
+return DecorModel
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="5">
+        <Properties>
           <string name="Name">Lang</string>
           <string name="Source"><![CDATA[--[[
 	Lang: tiny localization layer (English source text -> translations).
@@ -967,7 +1554,7 @@ return Lang
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="5">
+      <Item class="ModuleScript" referent="6">
         <Properties>
           <string name="Name">LangKO</string>
           <string name="Source"><![CDATA[--[[
@@ -1624,11 +2211,94 @@ return {
 	["⚠️ Resets: coins, pickaxe.  Keeps: pets, zones, base, shards, gems, passes."] = "⚠️ 초기화: 코인, 곡괭이.  유지: 펫, 구역, 기지, 조각, 젬, 패스.",
 	["🌠 A star fell just for you! Grab it!"] = "🌠 나만을 위한 별이 떨어졌어요! 주우세요!",
 	["⛏️ Tap ore = 💰 coins\n🌠 Carry stars home = 💰 every second"] = "⛏️ 광석 터치 = 💰 코인\n🌠 별을 기지로 = 매초 💰",
+	-- v10: decorating, guardians, boots, likes
+	["Base"] = "기지",
+	["Nature"] = "자연",
+	["Furniture"] = "가구",
+	["Lights"] = "조명",
+	["Fun"] = "장식",
+	["Floors"] = "바닥",
+	["Premium"] = "프리미엄",
+	["Shard Pedestal"] = "조각 진열대",
+	["Stun Trap"] = "기절 함정",
+	["Jump Pad"] = "점프 패드",
+	["Tree"] = "나무",
+	["Pine Tree"] = "소나무",
+	["Bush"] = "덤불",
+	["Flower Bed"] = "꽃밭",
+	["Rock"] = "바위",
+	["Bench"] = "벤치",
+	["Table"] = "테이블",
+	["Chair"] = "의자",
+	["Sofa"] = "소파",
+	["Fence"] = "울타리",
+	["Lantern"] = "랜턴",
+	["Lamp Post"] = "가로등",
+	["Glow Crystal"] = "빛나는 수정",
+	["Star Statue"] = "별 조각상",
+	["Fountain"] = "분수",
+	["Trophy"] = "트로피",
+	["Flag"] = "깃발",
+	["Wood Floor"] = "나무 바닥",
+	["Stone Floor"] = "돌 바닥",
+	["Grass Floor"] = "잔디 바닥",
+	["Red Carpet"] = "레드 카펫",
+	["Galaxy Throne"] = "은하 왕좌",
+	["Rainbow Fountain"] = "무지개 분수",
+	["Neon Arch"] = "네온 아치",
+	["Sneakers"] = "운동화",
+	["Runner Shoes"] = "러닝화",
+	["Sprint Shoes"] = "스프린트화",
+	["Turbo Boots"] = "터보 부츠",
+	["Jet Boots"] = "제트 부츠",
+	["Comet Boots"] = "혜성 부츠",
+	["Warp Boots"] = "워프 부츠",
+	["Lightspeed Boots"] = "광속 부츠",
+	["MAX"] = "최대",
+	["Can't move that"] = "그건 옮길 수 없어요",
+	["Can't place that here"] = "여기엔 놓을 수 없어요",
+	["Can't remove that"] = "그건 치울 수 없어요",
+	["Keep at least one pedestal!"] = "진열대는 최소 1개는 있어야 해요!",
+	["Unknown item"] = "알 수 없는 아이템",
+	["Out of bounds"] = "기지 밖이에요",
+	["Something is already there"] = "이미 다른 물건이 있어요",
+	["Your base is full of decorations!"] = "기지에 장식이 꽉 찼어요!",
+	["Limit reached for this item"] = "이 아이템은 더 놓을 수 없어요",
+	["Not enough gems!"] = "젬이 부족해요!",
+	["Not enough coins!"] = "코인이 부족해요!",
+	["Like 3 other bases"] = "다른 기지 3곳에 좋아요 누르기",
+	["Place 5 decorations in your base"] = "기지에 장식 5개 놓기",
+	["Pick something below, or tap an item in your base to edit it"] = "아래에서 고르거나, 기지에 놓인 물건을 눌러 수정하세요",
+	["Tap the floor to move it • 🔄 rotate • ✅ place"] = "바닥을 눌러 위치 이동 • 🔄 회전 • ✅ 설치",
+	["Run! It chases you for %d seconds"] = "달려요! %d초 동안 쫓아와요",
+	["You already liked this base today ❤️"] = "오늘은 이미 이 기지에 좋아요를 눌렀어요 ❤️",
+	["⚡ You stepped on a trap!"] = "⚡ 함정을 밟았어요!",
+	["⚡ Your trap caught %s - shard saved!"] = "⚡ 함정이 %s님을 잡았어요 - 조각을 지켰어요!",
+	["⚡ Your trap stunned %s!"] = "⚡ 함정이 %s님을 기절시켰어요!",
+	["❤️ %s liked your base!"] = "❤️ %s님이 내 기지에 좋아요!",
+	["❤️ BEST BASES"] = "❤️ 베스트 기지",
+	["❤️ Like"] = "❤️ 좋아요",
+	["❤️ You liked %s's base!"] = "❤️ %s님의 기지에 좋아요를 눌렀어요!",
+	["👟 +%s%% running speed"] = "👟 달리기 속도 +%s%%",
+	["👟 Speed"] = "👟 속도",
+	["💥 Guardian stunned!"] = "💥 수호자 기절!",
+	["🔨 DECORATE"] = "🔨 꾸미기",
+	["🔨 DECORATE YOUR BASE"] = "🔨 내 기지 꾸미기",
+	["🔄 Rotate"] = "🔄 회전",
+	["✅ Place"] = "✅ 설치",
+	["✋ Move"] = "✋ 이동",
+	["🗑 Remove"] = "🗑 치우기",
+	["🗿 STAR GUARDIAN"] = "🗿 별의 수호자",
+	["🗿 THE GUARDIAN WOKE UP!"] = "🗿 수호자가 깨어났다!",
+	["🗿 The guardian took the %s back!"] = "🗿 수호자가 %s을(를) 되찾아 갔어요!",
+	["📦 Stored - your pedestals hold better shards. Place more pedestals!"] = "📦 보관함에 넣었어요 - 진열대에 더 좋은 조각이 있어요. 진열대를 더 놓으세요!",
+	["🏠 %s's BASE\n💰 %s/s  ❤️ %s"] = "🏠 %s의 기지\n💰 %s/초  ❤️ %s",
+	["🏠 %s's BASE\n💰 %s/s  ❤️ %s  📦 %s"] = "🏠 %s의 기지\n💰 %s/초  ❤️ %s  📦 %s",
 }
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="6">
+      <Item class="ModuleScript" referent="7">
         <Properties>
           <string name="Name">PetModel</string>
           <string name="Source"><![CDATA[--[[
@@ -1828,7 +2498,7 @@ return PetModel
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="7">
+      <Item class="ModuleScript" referent="8">
         <Properties>
           <string name="Name">ShardModel</string>
           <string name="Source"><![CDATA[--[[
@@ -1936,7 +2606,7 @@ return ShardModel
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="8">
+      <Item class="ModuleScript" referent="9">
         <Properties>
           <string name="Name">Util</string>
           <string name="Source"><![CDATA[local Util = {}
@@ -2258,15 +2928,15 @@ return Util
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="9">
+  <Item class="ServerScriptService" referent="10">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="10">
+    <Item class="Folder" referent="11">
       <Properties>
         <string name="Name">Server</string>
       </Properties>
-      <Item class="Script" referent="11">
+      <Item class="Script" referent="12">
         <Properties>
           <string name="Name">Main</string>
           <token name="RunContext">0</token>
@@ -2324,25 +2994,31 @@ print("[Meteor Miners] server ready")
 ]]></string>
         </Properties>
       </Item>
-      <Item class="Folder" referent="12">
+      <Item class="Folder" referent="13">
         <Properties>
           <string name="Name">Services</string>
         </Properties>
-        <Item class="ModuleScript" referent="13">
+        <Item class="ModuleScript" referent="14">
           <Properties>
             <string name="Name">BaseService</string>
             <string name="Source"><![CDATA[--[[
-	BaseService: every player gets a plot in the base district (south of the
-	hub). Star shards placed on its pedestals earn coins every second into
-	the base bank (collect it on the green pad), even while offline (50%, 2h).
+	BaseService: every player owns a 44x44 home in the base district.
 
-	Other players can sneak in and STEAL a shard (hold the prompt), then must
-	carry it to their own base; the owner gets an alarm and can bonk the thief
-	to make them drop it (a dropped stolen shard flies home after a few
-	seconds). The red pad locks the base for a minute (with a cooldown).
+	* DECORATE: buy any decoration from the build menu and place it anywhere
+	  on the grid (move / rotate / remove at any time - removing refunds
+	  100%, so redecorating is free). Saved with your data, seen by everyone.
+	* PEDESTALS are decorations too: each one shows a star shard that earns
+	  coins every second into the base bank (green pad), even offline (50%,
+	  2h). Your best shards automatically go on the pedestals; the rest wait
+	  in storage.
+	* DEFEND: stun traps freeze thieves (and send a stolen shard straight
+	  home), the red pad locks the entrance for a minute.
+	* SHOW OFF: visitors can ❤️ like your base once a day -> weekly ranked
+	  points + the "Best Bases" leaderboard.
+	* STEAL: hold the prompt on someone else's shard, then run it home.
 
-	Shard entries live in data.Base.Shards as { Id = rarityId }; an entry
-	being carried away by a thief is marked Away = true until delivered.
+	data.Base.Items  = { { Uid, Id, X, Z, R, Paid, Cur }, ... } (plot space)
+	data.Base.Shards = { { Id = rarityId, Away = true? }, ... } best first
 ]]
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -2351,6 +3027,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Util = require(Shared.Util)
 local ShardModel = require(Shared.ShardModel)
+local DecorModel = require(Shared.DecorModel)
 local Net = require(script.Parent.Net)
 
 local Base = {}
@@ -2359,26 +3036,15 @@ local Data
 local World
 
 local SETTINGS = Config.Base
-local PLOT_HALF = 16
+local PLOT_HALF = SETTINGS.PlotSize / 2
 local WALL_HEIGHT = 9
-
--- every plot gets its own color (spread around the color wheel)
-local function plotColor(index: number): Color3
-	return Color3.fromHSV(((index - 1) * 0.618) % 1, 0.62, 1)
-end
-
--- pedestal slots in plot space (front row first; -Z is the entrance side)
-local PEDESTAL_SPOTS = {}
-for _, z in { -1, 5.5, 12 } do
-	for _, x in { -10.5, -3.5, 3.5, 10.5 } do
-		table.insert(PEDESTAL_SPOTS, Vector3.new(x, 0, z))
-	end
-end
+local FLOOR_Y = 0.42 -- top of the plot floor
 
 local plots = {} -- [index] = plot record
 local plotOf = {} -- [player] = plot record
 local waiting = {} -- players without a plot yet (server fuller than Plots)
-local touchDebounce = {} -- [player] = os.clock()
+local touchDebounce = {} -- ["userId:what"] = os.clock()
+local trapReady = {} -- [trap model] = os.clock() when it can fire again
 
 ---------------------------------------------------------------------------
 -- helpers
@@ -2427,18 +3093,45 @@ local function playerFromHit(hit: BasePart): Player?
 	return model and Players:GetPlayerFromCharacter(model)
 end
 
-local function debounced(player: Player, seconds: number): boolean
-	local last = touchDebounce[player]
+local function debounced(player: Player, what: string, seconds: number): boolean
+	local key = player.UserId .. ":" .. what
+	local last = touchDebounce[key]
 	if last and os.clock() - last < seconds then
 		return true
 	end
-	touchDebounce[player] = os.clock()
+	touchDebounce[key] = os.clock()
 	return false
+end
+
+local function setPrompt(parent: BasePart, action: string, object: string, role: string, hold: number, handler, distance: number?)
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = action
+	prompt.ObjectText = object
+	prompt.HoldDuration = hold
+	prompt.MaxActivationDistance = distance or 9
+	prompt.RequiresLineOfSight = false
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	-- the client shows Owner prompts only to the owner, Thief/Visitor ones to others
+	prompt:SetAttribute("Role", role)
+	prompt.Parent = parent
+	prompt.Triggered:Connect(function(player)
+		local ok, err = pcall(handler, player)
+		if not ok then
+			warn("[Base] prompt failed: " .. tostring(err))
+		end
+	end)
+	return prompt
+end
+
+local function plotColor(index: number): Color3
+	return Color3.fromHSV(((index - 1) * 0.618) % 1, 0.62, 1)
 end
 
 ---------------------------------------------------------------------------
 -- building the plots (static shells, built once)
 ---------------------------------------------------------------------------
+local tryLike -- forward declaration
+
 local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 	-- local -Z (LookVector) faces the street
 	local cf = CFrame.lookAt(center, center + facing)
@@ -2463,7 +3156,7 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		Name = "Trim",
 		Size = Vector3.new(PLOT_HALF * 2 - 2, 0.42, PLOT_HALF * 2 - 2),
 		CFrame = at(0, 0.21, 0),
-		Color = color:Lerp(Color3.new(0, 0, 0), 0.55),
+		Color = color:Lerp(Color3.new(0, 0, 0), 0.6),
 		Material = Enum.Material.SmoothPlastic,
 	}, model)
 
@@ -2475,7 +3168,7 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 			CFrame = at(x, WALL_HEIGHT / 2, z),
 			Color = color:Lerp(Color3.new(1, 1, 1), 0.6),
 			Material = Enum.Material.Glass,
-			Transparency = 0.55,
+			Transparency = 0.6,
 		}, model)
 		part({
 			Name = "WallTrim",
@@ -2486,11 +3179,12 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 			CanCollide = false,
 		}, model)
 	end
+	local sideLength = PLOT_HALF - 5
 	wallSegment(0, PLOT_HALF, PLOT_HALF * 2, 1) -- back
 	wallSegment(-PLOT_HALF, 0, 1, PLOT_HALF * 2) -- sides
 	wallSegment(PLOT_HALF, 0, 1, PLOT_HALF * 2)
-	wallSegment(-10.5, -PLOT_HALF, 11, 1) -- front, gap in the middle
-	wallSegment(10.5, -PLOT_HALF, 11, 1)
+	wallSegment(-(5 + sideLength / 2), -PLOT_HALF, sideLength, 1) -- front, gap in the middle
+	wallSegment(5 + sideLength / 2, -PLOT_HALF, sideLength, 1)
 
 	-- lock forcefield in the entrance (only blocks while locked)
 	local shield = part({
@@ -2513,13 +3207,35 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		CanQuery = false,
 		CanTouch = false,
 	}, model)
-	local sign = billboard(signAnchor, 20, 5, 0, color)
+	local sign = billboard(signAnchor, 22, 5.5, 0, color)
+
+	-- like post on the street side of the entrance
+	local heart = part({
+		Name = "LikeHeart",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.one * 2.2,
+		CFrame = at(-8, 4.4, -PLOT_HALF - 1.2),
+		Color = Color3.fromRGB(255, 80, 120),
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, model)
+	part({
+		Name = "LikePost",
+		Size = Vector3.new(0.4, 3.4, 0.4),
+		CFrame = at(-8, 1.7, -PLOT_HALF - 1.2),
+		Color = Color3.fromRGB(240, 240, 245),
+		Material = Enum.Material.Metal,
+		CanCollide = false,
+	}, model)
+	setPrompt(heart, "❤️ Like", "Base", "Visitor", 0, function(visitor)
+		tryLike(visitor, index)
+	end, 12)
 
 	-- pads: collect (green) and lock (red), just inside the entrance
 	local collect = part({
 		Name = "CollectPad",
 		Size = Vector3.new(7, 0.4, 7),
-		CFrame = at(-9, 0.45, -9.5),
+		CFrame = at(-14, 0.45, -PLOT_HALF + 5),
 		Color = Color3.fromRGB(70, 255, 130),
 		Material = Enum.Material.Neon,
 		CanCollide = false,
@@ -2528,36 +3244,17 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 	local lockPad = part({
 		Name = "LockPad",
 		Size = Vector3.new(7, 0.4, 7),
-		CFrame = at(9, 0.45, -9.5),
+		CFrame = at(14, 0.45, -PLOT_HALF + 5),
 		Color = Color3.fromRGB(255, 80, 90),
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 	}, model)
 	local lockLabel = billboard(lockPad, 9, 2.4, 3.2, Color3.fromRGB(255, 150, 150), 50)
 
-	local pedestals = {}
-	for slot, spot in PEDESTAL_SPOTS do
-		local pedestal = part({
-			Name = "Pedestal_" .. slot,
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(2.4, 4, 4),
-			CFrame = at(spot.X, 1.2 + 0.4, spot.Z) * CFrame.Angles(0, 0, math.rad(90)),
-			Color = Color3.fromRGB(230, 230, 240),
-			Material = Enum.Material.Marble,
-		}, model)
-		local ring = part({
-			Name = "Ring",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(0.3, 4.3, 4.3),
-			CFrame = at(spot.X, 2.85, spot.Z) * CFrame.Angles(0, 0, math.rad(90)),
-			Color = color,
-			Material = Enum.Material.Neon,
-			CanCollide = false,
-		}, model)
-		pedestals[slot] = { Part = pedestal, Ring = ring, Top = at(spot.X, 3, spot.Z).Position }
-	end
-
 	model.Parent = World:Folder("Bases")
+	local items = Instance.new("Folder")
+	items.Name = "Items"
+	items.Parent = model
 	local displays = Instance.new("Folder")
 	displays.Name = "Displays"
 	displays.Parent = model
@@ -2574,8 +3271,9 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		Shield = shield,
 		CollectPad = collect,
 		LockPad = lockPad,
-		Pedestals = pedestals,
+		Items = items,
 		Displays = displays,
+		ItemModels = {}, -- [uid] = Model
 		LockedUntil = 0,
 		LockReadyAt = 0,
 		LastLabel = "",
@@ -2587,13 +3285,14 @@ local function plotLayout(): { { Center: Vector3, Facing: Vector3 } }
 	local bases = Config.World.Bases
 	local layout = {}
 	local row = 0
+	local offset = 10 + 2 + PLOT_HALF -- half street + walkway + half plot
 	while #layout < SETTINGS.Plots do
-		local z = bases.ZStart - 32 - row * (PLOT_HALF * 2 + 4)
+		local z = bases.ZStart - 18 - PLOT_HALF - row * (SETTINGS.PlotSize + 4)
 		for _, streetX in SETTINGS.Streets do
 			for _, side in { -1, 1 } do
 				if #layout < SETTINGS.Plots then
 					table.insert(layout, {
-						Center = Vector3.new(streetX + side * 30, 0, z),
+						Center = Vector3.new(streetX + side * offset, 0, z),
 						Facing = Vector3.new(-side, 0, 0), -- toward the street
 					})
 				end
@@ -2603,10 +3302,37 @@ local function plotLayout(): { { Center: Vector3, Facing: Vector3 } }
 	end
 	return layout
 end
+Base.PlotLayout = plotLayout
 
 ---------------------------------------------------------------------------
--- income
+-- shards: best ones go on the pedestals, the rest wait in storage
 ---------------------------------------------------------------------------
+local function pedestalItems(data)
+	local list = {}
+	for _, item in data.Base.Items do
+		local def = Config.Decor[item.Id]
+		if def and def.Function == "Pedestal" then
+			table.insert(list, item)
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.Uid < b.Uid
+	end)
+	return list
+end
+
+local function sortShards(data)
+	local shards = data.Base.Shards
+	for _, entry in shards do
+		if not Config.Shards.Rarities[entry.Id] then
+			entry.Id = "Common" -- a rarity that no longer exists (config change)
+		end
+	end
+	table.sort(shards, function(a, b)
+		return Util.ShardIndex(Config, a.Id) > Util.ShardIndex(Config, b.Id)
+	end)
+end
+
 function Base:ShardRate(player: Player, data, id: string): number
 	local rate = Util.ShardIncome(Config, id, data.ZoneLevel) * Services.StatsService:CoinMultiplier(player, data)
 	if Services.MonetizationService:HasPass(player, "DoubleBase") then
@@ -2617,8 +3343,9 @@ end
 
 function Base:IncomeRate(player: Player, data): number
 	local total = 0
-	for _, entry in data.Base.Shards do
-		if not entry.Away then
+	local slots = #pedestalItems(data)
+	for index, entry in data.Base.Shards do
+		if index <= slots and not entry.Away then
 			total += self:ShardRate(player, data, entry.Id)
 		end
 	end
@@ -2630,25 +3357,89 @@ local function sellValue(player: Player, data, id: string): number
 end
 
 ---------------------------------------------------------------------------
--- rendering a plot for its owner
+-- rendering
 ---------------------------------------------------------------------------
-local function setPrompt(parent: BasePart, action: string, object: string, role: string, hold: number, handler)
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = action
-	prompt.ObjectText = object
-	prompt.HoldDuration = hold
-	prompt.MaxActivationDistance = 9
-	prompt.RequiresLineOfSight = false
-	prompt.KeyboardKeyCode = Enum.KeyCode.E
-	prompt:SetAttribute("Role", role) -- client shows Owner prompts only to the owner
-	prompt.Parent = parent
-	prompt.Triggered:Connect(function(player)
-		local ok, err = pcall(handler, player)
-		if not ok then
-			warn("[Base] prompt failed: " .. tostring(err))
+local function itemCFrame(plot, item): CFrame
+	return plot.CFrame * CFrame.new(item.X, FLOOR_Y + 0.1, item.Z) * CFrame.Angles(0, (item.R or 0) * math.pi / 2, 0)
+end
+
+local onTrap, onJump -- forward declarations
+
+local function renderItem(plot, item)
+	local existing = plot.ItemModels[item.Uid]
+	if existing then
+		existing:Destroy()
+	end
+	local model = DecorModel.Build(Config, item.Id)
+	model:PivotTo(itemCFrame(plot, item))
+	model:SetAttribute("Uid", item.Uid)
+	model:SetAttribute("DecorId", item.Id)
+	model.Parent = plot.Items
+	plot.ItemModels[item.Uid] = model
+	local def = Config.Decor[item.Id]
+	local trigger = model:FindFirstChild("Trigger")
+	if trigger and trigger:IsA("BasePart") and def then
+		trigger.Touched:Connect(function(hit)
+			local player = playerFromHit(hit)
+			if not player then
+				return
+			end
+			if def.Function == "Trap" then
+				onTrap(plot, model, player)
+			elseif def.Function == "Jump" then
+				onJump(player, model)
+			end
+		end)
+	end
+end
+
+function Base:RenderDisplays(player: Player)
+	local plot = plotOf[player]
+	local data = Data:Get(player)
+	if not plot or not data then
+		return
+	end
+	plot.Displays:ClearAllChildren()
+	sortShards(data)
+	local shards = data.Base.Shards
+	for slot, pedestal in pedestalItems(data) do
+		local model = plot.ItemModels[pedestal.Uid]
+		local top = model and model:FindFirstChild("Top")
+		local entry = shards[slot]
+		if top and top:IsA("BasePart") and entry then
+			if not entry.Away then
+				local def = Config.Shards.Rarities[entry.Id]
+				local shard = ShardModel.Build(Config, entry.Id, 1)
+				ShardModel.SetAnchored(shard, true)
+				shard:PivotTo(CFrame.new(top.Position + Vector3.new(0, 2.2, 0)))
+				shard:SetAttribute("Spin", true)
+				shard.Parent = plot.Displays
+				local label = billboard(shard.PrimaryPart :: BasePart, 7, 2.2, 3.2, def.Color, 60)
+				World.SetText(label, "%s\n💰 %s/s", def.Name, Util.Format(self:ShardRate(player, data, entry.Id)))
+				local core = shard.PrimaryPart :: BasePart
+				setPrompt(core, "Steal", def.Name, "Thief", SETTINGS.StealHold, function(thief)
+					Base:TrySteal(thief, player, entry)
+				end)
+				setPrompt(core, "Sell", def.Name, "Owner", 0.6, function(who)
+					if who == player then
+						Base:SellEntry(player, entry)
+					end
+				end)
+			else
+				local anchor = part({
+					Name = "StolenMark",
+					Size = Vector3.one,
+					CFrame = CFrame.new(top.Position + Vector3.new(0, 2, 0)),
+					Transparency = 1,
+					CanCollide = false,
+					CanQuery = false,
+					CanTouch = false,
+				}, plot.Displays)
+				World.SetText(billboard(anchor, 7, 2, 0, Color3.fromRGB(255, 90, 90), 80), "⚠️ STOLEN!")
+			end
 		end
-	end)
-	return prompt
+	end
+	self:RefreshLabels(player, true)
 end
 
 function Base:Render(player: Player)
@@ -2657,66 +3448,16 @@ function Base:Render(player: Player)
 	if not plot or not data then
 		return
 	end
-	plot.Displays:ClearAllChildren()
-	local shards = data.Base.Shards
-	for slot, pedestal in plot.Pedestals do
-		local owned = slot <= data.Base.Pedestals
-		pedestal.Part.Transparency = if owned then 0 else 0.7
-		pedestal.Ring.Transparency = if owned then 0 else 0.85
-		local entry = shards[slot]
-		if entry and not Config.Shards.Rarities[entry.Id] then
-			entry.Id = "Common" -- a rarity that no longer exists (config change)
-		end
-		if owned and entry and not entry.Away then
-			local def = Config.Shards.Rarities[entry.Id]
-			local model = ShardModel.Build(Config, entry.Id, 1)
-			ShardModel.SetAnchored(model, true)
-			model:PivotTo(CFrame.new(pedestal.Top + Vector3.new(0, 2.2, 0)))
-			model:SetAttribute("Spin", true)
-			model.Parent = plot.Displays
-			local label = billboard(model.PrimaryPart :: BasePart, 7, 2.2, 3.2, def.Color, 60)
-			World.SetText(label, "%s\n💰 %s/s", def.Name, Util.Format(self:ShardRate(player, data, entry.Id)))
-			local core = model.PrimaryPart :: BasePart
-			setPrompt(core, "Steal", def.Name, "Thief", SETTINGS.StealHold, function(thief)
-				Base:TrySteal(thief, player, entry)
-			end)
-			setPrompt(core, "Sell", def.Name, "Owner", 0.6, function(who)
-				if who == player then
-					Base:SellEntry(player, entry)
-				end
-			end)
-		elseif owned and entry and entry.Away then
-			local anchor = part({
-				Name = "StolenMark",
-				Size = Vector3.one,
-				CFrame = CFrame.new(pedestal.Top + Vector3.new(0, 2, 0)),
-				Transparency = 1,
-				CanCollide = false,
-				CanQuery = false,
-				CanTouch = false,
-			}, plot.Displays)
-			World.SetText(billboard(anchor, 7, 2, 0, Color3.fromRGB(255, 90, 90), 80), "⚠️ STOLEN!")
-		elseif slot == data.Base.Pedestals + 1 and slot <= SETTINGS.MaxPedestals then
-			-- the next pedestal can be bought
-			local cost = SETTINGS.PedestalCosts[slot] or math.huge
-			local anchor = part({
-				Name = "BuyMark",
-				Size = Vector3.one,
-				CFrame = CFrame.new(pedestal.Top + Vector3.new(0, 1, 0)),
-				Transparency = 1,
-				CanCollide = false,
-				CanQuery = false,
-				CanTouch = false,
-			}, plot.Displays)
-			World.SetText(billboard(anchor, 6, 2, 0, Color3.fromRGB(255, 230, 140), 45), "🔒 💰 %s", Util.Format(cost))
-			setPrompt(anchor, "Buy pedestal", "💰 " .. Util.Format(cost), "Owner", 0, function(who)
-				if who == player then
-					Base:BuyPedestal(player)
-				end
-			end)
+	for _, model in plot.ItemModels do
+		model:Destroy()
+	end
+	plot.ItemModels = {}
+	for _, item in data.Base.Items do
+		if Config.Decor[item.Id] then
+			renderItem(plot, item)
 		end
 	end
-	self:RefreshLabels(player, true)
+	self:RenderDisplays(player)
 end
 
 function Base:RefreshLabels(player: Player, force: boolean?)
@@ -2726,10 +3467,29 @@ function Base:RefreshLabels(player: Player, force: boolean?)
 		return
 	end
 	local rate = self:IncomeRate(player, data)
-	local signText = Util.Format(rate)
+	local slots = #pedestalItems(data)
+	local stored = math.max(0, #data.Base.Shards - slots)
+	local signText = Util.Format(rate) .. "|" .. data.Base.Likes .. "|" .. stored
 	if force or signText ~= plot.LastLabel then
 		plot.LastLabel = signText
-		World.SetText(plot.Sign, "🏠 %s's BASE\n💰 %s/s", player.DisplayName, signText)
+		if stored > 0 then
+			World.SetText(
+				plot.Sign,
+				"🏠 %s's BASE\n💰 %s/s  ❤️ %s  📦 %s",
+				player.DisplayName,
+				Util.Format(rate),
+				tostring(data.Base.Likes),
+				tostring(stored)
+			)
+		else
+			World.SetText(
+				plot.Sign,
+				"🏠 %s's BASE\n💰 %s/s  ❤️ %s",
+				player.DisplayName,
+				Util.Format(rate),
+				tostring(data.Base.Likes)
+			)
+		end
 	end
 	World.SetText(plot.BankLabel, "💰 %s\nSTEP TO COLLECT", Util.Format(math.floor(data.Base.Bank)))
 	local t = now()
@@ -2742,10 +3502,15 @@ function Base:RefreshLabels(player: Player, force: boolean?)
 	end
 	player:SetAttribute("BaseRate", rate)
 	player:SetAttribute("BaseBank", math.floor(data.Base.Bank))
+	player:SetAttribute("BaseStored", stored)
 end
 
 local function clearPlot(plot)
 	plot.Owner = nil
+	for _, model in plot.ItemModels do
+		model:Destroy()
+	end
+	plot.ItemModels = {}
 	plot.Displays:ClearAllChildren()
 	plot.Model:SetAttribute("OwnerId", 0)
 	plot.Model:SetAttribute("LockedUntil", 0)
@@ -2753,10 +3518,7 @@ local function clearPlot(plot)
 	plot.LockReadyAt = 0
 	plot.Shield.Transparency = 1
 	plot.Shield.CanCollide = false
-	for _, pedestal in plot.Pedestals do
-		pedestal.Part.Transparency = 0.7
-		pedestal.Ring.Transparency = 0.85
-	end
+	plot.LastLabel = ""
 	World.SetText(plot.Sign, "🏠 FREE BASE")
 	World.SetText(plot.BankLabel, "")
 	World.SetText(plot.LockLabel, "")
@@ -2785,7 +3547,7 @@ end
 
 function Base:HomeCFrame(player: Player): CFrame?
 	local plot = plotOf[player]
-	return plot and (plot.CFrame * CFrame.new(0, 3, -PLOT_HALF + 4))
+	return plot and (plot.CFrame * CFrame.new(0, 3, -PLOT_HALF + 5))
 end
 
 function Base:IsLocked(owner: Player): boolean
@@ -2800,11 +3562,18 @@ function Base:AddShard(player: Player, id: string): (string, number)
 		return "None", 0
 	end
 	local shards = data.Base.Shards
+	local capacity = #pedestalItems(data) + SETTINGS.StorageMax
 	local result, coins = "Placed", 0
-	if #shards < data.Base.Pedestals then
-		table.insert(shards, { Id = id })
+	local slots = #pedestalItems(data)
+	if #shards < capacity then
+		local entry = { Id = id }
+		table.insert(shards, entry)
+		sortShards(data)
+		if (table.find(shards, entry) or 0) > slots then
+			result = "Stored" -- every pedestal holds a better shard
+		end
 	else
-		-- base full: the new shard replaces the weakest one if it's better, the other is sold
+		-- completely full: the new shard replaces the weakest one if it's better, the other is sold
 		local worstIndex, worstValue = nil, math.huge
 		for i, entry in shards do
 			if not entry.Away then
@@ -2827,7 +3596,7 @@ function Base:AddShard(player: Player, id: string): (string, number)
 	end
 	data.Stats.ShardsDelivered = (data.Stats.ShardsDelivered or 0) + 1
 	Data:MarkDirty(player)
-	self:Render(player)
+	self:RenderDisplays(player)
 	return result, coins
 end
 
@@ -2835,7 +3604,7 @@ function Base:SetAway(owner: Player, entry, away: boolean)
 	entry.Away = if away then true else nil
 	if owner.Parent then
 		Data:MarkDirty(owner)
-		self:Render(owner)
+		self:RenderDisplays(owner)
 	end
 end
 
@@ -2849,7 +3618,7 @@ function Base:RemoveEntry(owner: Player, entry)
 		table.remove(data.Base.Shards, index)
 	end
 	Data:MarkDirty(owner)
-	self:Render(owner)
+	self:RenderDisplays(owner)
 end
 
 function Base:SellEntry(player: Player, entry)
@@ -2868,30 +3637,7 @@ function Base:SellEntry(player: Player, entry)
 	local def = Config.Shards.Rarities[entry.Id]
 	Net:Notify(player, "Sold %s for 💰%s", Color3.fromRGB(255, 220, 120), def.Name, Util.Format(coins))
 	Data:MarkDirty(player)
-	self:Render(player)
-end
-
-function Base:BuyPedestal(player: Player)
-	local data = Data:Get(player)
-	if not data then
-		return
-	end
-	local nextSlot = data.Base.Pedestals + 1
-	if nextSlot > SETTINGS.MaxPedestals then
-		Net:Notify(player, "Your base is fully upgraded!")
-		return
-	end
-	local cost = SETTINGS.PedestalCosts[nextSlot] or math.huge
-	if data.Coins < cost then
-		Net:Notify(player, "Not enough %s! Need %s more.", Color3.fromRGB(255, 110, 110), "coins", Util.Format(cost - data.Coins))
-		return
-	end
-	data.Coins -= cost
-	data.Base.Pedestals = nextSlot
-	Net:Notify(player, "🏠 New pedestal! (%d/%d)", Color3.fromRGB(120, 255, 170), nextSlot, SETTINGS.MaxPedestals)
-	Services.ProgressionService:AddQuest(player, "Upgrade", 1)
-	Data:MarkDirty(player)
-	self:Render(player)
+	self:RenderDisplays(player)
 end
 
 function Base:TrySteal(thief: Player, owner: Player, entry)
@@ -2963,8 +3709,216 @@ function Base:Lock(player: Player)
 end
 
 ---------------------------------------------------------------------------
+-- decorating
+---------------------------------------------------------------------------
+local function findItem(data, uid)
+	for index, item in data.Base.Items do
+		if item.Uid == uid then
+			return item, index
+		end
+	end
+	return nil, nil
+end
+
+local function cleanTransform(x, z, r): (number?, number?, number?)
+	if type(x) ~= "number" or type(z) ~= "number" or type(r) ~= "number" then
+		return nil, nil, nil
+	end
+	if x ~= x or z ~= z then -- NaN
+		return nil, nil, nil
+	end
+	return x, z, math.floor(r) % 4
+end
+
+-- returns ok, message
+function Base:Place(player: Player, id, x, z, r): (boolean, string?)
+	local data = Data:Get(player)
+	local plot = plotOf[player]
+	local def = type(id) == "string" and Config.Decor[id]
+	x, z, r = cleanTransform(x, z, r)
+	if not data or not plot or not def or not x then
+		return false, "Can't place that here"
+	end
+	x, z = DecorModel.Snap(Config, id, x, z, r)
+	local items = data.Base.Items
+	local ok, reason = DecorModel.Validate(Config, items, id, x, z, r, nil)
+	if not ok then
+		return false, reason
+	end
+	local currency, price = DecorModel.Price(Config, id, items)
+	local have = if currency == "Gems" then data.Gems else data.Coins
+	if have < price then
+		return false, if currency == "Gems" then "Not enough gems!" else "Not enough coins!"
+	end
+	if currency == "Gems" then
+		data.Gems -= price
+	else
+		data.Coins -= price
+	end
+	local item = { Uid = data.Base.NextUid, Id = id, X = x, Z = z, R = r, Paid = price, Cur = currency }
+	data.Base.NextUid += 1
+	table.insert(items, item)
+	renderItem(plot, item)
+	if def.Function == "Pedestal" then
+		self:RenderDisplays(player)
+	end
+	Services.ProgressionService:AddQuest(player, "Decorate", 1)
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+function Base:Move(player: Player, uid, x, z, r): (boolean, string?)
+	local data = Data:Get(player)
+	local plot = plotOf[player]
+	local item = data and type(uid) == "number" and findItem(data, uid)
+	x, z, r = cleanTransform(x, z, r)
+	if not item or not plot or not x then
+		return false, "Can't move that"
+	end
+	x, z = DecorModel.Snap(Config, item.Id, x, z, r)
+	local ok, reason = DecorModel.Validate(Config, data.Base.Items, item.Id, x, z, r, item.Uid)
+	if not ok then
+		return false, reason
+	end
+	item.X, item.Z, item.R = x, z, r
+	renderItem(plot, item)
+	if Config.Decor[item.Id].Function == "Pedestal" then
+		self:RenderDisplays(player)
+	end
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+function Base:Remove(player: Player, uid): (boolean, string?)
+	local data = Data:Get(player)
+	local plot = plotOf[player]
+	local item, index = nil, nil
+	if data and type(uid) == "number" then
+		item, index = findItem(data, uid)
+	end
+	if not item or not plot then
+		return false, "Can't remove that"
+	end
+	local def = Config.Decor[item.Id]
+	if def and def.Function == "Pedestal" and #pedestalItems(data) <= 1 then
+		return false, "Keep at least one pedestal!"
+	end
+	table.remove(data.Base.Items, index)
+	local refund = math.max(0, math.floor(item.Paid or 0))
+	if item.Cur == "Gems" then
+		data.Gems += refund
+	else
+		data.Coins += refund
+	end
+	local model = plot.ItemModels[item.Uid]
+	plot.ItemModels[item.Uid] = nil
+	if model then
+		model:Destroy()
+	end
+	if def and def.Function == "Pedestal" then
+		self:RenderDisplays(player)
+	end
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+-- traps: freeze intruders; a stolen shard from this base goes straight home
+onTrap = function(plot, model: Model, player: Player)
+	local owner = plot.Owner
+	if not owner or owner == player then
+		return
+	end
+	local ready = trapReady[model] or 0
+	if os.clock() < ready then
+		return
+	end
+	trapReady[model] = os.clock() + SETTINGS.TrapCooldown
+	model.AncestryChanged:Once(function()
+		trapReady[model] = nil
+	end)
+	Services.CharacterService:Stun(player, SETTINGS.TrapStun)
+	local recovered = Services.ShardService:Confiscate(player, owner)
+	Net:Send(player, "Stunned", SETTINGS.TrapStun)
+	Net:Notify(player, "⚡ You stepped on a trap!", Color3.fromRGB(255, 230, 80))
+	if recovered then
+		Net:Notify(owner, "⚡ Your trap caught %s - shard saved!", Color3.fromRGB(255, 230, 80), player.DisplayName)
+	else
+		Net:Notify(owner, "⚡ Your trap stunned %s!", Color3.fromRGB(255, 230, 80), player.DisplayName)
+	end
+end
+
+onJump = function(player: Player, model: Model)
+	if debounced(player, "jump", 0.8) then
+		return
+	end
+	local look = model:GetPivot().LookVector * Vector3.new(1, 0, 1)
+	Net:Send(player, "Launch", Vector3.new(0, 95, 0) + look * 25)
+end
+
+---------------------------------------------------------------------------
+-- likes
+---------------------------------------------------------------------------
+tryLike = function(visitor: Player, plotIndex: number)
+	local plot = plots[plotIndex]
+	local owner = plot and plot.Owner
+	if not owner or owner == visitor then
+		return
+	end
+	local data = Data:Get(owner)
+	if not data then
+		return
+	end
+	local base = data.Base
+	local key = tostring(visitor.UserId)
+	local today = Util.DayNumber()
+	if base.LikedBy[key] == today then
+		Net:Notify(visitor, "You already liked this base today ❤️")
+		return
+	end
+	base.LikedBy[key] = today
+	base.Likes += 1
+	local week = Util.WeekNumber()
+	if base.LikeWeek ~= week then
+		base.LikeWeek = week
+		base.WeeklyLikes = 0
+	end
+	base.WeeklyLikes += 1
+	Services.ProgressionService:AddPoints(owner, SETTINGS.LikePoints)
+	Services.ProgressionService:AddQuest(visitor, "Like", 1)
+	Net:Notify(owner, "❤️ %s liked your base!", Color3.fromRGB(255, 120, 160), visitor.DisplayName)
+	Net:Notify(visitor, "❤️ You liked %s's base!", Color3.fromRGB(255, 120, 160), owner.DisplayName)
+	Net:Send(owner, "BaseLiked", visitor.DisplayName)
+	Data:MarkDirty(owner)
+	Base:RefreshLabels(owner, true)
+end
+
+---------------------------------------------------------------------------
 -- plot assignment
 ---------------------------------------------------------------------------
+-- first visit (or a save from before decorating existed): starter layout
+local function seed(data)
+	local base = data.Base
+	if base.Seeded then
+		return
+	end
+	base.Seeded = true
+	local function add(id, x, z, r)
+		x, z = DecorModel.Snap(Config, id, x, z, r)
+		if DecorModel.Validate(Config, base.Items, id, x, z, r, nil) then
+			table.insert(base.Items, { Uid = base.NextUid, Id = id, X = x, Z = z, R = r, Paid = 0, Cur = "Coins" })
+			base.NextUid += 1
+		end
+	end
+	for _, entry in Config.StarterBase do
+		add(entry.Id, entry.X, entry.Z, entry.R)
+	end
+	-- pedestals bought before decorating existed are kept
+	local extra = math.max(0, (base.Pedestals or 0) - SETTINGS.StartPedestals)
+	for i = 1, extra do
+		add("Pedestal", -12 + ((i - 1) % 5) * 6, 9 + math.floor((i - 1) / 5) * 6, 0)
+	end
+end
+
 local function assign(player: Player, data)
 	if plotOf[player] then
 		return
@@ -3042,23 +3996,32 @@ function Base:Start()
 		clearPlot(plot)
 		plot.CollectPad.Touched:Connect(function(hit)
 			local player = playerFromHit(hit)
-			if player and plot.Owner == player and not debounced(player, 0.6) then
+			if player and plot.Owner == player and not debounced(player, "collect", 0.6) then
 				Base:Collect(player)
 			end
 		end)
 		plot.LockPad.Touched:Connect(function(hit)
 			local player = playerFromHit(hit)
-			if player and plot.Owner == player and not debounced(player, 0.6) then
+			if player and plot.Owner == player and not debounced(player, "lock", 0.6) then
 				Base:Lock(player)
 			end
 		end)
 	end
 
 	Data:OnLoaded(function(player, data)
+		local base = data.Base
 		-- shards a thief was carrying when the server closed are still ours
-		for _, entry in data.Base.Shards do
+		for _, entry in base.Shards do
 			entry.Away = nil
 		end
+		-- forget likes older than yesterday (keeps the save small)
+		local today = Util.DayNumber()
+		for key, day in base.LikedBy do
+			if type(day) ~= "number" or day < today - 1 then
+				base.LikedBy[key] = nil
+			end
+		end
+		seed(data)
 		assign(player, data)
 	end)
 	Data:OnLeaving(function(_player, data)
@@ -3069,7 +4032,11 @@ function Base:Start()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		release(player)
-		touchDebounce[player] = nil
+		for key in touchDebounce do
+			if string.sub(key, 1, #tostring(player.UserId) + 1) == player.UserId .. ":" then
+				touchDebounce[key] = nil
+			end
+		end
 	end)
 
 	-- income tick
@@ -3108,13 +4075,27 @@ function Base:Start()
 			character:PivotTo(home)
 		end
 	end)
+
+	-- build mode requests answer with ok, translated message
+	local function reply(player: Player, ok: boolean, message: string?)
+		return ok, if message then Net:L(player, message) else nil
+	end
+	Net:OnRequest("BasePlace", 0.15, function(player, id, x, z, r)
+		return reply(player, self:Place(player, id, x, z, r))
+	end)
+	Net:OnRequest("BaseMove", 0.15, function(player, uid, x, z, r)
+		return reply(player, self:Move(player, uid, x, z, r))
+	end)
+	Net:OnRequest("BaseRemove", 0.15, function(player, uid)
+		return reply(player, self:Remove(player, uid))
+	end)
 end
 
 return Base
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="14">
+        <Item class="ModuleScript" referent="15">
           <Properties>
             <string name="Name">BoostService</string>
             <string name="Source"><![CDATA[--[[
@@ -3220,7 +4201,7 @@ return Boosts
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="15">
+        <Item class="ModuleScript" referent="16">
           <Properties>
             <string name="Name">CharacterService</string>
             <string name="Source"><![CDATA[--[[
@@ -3329,12 +4310,25 @@ function CharacterService:GivePickaxe(player: Player)
 end
 
 local padUntil = {} -- [player] = os.clock() when the dash pad boost ends
+local stunnedUntil = {} -- [player] = os.clock() when a trap/guardian stun ends
+local DEFAULT_JUMP = 7.2
 
 function CharacterService:ApplyWalkSpeed(player: Player)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
+		if (stunnedUntil[player] or 0) > os.clock() then
+			humanoid.WalkSpeed = 0
+			humanoid.JumpHeight = 0
+			return
+		end
+		humanoid.JumpHeight = DEFAULT_JUMP
 		local speed = Config.World.WalkSpeed
+		local data = Data:Get(player)
+		local boots = data and Config.Boots[data.SpeedTier or 1]
+		if boots then
+			speed *= 1 + boots.Bonus
+		end
 		if Services.MonetizationService:HasPass(player, "Speed") then
 			speed *= 1.5
 		end
@@ -3351,6 +4345,18 @@ function CharacterService:ApplyWalkSpeed(player: Player)
 		end
 		humanoid.WalkSpeed = speed
 	end
+end
+
+-- freeze a player for a moment (stun traps, guardians)
+function CharacterService:Stun(player: Player, seconds: number)
+	stunnedUntil[player] = os.clock() + seconds
+	self:ApplyWalkSpeed(player)
+	task.delay(seconds + 0.05, function()
+		if player.Parent and (stunnedUntil[player] or 0) <= os.clock() then
+			stunnedUntil[player] = nil
+			self:ApplyWalkSpeed(player)
+		end
+	end)
 end
 
 function CharacterService:SpeedPad(player: Player)
@@ -3468,6 +4474,7 @@ function CharacterService:Start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		padUntil[player] = nil
+		stunnedUntil[player] = nil
 	end)
 
 	-- dash pads
@@ -3488,7 +4495,7 @@ return CharacterService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="16">
+        <Item class="ModuleScript" referent="17">
           <Properties>
             <string name="Name">DataService</string>
             <string name="Source"><![CDATA[--[[
@@ -3535,7 +4542,21 @@ local TEMPLATE = {
 	Tutorial = { Step = 1, Progress = 0, Done = false },
 	Settings = { Lang = "auto" }, -- "auto" | "ko" | "en"
 	-- star-shard base: Shards = { { Id = rarityId }, ... } in pedestal order
-	Base = { Pedestals = 3, Shards = {}, Bank = 0, LastOnline = 0 },
+	-- Items = placed decorations { Uid, Id, X, Z, R, Paid, Cur } in plot space
+	Base = {
+		Pedestals = 3, -- legacy (pre-decorating saves)
+		Shards = {},
+		Bank = 0,
+		LastOnline = 0,
+		Items = {},
+		NextUid = 1,
+		Seeded = false,
+		Likes = 0,
+		WeeklyLikes = 0,
+		LikeWeek = 0,
+		LikedBy = {}, -- ["userId"] = day number
+	},
+	SpeedTier = 1,
 	Pets = {}, -- { { Id = 1, Name = "Bunny", Variant = "Golden"? }, ... }
 	Equipped = {}, -- { petId, ... }
 	NextPetUid = 1,
@@ -3918,7 +4939,7 @@ return DataService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="17">
+        <Item class="ModuleScript" referent="18">
           <Properties>
             <string name="Name">DevService</string>
             <string name="Source"><![CDATA[--[[
@@ -4000,7 +5021,7 @@ return Dev
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="18">
+        <Item class="ModuleScript" referent="19">
           <Properties>
             <string name="Name">EconomyService</string>
             <string name="Source"><![CDATA[--[[
@@ -4117,6 +5138,10 @@ function Economy:Start()
 	Net:On("BuyPickaxe", 0.25, function(player)
 		buyUpgrade(player, "Pickaxes", "PickaxeTier")
 	end)
+	Net:On("BuyBoots", 0.25, function(player)
+		buyUpgrade(player, "Boots", "SpeedTier")
+		Services.CharacterService:ApplyWalkSpeed(player)
+	end)
 	Net:On("UnlockZone", 0.5, function(player, index)
 		if type(index) == "number" then
 			self:UnlockZone(player, math.floor(index))
@@ -4144,7 +5169,7 @@ return Economy
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="19">
+        <Item class="ModuleScript" referent="20">
           <Properties>
             <string name="Name">EventService</string>
             <string name="Source"><![CDATA[--[[
@@ -4248,7 +5273,7 @@ return Events
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="20">
+        <Item class="ModuleScript" referent="21">
           <Properties>
             <string name="Name">LeaderboardService</string>
             <string name="Source"><![CDATA[--[[
@@ -4297,6 +5322,8 @@ local function valueFor(key: string, data): number
 		return data.Stats.LifetimeCoins
 	elseif key == "Rebirths" then
 		return data.Rebirths
+	elseif key == "Likes" then
+		return data.Base and data.Base.Likes or 0
 	end
 	return 0
 end
@@ -4304,6 +5331,8 @@ end
 local function formatValue(key: string, value: number): string
 	if key == "Weekly" then
 		return Util.Comma(value) .. " pts"
+	elseif key == "Likes" then
+		return "❤️ " .. Util.Comma(value)
 	end
 	return Util.Format(value)
 end
@@ -4568,7 +5597,7 @@ return Leaderboards
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="21">
+        <Item class="ModuleScript" referent="22">
           <Properties>
             <string name="Name">MeteorService</string>
             <string name="Source"><![CDATA[--[[
@@ -5017,7 +6046,7 @@ return Meteor
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="22">
+        <Item class="ModuleScript" referent="23">
           <Properties>
             <string name="Name">MiningService</string>
             <string name="Source"><![CDATA[--[[
@@ -5569,6 +6598,13 @@ local function onSwing(player: Player, hint)
 			tryBonk(player, victim)
 			return
 		end
+		local shards = Services.ShardService
+		if model and shards:IsGuardian(model) then
+			if (hintPart.Position - root.Position).Magnitude <= Config.PvP.BonkRange + 2 then
+				shards:HitGuardian(player, model)
+			end
+			return
+		end
 		if blockInfo[hintPart] and withinReach(root, hintPart, 3) then
 			mineBlock(player, data, hintPart)
 			return
@@ -5581,10 +6617,15 @@ local function onSwing(player: Player, hint)
 		return
 	end
 
-	-- 3) a shard carrier right next to us
+	-- 3) a shard carrier (or a star guardian) right next to us
 	local carrier = nearestCarrier(player, root)
 	if carrier then
 		tryBonk(player, carrier)
+		return
+	end
+	local guardian = Services.ShardService:NearestGuardian(root.Position, Config.PvP.BonkRange)
+	if guardian then
+		Services.ShardService:HitGuardian(player, guardian)
 		return
 	end
 
@@ -5639,7 +6680,7 @@ return Mining
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="23">
+        <Item class="ModuleScript" referent="24">
           <Properties>
             <string name="Name">MonetizationService</string>
             <string name="Source"><![CDATA[--[[
@@ -6046,7 +7087,7 @@ return Monetization
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="24">
+        <Item class="ModuleScript" referent="25">
           <Properties>
             <string name="Name">Net</string>
             <string name="Source"><![CDATA[--[[
@@ -6169,7 +7210,7 @@ return Net
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="25">
+        <Item class="ModuleScript" referent="26">
           <Properties>
             <string name="Name">PetService</string>
             <string name="Source"><![CDATA[--[[
@@ -6444,7 +7485,7 @@ return PetService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="26">
+        <Item class="ModuleScript" referent="27">
           <Properties>
             <string name="Name">ProgressionService</string>
             <string name="Source"><![CDATA[--[[
@@ -6983,7 +8024,7 @@ return Progression
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="27">
+        <Item class="ModuleScript" referent="28">
           <Properties>
             <string name="Name">ShardService</string>
             <string name="Source"><![CDATA[--[[
@@ -7146,6 +8187,142 @@ end
 
 local tryPickup -- forward declaration
 
+---------------------------------------------------------------------------
+-- star guardians: rock golems that protect a fallen star and chase the
+-- player who grabs it. If they catch you, they take the shard back to the
+-- crash site. Bonk one (swing at it) to stun it - friends can cover you!
+---------------------------------------------------------------------------
+local GUARDIAN = Config.Guardian
+local guardians = {} -- [model] = guardian record
+
+local function buildGuardian(color: Color3): (Model, Humanoid, BasePart)
+	local model = Instance.new("Model")
+	model.Name = "StarGuardian"
+	local root = Instance.new("Part")
+	root.Name = "HumanoidRootPart"
+	root.Size = Vector3.new(2, 2, 1)
+	root.Transparency = 1
+	root.CanCollide = false
+	root.Parent = model
+	local function limb(name: string, size: Vector3, offset: CFrame, partColor: Color3, material: Enum.Material)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = size
+		p.CFrame = root.CFrame * offset
+		p.Color = partColor
+		p.Material = material
+		p.CanCollide = false
+		p.Massless = true
+		p.CastShadow = false
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = root
+		weld.Part1 = p
+		weld.Parent = p
+		p.Parent = model
+		return p
+	end
+	local rock = Color3.fromRGB(85, 80, 95)
+	limb("Torso", Vector3.new(3.4, 3.2, 2.4), CFrame.new(0, 0.6, 0), rock, Enum.Material.Basalt)
+	limb("Head", Vector3.new(2.4, 2, 2.2), CFrame.new(0, 3.2, 0), rock, Enum.Material.Basalt)
+	for _, x in { -0.55, 0.55 } do
+		limb("Eye", Vector3.new(0.5, 0.35, 0.2), CFrame.new(x, 3.4, -1.1), color, Enum.Material.Neon)
+	end
+	for _, x in { -2.3, 2.3 } do
+		limb("Arm", Vector3.new(1.2, 3.4, 1.3), CFrame.new(x, 0.2, 0) * CFrame.Angles(0, 0, math.rad(x * 3)), rock, Enum.Material.Basalt)
+	end
+	local crystal =
+		limb("Crystal", Vector3.new(0.9, 2.4, 0.9), CFrame.new(0, 2.6, 1.2) * CFrame.Angles(0.5, 0, 0), color, Enum.Material.Neon)
+	local glow = Instance.new("PointLight")
+	glow.Color = color
+	glow.Range = 14
+	glow.Brightness = 2
+	glow.Parent = crystal
+
+	local humanoid = Instance.new("Humanoid")
+	humanoid.RigType = Enum.HumanoidRigType.R15 -- R15 so HipHeight lifts the legless golem
+	humanoid.HipHeight = 2.6
+	humanoid.RequiresNeck = false
+	humanoid.BreakJointsOnDeath = false
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	humanoid.Parent = model
+	model.PrimaryPart = root
+
+	local gui = Instance.new("BillboardGui")
+	gui.Size = UDim2.new(7, 0, 1.6, 0)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 5.5, 0)
+	gui.LightInfluence = 0
+	gui.MaxDistance = 120
+	local text = Instance.new("TextLabel")
+	text.BackgroundTransparency = 1
+	text.Size = UDim2.fromScale(1, 1)
+	text.Font = Enum.Font.FredokaOne
+	text.TextScaled = true
+	text.TextColor3 = color
+	World.SetText(text, "🗿 STAR GUARDIAN")
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Parent = text
+	text.Parent = gui
+	gui.Parent = root
+	return model, humanoid, root
+end
+
+local function spawnGuardian(id: string, home: Vector3)
+	local def = SETTINGS.Rarities[id]
+	local index = Util.ShardIndex(Config, id)
+	local model, humanoid, root = buildGuardian(def.Color)
+	root.CFrame = CFrame.new(home + Vector3.new(6, 4, 0))
+	humanoid.WalkSpeed = GUARDIAN.Speed + (index - 1) * GUARDIAN.SpeedPerRarity
+	model.Parent = World:Folder("Shards")
+	pcall(function()
+		root:SetNetworkOwner(nil) -- the server drives it, never a nearby client
+	end)
+	local record =
+		{ Model = model, Humanoid = humanoid, Root = root, Home = home, Target = nil, ChaseUntil = 0, StunnedUntil = 0, ShardId = id }
+	guardians[model] = record
+	return record
+end
+
+local function despawnGuardian(record)
+	if not record then
+		return
+	end
+	guardians[record.Model] = nil
+	if record.Model.Parent then
+		record.Model:Destroy()
+	end
+end
+
+function Shards:IsGuardian(model: Instance?): boolean
+	return model ~= nil and guardians[model] ~= nil
+end
+
+-- a bonk stuns the guardian for a moment
+function Shards:HitGuardian(player: Player, model: Model): boolean
+	local record = guardians[model]
+	if not record then
+		return false
+	end
+	record.StunnedUntil = os.clock() + GUARDIAN.StunSeconds
+	record.Humanoid:MoveTo(record.Root.Position)
+	Net:Notify(player, "💥 Guardian stunned!", Color3.fromRGB(255, 200, 90))
+	Net:Send(player, "BonkHit", record.Root.Position)
+	return true
+end
+
+function Shards:NearestGuardian(position: Vector3, range: number): Model?
+	local best, bestDistance = nil, range
+	for model, record in guardians do
+		local distance = (record.Root.Position - position).Magnitude
+		if distance <= bestDistance then
+			best, bestDistance = model, distance
+		end
+	end
+	return best
+end
+
 -- opts: Beacon (bool), PriorityUser/PriorityUntil, BlockUser/BlockUntil, Lifetime
 function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 	opts = opts or {}
@@ -7214,6 +8391,11 @@ function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 		BlockUntil = opts.BlockUntil or 0,
 	}
 	ground[model] = record
+	if opts.Guardian then
+		record.Guardian = opts.Guardian
+	elseif opts.WithGuardian and Util.ShardIndex(Config, id) >= GUARDIAN.MinRarity then
+		record.Guardian = spawnGuardian(id, position)
+	end
 
 	hitbox.Touched:Connect(function(hit)
 		if ground[model] then
@@ -7227,6 +8409,9 @@ function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 		if ground[model] then
 			destroyGround(model)
 			returnHome(meta, true)
+			if record.Guardian and not record.Guardian.Target then
+				despawnGuardian(record.Guardian)
+			end
 		end
 	end)
 	return model
@@ -7263,7 +8448,25 @@ tryPickup = function(model: Model, record, hit: BasePart)
 		return
 	end
 	destroyGround(model)
-	Shards:StartCarry(player, record.Id, meta)
+	if Shards:StartCarry(player, record.Id, meta) and record.Guardian then
+		local guardian = record.Guardian
+		guardian.Target = player
+		guardian.ChaseUntil = os.clock() + GUARDIAN.ChaseSeconds
+		carrying[player].Guardian = guardian
+		Net:Send(player, "GuardianChase", GUARDIAN.ChaseSeconds)
+	end
+end
+
+-- stun traps: a thief carrying a shard stolen from `owner` loses it instantly
+function Shards:Confiscate(player: Player, owner: Player): boolean
+	local info = carrying[player]
+	if not info or not info.Meta or info.Meta.From ~= owner then
+		return false
+	end
+	endCarry(player)
+	returnHome(info.Meta, false)
+	Net:Send(player, "CarryLost", info.Id, owner.DisplayName)
+	return true
 end
 
 -- drop whatever the player carries (bonked / died / left)
@@ -7358,7 +8561,7 @@ function Shards:FallingStar(forcedZone: number?)
 	local flight = 1.8
 	Net:Broadcast("StarFall", position, id, flight)
 	task.delay(flight, function()
-		self:SpawnGround(id, position, nil, { Beacon = true })
+		self:SpawnGround(id, position, nil, { Beacon = true, WithGuardian = true })
 		local where = if zone == 0 then "Hub" else Config.Zones[zone].Name
 		Net:Announce("🌠 A falling star crashed in %s! Grab the %s!", SETTINGS.Rarities[id].Color, where, rarityName(id))
 	end)
@@ -7423,7 +8626,77 @@ function Shards:Init(services)
 	World = services.WorldService
 end
 
+local function stepGuardians()
+	local clock = os.clock()
+	for model, g in guardians do
+		if not model.Parent or not g.Root.Parent then
+			guardians[model] = nil
+		elseif g.StunnedUntil > clock then
+			g.Humanoid:MoveTo(g.Root.Position) -- dazed
+		elseif g.Target then
+			local target = g.Target
+			local info = carrying[target]
+			local root = rootOf(target)
+			local giveUp = not target.Parent
+				or not info
+				or info.Guardian ~= g
+				or not root
+				or clock > g.ChaseUntil
+				or (g.Root.Position - g.Home).Magnitude > GUARDIAN.ChaseRange
+				or Util.InBases(Config, root.Position)
+			if giveUp then
+				g.Target = nil
+				g.Done = true -- the shard is gone: walk back and vanish
+				if info and info.Guardian == g then
+					info.Guardian = nil
+				end
+				g.Humanoid:MoveTo(g.Home)
+			elseif root then
+				g.Humanoid:MoveTo(root.Position)
+				if (root.Position - g.Root.Position).Magnitude <= GUARDIAN.CatchRange then
+					-- caught! the guardian takes the shard back to the crash site
+					local id = info.Id
+					endCarry(target)
+					Services.CharacterService:Stun(target, 1.2)
+					local push = (root.Position - g.Root.Position) * Vector3.new(1, 0, 1)
+					push = if push.Magnitude > 0.01 then push.Unit else Vector3.zAxis
+					Net:Send(target, "Knockback", push * 45 + Vector3.new(0, 30, 0))
+					Net:Send(target, "CaughtByGuardian", id)
+					g.Target = nil
+					g.Done = false
+					Shards:SpawnGround(id, g.Home, nil, {
+						Beacon = true,
+						Guardian = g,
+						BlockUser = target.UserId,
+						BlockUntil = now() + 2,
+					})
+					g.Humanoid:MoveTo(g.Home)
+				end
+			end
+		else
+			local distance = ((g.Root.Position - g.Home) * Vector3.new(1, 0, 1)).Magnitude
+			if g.Done and distance < 8 then
+				despawnGuardian(g)
+			elseif distance > 9 then
+				g.Humanoid:MoveTo(g.Home + Vector3.new(6, 0, 0))
+			end
+		end
+	end
+end
+
 function Shards:Start()
+	local guardianClock = 0
+	RunService.Heartbeat:Connect(function(dt)
+		guardianClock += dt
+		if guardianClock < 0.2 then
+			return
+		end
+		guardianClock = 0
+		local ok, err = pcall(stepGuardians)
+		if not ok then
+			warn("[Shards] guardian step failed: " .. tostring(err))
+		end
+	end)
 	-- delivery + safety checks
 	local accumulator = 0
 	RunService.Heartbeat:Connect(function(dt)
@@ -7519,7 +8792,7 @@ return Shards
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="28">
+        <Item class="ModuleScript" referent="29">
           <Properties>
             <string name="Name">StatsService</string>
             <string name="Source"><![CDATA[--[[
@@ -7771,7 +9044,7 @@ return Stats
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="29">
+        <Item class="ModuleScript" referent="30">
           <Properties>
             <string name="Name">WorldService</string>
             <string name="Source"><![CDATA[--[[
@@ -8483,12 +9756,16 @@ local function buildBaseDistrict()
 				CanCollide = false,
 			}, district)
 		end
-		for z = bases.ZStart - plazaDepth - 30, bases.ZEnd + 30, -36 do
-			speedPad(Vector3.new(x, 0, z), math.pi, district)
+		-- plot rows (see BaseService): first row center and row pitch
+		local plotSize = Config.Base.PlotSize
+		local pitch = plotSize + 4
+		local firstRow = bases.ZStart - 18 - plotSize / 2
+		for z = firstRow, bases.ZEnd + plotSize / 2, -pitch do
+			speedPad(Vector3.new(x, 0, z), math.pi, district) -- in front of each row
 		end
-		for z = bases.ZStart - plazaDepth, bases.ZEnd + 4, -36 do -- between plot rows
-			lamp(Vector3.new(x - 12, 0, z), Color3.fromRGB(140, 220, 255), district)
-			lamp(Vector3.new(x + 12, 0, z), Color3.fromRGB(140, 220, 255), district)
+		for z = firstRow + plotSize / 2 + 2, bases.ZEnd + 4, -pitch do -- between plot rows
+			lamp(Vector3.new(x - 11, 0, z), Color3.fromRGB(140, 220, 255), district)
+			lamp(Vector3.new(x + 11, 0, z), Color3.fromRGB(140, 220, 255), district)
 		end
 	end
 	-- dash pads on the plaza, pointing to each street
@@ -8811,23 +10088,23 @@ return World
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="30">
+  <Item class="StarterPlayer" referent="31">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="31">
+    <Item class="StarterPlayerScripts" referent="32">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="32">
+      <Item class="Folder" referent="33">
         <Properties>
           <string name="Name">Client</string>
         </Properties>
-        <Item class="Folder" referent="33">
+        <Item class="Folder" referent="34">
           <Properties>
             <string name="Name">Controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="34">
+          <Item class="ModuleScript" referent="35">
             <Properties>
               <string name="Name">Ambience</string>
               <string name="Source"><![CDATA[--[[
@@ -8951,7 +10228,703 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="35">
+          <Item class="ModuleScript" referent="36">
+            <Properties>
+              <string name="Name">Build</string>
+              <string name="Source"><![CDATA[--[[
+	Build mode: decorate your own base.
+	* Stand in your base -> tap "🔨 DECORATE".
+	* The camera looks down on your base. Pick an item from the catalog,
+	  tap the floor to move the preview (green = OK, red = blocked),
+	  🔄 rotate, ✅ place. Placing again keeps the same item selected, so
+	  floors and fences are quick to lay out.
+	* Tap something you already placed to ✋ move, 🔄 rotate or 🗑 remove it
+	  (removing refunds everything, so redecorating is free).
+	The server re-validates every action (BaseService).
+]]
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Util = require(Shared.Util)
+local DecorModel = require(Shared.DecorModel)
+
+local Client = script.Parent.Parent
+local Net = require(Client.Net)
+local State = require(Client.State)
+local Lib = require(Client.UI.Lib)
+local Root = require(Client.UI.Root)
+
+local player = Players.LocalPlayer
+local C = Lib.Colors
+local New = Lib.New
+local T = Lib.T
+
+local Build = {}
+local SETTINGS = Config.Base
+local PLOT_HALF = SETTINGS.PlotSize / 2
+local FLOOR_Y = 0.42
+
+State.BuildMode = false
+
+---------------------------------------------------------------------------
+-- plot helpers
+---------------------------------------------------------------------------
+local function myPlot(): Model?
+	local index = player:GetAttribute("BaseIndex")
+	local map = workspace:FindFirstChild("Map")
+	local bases = map and map:FindFirstChild("Bases")
+	local plot = index and bases and bases:FindFirstChild("Plot_" .. tostring(index))
+	if plot and plot:GetAttribute("OwnerId") == player.UserId then
+		return plot :: Model
+	end
+	return nil
+end
+
+local function plotFrame(plot: Model): CFrame?
+	local floor = plot:FindFirstChild("Floor")
+	return if floor and floor:IsA("BasePart") then floor.CFrame * CFrame.new(0, -0.2, 0) else nil
+end
+
+local function insideMyPlot(): boolean
+	local plot = myPlot()
+	local frame = plot and plotFrame(plot)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not frame or not root or not root:IsA("BasePart") then
+		return false
+	end
+	local p = frame:PointToObjectSpace(root.Position)
+	return math.abs(p.X) <= PLOT_HALF + 1 and math.abs(p.Z) <= PLOT_HALF + 1
+end
+
+local function items()
+	local data = State.Data
+	return if data and data.Base then data.Base.Items else {}
+end
+
+local function findItem(uid: number)
+	for _, item in items() do
+		if item.Uid == uid then
+			return item
+		end
+	end
+	return nil
+end
+
+local function priceText(id: string): string
+	local currency, price = DecorModel.Price(Config, id, items())
+	if price <= 0 then
+		return T("FREE")
+	elseif price == math.huge then
+		return T("MAX")
+	end
+	return (if currency == "Gems" then "💎 " else "💰 ") .. Util.Format(price)
+end
+
+local function canAfford(id: string): boolean
+	local data = State.Data
+	if not data then
+		return false
+	end
+	local currency, price = DecorModel.Price(Config, id, items())
+	return (if currency == "Gems" then data.Gems else data.Coins) >= price
+end
+
+---------------------------------------------------------------------------
+-- state
+---------------------------------------------------------------------------
+local mode = "browse" -- browse | placing | selected
+local currentId: string? = nil -- item being placed
+local movingUid: number? = nil -- existing item being moved
+local selectedUid: number? = nil
+local ghost: Model? = nil
+local ghostX, ghostZ, ghostR = 0, 0, 0
+local busy = false
+
+-- highlights live in workspace (Adornee only), so destroying a model never kills them
+local ghostHighlight = Instance.new("Highlight")
+ghostHighlight.Name = "BuildGhostHighlight"
+ghostHighlight.FillTransparency = 0.55
+ghostHighlight.OutlineTransparency = 0
+ghostHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+ghostHighlight.Parent = workspace
+local selectHighlight = Instance.new("Highlight")
+selectHighlight.Name = "BuildSelectHighlight"
+selectHighlight.FillColor = Color3.fromRGB(255, 220, 90)
+selectHighlight.FillTransparency = 0.7
+selectHighlight.OutlineColor = Color3.fromRGB(255, 220, 90)
+selectHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+selectHighlight.Parent = workspace
+
+---------------------------------------------------------------------------
+-- UI
+---------------------------------------------------------------------------
+-- the "DECORATE" button shows up while you stand in your own base
+local entry = Root.Cluster("BuildEntry", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -76), UDim2.fromOffset(230, 56))
+local entryButton = Lib.Button({
+	Text = "🔨 DECORATE",
+	Color = Color3.fromRGB(255, 150, 60),
+	Size = UDim2.fromScale(1, 1),
+	TextSize = 24,
+	Parent = entry,
+	OnClick = function()
+		Build.Enter()
+	end,
+})
+entryButton.Visible = false
+
+local screen = New("Frame", {
+	Name = "BuildScreen",
+	BackgroundTransparency = 1,
+	Size = UDim2.fromScale(1, 1),
+	Visible = false,
+	ZIndex = 30,
+	Parent = Root.Overlay,
+})
+
+local function cluster(name: string, anchor: Vector2, position: UDim2, size: UDim2)
+	return Root.Cluster(name, anchor, position, size, screen)
+end
+
+-- top: title + hint, done button
+local top = cluster("BuildTop", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 44), UDim2.fromOffset(560, 64))
+local topCard = New("Frame", {
+	BackgroundColor3 = Color3.fromRGB(20, 22, 34),
+	BackgroundTransparency = 0.15,
+	Size = UDim2.fromScale(1, 1),
+	Parent = top,
+}, { Lib.Corner(14), Lib.Stroke(Color3.fromRGB(255, 160, 70), 2.5, 0) })
+Lib.Text({
+	Text = "🔨 DECORATE YOUR BASE",
+	TextColor3 = Color3.fromRGB(255, 190, 100),
+	Size = UDim2.new(1, -16, 0, 30),
+	Position = UDim2.fromOffset(8, 4),
+	MaxTextSize = 24,
+	Parent = topCard,
+})
+local topHint = Lib.Text({
+	Text = "",
+	Font = Lib.BodyFont,
+	TextColor3 = C.Sub,
+	Size = UDim2.new(1, -16, 0, 20),
+	Position = UDim2.fromOffset(8, 38),
+	MaxTextSize = 15,
+	Parent = topCard,
+})
+
+local doneCluster = cluster("BuildDone", Vector2.new(1, 0), UDim2.new(1, -12, 0, 44), UDim2.fromOffset(130, 52))
+Lib.Button({
+	Text = "✔ DONE",
+	Color = C.Green,
+	Size = UDim2.fromScale(1, 1),
+	TextSize = 22,
+	Parent = doneCluster,
+	OnClick = function()
+		Build.Exit()
+	end,
+})
+
+-- bottom: catalog (tabs + cards)
+local catalog = cluster("BuildCatalog", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -8), UDim2.fromOffset(760, 178))
+local catalogCard = New("Frame", {
+	BackgroundColor3 = Color3.fromRGB(20, 22, 34),
+	BackgroundTransparency = 0.08,
+	Size = UDim2.fromScale(1, 1),
+	Parent = catalog,
+}, { Lib.Corner(16), Lib.Stroke(Color3.new(0, 0, 0), 2, 0.3) })
+local tabRow = New("Frame", {
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, -16, 0, 40),
+	Position = UDim2.fromOffset(8, 6),
+	Parent = catalogCard,
+}, { Lib.List(Enum.FillDirection.Horizontal, 6, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center) })
+local cardScroll = New("ScrollingFrame", {
+	BackgroundTransparency = 1,
+	BorderSizePixel = 0,
+	Size = UDim2.new(1, -16, 0, 120),
+	Position = UDim2.fromOffset(8, 52),
+	CanvasSize = UDim2.new(),
+	AutomaticCanvasSize = Enum.AutomaticSize.X,
+	ScrollingDirection = Enum.ScrollingDirection.X,
+	ScrollBarThickness = 6,
+	Parent = catalogCard,
+}, { Lib.List(Enum.FillDirection.Horizontal, 8, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center) })
+
+-- action bar (above the catalog)
+local actions = cluster("BuildActions", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -196), UDim2.fromOffset(620, 58))
+local actionRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Parent = actions }, {
+	Lib.List(Enum.FillDirection.Horizontal, 10, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Center),
+})
+local actionButtons = {}
+local function actionButton(key: string, text: string, color: Color3, order: number, onClick)
+	local button = Lib.Button({
+		Text = text,
+		Color = color,
+		Size = UDim2.fromOffset(140, 52),
+		LayoutOrder = order,
+		TextSize = 20,
+		Parent = actionRow,
+		OnClick = onClick,
+	})
+	button.Visible = false
+	actionButtons[key] = button
+	return button
+end
+
+---------------------------------------------------------------------------
+-- ghost preview
+---------------------------------------------------------------------------
+local function clearGhost()
+	if ghost then
+		ghost:Destroy()
+		ghost = nil
+	end
+	ghostHighlight.Adornee = nil
+end
+
+local function ghostValid(): boolean
+	local id = currentId
+	if not id then
+		return false
+	end
+	local ok = DecorModel.Validate(Config, items(), id, ghostX, ghostZ, ghostR, movingUid)
+	if not ok then
+		return false
+	end
+	return movingUid ~= nil or canAfford(id)
+end
+
+local function updateGhost()
+	local plot = myPlot()
+	local frame = plot and plotFrame(plot)
+	if not ghost or not frame then
+		return
+	end
+	ghost:PivotTo(frame * CFrame.new(ghostX, FLOOR_Y + 0.1, ghostZ) * CFrame.Angles(0, ghostR * math.pi / 2, 0))
+	local valid = ghostValid()
+	local color = if valid then Color3.fromRGB(90, 255, 130) else Color3.fromRGB(255, 80, 80)
+	ghostHighlight.FillColor = color
+	ghostHighlight.OutlineColor = color
+	Lib.SetButton(actionButtons.Place, nil, if valid then C.Green else C.Gray)
+end
+
+local function makeGhost(id: string)
+	clearGhost()
+	local model = DecorModel.Build(Config, id)
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") then
+			p.CanQuery = false
+			p.Transparency = math.max(p.Transparency, 0.35)
+			if p.Name == "Footprint" then
+				p.Transparency = 0.6
+				p.Color = Color3.fromRGB(255, 255, 255)
+			end
+		elseif p:IsA("Light") then
+			p.Enabled = false
+		end
+	end
+	model.Name = "BuildGhost"
+	model.Parent = workspace
+	ghost = model
+	ghostHighlight.Adornee = model
+	updateGhost()
+end
+
+local function snapGhost(x: number, z: number)
+	if not currentId then
+		return
+	end
+	local bounds = SETTINGS.Build
+	local w, d = DecorModel.Footprint(Config, currentId, ghostR)
+	x = math.clamp(x, bounds.MinX + w / 2, bounds.MaxX - w / 2)
+	z = math.clamp(z, bounds.MinZ + d / 2, bounds.MaxZ - d / 2)
+	ghostX, ghostZ = DecorModel.Snap(Config, currentId, x, z, ghostR)
+	updateGhost()
+end
+
+---------------------------------------------------------------------------
+-- modes
+---------------------------------------------------------------------------
+local function setHint(text: string)
+	topHint.Text = text
+end
+
+local function refreshActions()
+	for _, button in actionButtons do
+		button.Visible = false
+	end
+	if mode == "placing" then
+		actionButtons.Rotate.Visible = true
+		actionButtons.Place.Visible = true
+		actionButtons.Cancel.Visible = true
+		local def = currentId and Config.Decor[currentId]
+		setHint(T("Tap the floor to move it • 🔄 rotate • ✅ place") .. (if def then "  (" .. T(def.Name) .. ")" else ""))
+	elseif mode == "selected" then
+		actionButtons.Move.Visible = true
+		actionButtons.Turn.Visible = true
+		actionButtons.Remove.Visible = true
+		actionButtons.Cancel.Visible = true
+		local item = selectedUid and findItem(selectedUid)
+		local def = item and Config.Decor[item.Id]
+		if item and def then
+			local refund = math.floor(item.Paid or 0)
+			local icon = if item.Cur == "Gems" then "💎" else "💰"
+			Lib.SetButton(actionButtons.Remove, T("🗑 Remove") .. (if refund > 0 then " +" .. icon .. Util.Format(refund) else ""))
+			setHint(T(def.Name))
+		end
+	else
+		setHint(T("Pick something below, or tap an item in your base to edit it"))
+	end
+end
+
+local function selectItem(uid: number?)
+	selectedUid = uid
+	selectHighlight.Adornee = nil
+	local plot = myPlot()
+	if uid and plot then
+		local folder = plot:FindFirstChild("Items")
+		for _, model in (folder and folder:GetChildren() or {}) do
+			if model:GetAttribute("Uid") == uid then
+				selectHighlight.Adornee = model
+			end
+		end
+	end
+end
+
+local function startPlacing(id: string, fromItem)
+	currentId = id
+	movingUid = fromItem and fromItem.Uid or nil
+	ghostR = fromItem and fromItem.R or ghostR
+	mode = "placing"
+	selectItem(nil)
+	makeGhost(id)
+	if fromItem then
+		ghostX, ghostZ = fromItem.X, fromItem.Z
+	else
+		ghostX, ghostZ = 0, 6
+	end
+	snapGhost(ghostX, ghostZ)
+	refreshActions()
+end
+
+local function backToBrowse()
+	mode = "browse"
+	currentId = nil
+	movingUid = nil
+	clearGhost()
+	selectItem(nil)
+	refreshActions()
+end
+
+local function request(name: string, ...)
+	if busy then
+		return false
+	end
+	busy = true
+	local ok, message = Net.Invoke(name, ...)
+	busy = false
+	if not ok and type(message) == "string" then
+		Lib.PlaySound("Bonked", 0.4)
+		local hud = Build.HUD
+		if hud then
+			hud.Toast(message, C.Red)
+		end
+	end
+	return ok == true
+end
+
+actionButton("Rotate", "🔄 Rotate", C.Blue, 1, function()
+	ghostR = (ghostR + 1) % 4
+	snapGhost(ghostX, ghostZ)
+end)
+actionButton("Place", "✅ Place", C.Green, 2, function()
+	if mode ~= "placing" or not currentId then
+		return
+	end
+	if movingUid then
+		if request("BaseMove", movingUid, ghostX, ghostZ, ghostR) then
+			Lib.PlaySound("Reward", 0.6)
+			backToBrowse()
+		end
+	elseif request("BasePlace", currentId, ghostX, ghostZ, ghostR) then
+		Lib.PlaySound("Coin", 0.8, 0.1)
+		Lib.Pop(actionButtons.Place)
+		-- keep the same item selected: quick to lay floors / fences
+		task.delay(0.15, updateGhost)
+	end
+end)
+actionButton("Move", "✋ Move", C.Blue, 1, function()
+	local item = selectedUid and findItem(selectedUid)
+	if item then
+		startPlacing(item.Id, item)
+	end
+end)
+actionButton("Turn", "🔄 Rotate", C.Purple, 2, function()
+	local item = selectedUid and findItem(selectedUid)
+	if item and request("BaseMove", item.Uid, item.X, item.Z, (item.R + 1) % 4) then
+		Lib.PlaySound("UI")
+		task.delay(0.2, function()
+			selectItem(item.Uid)
+		end)
+	end
+end)
+actionButton("Remove", "🗑 Remove", C.Red, 3, function()
+	local item = selectedUid and findItem(selectedUid)
+	if item and request("BaseRemove", item.Uid) then
+		Lib.PlaySound("Coin", 0.7, -0.1)
+		backToBrowse()
+	end
+end)
+actionButton("Cancel", "✖", C.Gray, 4, function()
+	backToBrowse()
+end)
+actionButtons.Cancel.Size = UDim2.fromOffset(64, 52)
+
+---------------------------------------------------------------------------
+-- catalog
+---------------------------------------------------------------------------
+local currentCategory = Config.DecorCategories[1].Id
+local tabButtons = {}
+local cards = {} -- [id] = { Button, Price }
+
+local function refreshCatalog()
+	for id, card in cards do
+		local def = Config.Decor[id]
+		card.Price.Text = priceText(id)
+		local limit = if def.Function == "Pedestal" then SETTINGS.MaxPedestals else def.Limit
+		card.Count.Text = if limit then string.format("%d/%d", DecorModel.Count(items(), id), limit) else ""
+		card.Button.BackgroundColor3 = if canAfford(id) then C.Card else Color3.fromRGB(60, 40, 50)
+	end
+	for id, button in tabButtons do
+		button.BackgroundColor3 = if id == currentCategory then Color3.fromRGB(255, 160, 70) else C.Gray
+	end
+end
+
+local function buildCards()
+	Lib.Clear(cardScroll)
+	cards = {}
+	for order, id in Config.DecorOrder do
+		local def = Config.Decor[id]
+		if def and def.Category == currentCategory then
+			local button = New("TextButton", {
+				Name = id,
+				AutoButtonColor = true,
+				BackgroundColor3 = C.Card,
+				Size = UDim2.fromOffset(112, 112),
+				LayoutOrder = order,
+				Text = "",
+				Parent = cardScroll,
+			}, { Lib.Corner(12), Lib.Stroke(Color3.new(0, 0, 0), 2, 0.4) })
+			Lib.Text({
+				Text = def.Icon,
+				Size = UDim2.new(1, 0, 0, 46),
+				Position = UDim2.fromOffset(0, 6),
+				MaxTextSize = 40,
+				Parent = button,
+			})
+			Lib.Text({
+				Text = def.Name,
+				Size = UDim2.new(1, -8, 0, 26),
+				Position = UDim2.fromOffset(4, 52),
+				MaxTextSize = 15,
+				Parent = button,
+			})
+			local price = Lib.Text({
+				Text = "",
+				TextColor3 = if def.Gems then C.Gems else C.Coins,
+				Size = UDim2.new(1, -8, 0, 22),
+				Position = UDim2.fromOffset(4, 82),
+				MaxTextSize = 16,
+				Parent = button,
+			})
+			local count = Lib.Text({
+				Text = "",
+				Font = Lib.BodyFont,
+				TextColor3 = C.Sub,
+				Size = UDim2.fromOffset(40, 16),
+				Position = UDim2.new(1, -44, 0, 4),
+				MaxTextSize = 12,
+				Parent = button,
+			})
+			button.Activated:Connect(function()
+				Lib.PlaySound("UI")
+				startPlacing(id, nil)
+			end)
+			cards[id] = { Button = button, Price = price, Count = count }
+		end
+	end
+	refreshCatalog()
+end
+
+for order, category in Config.DecorCategories do
+	local button = Lib.Button({
+		Text = category.Icon .. " " .. T(category.Name),
+		Color = C.Gray,
+		Size = UDim2.fromOffset(100, 36),
+		LayoutOrder = order,
+		TextSize = 15,
+		Parent = tabRow,
+		OnClick = function()
+			currentCategory = category.Id
+			buildCards()
+		end,
+	})
+	tabButtons[category.Id] = button
+end
+
+---------------------------------------------------------------------------
+-- tapping in the world while building
+---------------------------------------------------------------------------
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Exclude
+
+local function tapAt(position: Vector3)
+	local camera = workspace.CurrentCamera
+	local plot = myPlot()
+	local frame = plot and plotFrame(plot)
+	if not camera or not plot or not frame then
+		return
+	end
+	local ray = camera:ScreenPointToRay(position.X, position.Y)
+	local ignore = { player.Character :: Instance }
+	if ghost then
+		table.insert(ignore, ghost)
+	end
+	rayParams.FilterDescendantsInstances = ignore
+	local result = workspace:Raycast(ray.Origin, ray.Direction * 400, rayParams)
+	if not result then
+		return
+	end
+	-- tapped one of our decorations?
+	local folder = plot:FindFirstChild("Items")
+	local model = result.Instance:FindFirstAncestorOfClass("Model")
+	if mode ~= "placing" and model and folder and model.Parent == folder then
+		local uid = model:GetAttribute("Uid")
+		if type(uid) == "number" then
+			mode = "selected"
+			selectItem(uid)
+			refreshActions()
+			Lib.PlaySound("UI")
+		end
+		return
+	end
+	local localPos = frame:PointToObjectSpace(result.Position)
+	if mode == "placing" then
+		snapGhost(localPos.X, localPos.Z)
+	elseif mode == "selected" then
+		backToBrowse()
+	end
+end
+
+local touches = {}
+UserInputService.InputBegan:Connect(function(input, processed)
+	if not State.BuildMode or processed then
+		return
+	end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		tapAt(input.Position)
+	elseif input.UserInputType == Enum.UserInputType.Touch then
+		touches[input] = { Start = input.Position, Time = os.clock(), Drag = false }
+	end
+end)
+UserInputService.InputChanged:Connect(function(input)
+	local touch = touches[input]
+	if touch and (input.Position - touch.Start).Magnitude > 16 then
+		touch.Drag = true
+	end
+end)
+UserInputService.InputEnded:Connect(function(input)
+	local touch = touches[input]
+	touches[input] = nil
+	if State.BuildMode and touch and not touch.Drag and os.clock() - touch.Time < 0.45 then
+		tapAt(input.Position)
+	end
+end)
+
+---------------------------------------------------------------------------
+-- enter / exit (overview camera of the base)
+---------------------------------------------------------------------------
+local savedCameraType = Enum.CameraType.Custom
+function Build.Enter()
+	if State.BuildMode or player:GetAttribute("Carrying") then
+		return
+	end
+	local plot = myPlot()
+	local frame = plot and plotFrame(plot)
+	if not frame then
+		return
+	end
+	State.BuildMode = true
+	entryButton.Visible = false
+	screen.Visible = true
+	local camera = workspace.CurrentCamera
+	if camera then
+		savedCameraType = camera.CameraType
+		camera.CameraType = Enum.CameraType.Scriptable
+		local eye = frame * CFrame.new(0, 54, -44)
+		local target = frame * CFrame.new(0, 0, 3)
+		TweenService:Create(camera, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
+			CFrame = CFrame.lookAt(eye.Position, target.Position),
+		}):Play()
+	end
+	Lib.PlaySound("UI")
+	buildCards()
+	backToBrowse()
+end
+
+function Build.Exit()
+	if not State.BuildMode then
+		return
+	end
+	State.BuildMode = false
+	backToBrowse()
+	screen.Visible = false
+	local camera = workspace.CurrentCamera
+	if camera then
+		camera.CameraType = if savedCameraType == Enum.CameraType.Scriptable then Enum.CameraType.Custom else savedCameraType
+	end
+end
+
+-- leave build mode if we walk out / start carrying / respawn
+player.CharacterAdded:Connect(function()
+	Build.Exit()
+end)
+
+local accumulator = 0
+RunService.Heartbeat:Connect(function(dt)
+	accumulator += dt
+	if accumulator < 0.3 then
+		return
+	end
+	accumulator = 0
+	local inside = insideMyPlot()
+	local carrying = player:GetAttribute("Carrying") ~= nil
+	entryButton.Visible = inside and not carrying and not State.BuildMode
+	if State.BuildMode and (carrying or not myPlot()) then
+		Build.Exit()
+	end
+end)
+
+State.OnChanged(function()
+	if State.BuildMode then
+		refreshCatalog()
+		if mode == "placing" then
+			updateGhost()
+		elseif mode == "selected" and selectedUid and not findItem(selectedUid) then
+			backToBrowse()
+		end
+	end
+end)
+
+return Build
+]]></string>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="37">
             <Properties>
               <string name="Name">DevTools</string>
               <string name="Source"><![CDATA[--[[
@@ -9015,7 +10988,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="36">
+          <Item class="ModuleScript" referent="38">
             <Properties>
               <string name="Name">Guide</string>
               <string name="Source"><![CDATA[--[[
@@ -9258,7 +11231,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="37">
+          <Item class="ModuleScript" referent="39">
             <Properties>
               <string name="Name">HUD</string>
               <string name="Source"><![CDATA[--[[
@@ -10121,7 +12094,7 @@ return HUD
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="38">
+          <Item class="ModuleScript" referent="40">
             <Properties>
               <string name="Name">MeteorUI</string>
               <string name="Source"><![CDATA[--[[
@@ -10406,7 +12379,7 @@ return MeteorUI
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="39">
+          <Item class="ModuleScript" referent="41">
             <Properties>
               <string name="Name">Mining</string>
               <string name="Source"><![CDATA[--[[
@@ -10715,6 +12688,12 @@ local function classify(hit: Instance?)
 		end
 		local map = workspace:FindFirstChild("Map")
 		local shardFolder = map and map:FindFirstChild("Shards")
+		if shardFolder and model.Parent == shardFolder and model.Name == "StarGuardian" then
+			local guardianRoot = model:FindFirstChild("HumanoidRootPart")
+			if guardianRoot and guardianRoot:IsA("BasePart") then
+				return { Kind = "Player", Part = guardianRoot } -- walk up and bonk it
+			end
+		end
 		if shardFolder and model.Parent == shardFolder then
 			local hitbox = model:FindFirstChild("Hitbox")
 			if hitbox and hitbox:IsA("BasePart") then
@@ -10791,6 +12770,28 @@ local function nearestOre(root: BasePart): BasePart?
 	return best
 end
 
+-- star guardians (rock golems) near us - bonk them to stun them
+local function nearestGuardian(root: BasePart): BasePart?
+	local map = workspace:FindFirstChild("Map")
+	local folder = map and map:FindFirstChild("Shards")
+	if not folder then
+		return nil
+	end
+	local best, bestDistance = nil, Config.PvP.BonkRange + 6
+	for _, model in folder:GetChildren() do
+		if model.Name == "StarGuardian" then
+			local guardianRoot = model:FindFirstChild("HumanoidRootPart")
+			if guardianRoot and guardianRoot:IsA("BasePart") then
+				local distance = (guardianRoot.Position - root.Position).Magnitude
+				if distance < bestDistance then
+					best, bestDistance = guardianRoot, distance
+				end
+			end
+		end
+	end
+	return best
+end
+
 local function nearestCarrier(root: BasePart): BasePart?
 	local best, bestDistance = nil, Config.PvP.BonkRange + 6
 	for _, other in Players:GetPlayers() do
@@ -10850,7 +12851,7 @@ end)
 local touches = {} -- [InputObject] = { Start = Vector3, Time = number, Drag = bool }
 
 UserInputService.InputBegan:Connect(function(input, processed)
-	if processed then
+	if processed or State.BuildMode then
 		return
 	end
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -10877,7 +12878,7 @@ UserInputService.InputEnded:Connect(function(input)
 	elseif input.UserInputType == Enum.UserInputType.Touch then
 		local touch = touches[input]
 		touches[input] = nil
-		if touch and not touch.Drag and os.clock() - touch.Time < 0.45 then
+		if touch and not touch.Drag and os.clock() - touch.Time < 0.45 and not State.BuildMode then
 			local picked = pickAt(input.Position)
 			if picked then
 				setTarget(picked, true)
@@ -10977,10 +12978,17 @@ RunService.Heartbeat:Connect(function()
 		comboSub.Visible = false
 	end
 
+	mineGui.Enabled = UserInputService.TouchEnabled and not State.BuildMode
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart
 	if not humanoid or not root or humanoid.Health <= 0 then
+		return
+	end
+	if State.BuildMode then
+		if target then
+			setTarget(nil, false)
+		end
 		return
 	end
 
@@ -11016,6 +13024,8 @@ RunService.Heartbeat:Connect(function()
 			setTarget({ Kind = "Meteor", Part = meteor }, false)
 		elseif carrierRoot then
 			setTarget({ Kind = "Player", Part = carrierRoot }, true)
+		elseif nearestGuardian(root) then
+			setTarget({ Kind = "Player", Part = nearestGuardian(root) :: BasePart }, true)
 		else
 			local ore = nearestOre(root)
 			if ore then
@@ -11319,7 +13329,7 @@ return Mining
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="40">
+          <Item class="ModuleScript" referent="42">
             <Properties>
               <string name="Name">PetFollow</string>
               <string name="Source"><![CDATA[--[[
@@ -11424,7 +13434,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="41">
+          <Item class="ModuleScript" referent="43">
             <Properties>
               <string name="Name">Shards</string>
               <string name="Source"><![CDATA[--[[
@@ -11557,7 +13567,9 @@ Net.On("ShardDelivered", function(id, result, coins)
 	local data, derived = State.Data, State.Derived
 	local income = Util.ShardIncome(Config, id, if data then data.ZoneLevel else 1) * ((derived and derived.CoinMult) or 1)
 	local sub
-	if result == "Sold" then
+	if result == "Stored" then
+		sub = T("📦 Stored - your pedestals hold better shards. Place more pedestals!")
+	elseif result == "Sold" then
 		sub = T("Base full - sold it for 💰%s. Buy more pedestals!", Util.Format(coins or 0))
 	elseif result == "Replaced" then
 		sub = T("Replaced your weakest shard (+💰%s)", Util.Format(coins or 0))
@@ -11611,6 +13623,47 @@ Net.On("BaseAlarm", function(thiefName, shardName)
 			task.wait(0.45)
 		end
 	end)
+end)
+
+-- jump pads / traps / guardians / likes -----------------------------------------
+Net.On("Launch", function(velocity)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if root and root:IsA("BasePart") and typeof(velocity) == "Vector3" then
+		if humanoid then
+			humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+		end
+		root.AssemblyLinearVelocity = velocity
+		Lib.PlaySound("Swing", 1.3, 0.4)
+	end
+end)
+
+local stunFrame = New("Frame", {
+	BackgroundColor3 = Color3.fromRGB(255, 230, 80),
+	BackgroundTransparency = 1,
+	Size = UDim2.fromScale(1, 1),
+	ZIndex = 84,
+	Parent = Root.Overlay,
+})
+Net.On("Stunned", function(seconds)
+	Lib.PlaySound("Crit", 1, 0.3)
+	stunFrame.BackgroundTransparency = 0.5
+	TweenService:Create(stunFrame, TweenInfo.new(seconds or 2), { BackgroundTransparency = 1 }):Play()
+end)
+
+Net.On("GuardianChase", function(seconds)
+	Lib.PlaySound("MeteorWarn", 0.8)
+	celebrate(T("🗿 THE GUARDIAN WOKE UP!"), T("Run! It chases you for %d seconds", seconds or 12), Color3.fromRGB(255, 150, 80))
+end)
+
+Net.On("CaughtByGuardian", function(id)
+	Lib.PlaySound("Bonked")
+	toast(T("🗿 The guardian took the %s back!", T(rarity(id).Name)), C.Red)
+end)
+
+Net.On("BaseLiked", function()
+	Lib.PlaySound("Reward", 0.8, 0.2)
 end)
 
 ---------------------------------------------------------------------------
@@ -11731,7 +13784,11 @@ local function refreshBases()
 			for _, prompt in plot:GetDescendants() do
 				if prompt:IsA("ProximityPrompt") then
 					local role = prompt:GetAttribute("Role")
-					local enabled = if role == "Owner" then mine elseif role == "Thief" then not mine and not locked else true
+					local enabled = if role == "Owner"
+						then mine
+						elseif role == "Thief" then not mine and not locked
+						elseif role == "Visitor" then not mine
+						else true
 					if prompt.Enabled ~= enabled then
 						prompt.Enabled = enabled
 					end
@@ -11803,7 +13860,7 @@ return Shards
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="42">
+          <Item class="ModuleScript" referent="44">
             <Properties>
               <string name="Name">WorldFX</string>
               <string name="Source"><![CDATA[--[[
@@ -11944,7 +14001,7 @@ return {}
             </Properties>
           </Item>
         </Item>
-        <Item class="LocalScript" referent="43">
+        <Item class="LocalScript" referent="45">
           <Properties>
             <string name="Name">Main</string>
             <string name="Source"><![CDATA[--[[
@@ -12001,6 +14058,7 @@ require(Controllers:WaitForChild("DevTools"))
 require(Controllers:WaitForChild("Guide"))
 require(Controllers:WaitForChild("Ambience"))
 require(Controllers:WaitForChild("Shards")).HUD = HUD
+require(Controllers:WaitForChild("Build")).HUD = HUD
 
 -- ask for a fresh snapshot in case the first one arrived before we listened
 Net.Fire("Sync")
@@ -12012,7 +14070,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="44">
+        <Item class="ModuleScript" referent="46">
           <Properties>
             <string name="Name">Net</string>
             <string name="Source"><![CDATA[local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12056,7 +14114,7 @@ return Net
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="45">
+        <Item class="ModuleScript" referent="47">
           <Properties>
             <string name="Name">State</string>
             <string name="Source"><![CDATA[--[[
@@ -12119,11 +14177,11 @@ return State
 ]]></string>
           </Properties>
         </Item>
-        <Item class="Folder" referent="46">
+        <Item class="Folder" referent="48">
           <Properties>
             <string name="Name">UI</string>
           </Properties>
-          <Item class="ModuleScript" referent="47">
+          <Item class="ModuleScript" referent="49">
             <Properties>
               <string name="Name">Hatch</string>
               <string name="Source"><![CDATA[--[[
@@ -12344,7 +14402,7 @@ return Hatch
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="48">
+          <Item class="ModuleScript" referent="50">
             <Properties>
               <string name="Name">Lib</string>
               <string name="Source"><![CDATA[--[[
@@ -12671,7 +14729,7 @@ return Lib
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="49">
+          <Item class="ModuleScript" referent="51">
             <Properties>
               <string name="Name">Panels</string>
               <string name="Source"><![CDATA[--[[
@@ -12883,7 +14941,7 @@ end
 return Panels
 ]]></string>
             </Properties>
-            <Item class="ModuleScript" referent="50">
+            <Item class="ModuleScript" referent="52">
               <Properties>
                 <string name="Name">Codes</string>
                 <string name="Source"><![CDATA[-- Promo codes: free rewards for players who find codes on YouTube / TikTok /
@@ -12984,7 +15042,7 @@ return Codes
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="51">
+            <Item class="ModuleScript" referent="53">
               <Properties>
                 <string name="Name">Egg</string>
                 <string name="Source"><![CDATA[-- Egg shop: shows exact odds (incl. your luck) BEFORE buying - required for
@@ -13218,7 +15276,7 @@ return Egg
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="52">
+            <Item class="ModuleScript" referent="54">
               <Properties>
                 <string name="Name">Gifts</string>
                 <string name="Source"><![CDATA[-- Playtime gifts: claimable after N minutes in this session (session length)
@@ -13300,7 +15358,7 @@ return Gifts
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="53">
+            <Item class="ModuleScript" referent="55">
               <Properties>
                 <string name="Name">Pass</string>
                 <string name="Source"><![CDATA[-- Season pass: free + premium tracks, XP bar, premium / skip upsells
@@ -13482,7 +15540,7 @@ return Pass
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="54">
+            <Item class="ModuleScript" referent="56">
               <Properties>
                 <string name="Name">Pets</string>
                 <string name="Source"><![CDATA[-- Pet inventory: equip / unequip / equip best / delete, slot upsell
@@ -13713,7 +15771,7 @@ return Pets
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="55">
+            <Item class="ModuleScript" referent="57">
               <Properties>
                 <string name="Name">Quests</string>
                 <string name="Source"><![CDATA[-- Daily login streak, daily quests, weekly ranked ladder, VIP chest, group reward
@@ -14021,7 +16079,7 @@ return Quests
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="56">
+            <Item class="ModuleScript" referent="58">
               <Properties>
                 <string name="Name">Rebirth</string>
                 <string name="Source"><![CDATA[-- Rebirth: reset coins/upgrades for a permanent coin multiplier + gems
@@ -14111,7 +16169,7 @@ return Rebirth
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="57">
+            <Item class="ModuleScript" referent="59">
               <Properties>
                 <string name="Name">Rewards</string>
                 <string name="Source"><![CDATA[-- One place for every free reward (instead of 4 separate menu buttons)
@@ -14196,7 +16254,7 @@ return Rewards
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="58">
+            <Item class="ModuleScript" referent="60">
               <Properties>
                 <string name="Name">Settings</string>
                 <string name="Source"><![CDATA[-- Settings: language (auto / 한국어 / English) and sound
@@ -14284,10 +16342,10 @@ return Settings
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="59">
+            <Item class="ModuleScript" referent="61">
               <Properties>
                 <string name="Name">Shop</string>
-                <string name="Source"><![CDATA[-- Pickaxe upgrades (coins sink, sequential tiers)
+                <string name="Source"><![CDATA[-- Pickaxe + running-speed upgrades (coins sink, sequential tiers)
 local Shop = { Title = "⛏️ UPGRADES", Color = Color3.fromRGB(255, 160, 50) }
 
 function Shop.Build(content, ctx)
@@ -14307,9 +16365,13 @@ function Shop.Build(content, ctx)
 	local refresh
 
 	local tabButtons = {}
-	for i, name in { "Pickaxes" } do
+	local TABS = {
+		Pickaxes = { Label = "⛏️ Pickaxes", Field = "PickaxeTier", Buy = "BuyPickaxe", Icon = "⛏️" },
+		Boots = { Label = "👟 Speed", Field = "SpeedTier", Buy = "BuyBoots", Icon = "👟" },
+	}
+	for i, name in { "Pickaxes", "Boots" } do
 		local button = Lib.Button({
-			Text = "⛏️ Pickaxes",
+			Text = TABS[name].Label,
 			Color = C.Blue,
 			Size = UDim2.fromOffset(170, 40),
 			LayoutOrder = i,
@@ -14340,7 +16402,7 @@ function Shop.Build(content, ctx)
 				Parent = row,
 			}, { Lib.Corner(10), Lib.Stroke(Color3.new(0, 0, 0), 2, 0.4) })
 			Lib.Text({
-				Text = "⛏️",
+				Text = TABS[tab].Icon,
 				Size = UDim2.fromScale(0.8, 0.8),
 				Position = UDim2.fromScale(0.1, 0.1),
 				Parent = swatch,
@@ -14353,7 +16415,9 @@ function Shop.Build(content, ctx)
 				MaxTextSize = 24,
 				Parent = row,
 			})
-			local statText = T("💥 Power %s  •  ⚡ %ss swing", Util.Format(item.Power), string.format("%.2f", item.Cooldown))
+			local statText = if tab == "Boots"
+				then T("👟 +%s%% running speed", tostring(math.floor(item.Bonus * 100 + 0.5)))
+				else T("💥 Power %s  •  ⚡ %ss swing", Util.Format(item.Power), string.format("%.2f", item.Cooldown))
 			Lib.Text({
 				Text = statText,
 				Font = Lib.BodyFont,
@@ -14370,7 +16434,7 @@ function Shop.Build(content, ctx)
 				AnchorPoint = Vector2.new(0, 0.5),
 				Parent = row,
 				OnClick = function()
-					Net.Fire("BuyPickaxe")
+					Net.Fire(TABS[tab].Buy)
 				end,
 			})
 			rows[tier] = { Button = button, Item = item }
@@ -14390,7 +16454,7 @@ function Shop.Build(content, ctx)
 		for name, button in tabButtons do
 			Lib.SetButton(button, nil, if name == tab then C.Gold else C.Gray)
 		end
-		local current = data.PickaxeTier
+		local current = data[TABS[tab].Field] or 1
 		for tier, row in rows do
 			if tier <= current then
 				Lib.SetButton(row.Button, if tier == current then "EQUIPPED" else "OWNED", C.Gray)
@@ -14404,8 +16468,8 @@ function Shop.Build(content, ctx)
 	end
 
 	return {
-		OnOpen = function()
-			tab = "Pickaxes"
+		OnOpen = function(arg)
+			tab = if arg == "Boots" then "Boots" else "Pickaxes"
 		end,
 		Refresh = refresh,
 	}
@@ -14415,7 +16479,7 @@ return Shop
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="60">
+            <Item class="ModuleScript" referent="62">
               <Properties>
                 <string name="Name">Spin</string>
                 <string name="Source"><![CDATA[-- Free prize wheel: one spin every few hours (VIP: faster). The server picks
@@ -14640,7 +16704,7 @@ return Spin
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="61">
+            <Item class="ModuleScript" referent="63">
               <Properties>
                 <string name="Name">Store</string>
                 <string name="Source"><![CDATA[-- Robux store: game passes, consumables (gems/boosts/server luck/meteor),
@@ -14898,7 +16962,7 @@ return Store
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="62">
+            <Item class="ModuleScript" referent="64">
               <Properties>
                 <string name="Name">Teleport</string>
                 <string name="Source"><![CDATA[-- Zone list: teleport to unlocked zones, unlock the next one
@@ -14981,7 +17045,7 @@ return Teleport
               </Properties>
             </Item>
           </Item>
-          <Item class="ModuleScript" referent="63">
+          <Item class="ModuleScript" referent="65">
             <Properties>
               <string name="Name">Root</string>
               <string name="Source"><![CDATA[--[[
@@ -15057,7 +17121,7 @@ return Root
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="64">
+          <Item class="ModuleScript" referent="66">
             <Properties>
               <string name="Name">Upsell</string>
               <string name="Source"><![CDATA[--[[
@@ -15190,13 +17254,13 @@ return Upsell
       </Item>
     </Item>
   </Item>
-  <Item class="TextChatService" referent="65">
+  <Item class="TextChatService" referent="67">
     <Properties>
       <string name="Name">TextChatService</string>
       <token name="ChatVersion">1</token>
     </Properties>
   </Item>
-  <Item class="Workspace" referent="66">
+  <Item class="Workspace" referent="68">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>
