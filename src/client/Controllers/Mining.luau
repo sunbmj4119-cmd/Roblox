@@ -396,11 +396,6 @@ local function nearestCarrier(root: BasePart): BasePart?
 	return best
 end
 
-local function backpackFull(): boolean
-	local data, derived = State.Data, State.Derived
-	return data ~= nil and derived ~= nil and derived.Capacity ~= nil and data.Backpack >= derived.Capacity
-end
-
 local function bindTool(newTool: Tool)
 	tool = newTool
 end
@@ -610,7 +605,7 @@ RunService.Heartbeat:Connect(function()
 			setTarget({ Kind = "Meteor", Part = meteor }, false)
 		elseif carrierRoot then
 			setTarget({ Kind = "Player", Part = carrierRoot }, true)
-		elseif not backpackFull() then
+		else
 			local ore = nearestOre(root)
 			if ore then
 				setTarget({ Kind = "Ore", Part = ore }, true)

@@ -1,9 +1,9 @@
 --[[
 	Main HUD - designed for phones first and to reveal things gradually:
 	  * top center: ONE objective (tutorial step or next goal) + guide beam
-	  * top left: money, level, backpack, and a menu that grows with progress
+	  * top left: money, level, and a menu that grows with progress
 	  * right: server event, boosts, your rank in this server
-	  * bottom: backpack-full helper, auto mine / starter pack (after tutorial)
+	  * bottom: auto mine / starter pack (after tutorial)
 	Plus toasts, announcements and celebrations (level up, rank up, tutorial).
 ]]
 local GuiService = game:GetService("GuiService")
@@ -141,7 +141,7 @@ local objectiveFill = New("Frame", {
 }, { Lib.Corner(3) })
 
 ---------------------------------------------------------------------------
--- top left: money, level, backpack, menu
+-- top left: money, level, menu
 ---------------------------------------------------------------------------
 local topLeft = Root.Cluster("TopLeft", Vector2.zero, UDim2.fromOffset(12, 12), UDim2.fromOffset(260, 520))
 Lib.List(Enum.FillDirection.Vertical, 5, Enum.HorizontalAlignment.Left).Parent = topLeft
@@ -183,26 +183,6 @@ local levelBadge = Lib.Text({ Text = "Lv.1", TextColor3 = C.Gold, Size = UDim2.f
 local _, setLevel =
 	Lib.Bar({ Size = UDim2.fromOffset(152, 18), Position = UDim2.fromOffset(56, 3), Color = C.Gold, TextSize = 12, Parent = levelRow })
 
-local backpackRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(250, 34), LayoutOrder = 5, Parent = topLeft })
-local _, setBackpack =
-	Lib.Bar({ Size = UDim2.fromOffset(160, 30), Position = UDim2.fromOffset(0, 2), Color = C.Blue, TextSize = 16, Parent = backpackRow })
-Lib.Button({
-	Text = "💰 Sell",
-	Color = C.Green,
-	Size = UDim2.fromOffset(82, 32),
-	Position = UDim2.fromOffset(166, 1),
-	TextSize = 16,
-	Parent = backpackRow,
-	OnClick = function()
-		if State.HasPass("AutoSell") then
-			Net.Fire("SellAnywhere")
-		else
-			HUD.Toast(T("Sell at the 💰 SELL pad in the hub - or anywhere with Auto Sell!"), C.Green)
-			Upsell.Pass("AutoSell", true)
-		end
-	end,
-})
-
 -- menu that grows as the player progresses (no wall of buttons on day one)
 local menu =
 	New("Frame", { Name = "Menu", BackgroundTransparency = 1, Size = UDim2.fromOffset(222, 300), LayoutOrder = 6, Parent = topLeft })
@@ -224,7 +204,7 @@ local MENU = {
 		"Upgrade",
 		C.Gold,
 		function(d)
-			return tutorialAt(d, 3)
+			return tutorialAt(d, 2)
 		end,
 	},
 	{
@@ -233,7 +213,7 @@ local MENU = {
 		"Pets",
 		C.Green,
 		function(d)
-			return tutorialAt(d, 4)
+			return tutorialAt(d, 3)
 		end,
 	},
 	{ "Rewards", "🎁", "Rewards", C.Pink, tutorialDone },
@@ -429,7 +409,7 @@ for order, def in BOOSTS do
 end
 
 ---------------------------------------------------------------------------
--- bottom: backpack-full helper, auto mine, starter pack
+-- bottom: auto mine, starter pack
 ---------------------------------------------------------------------------
 local bottom = Root.Cluster("Bottom", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -12), UDim2.fromOffset(640, 116))
 local bottomRow = New(
@@ -464,58 +444,12 @@ local starterButton = Lib.Button({
 		Upsell.Product("StarterPack", true)
 	end,
 })
-local fullFrame = New("Frame", {
-	BackgroundColor3 = Color3.fromRGB(60, 20, 25),
-	BackgroundTransparency = 0.1,
-	Size = UDim2.fromOffset(540, 54),
-	Position = UDim2.new(0.5, 0, 0, 0),
-	AnchorPoint = Vector2.new(0.5, 0),
-	Visible = false,
-	Parent = bottom,
-}, { Lib.Corner(14), Lib.Stroke(C.Red, 2.5, 0) })
-Lib.Text({
-	Text = "🎒 BACKPACK FULL!",
-	TextColor3 = C.Red,
-	Size = UDim2.fromOffset(190, 40),
-	Position = UDim2.fromOffset(10, 7),
-	MaxTextSize = 22,
-	Parent = fullFrame,
-})
-Lib.Button({
-	Text = "🏠 Go sell",
-	Color = C.Green,
-	Size = UDim2.fromOffset(160, 42),
-	Position = UDim2.fromOffset(204, 6),
-	Parent = fullFrame,
-	OnClick = function()
-		if State.HasPass("AutoSell") then
-			Net.Fire("SellAnywhere")
-		else
-			Net.Fire("Teleport", 0)
-		end
-	end,
-})
-Lib.Button({
-	Text = "🎒 Upgrade",
-	Color = C.Blue,
-	Size = UDim2.fromOffset(160, 42),
-	Position = UDim2.fromOffset(372, 6),
-	Parent = fullFrame,
-	OnClick = function()
-		Panels.Open("Shop", "Backpacks")
-	end,
-})
-
 ---------------------------------------------------------------------------
 -- objective logic
 ---------------------------------------------------------------------------
 local function nextGoal(data, derived): string
-	local capacity = derived.Capacity or 1
 	if player:GetAttribute("Carrying") then
 		return T("Run to your base 🏠 before someone bonks you!")
-	end
-	if data.Backpack >= capacity then
-		return T("Sell your ore at the 💰 SELL pad in the hub!")
 	end
 	local base = data.Base
 	if base and #base.Shards == 0 then
@@ -525,7 +459,6 @@ local function nextGoal(data, derived): string
 		return T("Collect 💰%s at your base 🏠", Util.Format(player:GetAttribute("BaseBank") or 0))
 	end
 	local pick = Config.Pickaxes[data.PickaxeTier + 1]
-	local bag = Config.Backpacks[data.BackpackTier + 1]
 	local zone = Config.Zones[data.ZoneLevel + 1]
 	if data.Coins >= (derived.RebirthCost or math.huge) then
 		return T("You can REBIRTH for a permanent coin boost!")
@@ -536,17 +469,14 @@ local function nextGoal(data, derived): string
 	if pick and data.Coins >= pick.Cost then
 		return T("Buy the %s!", pick.Name)
 	end
-	if bag and data.Coins >= bag.Cost then
-		return T("Buy the %s!", bag.Name)
-	end
 	local cheapest = math.huge
-	for _, cost in { pick and pick.Cost, bag and bag.Cost, zone and zone.Cost } do
+	for _, cost in { pick and pick.Cost, zone and zone.Cost } do
 		if cost then
 			cheapest = math.min(cheapest, cost)
 		end
 	end
 	if cheapest < math.huge then
-		return T("Mine & sell: %s / %s coins for the next upgrade", Util.Format(data.Coins), Util.Format(cheapest))
+		return T("Mine: %s / %s coins for the next upgrade", Util.Format(data.Coins), Util.Format(cheapest))
 	end
 	return T("Climb the weekly ranked leaderboard!")
 end
@@ -563,11 +493,13 @@ local function currentObjective(data, derived)
 			if step.Id == "Mine" then
 				text = string.format("%s  (%d/%d)", text, tutorial.Progress, step.Target)
 			elseif step.Id == "Pickaxe" and data.Coins < Config.Pickaxes[2].Cost then
-				text = T("Mine & sell ore until you have %s coins", Util.Format(Config.Pickaxes[2].Cost))
+				text = T("Mine ore until you have %s coins", Util.Format(Config.Pickaxes[2].Cost))
 				progress = data.Coins / Config.Pickaxes[2].Cost
 			elseif step.Id == "Hatch" and data.Coins < Config.Eggs.Meadow.Price then
-				text = T("Mine & sell ore until you have %s coins", Util.Format(Config.Eggs.Meadow.Price))
+				text = T("Mine ore until you have %s coins", Util.Format(Config.Eggs.Meadow.Price))
 				progress = data.Coins / Config.Eggs.Meadow.Price
+			elseif step.Id == "Shard" and player:GetAttribute("Carrying") then
+				text = T("Run to your base 🏠 before someone bonks you!")
 			end
 			return string.format("📘 %d/%d  %s", tutorial.Step, #steps, text), progress
 		end
@@ -669,15 +601,6 @@ function HUD.Refresh()
 	local need = derived.XPNeeded or 1
 	levelBadge.Text = "Lv." .. (data.Level or 1)
 	setLevel((data.XP or 0) / need, string.format("%s / %s XP", Util.Format(data.XP or 0), Util.Format(need)))
-
-	local capacity = derived.Capacity or 1
-	local full = data.Backpack >= capacity
-	setBackpack(
-		data.Backpack / capacity,
-		string.format("🎒 %s/%s", Util.Format(data.Backpack), Util.Format(capacity)),
-		if full then C.Red else C.Blue
-	)
-	fullFrame.Visible = full
 
 	-- objective
 	local text, progress = currentObjective(data, derived)
@@ -865,10 +788,6 @@ Net.On("Reward", function(text, source)
 	HUD.Toast("🎁 " .. (if source then source .. ": " else "") .. text, C.Gold)
 	Lib.PlaySound("Reward")
 end)
-Net.On("Sold", function(coins)
-	Lib.PlaySound("Coin")
-	flyCoins(coins)
-end)
 Net.On("LevelUp", function(level, gems)
 	Lib.PlaySound("LevelUp")
 	celebrate(T("⭐ LEVEL %s!", tostring(level)), T("+%s 💎  •  +2%% coins forever", tostring(gems)), C.Gold)
@@ -906,11 +825,6 @@ Net.On("OpenPanel", function(panel, arg)
 		end
 	else
 		Panels.Open(panel, arg)
-	end
-end)
-Net.On("BackpackFull", function()
-	if not State.HasPass("AutoSell") and State.Data and tutorialDone(State.Data) then
-		Upsell.Pass("AutoSell")
 	end
 end)
 

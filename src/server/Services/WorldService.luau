@@ -522,20 +522,40 @@ local function buildHub()
 		end
 	end
 	sign(Vector3.new(-18, 9, -46), "👍 LIKE + ⭐ FAVORITE\nfor new CODES & updates!", Color3.fromRGB(255, 220, 90))
-	sign(Vector3.new(18, 9, -46), "☄️ METEOR every 7 min\n🎡 FREE SPIN • 🏆 WEEKLY RANKS", Color3.fromRGB(120, 230, 255))
+	sign(Vector3.new(18, 9, -46), "⛏️ Tap ore = 💰 coins\n🌠 Carry stars home = 💰 every second", Color3.fromRGB(120, 230, 255))
 
-	-- sell pad
-	local sell = newPart({
-		Name = "SellPad",
+	-- plaza centerpiece: star fountain (ore pays coins directly, no selling)
+	newPart({
+		Name = "FountainBasin",
 		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.4, 16, 16),
-		CFrame = CFrame.new(0, 0.2, -25) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(60, 255, 120),
+		Size = Vector3.new(2, 15, 15),
+		CFrame = CFrame.new(0, 1, -25) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(235, 235, 245),
+		Material = Enum.Material.Marble,
+	}, hub)
+	newPart({
+		Name = "FountainWater",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.3, 13, 13),
+		CFrame = CFrame.new(0, 2.05, -25) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(90, 190, 255),
+		Material = Enum.Material.Glass,
+		Transparency = 0.25,
+		CanCollide = false,
+	}, hub)
+	local statue = newPart({
+		Name = "FountainStar",
+		Size = Vector3.new(2.4, 5, 2.4),
+		CFrame = CFrame.new(0, 6, -25) * CFrame.Angles(0, math.rad(45), math.rad(15)),
+		Color = Color3.fromRGB(120, 220, 255),
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 	}, hub)
-	billboard(sell, "💰 SELL ORE", Color3.fromRGB(120, 255, 150), 6, 12, 3.2)
-	World.SellPad = sell
+	local glow = Instance.new("PointLight")
+	glow.Color = statue.Color
+	glow.Range = 18
+	glow.Brightness = 2
+	glow.Parent = statue
 
 	-- meteor crater
 	local crater = newPart({
@@ -566,8 +586,6 @@ local function buildHub()
 	local shops = folder("Shops", hub)
 	local pick = booth(Vector3.new(56, 0, -45), "⛏️ PICKAXES", Color3.fromRGB(255, 170, 60), shops)
 	prompt(pick, "Open", "Pickaxe Shop", openPanel("Shop", "Pickaxes"))
-	local bag = booth(Vector3.new(56, 0, -20), "🎒 BACKPACKS", Color3.fromRGB(80, 170, 255), shops)
-	prompt(bag, "Open", "Backpack Shop", openPanel("Shop", "Backpacks"))
 	local rebirth = booth(Vector3.new(56, 0, 5), "♻️ REBIRTH", Color3.fromRGB(190, 90, 255), shops)
 	prompt(rebirth, "Open", "Rebirth Altar", openPanel("Rebirth"))
 	local store = booth(Vector3.new(56, 0, 30), "🛒 STORE", Color3.fromRGB(80, 220, 120), shops)
@@ -631,6 +649,8 @@ local function buildBaseDistrict()
 	local length = bases.ZStart - bases.ZEnd
 	local centerZ = (bases.ZStart + bases.ZEnd) / 2
 	local wallColor = Color3.fromRGB(70, 72, 92)
+	local streets = Config.Base.Streets
+	local plazaDepth = 14 -- east-west plaza right behind the gate
 
 	-- corridor from the hub's south gate
 	newPart({
@@ -656,22 +676,57 @@ local function buildBaseDistrict()
 		Color = Color3.fromRGB(58, 62, 84),
 		Material = Enum.Material.Slate,
 	}, district)
+
+	-- entrance plaza linking the gate to every street
+	local lastStreet = math.max(math.abs(streets[1]), math.abs(streets[#streets]))
 	newPart({
-		Name = "Road",
-		Size = Vector3.new(22, 0.2, length),
-		CFrame = CFrame.new(0, 0.05, centerZ),
+		Name = "Plaza",
+		Size = Vector3.new(lastStreet * 2 + 22, 0.2, plazaDepth),
+		CFrame = CFrame.new(0, 0.05, bases.ZStart - plazaDepth / 2),
 		Color = Color3.fromRGB(200, 190, 170),
 		Material = Enum.Material.Cobblestone,
 	}, district)
-	for _, side in { -1, 1 } do
+
+	local streetLength = length - plazaDepth
+	local streetZ = bases.ZStart - plazaDepth - streetLength / 2
+	for _, x in streets do
 		newPart({
-			Name = "RoadLine",
-			Size = Vector3.new(0.6, 0.25, length),
-			CFrame = CFrame.new(side * 11.5, 0.08, centerZ),
-			Color = Color3.fromRGB(120, 230, 255),
-			Material = Enum.Material.Neon,
-			CanCollide = false,
+			Name = "Street",
+			Size = Vector3.new(20, 0.2, streetLength),
+			CFrame = CFrame.new(x, 0.05, streetZ),
+			Color = Color3.fromRGB(200, 190, 170),
+			Material = Enum.Material.Cobblestone,
 		}, district)
+		for _, side in { -1, 1 } do
+			newPart({
+				Name = "StreetLine",
+				Size = Vector3.new(0.6, 0.25, streetLength),
+				CFrame = CFrame.new(x + side * 10.5, 0.08, streetZ),
+				Color = Color3.fromRGB(120, 230, 255),
+				Material = Enum.Material.Neon,
+				CanCollide = false,
+			}, district)
+		end
+		for z = bases.ZStart - plazaDepth - 30, bases.ZEnd + 30, -36 do
+			speedPad(Vector3.new(x, 0, z), math.pi, district)
+		end
+		for z = bases.ZStart - plazaDepth, bases.ZEnd + 4, -36 do -- between plot rows
+			lamp(Vector3.new(x - 12, 0, z), Color3.fromRGB(140, 220, 255), district)
+			lamp(Vector3.new(x + 12, 0, z), Color3.fromRGB(140, 220, 255), district)
+		end
+	end
+	-- dash pads on the plaza, pointing to each street
+	for _, x in streets do
+		speedPad(Vector3.new(x * 0.5, 0, bases.ZStart - plazaDepth / 2), if x > 0 then -math.pi / 2 else math.pi / 2, district)
+	end
+
+	-- park strip between the inner plots
+	for z = bases.ZStart - plazaDepth - 24, bases.ZEnd + 16, -30 do
+		tree(Vector3.new(0, 0, z), district)
+	end
+
+	-- walls
+	for _, side in { -1, 1 } do
 		wall(CFrame.new(side * (halfX + 1), WALL_H / 2, centerZ), Vector3.new(2, WALL_H, length + 2), wallColor, district)
 		local segment = halfX - CORRIDOR_W / 2
 		wall(
@@ -682,14 +737,6 @@ local function buildBaseDistrict()
 		)
 	end
 	wall(CFrame.new(0, WALL_H / 2, bases.ZEnd - 1), Vector3.new(halfX * 2 + 4, WALL_H, 2), wallColor, district)
-
-	for z = bases.ZStart - 14, bases.ZEnd + 10, -36 do
-		lamp(Vector3.new(-13.5, 0, z), Color3.fromRGB(140, 220, 255), district)
-		lamp(Vector3.new(13.5, 0, z), Color3.fromRGB(140, 220, 255), district)
-	end
-	for z = bases.ZStart - 28, bases.ZEnd + 40, -40 do
-		speedPad(Vector3.new(0, 0, z), math.pi, district)
-	end
 
 	-- twinkling stars above the district (it's where the shards live)
 	local sky = newPart({
@@ -707,7 +754,7 @@ local function buildBaseDistrict()
 	emitter.LightEmission = 1
 	emitter.Size = NumberSequence.new(0.35)
 	emitter.Lifetime = NumberRange.new(3, 5)
-	emitter.Rate = 18
+	emitter.Rate = 24
 	emitter.Speed = NumberRange.new(0.3, 1)
 	emitter.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 1),

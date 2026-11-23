@@ -56,8 +56,6 @@ function Dev:Start()
 		elseif command == "Shard" then
 			local id = Util.RollShard(Config, 4)
 			Services.ShardService:StartCarry(player, id, nil)
-		elseif command == "Fill" then
-			data.Backpack = Services.StatsService:Capacity(player, data)
 		elseif command == "Reset" then
 			local fresh = Util.DeepCopy(Data.Template)
 			fresh.FirstJoin = os.time()

@@ -37,7 +37,7 @@ Config.AnnounceRarity = 5 -- server-wide announcement for Legendary and above
 Config.LuckAffectsFromRarity = 3 -- luck multiplies weights of Rare and above
 
 ---------------------------------------------------------------------------
--- Zones (linear progression, last zone is the PvP "Star Crater")
+-- Zones (linear progression)
 ---------------------------------------------------------------------------
 Config.Zones = {
 	{
@@ -78,7 +78,6 @@ Config.Zones = {
 		Floor = Enum.Material.CrackedLava,
 		FloorColor = Color3.fromRGB(70, 30, 60),
 		Accent = Color3.fromRGB(255, 60, 120),
-		PvP = true,
 		Ores = { { "Meteorite", 55 }, { "StardustOre", 32 }, { "CosmicCrystal", 13 } },
 	},
 }
@@ -162,7 +161,7 @@ Config.World = {
 	Reach = 13, -- studs from character to the target
 	WalkSpeed = 22,
 	-- base district south of the hub (see BaseService)
-	Bases = { ZStart = -88, ZEnd = -250, HalfX = 54 },
+	Bases = { ZStart = -88, ZEnd = -250, HalfX = 112 },
 	SpawnSafeRadius = 24, -- nobody can be bonked near the spawn
 }
 
@@ -182,21 +181,6 @@ Config.Pickaxes = {
 	{ Name = "Void Splitter", Power = 550, Cooldown = 0.24, Cost = 20000000, Color = Color3.fromRGB(170, 90, 255) },
 	{ Name = "Starforged", Power = 1200, Cooldown = 0.23, Cost = 90000000, Color = Color3.fromRGB(255, 90, 200) },
 	{ Name = "Galaxy Crusher", Power = 2600, Cooldown = 0.22, Cost = 400000000, Color = Color3.fromRGB(60, 255, 230) },
-}
-
-Config.Backpacks = {
-	{ Name = "Pouch", Capacity = 50, Cost = 0 },
-	{ Name = "Sack", Capacity = 150, Cost = 200 },
-	{ Name = "Satchel", Capacity = 500, Cost = 1000 },
-	{ Name = "Explorer Pack", Capacity = 1500, Cost = 4000 },
-	{ Name = "Duffel", Capacity = 5000, Cost = 18000 },
-	{ Name = "Ore Crate", Capacity = 15000, Cost = 75000 },
-	{ Name = "Vault Pack", Capacity = 50000, Cost = 300000 },
-	{ Name = "Titan Pack", Capacity = 150000, Cost = 1200000 },
-	{ Name = "Galaxy Pack", Capacity = 500000, Cost = 5000000 },
-	{ Name = "Nebula Pack", Capacity = 2000000, Cost = 22000000 },
-	{ Name = "Black Hole", Capacity = 8000000, Cost = 100000000 },
-	{ Name = "Infinity Core", Capacity = 30000000, Cost = 450000000 },
 }
 
 Config.Rebirth = {
@@ -419,18 +403,18 @@ Config.GamePasses = {
 		Icon = "👑",
 		Description = "+25% coins, +1 pet slot, [VIP] chat tag, daily VIP chest (100 gems)",
 	},
-	DoubleCoins = { Id = 0, Name = "2x Coins", Price = 249, Icon = "💰", Description = "Permanently double all coins from selling" },
+	DoubleCoins = { Id = 0, Name = "2x Coins", Price = 249, Icon = "💰", Description = "Permanently double all coins" },
 	MegaPower = { Id = 0, Name = "2x Mining Power", Price = 199, Icon = "💥", Description = "Permanently double your mining damage" },
 	AutoMine = { Id = 0, Name = "Auto Mine", Price = 149, Icon = "🤖", Description = "Mine automatically while holding your pickaxe" },
-	AutoSell = { Id = 0, Name = "Auto Sell", Price = 129, Icon = "💰", Description = "Sell automatically when full + sell from anywhere" },
+	FastCarry = { Id = 0, Name = "Fast Carry", Price = 129, Icon = "🏃", Description = "+35% run speed while carrying a shard" },
 	ExtraPets = { Id = 0, Name = "+3 Pet Slots", Price = 199, Icon = "🐾", Description = "Equip 3 more pets at once" },
 	Lucky = { Id = 0, Name = "Lucky Hatch", Price = 179, Icon = "🍀", Description = "+50% luck on every egg" },
 	TripleHatch = { Id = 0, Name = "Triple Hatch", Price = 149, Icon = "🥚", Description = "Hatch 3 eggs at once" },
-	BigBackpack = { Id = 0, Name = "2x Backpack", Price = 99, Icon = "🎒", Description = "Double backpack capacity" },
+	DoubleBase = { Id = 0, Name = "2x Base Income", Price = 199, Icon = "🏠", Description = "Your base earns double coins" },
 	Speed = { Id = 0, Name = "Rocket Boots", Price = 79, Icon = "👟", Description = "+50% walk speed" },
 }
 Config.GamePassOrder =
-	{ "VIP", "DoubleCoins", "MegaPower", "AutoMine", "AutoSell", "ExtraPets", "Lucky", "TripleHatch", "BigBackpack", "Speed" }
+	{ "VIP", "DoubleCoins", "DoubleBase", "MegaPower", "AutoMine", "FastCarry", "ExtraPets", "Lucky", "TripleHatch", "Speed" }
 
 -- Kind decides how the product is granted (see MonetizationService)
 Config.Products = {
@@ -444,7 +428,7 @@ Config.Products = {
 		Price = 49,
 		Icon = "💰",
 		Kind = "CoinPack",
-		Description = "Coins = 15 full backpacks (scales with you)",
+		Description = "A big pile of coins (scales with you)",
 	},
 	CoinBoost = { Id = 0, Name = "2x Coins (30m)", Price = 79, Icon = "⏫", Kind = "Boost", Boost = "Coins2x", Seconds = 1800 },
 	LuckBoost = { Id = 0, Name = "2x Luck (30m)", Price = 69, Icon = "🍀", Kind = "Boost", Boost = "Luck2x", Seconds = 1800 },
@@ -563,13 +547,13 @@ Config.Meteor = {
 	FailedMultiplier = 0.5, -- rewards when the meteor wasn't destroyed in time
 }
 
+-- bonking: only players carrying a star shard can be bonked (they drop it)
 Config.PvP = {
 	BonkRange = 10,
-	DropPercent = 0.25,
 	ImmunitySeconds = 4,
-	OrbLifetime = 25,
 	PointsPerBonk = 10,
 	Knockback = 55,
+	CarrySpeedPass = 1.35, -- Fast Carry game pass
 }
 
 -- Weekly ranked ladder (points come from activity, not wealth -> fair competition)
@@ -620,7 +604,15 @@ Config.DailyQuestCount = 3
 Config.Quests = {
 	{ Id = "Mine100", Type = "MineBlocks", Target = 100, Text = "Mine 100 blocks", Reward = { Gems = 25 }, XP = 150, Points = 100 },
 	{ Id = "Mine300", Type = "MineBlocks", Target = 300, Text = "Mine 300 blocks", Reward = { Gems = 50 }, XP = 250, Points = 200 },
-	{ Id = "Sell10", Type = "Sell", Target = 10, Text = "Sell your ore 10 times", Reward = { Gems = 25 }, XP = 150, Points = 100 },
+	{
+		Id = "Collect5",
+		Type = "Collect",
+		Target = 5,
+		Text = "Collect coins at your base 5 times",
+		Reward = { Gems = 25 },
+		XP = 150,
+		Points = 100,
+	},
 	{ Id = "Hatch5", Type = "Hatch", Target = 5, Text = "Hatch 5 eggs", Reward = { Gems = 30 }, XP = 150, Points = 100 },
 	{ Id = "Meteor1", Type = "MeteorJoin", Target = 1, Text = "Join a meteor event", Reward = { Stardust = 50 }, XP = 200, Points = 150 },
 	{
@@ -755,10 +747,10 @@ Config.Events = {
 -- first-time tutorial: one clear goal at a time, small reward per step
 Config.Tutorial = {
 	Steps = {
-		{ Id = "Mine", Target = 5, Text = "Tap ore blocks to mine them", Reward = { Coins = 60 } },
-		{ Id = "Sell", Target = 1, Text = "Sell your ore on the green SELL pad", Reward = { Coins = 120 } },
+		{ Id = "Mine", Target = 8, Text = "Tap ore blocks to mine them", Reward = { Coins = 150 } },
 		{ Id = "Pickaxe", Target = 1, Text = "Buy a better pickaxe at the shop", Reward = { Coins = 300 } },
 		{ Id = "Hatch", Target = 1, Text = "Hatch your first pet from the Meadow Egg", Reward = { Gems = 30 } },
+		{ Id = "Shard", Target = 1, Text = "Grab the falling star 🌠 and carry it to your base 🏠", Reward = { Gems = 50 } },
 	},
 	FinalReward = { Gems = 100, Boost = { "Coins2x", 600 } },
 }
@@ -792,7 +784,10 @@ Config.Shards = {
 }
 
 Config.Base = {
-	Plots = 8, -- set the place's max players to 8 (Creator Dashboard -> Places -> Server size)
+	-- one base per player: set the place's server size to the same number
+	-- (Creator Dashboard -> Places -> Server size). Extra players wait for a free base.
+	Plots = 16,
+	Streets = { -56, 56 }, -- x of the district streets; plots line both sides
 	StartPedestals = 3,
 	MaxPedestals = 12,
 	PedestalCosts = { 0, 0, 0, 500, 3000, 15000, 75000, 400000, 2000000, 10000000, 50000000, 250000000 },

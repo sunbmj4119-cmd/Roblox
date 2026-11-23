@@ -1,5 +1,5 @@
 --[[
-	Contextual upsell popup ("Backpack full? Get Auto Sell!"). Shown at the
+	Contextual upsell popup ("Want to mine while AFK? Get Auto Mine!"). Shown at the
 	exact moment a pass would help - far better conversion than a store page.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

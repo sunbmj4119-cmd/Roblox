@@ -119,15 +119,6 @@ function Stats:Luck(player, _data): number
 	return luck
 end
 
-function Stats:Capacity(player, data): number
-	local backpack = Config.Backpacks[data.BackpackTier] or Config.Backpacks[1]
-	local cap = backpack.Capacity
-	if has(player, "BigBackpack") then
-		cap *= 2
-	end
-	return cap
-end
-
 -- weekly-points standing among players in THIS server (+ who to beat next)
 serverRank = function(player: Player, data)
 	local list = {}
@@ -166,7 +157,6 @@ function Stats:BuildDerived(player)
 		Damage = self:Damage(player, data),
 		CoinMult = self:CoinMultiplier(player, data),
 		Luck = self:Luck(player, data),
-		Capacity = self:Capacity(player, data),
 		Cooldown = (Config.Pickaxes[data.PickaxeTier] or Config.Pickaxes[1]).Cooldown, -- client applies FEVER itself
 		PetSlots = self:PetSlots(player, data),
 		PetPower = self:PetPower(player, data),

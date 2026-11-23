@@ -1,10 +1,9 @@
 --[[
 	MiningService: ore blocks (spawn / damage / respawn), the pickaxe swing
-	handler (server-authoritative range + cooldown checks), backpack filling,
-	and Star Crater PvP: bonk a player to knock 25% of their ore onto the
-	ground as orbs anyone can grab.
+	handler (server-authoritative range + cooldown checks). Broken ore pays
+	coins instantly (no backpack, no selling). Players carrying a star shard
+	can be bonked to make them drop it.
 ]]
-local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -27,7 +26,6 @@ local feverUntil = {} -- [player] = server time
 local feverStart = {} -- [player] = server time
 local lastWarn = {} -- [player] = os.clock() (throttles hint messages)
 local oreFolder: Folder
-local dropFolder: Folder
 
 local oreRng = Random.new()
 
@@ -304,7 +302,7 @@ end
 ---------------------------------------------------------------------------
 -- hitting / breaking blocks
 ---------------------------------------------------------------------------
-local function breakBlock(player: Player, data, part: BasePart, info, crit: boolean, capacity: number)
+local function breakBlock(player: Player, data, part: BasePart, info, crit: boolean)
 	-- combo: consecutive breaks within the window
 	local clock = os.clock()
 	local combo = combos[player]
@@ -334,8 +332,10 @@ local function breakBlock(player: Player, data, part: BasePart, info, crit: bool
 		* events:Get("ValueMult", 1)
 		* (1 + comboBonus)
 		* (if fever then Config.Fever.ValueMult else 1)
-	local gained = math.min(math.floor(value), capacity - data.Backpack)
-	data.Backpack += gained
+	-- coins straight away: one less step, and combos/FEVER never get interrupted
+	local gained = math.max(1, math.floor(value * Services.StatsService:CoinMultiplier(player, data)))
+	data.Coins += gained
+	data.Stats.LifetimeCoins += gained
 	data.Stats.BlocksMined += 1
 
 	local extra = { Crit = crit, Combo = combo.Count, Lucky = if lucky then lucky.Id else nil, Fever = fever }
@@ -370,7 +370,7 @@ local function breakBlock(player: Player, data, part: BasePart, info, crit: bool
 	end
 end
 
--- returns "hit" | "broken" | "full" | nil (not allowed)
+-- returns "hit" | "broken" | nil (not allowed)
 local function hitBlock(player: Player, data, part: BasePart, damage: number, crit: boolean, isSplash: boolean)
 	local info = blockInfo[part]
 	if not info then
@@ -382,29 +382,13 @@ local function hitBlock(player: Player, data, part: BasePart, damage: number, cr
 		end
 		return nil
 	end
-	local stats = Services.StatsService
-	local monetization = Services.MonetizationService
-	local capacity = stats:Capacity(player, data)
-	if data.Backpack >= capacity then
-		if monetization:HasPass(player, "AutoSell") then
-			Services.EconomyService:Sell(player, true)
-		else
-			if not isSplash then
-				Net:Send(player, "BackpackFull")
-			end
-			return "full"
-		end
-	end
 	info.HP -= damage
 	if info.HP > 0 then
 		part:SetAttribute("HP", info.HP)
 		Net:Send(player, "MineHit", part, info.HP / info.MaxHP, crit, damage, isSplash)
 		return "hit"
 	end
-	breakBlock(player, data, part, info, crit, capacity)
-	if data.Backpack >= capacity and monetization:HasPass(player, "AutoSell") then
-		Services.EconomyService:Sell(player, true)
-	end
+	breakBlock(player, data, part, info, crit)
 	return "broken"
 end
 
@@ -437,9 +421,7 @@ local function mineBlock(player: Player, data, part: BasePart)
 			if #targets > 0 then
 				Net:Send(player, "Shockwave", center, radius, fever)
 				for _, other in targets do
-					if hitBlock(player, data, other, damage * mult, false, true) == "full" then
-						break
-					end
+					hitBlock(player, data, other, damage * mult, false, true)
 				end
 			end
 		end
@@ -463,55 +445,6 @@ end
 ---------------------------------------------------------------------------
 -- PvP
 ---------------------------------------------------------------------------
-local function spawnOrbs(origin: Vector3, total: number)
-	local count = math.clamp(total, 1, 6)
-	local each = math.floor(total / count)
-	local remainder = total - each * count
-	for i = 1, count do
-		local value = each + (if i == 1 then remainder else 0)
-		local angle = (i / count) * math.pi * 2
-		local orb = Instance.new("Part")
-		orb.Name = "OreOrb"
-		orb.Shape = Enum.PartType.Ball
-		orb.Size = Vector3.one * 1.8
-		orb.Material = Enum.Material.Neon
-		orb.Color = Color3.fromRGB(255, 120, 230)
-		orb.Anchored = true
-		orb.CanCollide = false
-		orb.Position = Vector3.new(origin.X + math.cos(angle) * 6, 1.6, origin.Z + math.sin(angle) * 6)
-		orb:SetAttribute("Value", value)
-		local light = Instance.new("PointLight")
-		light.Color = orb.Color
-		light.Range = 8
-		light.Parent = orb
-
-		local taken = false
-		orb.Touched:Connect(function(hit)
-			if taken then
-				return
-			end
-			local character = hit:FindFirstAncestorOfClass("Model")
-			local player = character and Players:GetPlayerFromCharacter(character)
-			local data = player and Data:Get(player)
-			if not data then
-				return
-			end
-			local capacity = Services.StatsService:Capacity(player, data)
-			if data.Backpack >= capacity then
-				return
-			end
-			taken = true
-			local added = math.min(value, capacity - data.Backpack)
-			data.Backpack += added
-			Net:Notify(player, "✨ +%s stolen ore!", Color3.fromRGB(255, 140, 230), Util.Format(added))
-			Data:MarkDirty(player)
-			orb:Destroy()
-		end)
-		orb.Parent = dropFolder
-		Debris:AddItem(orb, Config.PvP.OrbLifetime)
-	end
-end
-
 local function tryBonk(attacker: Player, victim: Player)
 	local aRoot = attacker.Character and attacker.Character:FindFirstChild("HumanoidRootPart") :: BasePart
 	local vRoot = victim.Character and victim.Character:FindFirstChild("HumanoidRootPart") :: BasePart
@@ -523,11 +456,8 @@ local function tryBonk(attacker: Player, victim: Player)
 		return
 	end
 	local shards = Services.ShardService
-	local carrying = shards:IsCarrying(victim)
-	local pvpZone = World.PvPZone
-	local inPvP = World:ZoneAt(aRoot.Position) == pvpZone and World:ZoneAt(vRoot.Position) == pvpZone
-	if not carrying and not inPvP then
-		warnOnce(attacker, 3, "⚔️ You can only bonk shard carriers - or anyone in the Star Crater!")
+	if not shards:IsCarrying(victim) then
+		warnOnce(attacker, 3, "⚔️ You can only bonk players carrying a shard!")
 		return
 	end
 	if (vRoot.Position - World.HubSpawn.Position).Magnitude <= Config.World.SpawnSafeRadius then
@@ -540,17 +470,7 @@ local function tryBonk(attacker: Player, victim: Player)
 	end
 	immunity[victim] = clock + Config.PvP.ImmunitySeconds
 
-	if carrying then
-		shards:Drop(victim, attacker)
-	end
-	local drop = 0
-	if inPvP then
-		drop = math.floor(vData.Backpack * Config.PvP.DropPercent)
-		if drop > 0 then
-			vData.Backpack -= drop
-			spawnOrbs(vRoot.Position, drop)
-		end
-	end
+	shards:Drop(victim, attacker)
 	aData.Stats.Bonks += 1
 	local progression = Services.ProgressionService
 	progression:AddQuest(attacker, "Bonk", 1)
@@ -559,11 +479,8 @@ local function tryBonk(attacker: Player, victim: Player)
 	local direction = (vRoot.Position - aRoot.Position) * Vector3.new(1, 0, 1)
 	direction = if direction.Magnitude > 0.01 then direction.Unit else Vector3.zAxis
 	Net:Send(victim, "Knockback", direction * Config.PvP.Knockback + Vector3.new(0, 35, 0))
-	Net:Send(victim, "Bonked", attacker.DisplayName, drop, carrying)
+	Net:Send(victim, "Bonked", attacker.DisplayName)
 	Net:Send(attacker, "BonkHit", vRoot.Position)
-	if drop > 0 then
-		Net:Notify(attacker, "💥 Bonked %s! %s ore dropped", Color3.fromRGB(255, 140, 90), victim.DisplayName, Util.Format(drop))
-	end
 	Data:MarkDirty(attacker)
 	Data:MarkDirty(victim)
 end
@@ -664,7 +581,6 @@ end
 
 function Mining:Start()
 	oreFolder = World:Folder("Ores")
-	dropFolder = World:Folder("Drops")
 	for zone, slots in World.OreSlots do
 		zoneBlocks[zone] = {}
 		for _, slot in slots do

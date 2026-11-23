@@ -55,7 +55,7 @@ Config.AnnounceRarity = 5 -- server-wide announcement for Legendary and above
 Config.LuckAffectsFromRarity = 3 -- luck multiplies weights of Rare and above
 
 ---------------------------------------------------------------------------
--- Zones (linear progression, last zone is the PvP "Star Crater")
+-- Zones (linear progression)
 ---------------------------------------------------------------------------
 Config.Zones = {
 	{
@@ -96,7 +96,6 @@ Config.Zones = {
 		Floor = Enum.Material.CrackedLava,
 		FloorColor = Color3.fromRGB(70, 30, 60),
 		Accent = Color3.fromRGB(255, 60, 120),
-		PvP = true,
 		Ores = { { "Meteorite", 55 }, { "StardustOre", 32 }, { "CosmicCrystal", 13 } },
 	},
 }
@@ -180,7 +179,7 @@ Config.World = {
 	Reach = 13, -- studs from character to the target
 	WalkSpeed = 22,
 	-- base district south of the hub (see BaseService)
-	Bases = { ZStart = -88, ZEnd = -250, HalfX = 54 },
+	Bases = { ZStart = -88, ZEnd = -250, HalfX = 112 },
 	SpawnSafeRadius = 24, -- nobody can be bonked near the spawn
 }
 
@@ -200,21 +199,6 @@ Config.Pickaxes = {
 	{ Name = "Void Splitter", Power = 550, Cooldown = 0.24, Cost = 20000000, Color = Color3.fromRGB(170, 90, 255) },
 	{ Name = "Starforged", Power = 1200, Cooldown = 0.23, Cost = 90000000, Color = Color3.fromRGB(255, 90, 200) },
 	{ Name = "Galaxy Crusher", Power = 2600, Cooldown = 0.22, Cost = 400000000, Color = Color3.fromRGB(60, 255, 230) },
-}
-
-Config.Backpacks = {
-	{ Name = "Pouch", Capacity = 50, Cost = 0 },
-	{ Name = "Sack", Capacity = 150, Cost = 200 },
-	{ Name = "Satchel", Capacity = 500, Cost = 1000 },
-	{ Name = "Explorer Pack", Capacity = 1500, Cost = 4000 },
-	{ Name = "Duffel", Capacity = 5000, Cost = 18000 },
-	{ Name = "Ore Crate", Capacity = 15000, Cost = 75000 },
-	{ Name = "Vault Pack", Capacity = 50000, Cost = 300000 },
-	{ Name = "Titan Pack", Capacity = 150000, Cost = 1200000 },
-	{ Name = "Galaxy Pack", Capacity = 500000, Cost = 5000000 },
-	{ Name = "Nebula Pack", Capacity = 2000000, Cost = 22000000 },
-	{ Name = "Black Hole", Capacity = 8000000, Cost = 100000000 },
-	{ Name = "Infinity Core", Capacity = 30000000, Cost = 450000000 },
 }
 
 Config.Rebirth = {
@@ -437,18 +421,18 @@ Config.GamePasses = {
 		Icon = "👑",
 		Description = "+25% coins, +1 pet slot, [VIP] chat tag, daily VIP chest (100 gems)",
 	},
-	DoubleCoins = { Id = 0, Name = "2x Coins", Price = 249, Icon = "💰", Description = "Permanently double all coins from selling" },
+	DoubleCoins = { Id = 0, Name = "2x Coins", Price = 249, Icon = "💰", Description = "Permanently double all coins" },
 	MegaPower = { Id = 0, Name = "2x Mining Power", Price = 199, Icon = "💥", Description = "Permanently double your mining damage" },
 	AutoMine = { Id = 0, Name = "Auto Mine", Price = 149, Icon = "🤖", Description = "Mine automatically while holding your pickaxe" },
-	AutoSell = { Id = 0, Name = "Auto Sell", Price = 129, Icon = "💰", Description = "Sell automatically when full + sell from anywhere" },
+	FastCarry = { Id = 0, Name = "Fast Carry", Price = 129, Icon = "🏃", Description = "+35% run speed while carrying a shard" },
 	ExtraPets = { Id = 0, Name = "+3 Pet Slots", Price = 199, Icon = "🐾", Description = "Equip 3 more pets at once" },
 	Lucky = { Id = 0, Name = "Lucky Hatch", Price = 179, Icon = "🍀", Description = "+50% luck on every egg" },
 	TripleHatch = { Id = 0, Name = "Triple Hatch", Price = 149, Icon = "🥚", Description = "Hatch 3 eggs at once" },
-	BigBackpack = { Id = 0, Name = "2x Backpack", Price = 99, Icon = "🎒", Description = "Double backpack capacity" },
+	DoubleBase = { Id = 0, Name = "2x Base Income", Price = 199, Icon = "🏠", Description = "Your base earns double coins" },
 	Speed = { Id = 0, Name = "Rocket Boots", Price = 79, Icon = "👟", Description = "+50% walk speed" },
 }
 Config.GamePassOrder =
-	{ "VIP", "DoubleCoins", "MegaPower", "AutoMine", "AutoSell", "ExtraPets", "Lucky", "TripleHatch", "BigBackpack", "Speed" }
+	{ "VIP", "DoubleCoins", "DoubleBase", "MegaPower", "AutoMine", "FastCarry", "ExtraPets", "Lucky", "TripleHatch", "Speed" }
 
 -- Kind decides how the product is granted (see MonetizationService)
 Config.Products = {
@@ -462,7 +446,7 @@ Config.Products = {
 		Price = 49,
 		Icon = "💰",
 		Kind = "CoinPack",
-		Description = "Coins = 15 full backpacks (scales with you)",
+		Description = "A big pile of coins (scales with you)",
 	},
 	CoinBoost = { Id = 0, Name = "2x Coins (30m)", Price = 79, Icon = "⏫", Kind = "Boost", Boost = "Coins2x", Seconds = 1800 },
 	LuckBoost = { Id = 0, Name = "2x Luck (30m)", Price = 69, Icon = "🍀", Kind = "Boost", Boost = "Luck2x", Seconds = 1800 },
@@ -581,13 +565,13 @@ Config.Meteor = {
 	FailedMultiplier = 0.5, -- rewards when the meteor wasn't destroyed in time
 }
 
+-- bonking: only players carrying a star shard can be bonked (they drop it)
 Config.PvP = {
 	BonkRange = 10,
-	DropPercent = 0.25,
 	ImmunitySeconds = 4,
-	OrbLifetime = 25,
 	PointsPerBonk = 10,
 	Knockback = 55,
+	CarrySpeedPass = 1.35, -- Fast Carry game pass
 }
 
 -- Weekly ranked ladder (points come from activity, not wealth -> fair competition)
@@ -638,7 +622,15 @@ Config.DailyQuestCount = 3
 Config.Quests = {
 	{ Id = "Mine100", Type = "MineBlocks", Target = 100, Text = "Mine 100 blocks", Reward = { Gems = 25 }, XP = 150, Points = 100 },
 	{ Id = "Mine300", Type = "MineBlocks", Target = 300, Text = "Mine 300 blocks", Reward = { Gems = 50 }, XP = 250, Points = 200 },
-	{ Id = "Sell10", Type = "Sell", Target = 10, Text = "Sell your ore 10 times", Reward = { Gems = 25 }, XP = 150, Points = 100 },
+	{
+		Id = "Collect5",
+		Type = "Collect",
+		Target = 5,
+		Text = "Collect coins at your base 5 times",
+		Reward = { Gems = 25 },
+		XP = 150,
+		Points = 100,
+	},
 	{ Id = "Hatch5", Type = "Hatch", Target = 5, Text = "Hatch 5 eggs", Reward = { Gems = 30 }, XP = 150, Points = 100 },
 	{ Id = "Meteor1", Type = "MeteorJoin", Target = 1, Text = "Join a meteor event", Reward = { Stardust = 50 }, XP = 200, Points = 150 },
 	{
@@ -773,10 +765,10 @@ Config.Events = {
 -- first-time tutorial: one clear goal at a time, small reward per step
 Config.Tutorial = {
 	Steps = {
-		{ Id = "Mine", Target = 5, Text = "Tap ore blocks to mine them", Reward = { Coins = 60 } },
-		{ Id = "Sell", Target = 1, Text = "Sell your ore on the green SELL pad", Reward = { Coins = 120 } },
+		{ Id = "Mine", Target = 8, Text = "Tap ore blocks to mine them", Reward = { Coins = 150 } },
 		{ Id = "Pickaxe", Target = 1, Text = "Buy a better pickaxe at the shop", Reward = { Coins = 300 } },
 		{ Id = "Hatch", Target = 1, Text = "Hatch your first pet from the Meadow Egg", Reward = { Gems = 30 } },
+		{ Id = "Shard", Target = 1, Text = "Grab the falling star 🌠 and carry it to your base 🏠", Reward = { Gems = 50 } },
 	},
 	FinalReward = { Gems = 100, Boost = { "Coins2x", 600 } },
 }
@@ -810,7 +802,10 @@ Config.Shards = {
 }
 
 Config.Base = {
-	Plots = 8, -- set the place's max players to 8 (Creator Dashboard -> Places -> Server size)
+	-- one base per player: set the place's server size to the same number
+	-- (Creator Dashboard -> Places -> Server size). Extra players wait for a free base.
+	Plots = 16,
+	Streets = { -56, 56 }, -- x of the district streets; plots line both sides
 	StartPedestals = 3,
 	MaxPedestals = 12,
 	PedestalCosts = { 0, 0, 0, 500, 3000, 15000, 75000, 400000, 2000000, 10000000, 50000000, 250000000 },
@@ -1614,6 +1609,21 @@ return {
 	["🛡️ Your %s flew back home!"] = "🛡️ %s이(가) 기지로 돌아왔어요!",
 	["🥇 Your %s prize shard is waiting - grab it!"] = "🥇 보상 %s이(가) 기다려요 - 주우세요!",
 	["⚠️ STOLEN!"] = "⚠️ 도난!",
+	-- v9: simpler loop (no backpack), 16 bases
+	["2x Base Income"] = "기지 수익 2배",
+	["A big pile of coins (scales with you)"] = "코인 한 무더기 (성장에 맞춰 커져요)",
+	["Collect coins at your base 5 times"] = "기지에서 코인 5번 받기",
+	["Fast Carry"] = "빠른 운반",
+	["Grab the falling star 🌠 and carry it to your base 🏠"] = "떨어진 별 🌠을 주워 기지 🏠로 가져가세요",
+	["Mine ore until you have %s coins"] = "%s 코인이 될 때까지 광석을 캐세요",
+	["Mine: %s / %s coins for the next upgrade"] = "채굴: 다음 업그레이드까지 %s / %s 코인",
+	["Permanently double all coins"] = "모든 코인 영구 2배",
+	["+35% run speed while carrying a shard"] = "조각을 들고 있을 때 달리기 속도 +35%",
+	["Your base earns double coins"] = "기지 수익이 2배",
+	["⚔️ You can only bonk players carrying a shard!"] = "⚔️ 조각을 들고 있는 유저만 때릴 수 있어요!",
+	["⚠️ Resets: coins, pickaxe.  Keeps: pets, zones, base, shards, gems, passes."] = "⚠️ 초기화: 코인, 곡괭이.  유지: 펫, 구역, 기지, 조각, 젬, 패스.",
+	["🌠 A star fell just for you! Grab it!"] = "🌠 나만을 위한 별이 떨어졌어요! 주우세요!",
+	["⛏️ Tap ore = 💰 coins\n🌠 Carry stars home = 💰 every second"] = "⛏️ 광석 터치 = 💰 코인\n🌠 별을 기지로 = 매초 💰",
 }
 ]]></string>
         </Properties>
@@ -2352,16 +2362,10 @@ local SETTINGS = Config.Base
 local PLOT_HALF = 16
 local WALL_HEIGHT = 9
 
-local PLOT_COLORS = {
-	Color3.fromRGB(255, 190, 60),
-	Color3.fromRGB(80, 200, 255),
-	Color3.fromRGB(255, 90, 160),
-	Color3.fromRGB(110, 230, 120),
-	Color3.fromRGB(190, 110, 255),
-	Color3.fromRGB(255, 130, 70),
-	Color3.fromRGB(70, 230, 210),
-	Color3.fromRGB(255, 240, 110),
-}
+-- every plot gets its own color (spread around the color wheel)
+local function plotColor(index: number): Color3
+	return Color3.fromHSV(((index - 1) * 0.618) % 1, 0.62, 1)
+end
 
 -- pedestal slots in plot space (front row first; -Z is the entrance side)
 local PEDESTAL_SPOTS = {}
@@ -2391,13 +2395,13 @@ local function part(props, parent: Instance): Part
 	return p
 end
 
-local function billboard(adornee: BasePart, width: number, height: number, offsetY: number, color: Color3): TextLabel
+local function billboard(adornee: BasePart, width: number, height: number, offsetY: number, color: Color3, maxDistance: number?): TextLabel
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Label"
 	gui.Size = UDim2.new(width, 0, height, 0)
 	gui.StudsOffsetWorldSpace = Vector3.new(0, offsetY, 0)
 	gui.LightInfluence = 0
-	gui.MaxDistance = 140
+	gui.MaxDistance = maxDistance or 140
 	local label = Instance.new("TextLabel")
 	label.Name = "Text"
 	label.BackgroundTransparency = 1
@@ -2435,11 +2439,10 @@ end
 ---------------------------------------------------------------------------
 -- building the plots (static shells, built once)
 ---------------------------------------------------------------------------
-local function buildPlot(index: number, center: Vector3): any
-	local side = if center.X > 0 then 1 else -1
-	-- local -Z (LookVector) faces the road
-	local cf = CFrame.lookAt(center, center + Vector3.new(-side, 0, 0))
-	local color = PLOT_COLORS[(index - 1) % #PLOT_COLORS + 1]
+local function buildPlot(index: number, center: Vector3, facing: Vector3): any
+	-- local -Z (LookVector) faces the street
+	local cf = CFrame.lookAt(center, center + facing)
+	local color = plotColor(index)
 	local model = Instance.new("Model")
 	model.Name = "Plot_" .. index
 	model:SetAttribute("OwnerId", 0)
@@ -2521,7 +2524,7 @@ local function buildPlot(index: number, center: Vector3): any
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 	}, model)
-	local bankLabel = billboard(collect, 9, 3, 3.5, Color3.fromRGB(140, 255, 170))
+	local bankLabel = billboard(collect, 9, 3, 3.5, Color3.fromRGB(140, 255, 170), 70)
 	local lockPad = part({
 		Name = "LockPad",
 		Size = Vector3.new(7, 0.4, 7),
@@ -2530,7 +2533,7 @@ local function buildPlot(index: number, center: Vector3): any
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 	}, model)
-	local lockLabel = billboard(lockPad, 9, 2.4, 3.2, Color3.fromRGB(255, 150, 150))
+	local lockLabel = billboard(lockPad, 9, 2.4, 3.2, Color3.fromRGB(255, 150, 150), 50)
 
 	local pedestals = {}
 	for slot, spot in PEDESTAL_SPOTS do
@@ -2579,23 +2582,37 @@ local function buildPlot(index: number, center: Vector3): any
 	}
 end
 
-local function plotCenters(): { Vector3 }
+-- plots line both sides of every street, nearest rows first
+local function plotLayout(): { { Center: Vector3, Facing: Vector3 } }
 	local bases = Config.World.Bases
-	local centers = {}
-	local z = bases.ZStart - PLOT_HALF - 4
-	while #centers < SETTINGS.Plots do
-		table.insert(centers, Vector3.new(-34, 0, z))
-		table.insert(centers, Vector3.new(34, 0, z))
-		z -= PLOT_HALF * 2 + 4
+	local layout = {}
+	local row = 0
+	while #layout < SETTINGS.Plots do
+		local z = bases.ZStart - 32 - row * (PLOT_HALF * 2 + 4)
+		for _, streetX in SETTINGS.Streets do
+			for _, side in { -1, 1 } do
+				if #layout < SETTINGS.Plots then
+					table.insert(layout, {
+						Center = Vector3.new(streetX + side * 30, 0, z),
+						Facing = Vector3.new(-side, 0, 0), -- toward the street
+					})
+				end
+			end
+		end
+		row += 1
 	end
-	return centers
+	return layout
 end
 
 ---------------------------------------------------------------------------
 -- income
 ---------------------------------------------------------------------------
 function Base:ShardRate(player: Player, data, id: string): number
-	return Util.ShardIncome(Config, id, data.ZoneLevel) * Services.StatsService:CoinMultiplier(player, data)
+	local rate = Util.ShardIncome(Config, id, data.ZoneLevel) * Services.StatsService:CoinMultiplier(player, data)
+	if Services.MonetizationService:HasPass(player, "DoubleBase") then
+		rate *= 2
+	end
+	return rate
 end
 
 function Base:IncomeRate(player: Player, data): number
@@ -2657,7 +2674,7 @@ function Base:Render(player: Player)
 			model:PivotTo(CFrame.new(pedestal.Top + Vector3.new(0, 2.2, 0)))
 			model:SetAttribute("Spin", true)
 			model.Parent = plot.Displays
-			local label = billboard(model.PrimaryPart :: BasePart, 7, 2.2, 3.2, def.Color)
+			local label = billboard(model.PrimaryPart :: BasePart, 7, 2.2, 3.2, def.Color, 60)
 			World.SetText(label, "%s\n💰 %s/s", def.Name, Util.Format(self:ShardRate(player, data, entry.Id)))
 			local core = model.PrimaryPart :: BasePart
 			setPrompt(core, "Steal", def.Name, "Thief", SETTINGS.StealHold, function(thief)
@@ -2678,7 +2695,7 @@ function Base:Render(player: Player)
 				CanQuery = false,
 				CanTouch = false,
 			}, plot.Displays)
-			World.SetText(billboard(anchor, 7, 2, 0, Color3.fromRGB(255, 90, 90)), "⚠️ STOLEN!")
+			World.SetText(billboard(anchor, 7, 2, 0, Color3.fromRGB(255, 90, 90), 80), "⚠️ STOLEN!")
 		elseif slot == data.Base.Pedestals + 1 and slot <= SETTINGS.MaxPedestals then
 			-- the next pedestal can be bought
 			local cost = SETTINGS.PedestalCosts[slot] or math.huge
@@ -2691,7 +2708,7 @@ function Base:Render(player: Player)
 				CanQuery = false,
 				CanTouch = false,
 			}, plot.Displays)
-			World.SetText(billboard(anchor, 6, 2, 0, Color3.fromRGB(255, 230, 140)), "🔒 💰 %s", Util.Format(cost))
+			World.SetText(billboard(anchor, 6, 2, 0, Color3.fromRGB(255, 230, 140), 45), "🔒 💰 %s", Util.Format(cost))
 			setPrompt(anchor, "Buy pedestal", "💰 " .. Util.Format(cost), "Owner", 0, function(who)
 				if who == player then
 					Base:BuyPedestal(player)
@@ -2921,6 +2938,7 @@ function Base:Collect(player: Player)
 	data.Base.Bank -= amount
 	data.Coins += amount
 	data.Stats.LifetimeCoins += amount
+	Services.ProgressionService:AddQuest(player, "Collect", 1)
 	Net:Send(player, "BaseCollected", amount)
 	Data:MarkDirty(player)
 	self:RefreshLabels(player)
@@ -3018,8 +3036,8 @@ function Base:Init(services)
 end
 
 function Base:Start()
-	for index, center in plotCenters() do
-		local plot = buildPlot(index, center)
+	for index, spot in plotLayout() do
+		local plot = buildPlot(index, spot.Center, spot.Facing)
 		plots[index] = plot
 		clearPlot(plot)
 		plot.CollectPad.Touched:Connect(function(hit)
@@ -3961,8 +3979,6 @@ function Dev:Start()
 		elseif command == "Shard" then
 			local id = Util.RollShard(Config, 4)
 			Services.ShardService:StartCarry(player, id, nil)
-		elseif command == "Fill" then
-			data.Backpack = Services.StatsService:Capacity(player, data)
 		elseif command == "Reset" then
 			local fresh = Util.DeepCopy(Data.Template)
 			fresh.FirstJoin = os.time()
@@ -3988,10 +4004,10 @@ return Dev
           <Properties>
             <string name="Name">EconomyService</string>
             <string name="Source"><![CDATA[--[[
-	EconomyService: selling ore, pickaxe/backpack upgrades, zone unlocks,
-	rebirths and teleports. All prices are validated on the server.
+	EconomyService: pickaxe upgrades, zone unlocks, rebirths and teleports.
+	(Ore pays coins the moment it breaks - see MiningService.)
+	All prices are validated on the server.
 ]]
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -4008,28 +4024,6 @@ local REBIRTH_ANNOUNCE = { [1] = true, [5] = true, [10] = true, [25] = true, [50
 
 local function notEnough(player: Player, need: number, have: number, currency: string)
 	Net:Notify(player, "Not enough %s! Need %s more.", RED, currency, Util.Format(need - have))
-end
-
-function Economy:Sell(player: Player, silent: boolean?): number
-	local data = Data:Get(player)
-	if not data then
-		return 0
-	end
-	if data.Backpack <= 0 then
-		if not silent then
-			Net:Notify(player, "Your backpack is empty - go mine some ore!")
-		end
-		return 0
-	end
-	local coins = math.floor(data.Backpack * Services.StatsService:CoinMultiplier(player, data))
-	data.Coins += coins
-	data.Stats.LifetimeCoins += coins
-	data.Backpack = 0
-	Services.ProgressionService:AddQuest(player, "Sell", 1)
-	Services.ProgressionService:TutorialEvent(player, "Sell", 1)
-	Net:Send(player, "Sold", coins)
-	Data:MarkDirty(player)
-	return coins
 end
 
 function Economy:UnlockZone(player: Player, index: number)
@@ -4099,9 +4093,7 @@ function Economy:Rebirth(player: Player)
 	end
 	data.Rebirths += 1
 	data.Coins = 0
-	data.Backpack = 0
 	data.PickaxeTier = 1
-	data.BackpackTier = 1
 	local gems = Config.Rebirth.GemsPer * data.Rebirths
 	data.Gems += gems
 	Services.CharacterService:GivePickaxe(player)
@@ -4122,37 +4114,8 @@ end
 function Economy:Start()
 	local world = Services.WorldService
 
-	-- sell pad
-	local debounce = {}
-	world.SellPad.Touched:Connect(function(hit)
-		local character = hit:FindFirstAncestorOfClass("Model")
-		local player = character and Players:GetPlayerFromCharacter(character)
-		if not player then
-			return
-		end
-		local now = os.clock()
-		if debounce[player] and now - debounce[player] < 1 then
-			return
-		end
-		debounce[player] = now
-		self:Sell(player, true)
-	end)
-	Players.PlayerRemoving:Connect(function(player)
-		debounce[player] = nil
-	end)
-
-	Net:On("SellAnywhere", 0.5, function(player)
-		if Services.MonetizationService:HasPass(player, "AutoSell") then
-			self:Sell(player)
-		else
-			Net:Send(player, "Upsell", "AutoSell")
-		end
-	end)
 	Net:On("BuyPickaxe", 0.25, function(player)
 		buyUpgrade(player, "Pickaxes", "PickaxeTier")
-	end)
-	Net:On("BuyBackpack", 0.25, function(player)
-		buyUpgrade(player, "Backpacks", "BackpackTier")
 	end)
 	Net:On("UnlockZone", 0.5, function(player, index)
 		if type(index) == "number" then
@@ -5059,11 +5022,10 @@ return Meteor
             <string name="Name">MiningService</string>
             <string name="Source"><![CDATA[--[[
 	MiningService: ore blocks (spawn / damage / respawn), the pickaxe swing
-	handler (server-authoritative range + cooldown checks), backpack filling,
-	and Star Crater PvP: bonk a player to knock 25% of their ore onto the
-	ground as orbs anyone can grab.
+	handler (server-authoritative range + cooldown checks). Broken ore pays
+	coins instantly (no backpack, no selling). Players carrying a star shard
+	can be bonked to make them drop it.
 ]]
-local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -5086,7 +5048,6 @@ local feverUntil = {} -- [player] = server time
 local feverStart = {} -- [player] = server time
 local lastWarn = {} -- [player] = os.clock() (throttles hint messages)
 local oreFolder: Folder
-local dropFolder: Folder
 
 local oreRng = Random.new()
 
@@ -5363,7 +5324,7 @@ end
 ---------------------------------------------------------------------------
 -- hitting / breaking blocks
 ---------------------------------------------------------------------------
-local function breakBlock(player: Player, data, part: BasePart, info, crit: boolean, capacity: number)
+local function breakBlock(player: Player, data, part: BasePart, info, crit: boolean)
 	-- combo: consecutive breaks within the window
 	local clock = os.clock()
 	local combo = combos[player]
@@ -5393,8 +5354,10 @@ local function breakBlock(player: Player, data, part: BasePart, info, crit: bool
 		* events:Get("ValueMult", 1)
 		* (1 + comboBonus)
 		* (if fever then Config.Fever.ValueMult else 1)
-	local gained = math.min(math.floor(value), capacity - data.Backpack)
-	data.Backpack += gained
+	-- coins straight away: one less step, and combos/FEVER never get interrupted
+	local gained = math.max(1, math.floor(value * Services.StatsService:CoinMultiplier(player, data)))
+	data.Coins += gained
+	data.Stats.LifetimeCoins += gained
 	data.Stats.BlocksMined += 1
 
 	local extra = { Crit = crit, Combo = combo.Count, Lucky = if lucky then lucky.Id else nil, Fever = fever }
@@ -5429,7 +5392,7 @@ local function breakBlock(player: Player, data, part: BasePart, info, crit: bool
 	end
 end
 
--- returns "hit" | "broken" | "full" | nil (not allowed)
+-- returns "hit" | "broken" | nil (not allowed)
 local function hitBlock(player: Player, data, part: BasePart, damage: number, crit: boolean, isSplash: boolean)
 	local info = blockInfo[part]
 	if not info then
@@ -5441,29 +5404,13 @@ local function hitBlock(player: Player, data, part: BasePart, damage: number, cr
 		end
 		return nil
 	end
-	local stats = Services.StatsService
-	local monetization = Services.MonetizationService
-	local capacity = stats:Capacity(player, data)
-	if data.Backpack >= capacity then
-		if monetization:HasPass(player, "AutoSell") then
-			Services.EconomyService:Sell(player, true)
-		else
-			if not isSplash then
-				Net:Send(player, "BackpackFull")
-			end
-			return "full"
-		end
-	end
 	info.HP -= damage
 	if info.HP > 0 then
 		part:SetAttribute("HP", info.HP)
 		Net:Send(player, "MineHit", part, info.HP / info.MaxHP, crit, damage, isSplash)
 		return "hit"
 	end
-	breakBlock(player, data, part, info, crit, capacity)
-	if data.Backpack >= capacity and monetization:HasPass(player, "AutoSell") then
-		Services.EconomyService:Sell(player, true)
-	end
+	breakBlock(player, data, part, info, crit)
 	return "broken"
 end
 
@@ -5496,9 +5443,7 @@ local function mineBlock(player: Player, data, part: BasePart)
 			if #targets > 0 then
 				Net:Send(player, "Shockwave", center, radius, fever)
 				for _, other in targets do
-					if hitBlock(player, data, other, damage * mult, false, true) == "full" then
-						break
-					end
+					hitBlock(player, data, other, damage * mult, false, true)
 				end
 			end
 		end
@@ -5522,55 +5467,6 @@ end
 ---------------------------------------------------------------------------
 -- PvP
 ---------------------------------------------------------------------------
-local function spawnOrbs(origin: Vector3, total: number)
-	local count = math.clamp(total, 1, 6)
-	local each = math.floor(total / count)
-	local remainder = total - each * count
-	for i = 1, count do
-		local value = each + (if i == 1 then remainder else 0)
-		local angle = (i / count) * math.pi * 2
-		local orb = Instance.new("Part")
-		orb.Name = "OreOrb"
-		orb.Shape = Enum.PartType.Ball
-		orb.Size = Vector3.one * 1.8
-		orb.Material = Enum.Material.Neon
-		orb.Color = Color3.fromRGB(255, 120, 230)
-		orb.Anchored = true
-		orb.CanCollide = false
-		orb.Position = Vector3.new(origin.X + math.cos(angle) * 6, 1.6, origin.Z + math.sin(angle) * 6)
-		orb:SetAttribute("Value", value)
-		local light = Instance.new("PointLight")
-		light.Color = orb.Color
-		light.Range = 8
-		light.Parent = orb
-
-		local taken = false
-		orb.Touched:Connect(function(hit)
-			if taken then
-				return
-			end
-			local character = hit:FindFirstAncestorOfClass("Model")
-			local player = character and Players:GetPlayerFromCharacter(character)
-			local data = player and Data:Get(player)
-			if not data then
-				return
-			end
-			local capacity = Services.StatsService:Capacity(player, data)
-			if data.Backpack >= capacity then
-				return
-			end
-			taken = true
-			local added = math.min(value, capacity - data.Backpack)
-			data.Backpack += added
-			Net:Notify(player, "✨ +%s stolen ore!", Color3.fromRGB(255, 140, 230), Util.Format(added))
-			Data:MarkDirty(player)
-			orb:Destroy()
-		end)
-		orb.Parent = dropFolder
-		Debris:AddItem(orb, Config.PvP.OrbLifetime)
-	end
-end
-
 local function tryBonk(attacker: Player, victim: Player)
 	local aRoot = attacker.Character and attacker.Character:FindFirstChild("HumanoidRootPart") :: BasePart
 	local vRoot = victim.Character and victim.Character:FindFirstChild("HumanoidRootPart") :: BasePart
@@ -5582,11 +5478,8 @@ local function tryBonk(attacker: Player, victim: Player)
 		return
 	end
 	local shards = Services.ShardService
-	local carrying = shards:IsCarrying(victim)
-	local pvpZone = World.PvPZone
-	local inPvP = World:ZoneAt(aRoot.Position) == pvpZone and World:ZoneAt(vRoot.Position) == pvpZone
-	if not carrying and not inPvP then
-		warnOnce(attacker, 3, "⚔️ You can only bonk shard carriers - or anyone in the Star Crater!")
+	if not shards:IsCarrying(victim) then
+		warnOnce(attacker, 3, "⚔️ You can only bonk players carrying a shard!")
 		return
 	end
 	if (vRoot.Position - World.HubSpawn.Position).Magnitude <= Config.World.SpawnSafeRadius then
@@ -5599,17 +5492,7 @@ local function tryBonk(attacker: Player, victim: Player)
 	end
 	immunity[victim] = clock + Config.PvP.ImmunitySeconds
 
-	if carrying then
-		shards:Drop(victim, attacker)
-	end
-	local drop = 0
-	if inPvP then
-		drop = math.floor(vData.Backpack * Config.PvP.DropPercent)
-		if drop > 0 then
-			vData.Backpack -= drop
-			spawnOrbs(vRoot.Position, drop)
-		end
-	end
+	shards:Drop(victim, attacker)
 	aData.Stats.Bonks += 1
 	local progression = Services.ProgressionService
 	progression:AddQuest(attacker, "Bonk", 1)
@@ -5618,11 +5501,8 @@ local function tryBonk(attacker: Player, victim: Player)
 	local direction = (vRoot.Position - aRoot.Position) * Vector3.new(1, 0, 1)
 	direction = if direction.Magnitude > 0.01 then direction.Unit else Vector3.zAxis
 	Net:Send(victim, "Knockback", direction * Config.PvP.Knockback + Vector3.new(0, 35, 0))
-	Net:Send(victim, "Bonked", attacker.DisplayName, drop, carrying)
+	Net:Send(victim, "Bonked", attacker.DisplayName)
 	Net:Send(attacker, "BonkHit", vRoot.Position)
-	if drop > 0 then
-		Net:Notify(attacker, "💥 Bonked %s! %s ore dropped", Color3.fromRGB(255, 140, 90), victim.DisplayName, Util.Format(drop))
-	end
 	Data:MarkDirty(attacker)
 	Data:MarkDirty(victim)
 end
@@ -5723,7 +5603,6 @@ end
 
 function Mining:Start()
 	oreFolder = World:Folder("Ores")
-	dropFolder = World:Folder("Drops")
 	for zone, slots in World.OreSlots do
 		zoneBlocks[zone] = {}
 		for _, slot in slots do
@@ -5930,13 +5809,14 @@ end
 local function grantProduct(player: Player, key: string, data)
 	local product = Config.Products[key]
 	local kind = product.Kind
-	local stats = Services.StatsService
 
 	if kind == "Gems" then
 		data.Gems += product.Amount
 		Net:Notify(player, "💎 +%d Gems! Thank you!", GOLD, product.Amount)
 	elseif kind == "CoinPack" then
-		local amount = math.max(2500, math.floor(stats:Capacity(player, data) * 15 * stats:CoinMultiplier(player, data)))
+		-- scales with progress: ~60% of the next pickaxe (or of the best one)
+		local nextPick = Config.Pickaxes[data.PickaxeTier + 1] or Config.Pickaxes[#Config.Pickaxes]
+		local amount = math.max(2500, math.floor(nextPick.Cost * 0.6))
 		data.Coins += amount
 		data.Stats.LifetimeCoins += amount
 		Net:Send(player, "Sold", amount)
@@ -6676,8 +6556,23 @@ function Progression:TutorialEvent(player: Player, id: string, amount: number?)
 		Net:Send(player, "TutorialDone", self:RewardText(player, Config.Tutorial.FinalReward))
 	else
 		Net:Send(player, "TutorialStep", tutorial.Step, self:RewardText(player, step.Reward))
+		self:TutorialSetup(player)
 	end
 	Data:MarkDirty(player)
+end
+
+-- some steps need the world to cooperate (a star to carry home)
+function Progression:TutorialSetup(player: Player)
+	local data = Data:Get(player)
+	local tutorial = data and data.Tutorial
+	local step = tutorial and not tutorial.Done and Config.Tutorial.Steps[tutorial.Step]
+	if step and step.Id == "Shard" then
+		task.delay(2, function()
+			if player.Parent then
+				Services.ShardService:TutorialStar(player)
+			end
+		end)
+	end
 end
 
 -- player level: every block gives XP; level-ups give gems + a permanent coin bonus
@@ -6862,6 +6757,11 @@ function Progression:Start()
 		if not data.Tutorial.Done and data.Stats.EggsHatched > 0 and data.PickaxeTier > 1 then
 			data.Tutorial.Done = true
 		end
+		task.delay(6, function()
+			if player.Parent then
+				self:TutorialSetup(player)
+			end
+		end)
 		checkRollovers(player, data, true)
 		-- daily reward reminder
 		if data.Daily.LastClaimDay ~= Util.DayNumber() then
@@ -7157,7 +7057,14 @@ end
 function Shards:SpeedMult(player: Player): number
 	local info = carrying[player]
 	local def = info and SETTINGS.Rarities[info.Id]
-	return if def then def.Speed else 1
+	if not def then
+		return 1
+	end
+	local mult = def.Speed
+	if Services.MonetizationService:HasPass(player, "FastCarry") then
+		mult *= Config.PvP.CarrySpeedPass
+	end
+	return mult
 end
 
 local function attachModel(player: Player, id: string): Model?
@@ -7239,7 +7146,7 @@ end
 
 local tryPickup -- forward declaration
 
--- opts: Beacon (bool), PriorityUser/PriorityUntil, BlockUser/BlockUntil
+-- opts: Beacon (bool), PriorityUser/PriorityUntil, BlockUser/BlockUntil, Lifetime
 function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 	opts = opts or {}
 	local def = SETTINGS.Rarities[id]
@@ -7315,7 +7222,7 @@ function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 	end)
 
 	-- stolen shards fly home if nobody grabs them; others fade out eventually
-	local lifetime = if meta and meta.From then SETTINGS.ReturnSeconds else SETTINGS.GroundLifetime
+	local lifetime = if meta and meta.From then SETTINGS.ReturnSeconds else (opts.Lifetime or SETTINGS.GroundLifetime)
 	task.delay(lifetime, function()
 		if ground[model] then
 			destroyGround(model)
@@ -7410,6 +7317,7 @@ local function deliver(player: Player)
 	end
 	local result, coins = Services.BaseService:AddShard(player, id)
 	Services.ProgressionService:AddQuest(player, "Shard", 1)
+	Services.ProgressionService:TutorialEvent(player, "Shard", 1)
 	local index = Util.ShardIndex(Config, id)
 	Services.ProgressionService:AddPoints(player, SETTINGS.Points[index] or 10)
 	Net:Send(player, "ShardDelivered", id, result, coins)
@@ -7455,6 +7363,33 @@ function Shards:FallingStar(forcedZone: number?)
 		Net:Announce("🌠 A falling star crashed in %s! Grab the %s!", SETTINGS.Rarities[id].Color, where, rarityName(id))
 	end)
 	return id
+end
+
+-- tutorial: a guaranteed star just for this player, landing in the hub
+local tutorialStars = {} -- [player] = ground model
+function Shards:TutorialStar(player: Player)
+	local existing = tutorialStars[player]
+	if existing and existing.Parent then
+		return
+	end
+	if carrying[player] then
+		return
+	end
+	local position = Vector3.new(-30, 0, -38) + Vector3.new(rng:NextNumber(-4, 4), 0, rng:NextNumber(-4, 4))
+	local flight = 1.6
+	Net:Send(player, "StarFall", position, "Rare", flight)
+	task.delay(flight, function()
+		if not player.Parent then
+			return
+		end
+		tutorialStars[player] = self:SpawnGround("Rare", position, nil, {
+			Beacon = true,
+			PriorityUser = player.UserId,
+			PriorityUntil = now() + 300,
+			Lifetime = 600,
+		})
+		Net:Notify(player, "🌠 A star fell just for you! Grab it!", Color3.fromRGB(120, 230, 255))
+	end)
 end
 
 -- ranking = { { Player = p, Score = n }, ... } best first
@@ -7540,6 +7475,11 @@ function Shards:Start()
 	end
 
 	Players.PlayerRemoving:Connect(function(player)
+		local star = tutorialStars[player]
+		tutorialStars[player] = nil
+		if star and ground[star] then
+			destroyGround(star)
+		end
 		local info = carrying[player]
 		if info then
 			endCarry(player)
@@ -7703,15 +7643,6 @@ function Stats:Luck(player, _data): number
 	return luck
 end
 
-function Stats:Capacity(player, data): number
-	local backpack = Config.Backpacks[data.BackpackTier] or Config.Backpacks[1]
-	local cap = backpack.Capacity
-	if has(player, "BigBackpack") then
-		cap *= 2
-	end
-	return cap
-end
-
 -- weekly-points standing among players in THIS server (+ who to beat next)
 serverRank = function(player: Player, data)
 	local list = {}
@@ -7750,7 +7681,6 @@ function Stats:BuildDerived(player)
 		Damage = self:Damage(player, data),
 		CoinMult = self:CoinMultiplier(player, data),
 		Luck = self:Luck(player, data),
-		Capacity = self:Capacity(player, data),
 		Cooldown = (Config.Pickaxes[data.PickaxeTier] or Config.Pickaxes[1]).Cooldown, -- client applies FEVER itself
 		PetSlots = self:PetSlots(player, data),
 		PetPower = self:PetPower(player, data),
@@ -8368,20 +8298,40 @@ local function buildHub()
 		end
 	end
 	sign(Vector3.new(-18, 9, -46), "👍 LIKE + ⭐ FAVORITE\nfor new CODES & updates!", Color3.fromRGB(255, 220, 90))
-	sign(Vector3.new(18, 9, -46), "☄️ METEOR every 7 min\n🎡 FREE SPIN • 🏆 WEEKLY RANKS", Color3.fromRGB(120, 230, 255))
+	sign(Vector3.new(18, 9, -46), "⛏️ Tap ore = 💰 coins\n🌠 Carry stars home = 💰 every second", Color3.fromRGB(120, 230, 255))
 
-	-- sell pad
-	local sell = newPart({
-		Name = "SellPad",
+	-- plaza centerpiece: star fountain (ore pays coins directly, no selling)
+	newPart({
+		Name = "FountainBasin",
 		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.4, 16, 16),
-		CFrame = CFrame.new(0, 0.2, -25) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(60, 255, 120),
+		Size = Vector3.new(2, 15, 15),
+		CFrame = CFrame.new(0, 1, -25) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(235, 235, 245),
+		Material = Enum.Material.Marble,
+	}, hub)
+	newPart({
+		Name = "FountainWater",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.3, 13, 13),
+		CFrame = CFrame.new(0, 2.05, -25) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(90, 190, 255),
+		Material = Enum.Material.Glass,
+		Transparency = 0.25,
+		CanCollide = false,
+	}, hub)
+	local statue = newPart({
+		Name = "FountainStar",
+		Size = Vector3.new(2.4, 5, 2.4),
+		CFrame = CFrame.new(0, 6, -25) * CFrame.Angles(0, math.rad(45), math.rad(15)),
+		Color = Color3.fromRGB(120, 220, 255),
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 	}, hub)
-	billboard(sell, "💰 SELL ORE", Color3.fromRGB(120, 255, 150), 6, 12, 3.2)
-	World.SellPad = sell
+	local glow = Instance.new("PointLight")
+	glow.Color = statue.Color
+	glow.Range = 18
+	glow.Brightness = 2
+	glow.Parent = statue
 
 	-- meteor crater
 	local crater = newPart({
@@ -8412,8 +8362,6 @@ local function buildHub()
 	local shops = folder("Shops", hub)
 	local pick = booth(Vector3.new(56, 0, -45), "⛏️ PICKAXES", Color3.fromRGB(255, 170, 60), shops)
 	prompt(pick, "Open", "Pickaxe Shop", openPanel("Shop", "Pickaxes"))
-	local bag = booth(Vector3.new(56, 0, -20), "🎒 BACKPACKS", Color3.fromRGB(80, 170, 255), shops)
-	prompt(bag, "Open", "Backpack Shop", openPanel("Shop", "Backpacks"))
 	local rebirth = booth(Vector3.new(56, 0, 5), "♻️ REBIRTH", Color3.fromRGB(190, 90, 255), shops)
 	prompt(rebirth, "Open", "Rebirth Altar", openPanel("Rebirth"))
 	local store = booth(Vector3.new(56, 0, 30), "🛒 STORE", Color3.fromRGB(80, 220, 120), shops)
@@ -8477,6 +8425,8 @@ local function buildBaseDistrict()
 	local length = bases.ZStart - bases.ZEnd
 	local centerZ = (bases.ZStart + bases.ZEnd) / 2
 	local wallColor = Color3.fromRGB(70, 72, 92)
+	local streets = Config.Base.Streets
+	local plazaDepth = 14 -- east-west plaza right behind the gate
 
 	-- corridor from the hub's south gate
 	newPart({
@@ -8502,22 +8452,57 @@ local function buildBaseDistrict()
 		Color = Color3.fromRGB(58, 62, 84),
 		Material = Enum.Material.Slate,
 	}, district)
+
+	-- entrance plaza linking the gate to every street
+	local lastStreet = math.max(math.abs(streets[1]), math.abs(streets[#streets]))
 	newPart({
-		Name = "Road",
-		Size = Vector3.new(22, 0.2, length),
-		CFrame = CFrame.new(0, 0.05, centerZ),
+		Name = "Plaza",
+		Size = Vector3.new(lastStreet * 2 + 22, 0.2, plazaDepth),
+		CFrame = CFrame.new(0, 0.05, bases.ZStart - plazaDepth / 2),
 		Color = Color3.fromRGB(200, 190, 170),
 		Material = Enum.Material.Cobblestone,
 	}, district)
-	for _, side in { -1, 1 } do
+
+	local streetLength = length - plazaDepth
+	local streetZ = bases.ZStart - plazaDepth - streetLength / 2
+	for _, x in streets do
 		newPart({
-			Name = "RoadLine",
-			Size = Vector3.new(0.6, 0.25, length),
-			CFrame = CFrame.new(side * 11.5, 0.08, centerZ),
-			Color = Color3.fromRGB(120, 230, 255),
-			Material = Enum.Material.Neon,
-			CanCollide = false,
+			Name = "Street",
+			Size = Vector3.new(20, 0.2, streetLength),
+			CFrame = CFrame.new(x, 0.05, streetZ),
+			Color = Color3.fromRGB(200, 190, 170),
+			Material = Enum.Material.Cobblestone,
 		}, district)
+		for _, side in { -1, 1 } do
+			newPart({
+				Name = "StreetLine",
+				Size = Vector3.new(0.6, 0.25, streetLength),
+				CFrame = CFrame.new(x + side * 10.5, 0.08, streetZ),
+				Color = Color3.fromRGB(120, 230, 255),
+				Material = Enum.Material.Neon,
+				CanCollide = false,
+			}, district)
+		end
+		for z = bases.ZStart - plazaDepth - 30, bases.ZEnd + 30, -36 do
+			speedPad(Vector3.new(x, 0, z), math.pi, district)
+		end
+		for z = bases.ZStart - plazaDepth, bases.ZEnd + 4, -36 do -- between plot rows
+			lamp(Vector3.new(x - 12, 0, z), Color3.fromRGB(140, 220, 255), district)
+			lamp(Vector3.new(x + 12, 0, z), Color3.fromRGB(140, 220, 255), district)
+		end
+	end
+	-- dash pads on the plaza, pointing to each street
+	for _, x in streets do
+		speedPad(Vector3.new(x * 0.5, 0, bases.ZStart - plazaDepth / 2), if x > 0 then -math.pi / 2 else math.pi / 2, district)
+	end
+
+	-- park strip between the inner plots
+	for z = bases.ZStart - plazaDepth - 24, bases.ZEnd + 16, -30 do
+		tree(Vector3.new(0, 0, z), district)
+	end
+
+	-- walls
+	for _, side in { -1, 1 } do
 		wall(CFrame.new(side * (halfX + 1), WALL_H / 2, centerZ), Vector3.new(2, WALL_H, length + 2), wallColor, district)
 		local segment = halfX - CORRIDOR_W / 2
 		wall(
@@ -8528,14 +8513,6 @@ local function buildBaseDistrict()
 		)
 	end
 	wall(CFrame.new(0, WALL_H / 2, bases.ZEnd - 1), Vector3.new(halfX * 2 + 4, WALL_H, 2), wallColor, district)
-
-	for z = bases.ZStart - 14, bases.ZEnd + 10, -36 do
-		lamp(Vector3.new(-13.5, 0, z), Color3.fromRGB(140, 220, 255), district)
-		lamp(Vector3.new(13.5, 0, z), Color3.fromRGB(140, 220, 255), district)
-	end
-	for z = bases.ZStart - 28, bases.ZEnd + 40, -40 do
-		speedPad(Vector3.new(0, 0, z), math.pi, district)
-	end
 
 	-- twinkling stars above the district (it's where the shards live)
 	local sky = newPart({
@@ -8553,7 +8530,7 @@ local function buildBaseDistrict()
 	emitter.LightEmission = 1
 	emitter.Size = NumberSequence.new(0.35)
 	emitter.Lifetime = NumberRange.new(3, 5)
-	emitter.Rate = 18
+	emitter.Rate = 24
 	emitter.Speed = NumberRange.new(0.3, 1)
 	emitter.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 1),
@@ -9001,7 +8978,7 @@ local function build()
 	local list = Lib.New("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, -40), Visible = false, Parent = cluster }, {
 		Lib.List(Enum.FillDirection.Vertical, 4, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Bottom),
 	})
-	for order, command in { "Coins", "Gems", "Level", "Points", "Star", "Shard", "Event", "Rainbow", "Spin", "Meteor", "Fill", "Reset" } do
+	for order, command in { "Coins", "Gems", "Level", "Points", "Star", "Shard", "Event", "Rainbow", "Spin", "Meteor", "Reset" } do
 		Lib.Button({
 			Text = command,
 			Color = if command == "Reset" then C.Red else C.Gray,
@@ -9157,11 +9134,6 @@ local function mineTarget(root: BasePart, data)
 	return MINE_ENTRANCE, T("⛏️ MINE ORE HERE")
 end
 
-local function sellTarget()
-	local pad = part({ "Hub", "SellPad" })
-	return pad and pad.Position + Vector3.new(0, 1, 0), T("💰 SELL HERE")
-end
-
 -- your base's entrance (collect pad)
 local function baseTarget()
 	local index = player:GetAttribute("BaseIndex")
@@ -9204,14 +9176,17 @@ local function pickTarget(root: BasePart)
 			return home, T("🏠 BRING IT HOME")
 		end
 	end
-	local capacity = derived.Capacity or math.huge
 	local tutorial = data.Tutorial
 	if tutorial and not tutorial.Done then
 		local step = Config.Tutorial.Steps[tutorial.Step]
 		local id = step and step.Id
-		if id == "Sell" or (data.Backpack >= capacity and id ~= "Mine") then
-			return sellTarget()
-		elseif id == "Pickaxe" and data.Coins >= Config.Pickaxes[2].Cost then
+		if id == "Shard" then
+			local shard = shardTarget(root, data)
+			if shard then
+				return shard, T("🌠 GRAB THE SHARD")
+			end
+		end
+		if id == "Pickaxe" and data.Coins >= Config.Pickaxes[2].Cost then
 			return PICKAXE_SHOP, T("⛏️ BUY A PICKAXE")
 		elseif id == "Hatch" and data.Coins >= Config.Eggs.Meadow.Price then
 			local egg = part({ "Hub", "Eggs", "MeadowEgg" })
@@ -9225,9 +9200,6 @@ local function pickTarget(root: BasePart)
 	end
 	if (data.Level or 1) >= MAX_LEVEL or data.ZoneLevel >= 3 then
 		return nil
-	end
-	if data.Backpack >= capacity then
-		return sellTarget()
 	end
 	local zone = Config.Zones[data.ZoneLevel + 1]
 	if zone and data.Coins >= zone.Cost then
@@ -9292,9 +9264,9 @@ return {}
               <string name="Source"><![CDATA[--[[
 	Main HUD - designed for phones first and to reveal things gradually:
 	  * top center: ONE objective (tutorial step or next goal) + guide beam
-	  * top left: money, level, backpack, and a menu that grows with progress
+	  * top left: money, level, and a menu that grows with progress
 	  * right: server event, boosts, your rank in this server
-	  * bottom: backpack-full helper, auto mine / starter pack (after tutorial)
+	  * bottom: auto mine / starter pack (after tutorial)
 	Plus toasts, announcements and celebrations (level up, rank up, tutorial).
 ]]
 local GuiService = game:GetService("GuiService")
@@ -9432,7 +9404,7 @@ local objectiveFill = New("Frame", {
 }, { Lib.Corner(3) })
 
 ---------------------------------------------------------------------------
--- top left: money, level, backpack, menu
+-- top left: money, level, menu
 ---------------------------------------------------------------------------
 local topLeft = Root.Cluster("TopLeft", Vector2.zero, UDim2.fromOffset(12, 12), UDim2.fromOffset(260, 520))
 Lib.List(Enum.FillDirection.Vertical, 5, Enum.HorizontalAlignment.Left).Parent = topLeft
@@ -9474,26 +9446,6 @@ local levelBadge = Lib.Text({ Text = "Lv.1", TextColor3 = C.Gold, Size = UDim2.f
 local _, setLevel =
 	Lib.Bar({ Size = UDim2.fromOffset(152, 18), Position = UDim2.fromOffset(56, 3), Color = C.Gold, TextSize = 12, Parent = levelRow })
 
-local backpackRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(250, 34), LayoutOrder = 5, Parent = topLeft })
-local _, setBackpack =
-	Lib.Bar({ Size = UDim2.fromOffset(160, 30), Position = UDim2.fromOffset(0, 2), Color = C.Blue, TextSize = 16, Parent = backpackRow })
-Lib.Button({
-	Text = "💰 Sell",
-	Color = C.Green,
-	Size = UDim2.fromOffset(82, 32),
-	Position = UDim2.fromOffset(166, 1),
-	TextSize = 16,
-	Parent = backpackRow,
-	OnClick = function()
-		if State.HasPass("AutoSell") then
-			Net.Fire("SellAnywhere")
-		else
-			HUD.Toast(T("Sell at the 💰 SELL pad in the hub - or anywhere with Auto Sell!"), C.Green)
-			Upsell.Pass("AutoSell", true)
-		end
-	end,
-})
-
 -- menu that grows as the player progresses (no wall of buttons on day one)
 local menu =
 	New("Frame", { Name = "Menu", BackgroundTransparency = 1, Size = UDim2.fromOffset(222, 300), LayoutOrder = 6, Parent = topLeft })
@@ -9515,7 +9467,7 @@ local MENU = {
 		"Upgrade",
 		C.Gold,
 		function(d)
-			return tutorialAt(d, 3)
+			return tutorialAt(d, 2)
 		end,
 	},
 	{
@@ -9524,7 +9476,7 @@ local MENU = {
 		"Pets",
 		C.Green,
 		function(d)
-			return tutorialAt(d, 4)
+			return tutorialAt(d, 3)
 		end,
 	},
 	{ "Rewards", "🎁", "Rewards", C.Pink, tutorialDone },
@@ -9720,7 +9672,7 @@ for order, def in BOOSTS do
 end
 
 ---------------------------------------------------------------------------
--- bottom: backpack-full helper, auto mine, starter pack
+-- bottom: auto mine, starter pack
 ---------------------------------------------------------------------------
 local bottom = Root.Cluster("Bottom", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -12), UDim2.fromOffset(640, 116))
 local bottomRow = New(
@@ -9755,58 +9707,12 @@ local starterButton = Lib.Button({
 		Upsell.Product("StarterPack", true)
 	end,
 })
-local fullFrame = New("Frame", {
-	BackgroundColor3 = Color3.fromRGB(60, 20, 25),
-	BackgroundTransparency = 0.1,
-	Size = UDim2.fromOffset(540, 54),
-	Position = UDim2.new(0.5, 0, 0, 0),
-	AnchorPoint = Vector2.new(0.5, 0),
-	Visible = false,
-	Parent = bottom,
-}, { Lib.Corner(14), Lib.Stroke(C.Red, 2.5, 0) })
-Lib.Text({
-	Text = "🎒 BACKPACK FULL!",
-	TextColor3 = C.Red,
-	Size = UDim2.fromOffset(190, 40),
-	Position = UDim2.fromOffset(10, 7),
-	MaxTextSize = 22,
-	Parent = fullFrame,
-})
-Lib.Button({
-	Text = "🏠 Go sell",
-	Color = C.Green,
-	Size = UDim2.fromOffset(160, 42),
-	Position = UDim2.fromOffset(204, 6),
-	Parent = fullFrame,
-	OnClick = function()
-		if State.HasPass("AutoSell") then
-			Net.Fire("SellAnywhere")
-		else
-			Net.Fire("Teleport", 0)
-		end
-	end,
-})
-Lib.Button({
-	Text = "🎒 Upgrade",
-	Color = C.Blue,
-	Size = UDim2.fromOffset(160, 42),
-	Position = UDim2.fromOffset(372, 6),
-	Parent = fullFrame,
-	OnClick = function()
-		Panels.Open("Shop", "Backpacks")
-	end,
-})
-
 ---------------------------------------------------------------------------
 -- objective logic
 ---------------------------------------------------------------------------
 local function nextGoal(data, derived): string
-	local capacity = derived.Capacity or 1
 	if player:GetAttribute("Carrying") then
 		return T("Run to your base 🏠 before someone bonks you!")
-	end
-	if data.Backpack >= capacity then
-		return T("Sell your ore at the 💰 SELL pad in the hub!")
 	end
 	local base = data.Base
 	if base and #base.Shards == 0 then
@@ -9816,7 +9722,6 @@ local function nextGoal(data, derived): string
 		return T("Collect 💰%s at your base 🏠", Util.Format(player:GetAttribute("BaseBank") or 0))
 	end
 	local pick = Config.Pickaxes[data.PickaxeTier + 1]
-	local bag = Config.Backpacks[data.BackpackTier + 1]
 	local zone = Config.Zones[data.ZoneLevel + 1]
 	if data.Coins >= (derived.RebirthCost or math.huge) then
 		return T("You can REBIRTH for a permanent coin boost!")
@@ -9827,17 +9732,14 @@ local function nextGoal(data, derived): string
 	if pick and data.Coins >= pick.Cost then
 		return T("Buy the %s!", pick.Name)
 	end
-	if bag and data.Coins >= bag.Cost then
-		return T("Buy the %s!", bag.Name)
-	end
 	local cheapest = math.huge
-	for _, cost in { pick and pick.Cost, bag and bag.Cost, zone and zone.Cost } do
+	for _, cost in { pick and pick.Cost, zone and zone.Cost } do
 		if cost then
 			cheapest = math.min(cheapest, cost)
 		end
 	end
 	if cheapest < math.huge then
-		return T("Mine & sell: %s / %s coins for the next upgrade", Util.Format(data.Coins), Util.Format(cheapest))
+		return T("Mine: %s / %s coins for the next upgrade", Util.Format(data.Coins), Util.Format(cheapest))
 	end
 	return T("Climb the weekly ranked leaderboard!")
 end
@@ -9854,11 +9756,13 @@ local function currentObjective(data, derived)
 			if step.Id == "Mine" then
 				text = string.format("%s  (%d/%d)", text, tutorial.Progress, step.Target)
 			elseif step.Id == "Pickaxe" and data.Coins < Config.Pickaxes[2].Cost then
-				text = T("Mine & sell ore until you have %s coins", Util.Format(Config.Pickaxes[2].Cost))
+				text = T("Mine ore until you have %s coins", Util.Format(Config.Pickaxes[2].Cost))
 				progress = data.Coins / Config.Pickaxes[2].Cost
 			elseif step.Id == "Hatch" and data.Coins < Config.Eggs.Meadow.Price then
-				text = T("Mine & sell ore until you have %s coins", Util.Format(Config.Eggs.Meadow.Price))
+				text = T("Mine ore until you have %s coins", Util.Format(Config.Eggs.Meadow.Price))
 				progress = data.Coins / Config.Eggs.Meadow.Price
+			elseif step.Id == "Shard" and player:GetAttribute("Carrying") then
+				text = T("Run to your base 🏠 before someone bonks you!")
 			end
 			return string.format("📘 %d/%d  %s", tutorial.Step, #steps, text), progress
 		end
@@ -9960,15 +9864,6 @@ function HUD.Refresh()
 	local need = derived.XPNeeded or 1
 	levelBadge.Text = "Lv." .. (data.Level or 1)
 	setLevel((data.XP or 0) / need, string.format("%s / %s XP", Util.Format(data.XP or 0), Util.Format(need)))
-
-	local capacity = derived.Capacity or 1
-	local full = data.Backpack >= capacity
-	setBackpack(
-		data.Backpack / capacity,
-		string.format("🎒 %s/%s", Util.Format(data.Backpack), Util.Format(capacity)),
-		if full then C.Red else C.Blue
-	)
-	fullFrame.Visible = full
 
 	-- objective
 	local text, progress = currentObjective(data, derived)
@@ -10156,10 +10051,6 @@ Net.On("Reward", function(text, source)
 	HUD.Toast("🎁 " .. (if source then source .. ": " else "") .. text, C.Gold)
 	Lib.PlaySound("Reward")
 end)
-Net.On("Sold", function(coins)
-	Lib.PlaySound("Coin")
-	flyCoins(coins)
-end)
 Net.On("LevelUp", function(level, gems)
 	Lib.PlaySound("LevelUp")
 	celebrate(T("⭐ LEVEL %s!", tostring(level)), T("+%s 💎  •  +2%% coins forever", tostring(gems)), C.Gold)
@@ -10197,11 +10088,6 @@ Net.On("OpenPanel", function(panel, arg)
 		end
 	else
 		Panels.Open(panel, arg)
-	end
-end)
-Net.On("BackpackFull", function()
-	if not State.HasPass("AutoSell") and State.Data and tutorialDone(State.Data) then
-		Upsell.Pass("AutoSell")
 	end
 end)
 
@@ -10921,11 +10807,6 @@ local function nearestCarrier(root: BasePart): BasePart?
 	return best
 end
 
-local function backpackFull(): boolean
-	local data, derived = State.Data, State.Derived
-	return data ~= nil and derived ~= nil and derived.Capacity ~= nil and data.Backpack >= derived.Capacity
-end
-
 local function bindTool(newTool: Tool)
 	tool = newTool
 end
@@ -11135,7 +11016,7 @@ RunService.Heartbeat:Connect(function()
 			setTarget({ Kind = "Meteor", Part = meteor }, false)
 		elseif carrierRoot then
 			setTarget({ Kind = "Player", Part = carrierRoot }, true)
-		elseif not backpackFull() then
+		else
 			local ore = nearestOre(root)
 			if ore then
 				setTarget({ Kind = "Ore", Part = ore }, true)
@@ -14178,7 +14059,7 @@ function Rebirth.Build(content, ctx)
 		Parent = content,
 	})
 	Lib.Text({
-		Text = "⚠️ Resets: coins, pickaxe, backpack.  Keeps: pets, zones, gems, stardust, passes.",
+		Text = "⚠️ Resets: coins, pickaxe.  Keeps: pets, zones, base, shards, gems, passes.",
 		Font = Lib.BodyFont,
 		TextColor3 = C.Sub,
 		Size = UDim2.new(1, -40, 0, 22),
@@ -14406,7 +14287,7 @@ return Settings
             <Item class="ModuleScript" referent="59">
               <Properties>
                 <string name="Name">Shop</string>
-                <string name="Source"><![CDATA[-- Pickaxe & backpack upgrades (coins sink, sequential tiers)
+                <string name="Source"><![CDATA[-- Pickaxe upgrades (coins sink, sequential tiers)
 local Shop = { Title = "⛏️ UPGRADES", Color = Color3.fromRGB(255, 160, 50) }
 
 function Shop.Build(content, ctx)
@@ -14426,9 +14307,9 @@ function Shop.Build(content, ctx)
 	local refresh
 
 	local tabButtons = {}
-	for i, name in { "Pickaxes", "Backpacks" } do
+	for i, name in { "Pickaxes" } do
 		local button = Lib.Button({
-			Text = if name == "Pickaxes" then "⛏️ Pickaxes" else "🎒 Backpacks",
+			Text = "⛏️ Pickaxes",
 			Color = C.Blue,
 			Size = UDim2.fromOffset(170, 40),
 			LayoutOrder = i,
@@ -14459,7 +14340,7 @@ function Shop.Build(content, ctx)
 				Parent = row,
 			}, { Lib.Corner(10), Lib.Stroke(Color3.new(0, 0, 0), 2, 0.4) })
 			Lib.Text({
-				Text = if tab == "Pickaxes" then "⛏️" else "🎒",
+				Text = "⛏️",
 				Size = UDim2.fromScale(0.8, 0.8),
 				Position = UDim2.fromScale(0.1, 0.1),
 				Parent = swatch,
@@ -14472,9 +14353,7 @@ function Shop.Build(content, ctx)
 				MaxTextSize = 24,
 				Parent = row,
 			})
-			local statText = if tab == "Pickaxes"
-				then T("💥 Power %s  •  ⚡ %ss swing", Util.Format(item.Power), string.format("%.2f", item.Cooldown))
-				else T("🎒 Holds %s ore", Util.Format(item.Capacity))
+			local statText = T("💥 Power %s  •  ⚡ %ss swing", Util.Format(item.Power), string.format("%.2f", item.Cooldown))
 			Lib.Text({
 				Text = statText,
 				Font = Lib.BodyFont,
@@ -14491,7 +14370,7 @@ function Shop.Build(content, ctx)
 				AnchorPoint = Vector2.new(0, 0.5),
 				Parent = row,
 				OnClick = function()
-					Net.Fire(if tab == "Pickaxes" then "BuyPickaxe" else "BuyBackpack")
+					Net.Fire("BuyPickaxe")
 				end,
 			})
 			rows[tier] = { Button = button, Item = item }
@@ -14511,7 +14390,7 @@ function Shop.Build(content, ctx)
 		for name, button in tabButtons do
 			Lib.SetButton(button, nil, if name == tab then C.Gold else C.Gray)
 		end
-		local current = if tab == "Pickaxes" then data.PickaxeTier else data.BackpackTier
+		local current = data.PickaxeTier
 		for tier, row in rows do
 			if tier <= current then
 				Lib.SetButton(row.Button, if tier == current then "EQUIPPED" else "OWNED", C.Gray)
@@ -14525,10 +14404,8 @@ function Shop.Build(content, ctx)
 	end
 
 	return {
-		OnOpen = function(arg)
-			if arg == "Backpacks" or arg == "Pickaxes" then
-				tab = arg
-			end
+		OnOpen = function()
+			tab = "Pickaxes"
 		end,
 		Refresh = refresh,
 	}
@@ -15184,7 +15061,7 @@ return Root
             <Properties>
               <string name="Name">Upsell</string>
               <string name="Source"><![CDATA[--[[
-	Contextual upsell popup ("Backpack full? Get Auto Sell!"). Shown at the
+	Contextual upsell popup ("Want to mine while AFK? Get Auto Mine!"). Shown at the
 	exact moment a pass would help - far better conversion than a store page.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

@@ -107,8 +107,23 @@ function Progression:TutorialEvent(player: Player, id: string, amount: number?)
 		Net:Send(player, "TutorialDone", self:RewardText(player, Config.Tutorial.FinalReward))
 	else
 		Net:Send(player, "TutorialStep", tutorial.Step, self:RewardText(player, step.Reward))
+		self:TutorialSetup(player)
 	end
 	Data:MarkDirty(player)
+end
+
+-- some steps need the world to cooperate (a star to carry home)
+function Progression:TutorialSetup(player: Player)
+	local data = Data:Get(player)
+	local tutorial = data and data.Tutorial
+	local step = tutorial and not tutorial.Done and Config.Tutorial.Steps[tutorial.Step]
+	if step and step.Id == "Shard" then
+		task.delay(2, function()
+			if player.Parent then
+				Services.ShardService:TutorialStar(player)
+			end
+		end)
+	end
 end
 
 -- player level: every block gives XP; level-ups give gems + a permanent coin bonus
@@ -293,6 +308,11 @@ function Progression:Start()
 		if not data.Tutorial.Done and data.Stats.EggsHatched > 0 and data.PickaxeTier > 1 then
 			data.Tutorial.Done = true
 		end
+		task.delay(6, function()
+			if player.Parent then
+				self:TutorialSetup(player)
+			end
+		end)
 		checkRollovers(player, data, true)
 		-- daily reward reminder
 		if data.Daily.LastClaimDay ~= Util.DayNumber() then

@@ -33,7 +33,7 @@ function Rebirth.Build(content, ctx)
 		Parent = content,
 	})
 	Lib.Text({
-		Text = "⚠️ Resets: coins, pickaxe, backpack.  Keeps: pets, zones, gems, stardust, passes.",
+		Text = "⚠️ Resets: coins, pickaxe.  Keeps: pets, zones, base, shards, gems, passes.",
 		Font = Lib.BodyFont,
 		TextColor3 = C.Sub,
 		Size = UDim2.new(1, -40, 0, 22),

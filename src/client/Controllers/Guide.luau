@@ -114,11 +114,6 @@ local function mineTarget(root: BasePart, data)
 	return MINE_ENTRANCE, T("⛏️ MINE ORE HERE")
 end
 
-local function sellTarget()
-	local pad = part({ "Hub", "SellPad" })
-	return pad and pad.Position + Vector3.new(0, 1, 0), T("💰 SELL HERE")
-end
-
 -- your base's entrance (collect pad)
 local function baseTarget()
 	local index = player:GetAttribute("BaseIndex")
@@ -161,14 +156,17 @@ local function pickTarget(root: BasePart)
 			return home, T("🏠 BRING IT HOME")
 		end
 	end
-	local capacity = derived.Capacity or math.huge
 	local tutorial = data.Tutorial
 	if tutorial and not tutorial.Done then
 		local step = Config.Tutorial.Steps[tutorial.Step]
 		local id = step and step.Id
-		if id == "Sell" or (data.Backpack >= capacity and id ~= "Mine") then
-			return sellTarget()
-		elseif id == "Pickaxe" and data.Coins >= Config.Pickaxes[2].Cost then
+		if id == "Shard" then
+			local shard = shardTarget(root, data)
+			if shard then
+				return shard, T("🌠 GRAB THE SHARD")
+			end
+		end
+		if id == "Pickaxe" and data.Coins >= Config.Pickaxes[2].Cost then
 			return PICKAXE_SHOP, T("⛏️ BUY A PICKAXE")
 		elseif id == "Hatch" and data.Coins >= Config.Eggs.Meadow.Price then
 			local egg = part({ "Hub", "Eggs", "MeadowEgg" })
@@ -182,9 +180,6 @@ local function pickTarget(root: BasePart)
 	end
 	if (data.Level or 1) >= MAX_LEVEL or data.ZoneLevel >= 3 then
 		return nil
-	end
-	if data.Backpack >= capacity then
-		return sellTarget()
 	end
 	local zone = Config.Zones[data.ZoneLevel + 1]
 	if zone and data.Coins >= zone.Cost then

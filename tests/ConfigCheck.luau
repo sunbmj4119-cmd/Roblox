@@ -44,7 +44,7 @@ end
 local BOOSTS = { Coins2x = true, Luck2x = true, Power2x = true }
 local QUEST_TYPES = {
 	MineBlocks = true,
-	Sell = true,
+	Collect = true,
 	Hatch = true,
 	MeteorJoin = true,
 	MeteorTop3 = true,
@@ -147,7 +147,7 @@ end
 checkReward(Config.StarterPack.Reward, "StarterPack")
 
 -- upgrades
-for _, list in { "Pickaxes", "Backpacks" } do
+for _, list in { "Pickaxes" } do
 	for tier = 2, #Config[list] do
 		check(Config[list][tier].Cost > Config[list][tier - 1].Cost, list .. " costs must increase at tier " .. tier)
 	end
@@ -253,7 +253,7 @@ check(math.abs(counts.Bunny / 20000 - 0.40) < 0.02, "WeightedPick distribution o
 
 -- tutorial: valid steps, and a brand-new player (0 coins) can always afford
 -- the pickaxe and the first egg from the step rewards alone (no dead end)
-local TUTORIAL_EVENTS = { Mine = true, Sell = true, Pickaxe = true, Hatch = true }
+local TUTORIAL_EVENTS = { Mine = true, Pickaxe = true, Hatch = true, Shard = true }
 for i, step in Config.Tutorial.Steps do
 	check(TUTORIAL_EVENTS[step.Id] == true, "tutorial step " .. i .. " has unknown Id " .. tostring(step.Id))
 	check(type(step.Target) == "number" and step.Target >= 1, "tutorial step " .. i .. " bad Target")
@@ -296,6 +296,13 @@ do
 	end
 	local base = Config.Base
 	check(#base.PedestalCosts == base.MaxPedestals, "Base.PedestalCosts needs MaxPedestals entries")
+	local district = Config.World.Bases
+	local rows = math.ceil(base.Plots / (2 * #base.Streets))
+	local lastRowEdge = district.ZStart - 32 - (rows - 1) * 36 - 16
+	check(lastRowEdge > district.ZEnd, string.format("%d plots need %d rows - the district (ZEnd) is too short", base.Plots, rows))
+	for _, x in base.Streets do
+		check(math.abs(x) + 30 + 16 < district.HalfX, "street at x=" .. x .. " puts plots outside the district")
+	end
 	check(base.StartPedestals >= 1 and base.StartPedestals <= base.MaxPedestals, "Base.StartPedestals out of range")
 	for i = 2, #base.PedestalCosts do
 		check(base.PedestalCosts[i] >= base.PedestalCosts[i - 1], "pedestal costs must not go down")

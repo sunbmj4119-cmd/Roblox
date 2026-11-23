@@ -31,7 +31,7 @@
 ### Studio 테스트 팁
 - **Game Settings → Security → Enable Studio Access to API Services**를 켜면 DataStore 저장과 리더보드가 동작합니다. 꺼져 있어도 임시 데이터로 플레이할 수 있습니다.
 - 상품 ID가 `0`인 상태에서는 **Studio에서 구매가 즉시 시뮬레이션됩니다** (`[TEST]` 표시). 모든 결제 흐름을 실제 상품을 만들기 전에 테스트할 수 있습니다.
-- 화면 왼쪽 아래 **🛠 DEV** 버튼(Studio에서만 보임)으로 코인·젬·랭크 점수·시즌 XP를 지급하고, 운석을 즉시 소환하고, 가방을 채우고, 데이터를 초기화할 수 있습니다. 라이브 서버에서는 서버가 차단합니다.
+- 화면 왼쪽 아래 **🛠 DEV** 버튼(Studio에서만 보임)으로 코인·젬·랭크 점수·시즌 XP를 지급하고, 운석을 즉시 소환하고, 별/조각을 테스트하고, 데이터를 초기화할 수 있습니다. 라이브 서버에서는 서버가 차단합니다.
 - 운석이 빨리 보고 싶다면 DEV → Meteor를 누르거나 `Config.Meteor.IntervalSeconds`를 줄이세요. 서버 시작 후 첫 운석은 최대 150초 뒤에 떨어집니다.
 - 설정 검증: [Lune](https://lune-org.github.io/docs)을 설치한 뒤 `lune run tests/ConfigCheck.luau`를 실행하면 펫·광석·상품 이름 오타와 확률 합계를 검사합니다.
 - 번역 검증: `python3 tests/lang_keys.py`(코드의 모든 문구가 `src/shared/LangKO.luau`에 있는지 + `%s`/`%d` 순서 일치)와 `lune run tests/LangCheck.luau`(실제 포맷 동작). `tools/publish.sh`는 이 검사가 실패하면 게시하지 않습니다.
@@ -52,7 +52,7 @@
 - 진열된 조각은 **매초 코인**을 기지 금고에 쌓습니다(오프라인 50%, 최대 2시간). 초록 발판을 밟아 받기, 빨간 발판은 60초 잠금.
 - 다른 사람 기지의 조각을 **길게 눌러 훔칠 수** 있고, 주인은 도둑을 때려 되찾습니다(떨어진 조각은 10초 뒤 자동 귀환).
 - 진열대 추가 구매(코인), 조각 판매 가능. 수치는 `Config.Shards`, `Config.Base`.
-- **서버 인원은 8명**으로 설정하세요(기지 8개): Creator Dashboard → 게임 → Places → 해당 플레이스 → Server size(최대 인원) = 8. 넘치는 인원은 기지가 빌 때까지 대기합니다.
+- **서버 인원은 16명**으로 설정하세요(기지 16개, 거리 2개): Creator Dashboard → 게임 → Places → 해당 플레이스 → Server size(최대 인원) = 16. 넘치는 인원은 기지가 빌 때까지 대기합니다. 기지 수는 `Config.Base.Plots`/`Streets`로 바꿀 수 있습니다.
 
 ### 🔥 속도감
 - 콤보 12 → **피버**(8초: 광석 2배, 스윙 빠름, 매 타격 충격파, 이동 +20%). 크리티컬은 주변 블록까지 부수는 충격파.
@@ -60,7 +60,7 @@
 - DEV 메뉴: **Star**(내 앞에 별 떨어뜨리기), **Shard**(조각 바로 들기)로 즉시 테스트.
 
 ### 📘 튜토리얼
-- 처음 들어온 유저는 화면 위 카드에 **한 번에 하나의 목표**만 봅니다: 광석 5개 캐기 → 판매 → 곡괭이 구매 → 첫 펫 부화 (단계마다 보상, 완료 시 젬 100 + 코인 2배 10분).
+- 처음 들어온 유저는 화면 위 카드에 **한 번에 하나의 목표**만 봅니다: 광석 8개 캐기 → 곡괭이 구매 → 첫 펫 부화 → 나만의 별을 주워 기지로 (단계마다 보상, 완료 시 젬 100 + 코인 2배 10분). 광석은 부서지는 순간 코인이 됩니다(가방/판매 없음).
 - 메뉴 버튼은 튜토리얼 진행에 따라 하나씩 열립니다. 바닥의 빛줄기(가이드)가 다음 목적지를 가리킵니다.
 - 다시 보고 싶으면 DEV → Reset (데이터 초기화). 단계와 보상은 `Config.Tutorial`에서 바꿀 수 있습니다.
 - 멀티플레이 테스트 (PvP, 운석 경쟁): **Test → Clients and Servers → 2~3 Players → Start**
@@ -129,7 +129,7 @@ src/server/                   → ServerScriptService.Server
     BoostService.luau         개인/서버 부스트
     WorldService.luau         맵 전체 절차적 생성
     CharacterService.luau     곡괭이 지급, 이동속도, 머리 위 랭크/칭호
-    EconomyService.luau       판매, 업그레이드, 구역 해금, 환생, 텔레포트
+    EconomyService.luau       곡괭이 업그레이드, 구역 해금, 환생, 텔레포트
     PetService.luau           알 부화, 행운, 장착, 삭제, 희귀 펫 공지
     MiningService.luau        광석 블록, 채굴 판정, PvP 약탈
     MeteorService.luau        ☄️ 운석 레이드 이벤트

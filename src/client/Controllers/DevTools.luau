@@ -22,7 +22,7 @@ local function build()
 	local list = Lib.New("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, -40), Visible = false, Parent = cluster }, {
 		Lib.List(Enum.FillDirection.Vertical, 4, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Bottom),
 	})
-	for order, command in { "Coins", "Gems", "Level", "Points", "Star", "Shard", "Event", "Rainbow", "Spin", "Meteor", "Fill", "Reset" } do
+	for order, command in { "Coins", "Gems", "Level", "Points", "Star", "Shard", "Event", "Rainbow", "Spin", "Meteor", "Reset" } do
 		Lib.Button({
 			Text = command,
 			Color = if command == "Reset" then C.Red else C.Gray,

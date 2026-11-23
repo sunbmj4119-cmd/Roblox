@@ -29,16 +29,10 @@ local SETTINGS = Config.Base
 local PLOT_HALF = 16
 local WALL_HEIGHT = 9
 
-local PLOT_COLORS = {
-	Color3.fromRGB(255, 190, 60),
-	Color3.fromRGB(80, 200, 255),
-	Color3.fromRGB(255, 90, 160),
-	Color3.fromRGB(110, 230, 120),
-	Color3.fromRGB(190, 110, 255),
-	Color3.fromRGB(255, 130, 70),
-	Color3.fromRGB(70, 230, 210),
-	Color3.fromRGB(255, 240, 110),
-}
+-- every plot gets its own color (spread around the color wheel)
+local function plotColor(index: number): Color3
+	return Color3.fromHSV(((index - 1) * 0.618) % 1, 0.62, 1)
+end
 
 -- pedestal slots in plot space (front row first; -Z is the entrance side)
 local PEDESTAL_SPOTS = {}
@@ -68,13 +62,13 @@ local function part(props, parent: Instance): Part
 	return p
 end
 
-local function billboard(adornee: BasePart, width: number, height: number, offsetY: number, color: Color3): TextLabel
+local function billboard(adornee: BasePart, width: number, height: number, offsetY: number, color: Color3, maxDistance: number?): TextLabel
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Label"
 	gui.Size = UDim2.new(width, 0, height, 0)
 	gui.StudsOffsetWorldSpace = Vector3.new(0, offsetY, 0)
 	gui.LightInfluence = 0
-	gui.MaxDistance = 140
+	gui.MaxDistance = maxDistance or 140
 	local label = Instance.new("TextLabel")
 	label.Name = "Text"
 	label.BackgroundTransparency = 1
@@ -112,11 +106,10 @@ end
 ---------------------------------------------------------------------------
 -- building the plots (static shells, built once)
 ---------------------------------------------------------------------------
-local function buildPlot(index: number, center: Vector3): any
-	local side = if center.X > 0 then 1 else -1
-	-- local -Z (LookVector) faces the road
-	local cf = CFrame.lookAt(center, center + Vector3.new(-side, 0, 0))
-	local color = PLOT_COLORS[(index - 1) % #PLOT_COLORS + 1]
+local function buildPlot(index: number, center: Vector3, facing: Vector3): any
+	-- local -Z (LookVector) faces the street
+	local cf = CFrame.lookAt(center, center + facing)
+	local color = plotColor(index)
 	local model = Instance.new("Model")
 	model.Name = "Plot_" .. index
 	model:SetAttribute("OwnerId", 0)
@@ -198,7 +191,7 @@ local function buildPlot(index: number, center: Vector3): any
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 	}, model)
-	local bankLabel = billboard(collect, 9, 3, 3.5, Color3.fromRGB(140, 255, 170))
+	local bankLabel = billboard(collect, 9, 3, 3.5, Color3.fromRGB(140, 255, 170), 70)
 	local lockPad = part({
 		Name = "LockPad",
 		Size = Vector3.new(7, 0.4, 7),
@@ -207,7 +200,7 @@ local function buildPlot(index: number, center: Vector3): any
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 	}, model)
-	local lockLabel = billboard(lockPad, 9, 2.4, 3.2, Color3.fromRGB(255, 150, 150))
+	local lockLabel = billboard(lockPad, 9, 2.4, 3.2, Color3.fromRGB(255, 150, 150), 50)
 
 	local pedestals = {}
 	for slot, spot in PEDESTAL_SPOTS do
@@ -256,23 +249,37 @@ local function buildPlot(index: number, center: Vector3): any
 	}
 end
 
-local function plotCenters(): { Vector3 }
+-- plots line both sides of every street, nearest rows first
+local function plotLayout(): { { Center: Vector3, Facing: Vector3 } }
 	local bases = Config.World.Bases
-	local centers = {}
-	local z = bases.ZStart - PLOT_HALF - 4
-	while #centers < SETTINGS.Plots do
-		table.insert(centers, Vector3.new(-34, 0, z))
-		table.insert(centers, Vector3.new(34, 0, z))
-		z -= PLOT_HALF * 2 + 4
+	local layout = {}
+	local row = 0
+	while #layout < SETTINGS.Plots do
+		local z = bases.ZStart - 32 - row * (PLOT_HALF * 2 + 4)
+		for _, streetX in SETTINGS.Streets do
+			for _, side in { -1, 1 } do
+				if #layout < SETTINGS.Plots then
+					table.insert(layout, {
+						Center = Vector3.new(streetX + side * 30, 0, z),
+						Facing = Vector3.new(-side, 0, 0), -- toward the street
+					})
+				end
+			end
+		end
+		row += 1
 	end
-	return centers
+	return layout
 end
 
 ---------------------------------------------------------------------------
 -- income
 ---------------------------------------------------------------------------
 function Base:ShardRate(player: Player, data, id: string): number
-	return Util.ShardIncome(Config, id, data.ZoneLevel) * Services.StatsService:CoinMultiplier(player, data)
+	local rate = Util.ShardIncome(Config, id, data.ZoneLevel) * Services.StatsService:CoinMultiplier(player, data)
+	if Services.MonetizationService:HasPass(player, "DoubleBase") then
+		rate *= 2
+	end
+	return rate
 end
 
 function Base:IncomeRate(player: Player, data): number
@@ -334,7 +341,7 @@ function Base:Render(player: Player)
 			model:PivotTo(CFrame.new(pedestal.Top + Vector3.new(0, 2.2, 0)))
 			model:SetAttribute("Spin", true)
 			model.Parent = plot.Displays
-			local label = billboard(model.PrimaryPart :: BasePart, 7, 2.2, 3.2, def.Color)
+			local label = billboard(model.PrimaryPart :: BasePart, 7, 2.2, 3.2, def.Color, 60)
 			World.SetText(label, "%s\n💰 %s/s", def.Name, Util.Format(self:ShardRate(player, data, entry.Id)))
 			local core = model.PrimaryPart :: BasePart
 			setPrompt(core, "Steal", def.Name, "Thief", SETTINGS.StealHold, function(thief)
@@ -355,7 +362,7 @@ function Base:Render(player: Player)
 				CanQuery = false,
 				CanTouch = false,
 			}, plot.Displays)
-			World.SetText(billboard(anchor, 7, 2, 0, Color3.fromRGB(255, 90, 90)), "⚠️ STOLEN!")
+			World.SetText(billboard(anchor, 7, 2, 0, Color3.fromRGB(255, 90, 90), 80), "⚠️ STOLEN!")
 		elseif slot == data.Base.Pedestals + 1 and slot <= SETTINGS.MaxPedestals then
 			-- the next pedestal can be bought
 			local cost = SETTINGS.PedestalCosts[slot] or math.huge
@@ -368,7 +375,7 @@ function Base:Render(player: Player)
 				CanQuery = false,
 				CanTouch = false,
 			}, plot.Displays)
-			World.SetText(billboard(anchor, 6, 2, 0, Color3.fromRGB(255, 230, 140)), "🔒 💰 %s", Util.Format(cost))
+			World.SetText(billboard(anchor, 6, 2, 0, Color3.fromRGB(255, 230, 140), 45), "🔒 💰 %s", Util.Format(cost))
 			setPrompt(anchor, "Buy pedestal", "💰 " .. Util.Format(cost), "Owner", 0, function(who)
 				if who == player then
 					Base:BuyPedestal(player)
@@ -598,6 +605,7 @@ function Base:Collect(player: Player)
 	data.Base.Bank -= amount
 	data.Coins += amount
 	data.Stats.LifetimeCoins += amount
+	Services.ProgressionService:AddQuest(player, "Collect", 1)
 	Net:Send(player, "BaseCollected", amount)
 	Data:MarkDirty(player)
 	self:RefreshLabels(player)
@@ -695,8 +703,8 @@ function Base:Init(services)
 end
 
 function Base:Start()
-	for index, center in plotCenters() do
-		local plot = buildPlot(index, center)
+	for index, spot in plotLayout() do
+		local plot = buildPlot(index, spot.Center, spot.Facing)
 		plots[index] = plot
 		clearPlot(plot)
 		plot.CollectPad.Touched:Connect(function(hit)

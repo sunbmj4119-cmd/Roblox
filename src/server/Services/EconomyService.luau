@@ -1,8 +1,8 @@
 --[[
-	EconomyService: selling ore, pickaxe/backpack upgrades, zone unlocks,
-	rebirths and teleports. All prices are validated on the server.
+	EconomyService: pickaxe upgrades, zone unlocks, rebirths and teleports.
+	(Ore pays coins the moment it breaks - see MiningService.)
+	All prices are validated on the server.
 ]]
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -19,28 +19,6 @@ local REBIRTH_ANNOUNCE = { [1] = true, [5] = true, [10] = true, [25] = true, [50
 
 local function notEnough(player: Player, need: number, have: number, currency: string)
 	Net:Notify(player, "Not enough %s! Need %s more.", RED, currency, Util.Format(need - have))
-end
-
-function Economy:Sell(player: Player, silent: boolean?): number
-	local data = Data:Get(player)
-	if not data then
-		return 0
-	end
-	if data.Backpack <= 0 then
-		if not silent then
-			Net:Notify(player, "Your backpack is empty - go mine some ore!")
-		end
-		return 0
-	end
-	local coins = math.floor(data.Backpack * Services.StatsService:CoinMultiplier(player, data))
-	data.Coins += coins
-	data.Stats.LifetimeCoins += coins
-	data.Backpack = 0
-	Services.ProgressionService:AddQuest(player, "Sell", 1)
-	Services.ProgressionService:TutorialEvent(player, "Sell", 1)
-	Net:Send(player, "Sold", coins)
-	Data:MarkDirty(player)
-	return coins
 end
 
 function Economy:UnlockZone(player: Player, index: number)
@@ -110,9 +88,7 @@ function Economy:Rebirth(player: Player)
 	end
 	data.Rebirths += 1
 	data.Coins = 0
-	data.Backpack = 0
 	data.PickaxeTier = 1
-	data.BackpackTier = 1
 	local gems = Config.Rebirth.GemsPer * data.Rebirths
 	data.Gems += gems
 	Services.CharacterService:GivePickaxe(player)
@@ -133,37 +109,8 @@ end
 function Economy:Start()
 	local world = Services.WorldService
 
-	-- sell pad
-	local debounce = {}
-	world.SellPad.Touched:Connect(function(hit)
-		local character = hit:FindFirstAncestorOfClass("Model")
-		local player = character and Players:GetPlayerFromCharacter(character)
-		if not player then
-			return
-		end
-		local now = os.clock()
-		if debounce[player] and now - debounce[player] < 1 then
-			return
-		end
-		debounce[player] = now
-		self:Sell(player, true)
-	end)
-	Players.PlayerRemoving:Connect(function(player)
-		debounce[player] = nil
-	end)
-
-	Net:On("SellAnywhere", 0.5, function(player)
-		if Services.MonetizationService:HasPass(player, "AutoSell") then
-			self:Sell(player)
-		else
-			Net:Send(player, "Upsell", "AutoSell")
-		end
-	end)
 	Net:On("BuyPickaxe", 0.25, function(player)
 		buyUpgrade(player, "Pickaxes", "PickaxeTier")
-	end)
-	Net:On("BuyBackpack", 0.25, function(player)
-		buyUpgrade(player, "Backpacks", "BackpackTier")
 	end)
 	Net:On("UnlockZone", 0.5, function(player, index)
 		if type(index) == "number" then

@@ -69,7 +69,14 @@ end
 function Shards:SpeedMult(player: Player): number
 	local info = carrying[player]
 	local def = info and SETTINGS.Rarities[info.Id]
-	return if def then def.Speed else 1
+	if not def then
+		return 1
+	end
+	local mult = def.Speed
+	if Services.MonetizationService:HasPass(player, "FastCarry") then
+		mult *= Config.PvP.CarrySpeedPass
+	end
+	return mult
 end
 
 local function attachModel(player: Player, id: string): Model?
@@ -151,7 +158,7 @@ end
 
 local tryPickup -- forward declaration
 
--- opts: Beacon (bool), PriorityUser/PriorityUntil, BlockUser/BlockUntil
+-- opts: Beacon (bool), PriorityUser/PriorityUntil, BlockUser/BlockUntil, Lifetime
 function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 	opts = opts or {}
 	local def = SETTINGS.Rarities[id]
@@ -227,7 +234,7 @@ function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 	end)
 
 	-- stolen shards fly home if nobody grabs them; others fade out eventually
-	local lifetime = if meta and meta.From then SETTINGS.ReturnSeconds else SETTINGS.GroundLifetime
+	local lifetime = if meta and meta.From then SETTINGS.ReturnSeconds else (opts.Lifetime or SETTINGS.GroundLifetime)
 	task.delay(lifetime, function()
 		if ground[model] then
 			destroyGround(model)
@@ -322,6 +329,7 @@ local function deliver(player: Player)
 	end
 	local result, coins = Services.BaseService:AddShard(player, id)
 	Services.ProgressionService:AddQuest(player, "Shard", 1)
+	Services.ProgressionService:TutorialEvent(player, "Shard", 1)
 	local index = Util.ShardIndex(Config, id)
 	Services.ProgressionService:AddPoints(player, SETTINGS.Points[index] or 10)
 	Net:Send(player, "ShardDelivered", id, result, coins)
@@ -367,6 +375,33 @@ function Shards:FallingStar(forcedZone: number?)
 		Net:Announce("🌠 A falling star crashed in %s! Grab the %s!", SETTINGS.Rarities[id].Color, where, rarityName(id))
 	end)
 	return id
+end
+
+-- tutorial: a guaranteed star just for this player, landing in the hub
+local tutorialStars = {} -- [player] = ground model
+function Shards:TutorialStar(player: Player)
+	local existing = tutorialStars[player]
+	if existing and existing.Parent then
+		return
+	end
+	if carrying[player] then
+		return
+	end
+	local position = Vector3.new(-30, 0, -38) + Vector3.new(rng:NextNumber(-4, 4), 0, rng:NextNumber(-4, 4))
+	local flight = 1.6
+	Net:Send(player, "StarFall", position, "Rare", flight)
+	task.delay(flight, function()
+		if not player.Parent then
+			return
+		end
+		tutorialStars[player] = self:SpawnGround("Rare", position, nil, {
+			Beacon = true,
+			PriorityUser = player.UserId,
+			PriorityUntil = now() + 300,
+			Lifetime = 600,
+		})
+		Net:Notify(player, "🌠 A star fell just for you! Grab it!", Color3.fromRGB(120, 230, 255))
+	end)
 end
 
 -- ranking = { { Player = p, Score = n }, ... } best first
@@ -452,6 +487,11 @@ function Shards:Start()
 	end
 
 	Players.PlayerRemoving:Connect(function(player)
+		local star = tutorialStars[player]
+		tutorialStars[player] = nil
+		if star and ground[star] then
+			destroyGround(star)
+		end
 		local info = carrying[player]
 		if info then
 			endCarry(player)

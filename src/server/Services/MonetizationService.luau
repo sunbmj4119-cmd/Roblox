@@ -165,13 +165,14 @@ end
 local function grantProduct(player: Player, key: string, data)
 	local product = Config.Products[key]
 	local kind = product.Kind
-	local stats = Services.StatsService
 
 	if kind == "Gems" then
 		data.Gems += product.Amount
 		Net:Notify(player, "💎 +%d Gems! Thank you!", GOLD, product.Amount)
 	elseif kind == "CoinPack" then
-		local amount = math.max(2500, math.floor(stats:Capacity(player, data) * 15 * stats:CoinMultiplier(player, data)))
+		-- scales with progress: ~60% of the next pickaxe (or of the best one)
+		local nextPick = Config.Pickaxes[data.PickaxeTier + 1] or Config.Pickaxes[#Config.Pickaxes]
+		local amount = math.max(2500, math.floor(nextPick.Cost * 0.6))
 		data.Coins += amount
 		data.Stats.LifetimeCoins += amount
 		Net:Send(player, "Sold", amount)
