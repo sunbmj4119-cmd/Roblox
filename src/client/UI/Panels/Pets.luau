@@ -1,5 +1,37 @@
--- Pet inventory: equip / unequip / equip best / delete, slot upsell
+--[[
+	Pet collection: every pet you own, best earners first.
+	🏠 = standing on a pedestal in your base (earning coins every second)
+	⭐ = following you (adds mining power)   📦 = waiting in storage
+	Tap 💰 twice to sell a pet (pays one minute of its income).
+]]
+local PetModel = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("PetModel"))
+
 local Pets = { Title = "🐾 PETS", Color = Color3.fromRGB(120, 200, 90) }
+
+local MAX_VIEWPORTS = 24 -- 3D previews for the best pets (keeps phones smooth)
+
+local function viewport(parent: GuiObject, petName: string, variant: string?)
+	local frame = Instance.new("ViewportFrame")
+	frame.BackgroundTransparency = 1
+	frame.Size = UDim2.fromOffset(64, 56)
+	frame.Position = UDim2.new(0.5, 0, 0, 4)
+	frame.AnchorPoint = Vector2.new(0.5, 0)
+	frame.Ambient = Color3.fromRGB(200, 200, 210)
+	frame.LightColor = Color3.new(1, 1, 1)
+	frame.Parent = parent
+	local model = PetModel.Build(petName, variant)
+	model.Parent = frame
+	local camera = Instance.new("Camera")
+	local _, size = model:GetBoundingBox()
+	local pivot = model:GetPivot()
+	local center = pivot.Position + Vector3.new(0, size.Y * 0.45, 0)
+	local distance = math.max(size.X, size.Y) * 1.55
+	camera.CFrame = CFrame.lookAt(center + pivot.LookVector * distance + Vector3.new(0, size.Y * 0.15, 0), center)
+	camera.FieldOfView = 40
+	camera.Parent = frame
+	frame.CurrentCamera = camera
+	return frame
+end
 
 function Pets.Build(content, ctx)
 	local Lib, State, Net, Config, Util = ctx.Lib, ctx.State, ctx.Net, ctx.Config, ctx.Util
@@ -19,41 +51,55 @@ function Pets.Build(content, ctx)
 		Size = UDim2.new(1, 0, 0, 40),
 		Parent = content,
 	}, { Lib.List(Enum.FillDirection.Horizontal, 8, Enum.HorizontalAlignment.Left) })
+
+	local confirmBulk = {}
+	local function bulkButton(rarity: string, text: string, order: number)
+		local button
+		button = Lib.Button({
+			Text = text,
+			Color = C.Gold,
+			Size = UDim2.fromOffset(170, 38),
+			LayoutOrder = order,
+			TextSize = 16,
+			Parent = actions,
+			OnClick = function()
+				local last = confirmBulk[rarity]
+				if last and os.clock() - last < 2.5 then
+					confirmBulk[rarity] = nil
+					Net.Fire("SellRarity", rarity)
+					Lib.SetButton(button, text)
+				else
+					confirmBulk[rarity] = os.clock()
+					Lib.SetButton(button, T("Tap again to sell"))
+					task.delay(2.5, function()
+						if button.Parent then
+							Lib.SetButton(button, text)
+						end
+					end)
+				end
+			end,
+		})
+		return button
+	end
+	bulkButton("Common", "💰 Sell Commons", 1)
+	bulkButton("Uncommon", "💰 Sell Uncommons", 2)
 	Lib.Button({
-		Text = "⭐ Equip Best",
-		Color = C.Green,
-		Size = UDim2.fromOffset(140, 38),
-		LayoutOrder = 1,
+		Text = "🤝 Trade",
+		Color = C.Cyan,
+		Size = UDim2.fromOffset(120, 38),
+		LayoutOrder = 4,
+		TextSize = 16,
 		Parent = actions,
 		OnClick = function()
-			Net.Fire("EquipBest")
-		end,
-	})
-	Lib.Button({
-		Text = "🗑 Commons",
-		Color = C.Red,
-		Size = UDim2.fromOffset(130, 38),
-		LayoutOrder = 2,
-		Parent = actions,
-		OnClick = function()
-			Net.Fire("DeleteRarity", "Common")
-		end,
-	})
-	Lib.Button({
-		Text = "🗑 Uncommons",
-		Color = C.Red,
-		Size = UDim2.fromOffset(140, 38),
-		LayoutOrder = 3,
-		Parent = actions,
-		OnClick = function()
-			Net.Fire("DeleteRarity", "Uncommon")
+			ctx.Panels.Open("Trade")
 		end,
 	})
 	local slotsButton = Lib.Button({
-		Text = "🐾 +3 Slots",
-		Color = C.Gold,
-		Size = UDim2.fromOffset(130, 38),
-		LayoutOrder = 4,
+		Text = "🐾 +3 Helpers",
+		Color = C.Purple,
+		Size = UDim2.fromOffset(150, 38),
+		LayoutOrder = 3,
+		TextSize = 16,
 		Parent = actions,
 		OnClick = function()
 			if ctx.Upsell then
@@ -63,124 +109,133 @@ function Pets.Build(content, ctx)
 	})
 
 	local grid = Lib.Scroll({ Position = UDim2.fromOffset(0, 78), Size = UDim2.new(1, 0, 1, -78), Parent = content })
-	Lib.Grid(UDim2.fromOffset(118, 120), 8).Parent = grid
+	Lib.Grid(UDim2.fromOffset(122, 136), 8).Parent = grid
 	Lib.Padding(4).Parent = grid
 
 	local signature = ""
-	local confirmDelete = {} -- [petId] = os.clock()
+	local confirmSell = {} -- [petId] = os.clock()
 
-	local function power(pet)
-		return Util.PetPower(Config, pet.Name, pet.Variant)
+	local function income(pet)
+		return Util.PetIncome(Config, pet.Name, pet.Variant)
 	end
 
-	local function rebuild(data)
-		Lib.Clear(grid)
-		local equipped = {}
-		for _, id in data.Equipped do
-			equipped[id] = true
+	local function pedestalCount(data): number
+		local count = 0
+		for _, item in data.Base and data.Base.Items or {} do
+			local def = Config.Decor[item.Id]
+			if def and def.Function == "Pedestal" then
+				count += 1
+			end
 		end
-		local pets = table.clone(data.Pets)
+		return count
+	end
+
+	local function rebuild(data, derived)
+		Lib.Clear(grid)
+		local following = {}
+		for _, id in data.Equipped do
+			following[id] = true
+		end
+		local pets = {}
+		for _, pet in data.Pets do
+			if Config.Pets[pet.Name] then
+				table.insert(pets, pet)
+			end
+		end
+		-- same order as the server uses for pedestals: best income first
 		table.sort(pets, function(a, b)
-			local ea, eb = equipped[a.Id] and 1 or 0, equipped[b.Id] and 1 or 0
-			if ea ~= eb then
-				return ea > eb
+			if income(a) == income(b) then
+				return a.Id < b.Id
 			end
-			if power(a) ~= power(b) then
-				return power(a) > power(b)
-			end
-			return a.Id < b.Id
+			return income(a) > income(b)
 		end)
+		local slots = pedestalCount(data)
+		local shown = 0
+		local mult = (derived.CoinMult or 1) * (if State.HasPass("DoubleBase") then 2 else 1)
 		for order, pet in pets do
 			local info = Config.Pets[pet.Name]
-			if info then
-				local rarity = Config.Rarities[info.Rarity]
-				local isEquipped = equipped[pet.Id] == true
-				local card = New("TextButton", {
-					Text = "",
-					AutoButtonColor = true,
-					BackgroundColor3 = if isEquipped then Color3.fromRGB(45, 95, 60) else C.Card,
-					LayoutOrder = order,
-					Parent = grid,
-				}, {
-					Lib.Corner(12),
-					Lib.Stroke(
-						if pet.Variant == "Rainbow"
-							then Color3.fromRGB(255, 120, 230)
-							elseif pet.Variant == "Golden" then Color3.fromRGB(255, 210, 60)
-							else rarity.Color,
-						if pet.Variant then 4 else 3,
-						0
-					),
-				})
-				local swatch = New("Frame", {
-					Size = UDim2.fromOffset(42, 42),
-					Position = UDim2.new(0.5, 0, 0, 8),
+			local rarity = Config.Rarities[info.Rarity]
+			local onDisplay = false
+			if not pet.Away and shown < slots then
+				shown += 1
+				onDisplay = true
+			end
+			local card = New("Frame", {
+				BackgroundColor3 = if onDisplay then Color3.fromRGB(40, 70, 60) else C.Card,
+				LayoutOrder = order,
+				Parent = grid,
+			}, {
+				Lib.Corner(12),
+				Lib.Stroke(if pet.Variant then Color3.fromRGB(255, 210, 60) else rarity.Color, if pet.Variant then 4 else 3, 0),
+			})
+			if order <= MAX_VIEWPORTS then
+				viewport(card, pet.Name, pet.Variant)
+			else
+				New("Frame", {
+					Size = UDim2.fromOffset(44, 44),
+					Position = UDim2.new(0.5, 0, 0, 10),
 					AnchorPoint = Vector2.new(0.5, 0),
-					BackgroundColor3 = if pet.Variant == "Golden"
-						then Color3.fromRGB(255, 205, 50)
-						elseif pet.Variant == "Rainbow" then Color3.fromRGB(255, 90, 210)
-						else info.Color,
+					BackgroundColor3 = info.Color,
 					Parent = card,
-				}, { Lib.Corner(if info.Shape == "Ball" then 21 else 8), Lib.Stroke(Color3.new(0, 0, 0), 2, 0.3) })
-				Lib.Text({
-					Text = "• •",
-					TextColor3 = Color3.new(0, 0, 0),
-					Outline = false,
-					Size = UDim2.fromScale(1, 0.5),
-					Position = UDim2.fromScale(0, 0.15),
-					Parent = swatch,
-				})
-				Lib.Text({
-					Text = (if pet.Variant then "✨" else "") .. Util.PetDisplayName(T(pet.Name), pet.Variant and T(pet.Variant)),
-					Size = UDim2.new(1, -6, 0, 20),
-					Position = UDim2.fromOffset(3, 54),
-					MaxTextSize = 15,
+				}, { Lib.Corner(22), Lib.Stroke(Color3.new(0, 0, 0), 2, 0.3) })
+			end
+			local name = T(pet.Name)
+			if pet.Variant then
+				name = T(pet.Variant) .. " " .. name
+			end
+			Lib.Text({
+				Text = name,
+				Size = UDim2.new(1, -6, 0, 20),
+				Position = UDim2.fromOffset(3, 62),
+				MaxTextSize = 14,
+				Parent = card,
+			})
+			Lib.Text({
+				Text = "💰" .. Util.Format(income(pet) * mult) .. "/s",
+				TextColor3 = C.Coins,
+				Size = UDim2.new(1, -6, 0, 18),
+				Position = UDim2.fromOffset(3, 84),
+				MaxTextSize = 15,
+				Parent = card,
+			})
+			local status = if pet.Away then T("🏃 being stolen!") elseif onDisplay then T("🏠 earning") else T("📦 storage")
+			if following[pet.Id] then
+				status = "⭐ " .. status
+			end
+			Lib.Text({
+				Text = status,
+				Font = Lib.BodyFont,
+				TextColor3 = if onDisplay then C.Green else C.Sub,
+				Size = UDim2.new(1, -34, 0, 16),
+				Position = UDim2.fromOffset(4, 110),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				MaxTextSize = 11,
+				Parent = card,
+			})
+			if not pet.Away then
+				local sell = New("TextButton", {
+					Text = "💰",
+					TextScaled = true,
+					BackgroundColor3 = C.Gold,
+					Size = UDim2.fromOffset(26, 26),
+					Position = UDim2.new(1, -30, 1, -30),
 					Parent = card,
-				})
-				Lib.Text({
-					Text = "+" .. Util.Format(power(pet)) .. "x",
-					TextColor3 = rarity.Color,
-					Size = UDim2.new(1, -6, 0, 18),
-					Position = UDim2.fromOffset(3, 74),
-					MaxTextSize = 15,
-					Parent = card,
-				})
-				Lib.Text({
-					Text = if isEquipped then "EQUIPPED" else "tap to equip",
-					Font = Lib.BodyFont,
-					TextColor3 = if isEquipped then C.Green else C.Sub,
-					Size = UDim2.new(1, -30, 0, 16),
-					Position = UDim2.fromOffset(3, 98),
-					MaxTextSize = 12,
-					Parent = card,
-				})
-				card.Activated:Connect(function()
-					Net.Fire(if isEquipped then "UnequipPet" else "EquipPet", pet.Id)
+				}, { Lib.Corner(6) })
+				sell.Activated:Connect(function()
+					local last = confirmSell[pet.Id]
+					if last and os.clock() - last < 2.5 then
+						Net.Fire("SellPet", pet.Id)
+					else
+						confirmSell[pet.Id] = os.clock()
+						sell.Text = "?"
+						ctx.Toast(T("Tap again to sell for 💰%s", Util.Format(math.floor(income(pet) * Config.PetSellSeconds))), C.Gold)
+						task.delay(2.5, function()
+							if sell.Parent then
+								sell.Text = "💰"
+							end
+						end)
+					end
 				end)
-				if not isEquipped then
-					local del = New("TextButton", {
-						Text = "🗑",
-						TextScaled = true,
-						BackgroundColor3 = C.Red,
-						Size = UDim2.fromOffset(24, 24),
-						Position = UDim2.new(1, -28, 1, -28),
-						Parent = card,
-					}, { Lib.Corner(6) })
-					del.Activated:Connect(function()
-						local last = confirmDelete[pet.Id]
-						if last and os.clock() - last < 2.5 then
-							Net.Fire("DeletePet", pet.Id)
-						else
-							confirmDelete[pet.Id] = os.clock()
-							del.Text = "?"
-							task.delay(2.5, function()
-								if del.Parent then
-									del.Text = "🗑"
-								end
-							end)
-						end
-					end)
-				end
 			end
 		end
 	end
@@ -197,11 +252,10 @@ function Pets.Build(content, ctx)
 		for _ in Config.Pets do
 			totalPets += 1
 		end
+		local player = game:GetService("Players").LocalPlayer
 		header.Text = T(
-			"Equipped %d/%d  •  Power +%sx  •  Pets %d/%d  •  Index %d/%d",
-			#data.Equipped,
-			derived.PetSlots or 3,
-			Util.Format(derived.PetPower or 0),
+			"🏠 Base 💰%s/s  •  Pets %d/%d  •  Index %d/%d",
+			Util.Format(player:GetAttribute("BaseRate") or 0),
 			#data.Pets,
 			Config.MaxPets,
 			indexCount,
@@ -210,12 +264,12 @@ function Pets.Build(content, ctx)
 		slotsButton.Visible = not State.HasPass("ExtraPets")
 		local parts = {}
 		for _, pet in data.Pets do
-			table.insert(parts, pet.Id .. (pet.Variant or ""))
+			table.insert(parts, pet.Id .. (pet.Variant or "") .. (if pet.Away then "!" else ""))
 		end
-		local sig = table.concat(parts, ",") .. "|" .. table.concat(data.Equipped, ",")
+		local sig = table.concat(parts, ",") .. "|" .. table.concat(data.Equipped, ",") .. "|" .. tostring(derived.CoinMult)
 		if sig ~= signature then
 			signature = sig
-			rebuild(data)
+			rebuild(data, derived)
 		end
 	end
 

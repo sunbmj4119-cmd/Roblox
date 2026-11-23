@@ -43,6 +43,9 @@ local function slot(petName: string, variant: string?, eggColor: Color3)
 	local variantColor = if variant == "Rainbow"
 		then Color3.fromRGB(255, 120, 230)
 		elseif variant == "Golden" then Color3.fromRGB(255, 210, 60)
+		elseif variant == "Galaxy" then Color3.fromRGB(190, 140, 255)
+		elseif variant == "Frozen" then Color3.fromRGB(170, 225, 255)
+		elseif variant == "Molten" then Color3.fromRGB(255, 130, 50)
 		else nil
 	local rarity = Config.Rarities[info.Rarity]
 	local frame = New("Frame", {
@@ -93,7 +96,7 @@ local function slot(petName: string, variant: string?, eggColor: Color3)
 		Parent = frame,
 	})
 	local powerLabel = Lib.Text({
-		Text = Lib.T("💥 +%sx power", Util.Format(Util.PetPower(Config, petName, variant))),
+		Text = Lib.T("💰 %s/s in your base", Util.Format(Util.PetIncome(Config, petName, variant))),
 		Font = Lib.BodyFont,
 		Size = UDim2.new(1, 0, 0, 26),
 		Position = UDim2.fromOffset(0, 340),

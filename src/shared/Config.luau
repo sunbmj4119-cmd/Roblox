@@ -196,90 +196,162 @@ Config.Rebirth = {
 ---------------------------------------------------------------------------
 Config.BasePetSlots = 3
 Config.MaxPetSlots = 12
-Config.MaxPets = 60
+Config.MaxPets = 60 -- pet storage (the best ones go on your pedestals)
+Config.PetSellSeconds = 60 -- selling a pet pays this many seconds of its income
 
--- Power: equipped pets add their power to the mining damage multiplier.
+-- Pets live in your base: the best ones sit on your pedestals and earn
+-- Income (coins per second). Your top pets also follow you around and add
+-- their Power to your mining damage (automatic, no equipping needed).
 Config.Pets = {
 	-- Meadow
-	Bunny = { Rarity = "Common", Power = 0.1, Color = Color3.fromRGB(245, 245, 245), Shape = "Ball", Ears = true },
-	Chick = { Rarity = "Common", Power = 0.15, Color = Color3.fromRGB(255, 230, 90), Shape = "Ball" },
-	Puppy = { Rarity = "Uncommon", Power = 0.3, Color = Color3.fromRGB(190, 140, 90), Shape = "Block", Ears = true },
-	Kitty = { Rarity = "Uncommon", Power = 0.35, Color = Color3.fromRGB(255, 160, 80), Shape = "Block", Ears = true },
-	Fox = { Rarity = "Rare", Power = 0.8, Color = Color3.fromRGB(255, 110, 30), Shape = "Block", Ears = true },
-	Owl = { Rarity = "Epic", Power = 2, Color = Color3.fromRGB(150, 110, 80), Shape = "Ball", Wings = true },
-	["Golden Bunny"] = { Rarity = "Legendary", Power = 6, Color = Color3.fromRGB(255, 205, 50), Shape = "Ball", Ears = true },
+	Bunny = { Rarity = "Common", Power = 0.1, Income = 0.6, Color = Color3.fromRGB(245, 245, 245), Shape = "Ball", Ears = true },
+	Chick = { Rarity = "Common", Power = 0.15, Income = 0.9, Color = Color3.fromRGB(255, 230, 90), Shape = "Ball" },
+	Puppy = { Rarity = "Uncommon", Power = 0.3, Income = 1.8, Color = Color3.fromRGB(190, 140, 90), Shape = "Block", Ears = true },
+	Kitty = { Rarity = "Uncommon", Power = 0.35, Income = 2.1, Color = Color3.fromRGB(255, 160, 80), Shape = "Block", Ears = true },
+	Fox = { Rarity = "Rare", Power = 0.8, Income = 4.8, Color = Color3.fromRGB(255, 110, 30), Shape = "Block", Ears = true },
+	Owl = { Rarity = "Epic", Power = 2, Income = 12, Color = Color3.fromRGB(150, 110, 80), Shape = "Ball", Wings = true },
+	["Golden Bunny"] = { Rarity = "Legendary", Power = 6, Income = 36, Color = Color3.fromRGB(255, 205, 50), Shape = "Ball", Ears = true },
 	-- Frost
-	Penguin = { Rarity = "Common", Power = 0.6, Color = Color3.fromRGB(40, 45, 60), Shape = "Ball", Wings = true },
-	["Snow Fox"] = { Rarity = "Uncommon", Power = 1.2, Color = Color3.fromRGB(235, 245, 255), Shape = "Block", Ears = true },
-	["Polar Bear"] = { Rarity = "Rare", Power = 2.5, Color = Color3.fromRGB(250, 250, 250), Shape = "Block", Ears = true },
-	["Ice Owl"] = { Rarity = "Epic", Power = 6, Color = Color3.fromRGB(150, 220, 255), Shape = "Ball", Wings = true },
-	["Frost Wolf"] = { Rarity = "Legendary", Power = 18, Color = Color3.fromRGB(110, 180, 255), Shape = "Block", Ears = true },
-	Yeti = { Rarity = "Mythic", Power = 50, Color = Color3.fromRGB(200, 240, 255), Shape = "Block", Horns = true },
+	Penguin = { Rarity = "Common", Power = 0.6, Income = 24, Color = Color3.fromRGB(40, 45, 60), Shape = "Ball", Wings = true },
+	["Snow Fox"] = { Rarity = "Uncommon", Power = 1.2, Income = 48, Color = Color3.fromRGB(235, 245, 255), Shape = "Block", Ears = true },
+	["Polar Bear"] = { Rarity = "Rare", Power = 2.5, Income = 100, Color = Color3.fromRGB(250, 250, 250), Shape = "Block", Ears = true },
+	["Ice Owl"] = { Rarity = "Epic", Power = 6, Income = 240, Color = Color3.fromRGB(150, 220, 255), Shape = "Ball", Wings = true },
+	["Frost Wolf"] = { Rarity = "Legendary", Power = 18, Income = 720, Color = Color3.fromRGB(110, 180, 255), Shape = "Block", Ears = true },
+	Yeti = { Rarity = "Mythic", Power = 50, Income = 2000, Color = Color3.fromRGB(200, 240, 255), Shape = "Block", Horns = true },
 	-- Lava
-	["Magma Slime"] = { Rarity = "Common", Power = 3, Color = Color3.fromRGB(255, 90, 30), Shape = "Ball" },
-	["Fire Fox"] = { Rarity = "Uncommon", Power = 6, Color = Color3.fromRGB(255, 60, 20), Shape = "Block", Ears = true },
-	["Lava Golem"] = { Rarity = "Rare", Power = 12, Color = Color3.fromRGB(90, 40, 30), Shape = "Block", Horns = true },
-	["Phoenix Chick"] = { Rarity = "Epic", Power = 30, Color = Color3.fromRGB(255, 150, 30), Shape = "Ball", Wings = true },
+	["Magma Slime"] = { Rarity = "Common", Power = 3, Income = 510, Color = Color3.fromRGB(255, 90, 30), Shape = "Ball" },
+	["Fire Fox"] = { Rarity = "Uncommon", Power = 6, Income = 1000, Color = Color3.fromRGB(255, 60, 20), Shape = "Block", Ears = true },
+	["Lava Golem"] = { Rarity = "Rare", Power = 12, Income = 2000, Color = Color3.fromRGB(90, 40, 30), Shape = "Block", Horns = true },
+	["Phoenix Chick"] = { Rarity = "Epic", Power = 30, Income = 5100, Color = Color3.fromRGB(255, 150, 30), Shape = "Ball", Wings = true },
 	["Inferno Dragon"] = {
 		Rarity = "Legendary",
 		Power = 90,
+		Income = 15000,
 		Color = Color3.fromRGB(200, 30, 20),
 		Shape = "Block",
 		Wings = true,
 		Horns = true,
 	},
-	["Sun Serpent"] = { Rarity = "Mythic", Power = 250, Color = Color3.fromRGB(255, 220, 60), Shape = "Ball", Horns = true },
+	["Sun Serpent"] = { Rarity = "Mythic", Power = 250, Income = 42000, Color = Color3.fromRGB(255, 220, 60), Shape = "Ball", Horns = true },
 	-- Void
-	["Void Bat"] = { Rarity = "Common", Power = 15, Color = Color3.fromRGB(70, 40, 110), Shape = "Ball", Wings = true },
-	["Shadow Cat"] = { Rarity = "Uncommon", Power = 30, Color = Color3.fromRGB(35, 25, 50), Shape = "Block", Ears = true },
-	["Nebula Fox"] = { Rarity = "Rare", Power = 60, Color = Color3.fromRGB(150, 80, 255), Shape = "Block", Ears = true },
-	["Rift Owl"] = { Rarity = "Epic", Power = 150, Color = Color3.fromRGB(90, 60, 200), Shape = "Ball", Wings = true },
+	["Void Bat"] = { Rarity = "Common", Power = 15, Income = 6000, Color = Color3.fromRGB(70, 40, 110), Shape = "Ball", Wings = true },
+	["Shadow Cat"] = { Rarity = "Uncommon", Power = 30, Income = 12000, Color = Color3.fromRGB(35, 25, 50), Shape = "Block", Ears = true },
+	["Nebula Fox"] = { Rarity = "Rare", Power = 60, Income = 24000, Color = Color3.fromRGB(150, 80, 255), Shape = "Block", Ears = true },
+	["Rift Owl"] = { Rarity = "Epic", Power = 150, Income = 60000, Color = Color3.fromRGB(90, 60, 200), Shape = "Ball", Wings = true },
 	["Galaxy Dragon"] = {
 		Rarity = "Legendary",
 		Power = 450,
+		Income = 180000,
 		Color = Color3.fromRGB(60, 40, 160),
 		Shape = "Block",
 		Wings = true,
 		Horns = true,
 	},
-	["Void Emperor"] = { Rarity = "Mythic", Power = 1200, Color = Color3.fromRGB(20, 10, 40), Shape = "Block", Horns = true },
-	["Black Hole Kitty"] = { Rarity = "Secret", Power = 5000, Color = Color3.fromRGB(10, 10, 15), Shape = "Ball", Ears = true },
+	["Void Emperor"] = {
+		Rarity = "Mythic",
+		Power = 1200,
+		Income = 480000,
+		Color = Color3.fromRGB(20, 10, 40),
+		Shape = "Block",
+		Horns = true,
+	},
+	["Black Hole Kitty"] = {
+		Rarity = "Secret",
+		Power = 5000,
+		Income = 2000000,
+		Color = Color3.fromRGB(10, 10, 15),
+		Shape = "Ball",
+		Ears = true,
+	},
 	-- Gem egg
-	["Gem Pup"] = { Rarity = "Uncommon", Power = 2, Color = Color3.fromRGB(80, 230, 255), Shape = "Block", Ears = true },
-	["Crystal Cat"] = { Rarity = "Rare", Power = 5, Color = Color3.fromRGB(170, 240, 255), Shape = "Block", Ears = true },
-	["Prism Owl"] = { Rarity = "Epic", Power = 15, Color = Color3.fromRGB(255, 150, 255), Shape = "Ball", Wings = true },
+	["Gem Pup"] = { Rarity = "Uncommon", Power = 2, Income = 30, Color = Color3.fromRGB(80, 230, 255), Shape = "Block", Ears = true },
+	["Crystal Cat"] = { Rarity = "Rare", Power = 5, Income = 75, Color = Color3.fromRGB(170, 240, 255), Shape = "Block", Ears = true },
+	["Prism Owl"] = { Rarity = "Epic", Power = 15, Income = 220, Color = Color3.fromRGB(255, 150, 255), Shape = "Ball", Wings = true },
 	["Diamond Dragon"] = {
 		Rarity = "Legendary",
 		Power = 60,
+		Income = 900,
 		Color = Color3.fromRGB(190, 250, 255),
 		Shape = "Block",
 		Wings = true,
 		Horns = true,
 	},
-	["Jewel Phoenix"] = { Rarity = "Mythic", Power = 200, Color = Color3.fromRGB(255, 80, 200), Shape = "Ball", Wings = true },
+	["Jewel Phoenix"] = {
+		Rarity = "Mythic",
+		Power = 200,
+		Income = 3000,
+		Color = Color3.fromRGB(255, 80, 200),
+		Shape = "Ball",
+		Wings = true,
+	},
 	-- Cosmic egg (stardust only - earned in meteor events)
-	["Comet Pup"] = { Rarity = "Rare", Power = 20, Color = Color3.fromRGB(120, 200, 255), Shape = "Block", Ears = true },
-	["Meteor Cat"] = { Rarity = "Epic", Power = 60, Color = Color3.fromRGB(255, 120, 60), Shape = "Block", Ears = true },
-	["Star Owl"] = { Rarity = "Legendary", Power = 200, Color = Color3.fromRGB(255, 240, 120), Shape = "Ball", Wings = true },
+	["Comet Pup"] = { Rarity = "Rare", Power = 20, Income = 80, Color = Color3.fromRGB(120, 200, 255), Shape = "Block", Ears = true },
+	["Meteor Cat"] = { Rarity = "Epic", Power = 60, Income = 240, Color = Color3.fromRGB(255, 120, 60), Shape = "Block", Ears = true },
+	["Star Owl"] = { Rarity = "Legendary", Power = 200, Income = 800, Color = Color3.fromRGB(255, 240, 120), Shape = "Ball", Wings = true },
 	["Supernova Dragon"] = {
 		Rarity = "Mythic",
 		Power = 800,
+		Income = 3200,
 		Color = Color3.fromRGB(255, 60, 160),
 		Shape = "Block",
 		Wings = true,
 		Horns = true,
 	},
-	["Celestial Titan"] = { Rarity = "Secret", Power = 3000, Color = Color3.fromRGB(60, 255, 230), Shape = "Block", Horns = true },
+	["Celestial Titan"] = {
+		Rarity = "Secret",
+		Power = 3000,
+		Income = 12000,
+		Color = Color3.fromRGB(60, 255, 230),
+		Shape = "Block",
+		Horns = true,
+	},
 	-- Golden egg (Robux)
-	["Golden Pup"] = { Rarity = "Epic", Power = 50, Color = Color3.fromRGB(255, 210, 60), Shape = "Block", Ears = true },
-	["Golden Cat"] = { Rarity = "Legendary", Power = 150, Color = Color3.fromRGB(255, 190, 30), Shape = "Block", Ears = true },
-	["Golden Dragon"] = { Rarity = "Mythic", Power = 600, Color = Color3.fromRGB(255, 170, 0), Shape = "Block", Wings = true, Horns = true },
-	["Midas King"] = { Rarity = "Secret", Power = 2500, Color = Color3.fromRGB(255, 230, 120), Shape = "Ball", Horns = true },
+	["Golden Pup"] = { Rarity = "Epic", Power = 50, Income = 1500, Color = Color3.fromRGB(255, 210, 60), Shape = "Block", Ears = true },
+	["Golden Cat"] = {
+		Rarity = "Legendary",
+		Power = 150,
+		Income = 4500,
+		Color = Color3.fromRGB(255, 190, 30),
+		Shape = "Block",
+		Ears = true,
+	},
+	["Golden Dragon"] = {
+		Rarity = "Mythic",
+		Power = 600,
+		Income = 18000,
+		Color = Color3.fromRGB(255, 170, 0),
+		Shape = "Block",
+		Wings = true,
+		Horns = true,
+	},
+	["Midas King"] = {
+		Rarity = "Secret",
+		Power = 2500,
+		Income = 75000,
+		Color = Color3.fromRGB(255, 230, 120),
+		Shape = "Ball",
+		Horns = true,
+	},
 	-- Rewards-only pets
-	["Starter Dino"] = { Rarity = "Epic", Power = 4, Color = Color3.fromRGB(90, 220, 120), Shape = "Block", Horns = true },
-	["Rookie Rock"] = { Rarity = "Rare", Power = 5, Color = Color3.fromRGB(120, 120, 130), Shape = "Block" },
-	["Impact Wolf"] = { Rarity = "Mythic", Power = 400, Color = Color3.fromRGB(255, 80, 60), Shape = "Block", Ears = true, Horns = true },
-	["Champion Griffin"] = { Rarity = "Legendary", Power = 120, Color = Color3.fromRGB(255, 215, 0), Shape = "Ball", Wings = true },
+	["Starter Dino"] = { Rarity = "Epic", Power = 4, Income = 160, Color = Color3.fromRGB(90, 220, 120), Shape = "Block", Horns = true },
+	["Rookie Rock"] = { Rarity = "Rare", Power = 5, Income = 100, Color = Color3.fromRGB(120, 120, 130), Shape = "Block" },
+	["Impact Wolf"] = {
+		Rarity = "Mythic",
+		Power = 400,
+		Income = 8000,
+		Color = Color3.fromRGB(255, 80, 60),
+		Shape = "Block",
+		Ears = true,
+		Horns = true,
+	},
+	["Champion Griffin"] = {
+		Rarity = "Legendary",
+		Power = 120,
+		Income = 2400,
+		Color = Color3.fromRGB(255, 215, 0),
+		Shape = "Ball",
+		Wings = true,
+	},
 }
 
 -- Currency: "Coins" | "Gems" | "Stardust" | "Robux" (Robux eggs use Products below)
@@ -287,6 +359,7 @@ Config.Eggs = {
 	Meadow = {
 		Name = "Meadow Egg",
 		Currency = "Coins",
+		Stock = { Chance = 1, Min = 4, Max = 6 }, -- per 5-min restock
 		Price = 250,
 		Zone = 1,
 		Color = Color3.fromRGB(150, 230, 120),
@@ -303,6 +376,7 @@ Config.Eggs = {
 	Frost = {
 		Name = "Frost Egg",
 		Currency = "Coins",
+		Stock = { Chance = 0.85, Min = 2, Max = 4 }, -- per 5-min restock
 		Price = 15000,
 		Zone = 2,
 		Color = Color3.fromRGB(150, 210, 255),
@@ -318,6 +392,7 @@ Config.Eggs = {
 	Lava = {
 		Name = "Lava Egg",
 		Currency = "Coins",
+		Stock = { Chance = 0.6, Min = 1, Max = 3 }, -- per 5-min restock
 		Price = 400000,
 		Zone = 3,
 		Color = Color3.fromRGB(255, 110, 40),
@@ -333,6 +408,7 @@ Config.Eggs = {
 	Void = {
 		Name = "Void Egg",
 		Currency = "Coins",
+		Stock = { Chance = 0.4, Min = 1, Max = 2 }, -- per 5-min restock
 		Price = 6000000,
 		Zone = 4,
 		Color = Color3.fromRGB(130, 80, 220),
@@ -389,6 +465,8 @@ Config.Eggs = {
 		},
 	},
 }
+-- coin eggs restock every 5 minutes (same stock in every server)
+Config.Shop = { RestockSeconds = 300 }
 Config.EggOrder = { "Meadow", "Gem", "Cosmic", "Golden", "Frost", "Lava", "Void" }
 
 ---------------------------------------------------------------------------
@@ -407,7 +485,7 @@ Config.GamePasses = {
 	MegaPower = { Id = 0, Name = "2x Mining Power", Price = 199, Icon = "💥", Description = "Permanently double your mining damage" },
 	AutoMine = { Id = 0, Name = "Auto Mine", Price = 149, Icon = "🤖", Description = "Mine automatically while holding your pickaxe" },
 	FastCarry = { Id = 0, Name = "Fast Carry", Price = 129, Icon = "🏃", Description = "+35% run speed while carrying a shard" },
-	ExtraPets = { Id = 0, Name = "+3 Pet Slots", Price = 199, Icon = "🐾", Description = "Equip 3 more pets at once" },
+	ExtraPets = { Id = 0, Name = "+3 Pet Slots", Price = 199, Icon = "🐾", Description = "3 more pets follow you and boost mining" },
 	Lucky = { Id = 0, Name = "Lucky Hatch", Price = 179, Icon = "🍀", Description = "+50% luck on every egg" },
 	TripleHatch = { Id = 0, Name = "Triple Hatch", Price = 149, Icon = "🥚", Description = "Hatch 3 eggs at once" },
 	DoubleBase = { Id = 0, Name = "2x Base Income", Price = 199, Icon = "🏠", Description = "Your base earns double coins" },
@@ -703,9 +781,14 @@ Config.LuckyOres = {
 }
 
 -- hatched pets can be Golden / Rainbow (luck increases the chance, max x4)
+-- mutations: rolled on every hatch (rarest first). Event-only ones need
+-- that weather event to be active (see Config.Events).
 Config.PetVariants = {
-	{ Id = "Rainbow", Chance = 1 / 300, PowerMult = 6 },
-	{ Id = "Golden", Chance = 1 / 25, PowerMult = 2.5 },
+	{ Id = "Galaxy", Chance = 1 / 1000, Event = "Starfall", EventChance = 1 / 60, PowerMult = 8, IncomeMult = 12 },
+	{ Id = "Rainbow", Chance = 1 / 300, PowerMult = 6, IncomeMult = 8 },
+	{ Id = "Molten", Chance = 0, Event = "HeatWave", EventChance = 1 / 5, PowerMult = 2.5, IncomeMult = 3 },
+	{ Id = "Frozen", Chance = 0, Event = "Blizzard", EventChance = 1 / 5, PowerMult = 2, IncomeMult = 2.5 },
+	{ Id = "Golden", Chance = 1 / 25, PowerMult = 2.5, IncomeMult = 3 },
 }
 
 -- player level: XP from every block, fast early levels, coin bonus per level
@@ -745,6 +828,25 @@ Config.Events = {
 			GemChance = 0.15,
 		},
 		{
+			Id = "Blizzard",
+			Name = "❄️ BLIZZARD",
+			Description = "Hatched pets can be FROZEN (2.5x income)!",
+			Color = Color3.fromRGB(150, 220, 255),
+		},
+		{
+			Id = "HeatWave",
+			Name = "🔥 HEAT WAVE",
+			Description = "Hatched pets can be MOLTEN (3x income)!",
+			Color = Color3.fromRGB(255, 120, 50),
+		},
+		{
+			Id = "Starfall",
+			Name = "🌌 STARFALL",
+			Description = "Stars fall 3x faster + GALAXY pets!",
+			Color = Color3.fromRGB(170, 120, 255),
+			StarMult = 3,
+		},
+		{
 			Id = "DoubleOre",
 			Name = "💰 DOUBLE ORE",
 			Description = "All ore is worth 2x!",
@@ -775,14 +877,16 @@ Config.Tutorial = {
 Config.Shards = {
 	Order = { "Common", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
 	Rarities = {
-		Common = { Name = "Star Shard", Income = 0.5, Weight = 55, Speed = 0.92, Color = Color3.fromRGB(190, 230, 255) },
-		Rare = { Name = "Comet Shard", Income = 1.5, Weight = 26, Speed = 0.88, Color = Color3.fromRGB(70, 160, 255) },
-		Epic = { Name = "Nebula Shard", Income = 5, Weight = 12, Speed = 0.82, Color = Color3.fromRGB(185, 80, 255) },
-		Legendary = { Name = "Solar Shard", Income = 15, Weight = 5, Speed = 0.76, Color = Color3.fromRGB(255, 195, 40) },
-		Mythic = { Name = "Supernova Core", Income = 50, Weight = 1.6, Speed = 0.7, Color = Color3.fromRGB(255, 70, 150) },
-		Secret = { Name = "Black Hole Heart", Income = 200, Weight = 0.4, Speed = 0.62, Color = Color3.fromRGB(120, 40, 255) },
+		Common = { Name = "Star Egg", Luck = 1, Income = 0.5, Weight = 55, Speed = 0.92, Color = Color3.fromRGB(190, 230, 255) },
+		Rare = { Name = "Comet Egg", Luck = 2, Income = 1.5, Weight = 26, Speed = 0.88, Color = Color3.fromRGB(70, 160, 255) },
+		Epic = { Name = "Nebula Egg", Luck = 4, Income = 5, Weight = 12, Speed = 0.82, Color = Color3.fromRGB(185, 80, 255) },
+		Legendary = { Name = "Solar Egg", Luck = 8, Income = 15, Weight = 5, Speed = 0.76, Color = Color3.fromRGB(255, 195, 40) },
+		Mythic = { Name = "Supernova Egg", Luck = 16, Income = 50, Weight = 1.6, Speed = 0.7, Color = Color3.fromRGB(255, 70, 150) },
+		Secret = { Name = "Black Hole Egg", Luck = 40, Income = 200, Weight = 0.4, Speed = 0.62, Color = Color3.fromRGB(120, 40, 255) },
 	},
-	-- income scales with the OWNER's progress (zone level), so shards matter all game
+	-- the egg a falling star carries depends on where it lands (hub = zone 1)
+	ZoneEggs = { "Meadow", "Frost", "Lava", "Void", "Cosmic" },
+	-- (legacy) shard income scaling - shards are star eggs now
 	ZoneMult = { 1, 8, 60, 500, 4000 },
 	SellSeconds = 120, -- selling a shard pays this many seconds of its income
 	Points = { 10, 20, 45, 100, 250, 600 }, -- weekly ranked points per delivery, by rarity

@@ -20,7 +20,6 @@ local Util = require(Shared.Util)
 
 local Client = script.Parent.Parent
 local Net = require(Client.Net)
-local State = require(Client.State)
 local Lib = require(Client.UI.Lib)
 local Root = require(Client.UI.Root)
 
@@ -33,6 +32,15 @@ local Shards = {}
 
 local function rarity(id: string)
 	return Config.Shards.Rarities[id] or Config.Shards.Rarities.Common
+end
+
+-- colour of a value tier 1..7 (Common .. Secret)
+local TIER_COLORS = {}
+for _, def in Config.Rarities do
+	TIER_COLORS[def.Order] = def.Color
+end
+local function tierColor(tier: number?): Color3
+	return TIER_COLORS[math.clamp(tier or 1, 1, 7)] or C.Gold
 end
 
 local function hud()
@@ -89,12 +97,12 @@ local function refreshBanner()
 		banner.Visible = false
 		return
 	end
-	local def = rarity(carrying)
+	local color = tierColor(player:GetAttribute("CarryTier"))
 	local stolen = player:GetAttribute("CarryStolen") == true
-	bannerTitle.Text = T(if stolen then "🏃 STOLEN %s - RUN HOME! 🏠" else "🌠 %s - RUN HOME! 🏠", T(def.Name))
-	bannerTitle.TextColor3 = def.Color
+	bannerTitle.Text = T(if stolen then "🏃 STOLEN %s - RUN HOME! 🏠" else "🌠 %s - RUN HOME! 🏠", T(carrying))
+	bannerTitle.TextColor3 = color
 	bannerSub.Text = T("You're slower and anyone can bonk you - don't get caught!")
-	bannerStroke.Color = def.Color
+	bannerStroke.Color = color
 	banner.Visible = true
 	bannerScale.Scale = 1.25
 	TweenService:Create(bannerScale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
@@ -112,38 +120,28 @@ end)
 ---------------------------------------------------------------------------
 -- events
 ---------------------------------------------------------------------------
-Net.On("CarryStart", function(id, fromName)
+Net.On("CarryStart", function(name, fromName, tier)
 	Lib.PlaySound("Lucky", 0.8)
 	if not fromName then
-		toast(T("🌠 You got a %s! Bring it to your base 🏠", T(rarity(id).Name)), rarity(id).Color)
+		toast(T("🌠 You got a %s! Bring it to your base 🏠", T(tostring(name))), tierColor(tier))
 	end
 end)
 
-Net.On("CarryLost", function(id)
-	toast(T("💥 You dropped the %s!", T(rarity(id).Name)), C.Red)
+Net.On("CarryLost", function(name)
+	toast(T("💥 You dropped the %s!", T(tostring(name))), C.Red)
 end)
 
-Net.On("ShardDelivered", function(id, result, coins)
-	local def = rarity(id)
-	local data, derived = State.Data, State.Derived
-	local income = Util.ShardIncome(Config, id, if data then data.ZoneLevel else 1) * ((derived and derived.CoinMult) or 1)
-	local sub
-	if result == "Stored" then
-		sub = T("📦 Stored - your pedestals hold better shards. Place more pedestals!")
-	elseif result == "Sold" then
-		sub = T("Base full - sold it for 💰%s. Buy more pedestals!", Util.Format(coins or 0))
-	elseif result == "Replaced" then
-		sub = T("Replaced your weakest shard (+💰%s)", Util.Format(coins or 0))
-	else
-		sub = T("+💰%s every second - even offline!", Util.Format(income))
+-- star eggs show the normal hatch animation (HatchResult); stolen pets get a cheer
+Net.On("ShardDelivered", function(name, result)
+	if result == "Stolen" then
+		Lib.PlaySound("LevelUp")
+		celebrate(T("🦹 %s STOLEN!", T(tostring(name))), T("It earns coins in your base now - guard it!"), C.Pink, true)
 	end
-	Lib.PlaySound("LevelUp")
-	celebrate(T("🏠 %s SECURED!", T(def.Name)), sub, def.Color, Util.ShardIndex(Config, id) >= 3)
 end)
 
-Net.On("ShardRecovered", function(id)
+Net.On("ShardRecovered", function(name)
 	Lib.PlaySound("Reward")
-	celebrate(T("🛡️ RECOVERED!"), T(rarity(id).Name), C.Cyan)
+	celebrate(T("🛡️ RECOVERED!"), T(tostring(name)), C.Cyan)
 end)
 
 Net.On("BaseCollected", function(amount)
@@ -218,9 +216,9 @@ Net.On("GuardianChase", function(seconds)
 	celebrate(T("🗿 THE GUARDIAN WOKE UP!"), T("Run! It chases you for %d seconds", seconds or 12), Color3.fromRGB(255, 150, 80))
 end)
 
-Net.On("CaughtByGuardian", function(id)
+Net.On("CaughtByGuardian", function(name)
 	Lib.PlaySound("Bonked")
-	toast(T("🗿 The guardian took the %s back!", T(rarity(id).Name)), C.Red)
+	toast(T("🗿 The guardian took the %s back!", T(tostring(name))), C.Red)
 end)
 
 Net.On("BaseLiked", function()
@@ -412,7 +410,17 @@ RunService.RenderStepped:Connect(function()
 	for model, pivot in spinning do
 		-- only animate what's near the camera (cheap on phones)
 		if model.Parent and (pivot.Position - eye).Magnitude < 140 then
-			model:PivotTo(pivot * CFrame.new(0, math.sin(t * 2 + pivot.X) * 0.4, 0) * CFrame.Angles(0, t * 1.6, 0))
+			if model:GetAttribute("PetId") then
+				-- pets on pedestals: happy bounce + little sway (they face the street)
+				local phase = t * 3 + pivot.X
+				local hop = math.abs(math.sin(phase)) * 0.5
+				model:PivotTo(pivot * CFrame.new(0, hop, 0) * CFrame.Angles(0, math.sin(phase * 0.5) * 0.35, math.sin(phase) * 0.06))
+				if model:GetAttribute("Variant") == "Rainbow" and model.PrimaryPart then
+					model.PrimaryPart.Color = Color3.fromHSV((t * 0.3) % 1, 0.7, 1)
+				end
+			else
+				model:PivotTo(pivot * CFrame.new(0, math.sin(t * 2 + pivot.X) * 0.4, 0) * CFrame.Angles(0, t * 1.6, 0))
+			end
 		end
 	end
 end)

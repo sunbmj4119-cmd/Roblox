@@ -1,8 +1,8 @@
 --[[
-	ShardModel: procedural star-shard crystal (no assets needed).
+	ShardModel: procedural STAR EGG (no assets needed). Falling stars and
+	meteors drop these; carried home they hatch into a pet.
 	ShardModel.Build(config, rarityId, scale) -> Model with PrimaryPart "Core".
-	Every part is unanchored-safe (welded to Core), non-colliding and
-	non-queryable; the caller decides Anchored / where to weld it.
+	Parts are welded to Core; the caller decides Anchored / where to weld it.
 ]]
 local ShardModel = {}
 
@@ -23,50 +23,59 @@ local function piece(name: string, size: Vector3, color: Color3, material: Enum.
 	return part
 end
 
+local function weld(a: BasePart, b: BasePart)
+	local w = Instance.new("WeldConstraint")
+	w.Part0 = a
+	w.Part1 = b
+	w.Parent = b
+end
+
 function ShardModel.Build(config, rarityId: string, scale: number?): Model
 	local def = config.Shards.Rarities[rarityId] or config.Shards.Rarities.Common
-	local s = scale or 1
+	local s = (scale or 1) * 1.15
 	local index = table.find(config.Shards.Order, rarityId) or 1
 	local model = Instance.new("Model")
-	model.Name = "Shard_" .. rarityId
+	model.Name = "StarEgg_" .. rarityId
 	model:SetAttribute("Rarity", rarityId)
 
+	-- the egg: a stretched sphere, glowing in the star's colour
 	local secret = rarityId == "Secret"
-	local coreColor = if secret then Color3.fromRGB(20, 10, 35) else def.Color
-	local core = piece("Core", Vector3.new(1.3, 2.6, 1.3) * s, coreColor, if secret then Enum.Material.Glass else Enum.Material.Neon, model)
-	core.CFrame = CFrame.Angles(0, math.rad(45), math.rad(12))
+	local core = piece(
+		"Core",
+		Vector3.new(2.2, 2.8, 2.2) * s,
+		if secret then Color3.fromRGB(25, 12, 45) else def.Color:Lerp(Color3.new(1, 1, 1), 0.35),
+		if secret then Enum.Material.Glass else Enum.Material.SmoothPlastic,
+		model
+	)
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = core
 	model.PrimaryPart = core
 
-	-- side crystals: rarer shards grow more of them
-	local count = math.min(2 + index, 6)
-	for i = 1, count do
-		local angle = (i / count) * math.pi * 2
-		local crystal = piece(
-			"Crystal",
-			Vector3.new(0.6, 1.2 + (i % 2) * 0.5, 0.6) * s,
-			def.Color:Lerp(Color3.new(1, 1, 1), 0.25),
-			Enum.Material.Neon,
-			model
-		)
-		crystal.CFrame = core.CFrame
-			* CFrame.new(math.cos(angle) * 0.75 * s, -0.5 * s, math.sin(angle) * 0.75 * s)
-			* CFrame.Angles(math.cos(angle) * 0.6, 0, math.sin(angle) * 0.6)
-		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = core
-		weld.Part1 = crystal
-		weld.Parent = crystal
+	-- glowing zig-zag band around the middle
+	local band = piece("Band", Vector3.new(0.35 * s, 2.25 * s, 2.25 * s), def.Color, Enum.Material.Neon, model)
+	band.Shape = Enum.PartType.Cylinder
+	band.CFrame = core.CFrame * CFrame.Angles(0, 0, math.rad(90))
+	weld(core, band)
+
+	-- little stars stuck to the shell (more for rarer eggs)
+	for i = 1, math.min(2 + index, 7) do
+		local angle = (i / math.min(2 + index, 7)) * math.pi * 2
+		local y = if i % 2 == 0 then 0.55 else -0.45
+		local star = piece("Star", Vector3.new(0.4, 0.4, 0.4) * s, Color3.fromRGB(255, 245, 190), Enum.Material.Neon, model)
+		star.CFrame = core.CFrame
+			* CFrame.new(math.cos(angle) * 1.02 * s, y * s, math.sin(angle) * 1.02 * s)
+			* CFrame.Angles(0, -angle, math.rad(45))
+		weld(core, star)
 	end
 
-	-- legendary+ get a spinning-looking halo ring
+	-- legendary+ eggs get a halo
 	if index >= 4 then
-		local ring = piece("Ring", Vector3.new(0.2, 3.4, 3.4) * s, def.Color, Enum.Material.Neon, model)
+		local ring = piece("Ring", Vector3.new(0.18, 3.4 * s, 3.4 * s), def.Color, Enum.Material.Neon, model)
 		ring.Shape = Enum.PartType.Cylinder
 		ring.Transparency = 0.35
-		ring.CFrame = CFrame.new(core.Position) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(math.rad(20), 0, 0)
-		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = core
-		weld.Part1 = ring
-		weld.Parent = ring
+		ring.CFrame = core.CFrame * CFrame.new(0, 1.9 * s, 0) * CFrame.Angles(0, 0, math.rad(90))
+		weld(core, ring)
 	end
 
 	local light = Instance.new("PointLight")

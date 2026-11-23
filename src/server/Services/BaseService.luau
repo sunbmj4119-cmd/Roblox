@@ -4,18 +4,17 @@
 	* DECORATE: buy any decoration from the build menu and place it anywhere
 	  on the grid (move / rotate / remove at any time - removing refunds
 	  100%, so redecorating is free). Saved with your data, seen by everyone.
-	* PEDESTALS are decorations too: each one shows a star shard that earns
+	* PEDESTALS are decorations too: your best pets stand on them and earn
 	  coins every second into the base bank (green pad), even offline (50%,
-	  2h). Your best shards automatically go on the pedestals; the rest wait
-	  in storage.
+	  2h). The rest of your pets wait in storage.
 	* DEFEND: stun traps freeze thieves (and send a stolen shard straight
 	  home), the red pad locks the entrance for a minute.
 	* SHOW OFF: visitors can ❤️ like your base once a day -> weekly ranked
 	  points + the "Best Bases" leaderboard.
-	* STEAL: hold the prompt on someone else's shard, then run it home.
+	* STEAL: hold the prompt on someone else's pet, then run it home.
 
-	data.Base.Items  = { { Uid, Id, X, Z, R, Paid, Cur }, ... } (plot space)
-	data.Base.Shards = { { Id = rarityId, Away = true? }, ... } best first
+	data.Base.Items = { { Uid, Id, X, Z, R, Paid, Cur }, ... } (plot space)
+	data.Pets entries get Away = true while a thief carries them
 ]]
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -23,7 +22,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Util = require(Shared.Util)
-local ShardModel = require(Shared.ShardModel)
+local PetModel = require(Shared.PetModel)
 local DecorModel = require(Shared.DecorModel)
 local Net = require(script.Parent.Net)
 
@@ -318,20 +317,34 @@ local function pedestalItems(data)
 	return list
 end
 
-local function sortShards(data)
-	local shards = data.Base.Shards
-	for _, entry in shards do
-		if not Config.Shards.Rarities[entry.Id] then
-			entry.Id = "Common" -- a rarity that no longer exists (config change)
+-- the pets standing on pedestals: the best earners (not being stolen)
+local function displayedPets(data)
+	local slots = #pedestalItems(data)
+	local list = {}
+	for _, pet in data.Pets do
+		if not pet.Away and Config.Pets[pet.Name] then
+			table.insert(list, pet)
 		end
 	end
-	table.sort(shards, function(a, b)
-		return Util.ShardIndex(Config, a.Id) > Util.ShardIndex(Config, b.Id)
+	table.sort(list, function(a, b)
+		local ia = Util.PetIncome(Config, a.Name, a.Variant)
+		local ib = Util.PetIncome(Config, b.Name, b.Variant)
+		if ia == ib then
+			return a.Id < b.Id
+		end
+		return ia > ib
 	end)
+	local shown = {}
+	for i = 1, math.min(slots, #list) do
+		shown[i] = list[i]
+	end
+	return shown
 end
+Base.DisplayedPets = displayedPets
 
-function Base:ShardRate(player: Player, data, id: string): number
-	local rate = Util.ShardIncome(Config, id, data.ZoneLevel) * Services.StatsService:CoinMultiplier(player, data)
+-- coins per second of one pet for its owner (boosts included)
+function Base:PetRate(player: Player, data, pet): number
+	local rate = Util.PetIncome(Config, pet.Name, pet.Variant) * Services.StatsService:CoinMultiplier(player, data)
 	if Services.MonetizationService:HasPass(player, "DoubleBase") then
 		rate *= 2
 	end
@@ -340,17 +353,10 @@ end
 
 function Base:IncomeRate(player: Player, data): number
 	local total = 0
-	local slots = #pedestalItems(data)
-	for index, entry in data.Base.Shards do
-		if index <= slots and not entry.Away then
-			total += self:ShardRate(player, data, entry.Id)
-		end
+	for _, pet in displayedPets(data) do
+		total += self:PetRate(player, data, pet)
 	end
 	return total
-end
-
-local function sellValue(player: Player, data, id: string): number
-	return math.floor(Base:ShardRate(player, data, id) * Config.Shards.SellSeconds)
 end
 
 ---------------------------------------------------------------------------
@@ -397,43 +403,37 @@ function Base:RenderDisplays(player: Player)
 		return
 	end
 	plot.Displays:ClearAllChildren()
-	sortShards(data)
-	local shards = data.Base.Shards
+	local shown = displayedPets(data)
 	for slot, pedestal in pedestalItems(data) do
 		local model = plot.ItemModels[pedestal.Uid]
 		local top = model and model:FindFirstChild("Top")
-		local entry = shards[slot]
-		if top and top:IsA("BasePart") and entry then
-			if not entry.Away then
-				local def = Config.Shards.Rarities[entry.Id]
-				local shard = ShardModel.Build(Config, entry.Id, 1)
-				ShardModel.SetAnchored(shard, true)
-				shard:PivotTo(CFrame.new(top.Position + Vector3.new(0, 2.2, 0)))
-				shard:SetAttribute("Spin", true)
-				shard.Parent = plot.Displays
-				local label = billboard(shard.PrimaryPart :: BasePart, 7, 2.2, 3.2, def.Color, 60)
-				World.SetText(label, "%s\n💰 %s/s", def.Name, Util.Format(self:ShardRate(player, data, entry.Id)))
-				local core = shard.PrimaryPart :: BasePart
-				setPrompt(core, "Steal", def.Name, "Thief", SETTINGS.StealHold, function(thief)
-					Base:TrySteal(thief, player, entry)
-				end)
-				setPrompt(core, "Sell", def.Name, "Owner", 0.6, function(who)
-					if who == player then
-						Base:SellEntry(player, entry)
-					end
-				end)
+		local pet = shown[slot]
+		if top and top:IsA("BasePart") and pet then
+			local info = Config.Pets[pet.Name]
+			local rarity = Config.Rarities[info.Rarity] or Config.Rarities.Common
+			local display = PetModel.Build(pet.Name, pet.Variant)
+			display.Name = "Pet_" .. pet.Id
+			display:PivotTo(CFrame.new(top.Position + Vector3.new(0, 1.6, 0)) * (top.CFrame - top.Position))
+			display:SetAttribute("Spin", true)
+			display:SetAttribute("PetId", pet.Id)
+			display.Parent = plot.Displays
+			local anchor = display.PrimaryPart :: BasePart
+			local label = billboard(anchor, 8, 2.4, 3.4, rarity.Color, 60)
+			local rate = Util.Format(self:PetRate(player, data, pet))
+			if pet.Variant then
+				World.SetText(label, "%s %s\n💰 %s/s", pet.Variant, pet.Name, rate)
 			else
-				local anchor = part({
-					Name = "StolenMark",
-					Size = Vector3.one,
-					CFrame = CFrame.new(top.Position + Vector3.new(0, 2, 0)),
-					Transparency = 1,
-					CanCollide = false,
-					CanQuery = false,
-					CanTouch = false,
-				}, plot.Displays)
-				World.SetText(billboard(anchor, 7, 2, 0, Color3.fromRGB(255, 90, 90), 80), "⚠️ STOLEN!")
+				World.SetText(label, "%s\n💰 %s/s", pet.Name, rate)
 			end
+			local petId = pet.Id
+			setPrompt(anchor, "Steal", pet.Name, "Thief", SETTINGS.StealHold, function(thief)
+				Base:TrySteal(thief, player, petId)
+			end)
+			setPrompt(anchor, "Sell", pet.Name, "Owner", 0.6, function(who)
+				if who == player then
+					Base:SellPet(player, petId)
+				end
+			end)
 		end
 	end
 	self:RefreshLabels(player, true)
@@ -464,8 +464,7 @@ function Base:RefreshLabels(player: Player, force: boolean?)
 		return
 	end
 	local rate = self:IncomeRate(player, data)
-	local slots = #pedestalItems(data)
-	local stored = math.max(0, #data.Base.Shards - slots)
+	local stored = math.max(0, #data.Pets - #displayedPets(data))
 	local signText = Util.Format(rate) .. "|" .. data.Base.Likes .. "|" .. stored
 	if force or signText ~= plot.LastLabel then
 		plot.LastLabel = signText
@@ -552,92 +551,37 @@ function Base:IsLocked(owner: Player): boolean
 	return plot ~= nil and plot.LockedUntil > now()
 end
 
--- a carried shard arrives home. Returns a short result for the client.
-function Base:AddShard(player: Player, id: string): (string, number)
-	local data = Data:Get(player)
-	if not data then
-		return "None", 0
-	end
-	local shards = data.Base.Shards
-	local capacity = #pedestalItems(data) + SETTINGS.StorageMax
-	local result, coins = "Placed", 0
-	local slots = #pedestalItems(data)
-	if #shards < capacity then
-		local entry = { Id = id }
-		table.insert(shards, entry)
-		sortShards(data)
-		if (table.find(shards, entry) or 0) > slots then
-			result = "Stored" -- every pedestal holds a better shard
-		end
-	else
-		-- completely full: the new shard replaces the weakest one if it's better, the other is sold
-		local worstIndex, worstValue = nil, math.huge
-		for i, entry in shards do
-			if not entry.Away then
-				local value = Util.ShardIndex(Config, entry.Id)
-				if value < worstValue then
-					worstIndex, worstValue = i, value
-				end
-			end
-		end
-		if worstIndex and Util.ShardIndex(Config, id) > worstValue then
-			coins = sellValue(player, data, shards[worstIndex].Id)
-			shards[worstIndex] = { Id = id }
-			result = "Replaced"
-		else
-			coins = sellValue(player, data, id)
-			result = "Sold"
-		end
-		data.Coins += coins
-		data.Stats.LifetimeCoins += coins
-	end
-	data.Stats.ShardsDelivered = (data.Stats.ShardsDelivered or 0) + 1
-	Data:MarkDirty(player)
-	self:RenderDisplays(player)
-	return result, coins
-end
-
-function Base:SetAway(owner: Player, entry, away: boolean)
-	entry.Away = if away then true else nil
-	if owner.Parent then
-		Data:MarkDirty(owner)
-		self:RenderDisplays(owner)
-	end
-end
-
-function Base:RemoveEntry(owner: Player, entry)
+-- a pet is being carried away by a thief (or came back)
+function Base:SetAway(owner: Player, petId: number, away: boolean)
 	local data = Data:Get(owner)
-	if not data then
+	local pet = data and Services.PetService.FindPet(data, petId)
+	if not pet then
 		return
 	end
-	local index = table.find(data.Base.Shards, entry)
-	if index then
-		table.remove(data.Base.Shards, index)
+	pet.Away = if away then true else nil
+	if owner.Parent then
+		Services.PetService:Changed(owner)
 	end
-	Data:MarkDirty(owner)
-	self:RenderDisplays(owner)
 end
 
-function Base:SellEntry(player: Player, entry)
+function Base:SellPet(player: Player, petId: number)
 	local data = Data:Get(player)
-	if not data or entry.Away then
+	local pet, index = nil, nil
+	if data then
+		pet, index = Services.PetService.FindPet(data, petId)
+	end
+	if not pet or pet.Away then
 		return
 	end
-	local index = table.find(data.Base.Shards, entry)
-	if not index then
-		return
-	end
-	local coins = sellValue(player, data, entry.Id)
-	table.remove(data.Base.Shards, index)
+	local coins = Services.PetService:SellValue(pet.Name, pet.Variant)
+	table.remove(data.Pets, index)
 	data.Coins += coins
 	data.Stats.LifetimeCoins += coins
-	local def = Config.Shards.Rarities[entry.Id]
-	Net:Notify(player, "Sold %s for 💰%s", Color3.fromRGB(255, 220, 120), def.Name, Util.Format(coins))
-	Data:MarkDirty(player)
-	self:RenderDisplays(player)
+	Net:Notify(player, "Sold %s for 💰%s", Color3.fromRGB(255, 220, 120), pet.Name, Util.Format(coins))
+	Services.PetService:Changed(player)
 end
 
-function Base:TrySteal(thief: Player, owner: Player, entry)
+function Base:TrySteal(thief: Player, owner: Player, petId: number)
 	if thief == owner or not owner.Parent then
 		return
 	end
@@ -647,7 +591,7 @@ function Base:TrySteal(thief: Player, owner: Player, entry)
 		return
 	end
 	if not plotOf[thief] then
-		Net:Notify(thief, "You need a base to steal shards!")
+		Net:Notify(thief, "You need a base to steal pets!")
 		return
 	end
 	if self:IsLocked(owner) then
@@ -655,18 +599,20 @@ function Base:TrySteal(thief: Player, owner: Player, entry)
 		return
 	end
 	local data = Data:Get(owner)
-	if not data or entry.Away or not table.find(data.Base.Shards, entry) then
+	local pet = data and Services.PetService.FindPet(data, petId)
+	if not pet or pet.Away then
 		return
 	end
-	local def = Config.Shards.Rarities[entry.Id]
-	self:SetAway(owner, entry, true)
-	if not shards:StartCarry(thief, entry.Id, { From = owner, Entry = entry }) then
-		self:SetAway(owner, entry, false)
+	self:SetAway(owner, petId, true)
+	local item = { Kind = "Pet", Name = pet.Name, Variant = pet.Variant }
+	if not shards:StartCarry(thief, item, { From = owner, PetId = petId }) then
+		self:SetAway(owner, petId, false)
 		return
 	end
-	Net:Send(owner, "BaseAlarm", thief.DisplayName, def.Name)
-	Net:Notify(owner, "🚨 %s is stealing your %s! Bonk them!", Color3.fromRGB(255, 80, 80), thief.DisplayName, def.Name)
-	Net:Notify(thief, "🏃 You stole a %s! Run to your base!", Color3.fromRGB(255, 170, 80), def.Name)
+	local display = pet.Name
+	Net:Send(owner, "BaseAlarm", thief.DisplayName, display)
+	Net:Notify(owner, "🚨 %s is stealing your %s! Bonk them!", Color3.fromRGB(255, 80, 80), thief.DisplayName, display)
+	Net:Notify(thief, "🏃 You stole a %s! Run to your base!", Color3.fromRGB(255, 170, 80), display)
 end
 
 function Base:Collect(player: Player)
@@ -682,6 +628,7 @@ function Base:Collect(player: Player)
 	data.Coins += amount
 	data.Stats.LifetimeCoins += amount
 	Services.ProgressionService:AddQuest(player, "Collect", 1)
+	Services.Analytics:Economy(player, "Source", "Coins", amount, data.Coins, "Gameplay", "BaseCollect")
 	Net:Send(player, "BaseCollected", amount)
 	Data:MarkDirty(player)
 	self:RefreshLabels(player)
@@ -1007,10 +954,6 @@ function Base:Start()
 
 	Data:OnLoaded(function(player, data)
 		local base = data.Base
-		-- shards a thief was carrying when the server closed are still ours
-		for _, entry in base.Shards do
-			entry.Away = nil
-		end
 		-- forget likes older than yesterday (keeps the save small)
 		local today = Util.DayNumber()
 		for key, day in base.LikedBy do
@@ -1023,8 +966,8 @@ function Base:Start()
 	end)
 	Data:OnLeaving(function(_player, data)
 		data.Base.LastOnline = os.time()
-		for _, entry in data.Base.Shards do
-			entry.Away = nil
+		for _, pet in data.Pets do
+			pet.Away = nil
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)

@@ -1,4 +1,4 @@
--- Settings: language (auto / 한국어 / English) and sound
+-- Settings: language (auto / 한국어 / English), sound, how to play
 local TeleportService = game:GetService("TeleportService")
 
 local Settings = { Title = "⚙️ SETTINGS", Color = Color3.fromRGB(110, 115, 140) }
@@ -59,12 +59,26 @@ function Settings.Build(content, ctx)
 	Lib.Text({ Text = "🔊 Sound", Size = UDim2.new(1, 0, 0, 34), Position = UDim2.fromOffset(0, 170), MaxTextSize = 28, Parent = content })
 	local soundButton = Lib.Button({
 		Size = UDim2.fromOffset(240, 54),
-		Position = UDim2.new(0.5, -120, 0, 214),
+		Position = UDim2.new(0.5, -250, 0, 214),
 		TextSize = 24,
 		Parent = content,
 		OnClick = function()
 			Lib.Muted = not Lib.Muted
 			ctx.Panels.RefreshCurrent()
+		end,
+	})
+	Lib.Button({
+		Text = "❓ How to play",
+		Color = C.Blue,
+		Size = UDim2.fromOffset(240, 54),
+		Position = UDim2.new(0.5, 10, 0, 214),
+		TextSize = 24,
+		Parent = content,
+		OnClick = function()
+			ctx.Panels.Close()
+			if ctx.HowTo then
+				ctx.HowTo.Show()
+			end
 		end,
 	})
 

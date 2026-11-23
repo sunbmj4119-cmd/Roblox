@@ -61,7 +61,7 @@ function Gifts.Build(content, ctx)
 		for i, box in boxes do
 			local remaining = box.Gift.Minutes * 60 - elapsed
 			if claimed[i] then
-				Lib.SetButton(box.Button, "✔ Claimed", C.Gray)
+				Lib.SetButton(box.Button, "✅ Claimed", C.Gray)
 			elseif remaining <= 0 then
 				Lib.SetButton(box.Button, "CLAIM!", C.Green)
 			else

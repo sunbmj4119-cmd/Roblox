@@ -244,6 +244,54 @@ function Util.VariantDef(config, variant: string?)
 	return nil
 end
 
+-- coins per second a pet earns on a pedestal (mutation included, before boosts)
+function Util.PetIncome(config, petName: string, variant: string?): number
+	local info = config.Pets[petName]
+	if not info then
+		return 0
+	end
+	local def = Util.VariantDef(config, variant)
+	return (info.Income or 0) * (if def then def.IncomeMult or 1 else 1)
+end
+
+-- the egg shop restocks every RestockSeconds; slot = which restock we're in
+function Util.ShopSlot(config, serverTime: number): number
+	return math.floor(serverTime / config.Shop.RestockSeconds)
+end
+
+-- seconds until the next restock
+function Util.ShopRestockIn(config, serverTime: number): number
+	local period = config.Shop.RestockSeconds
+	return period - (serverTime % period)
+end
+
+-- how many of an egg are in stock this slot (same in every server: seeded).
+-- nil = not a restocking egg (always available)
+function Util.EggStock(config, eggId: string, slot: number): number?
+	local egg = config.Eggs[eggId]
+	local rule = egg and egg.Stock
+	if not rule then
+		return nil
+	end
+	-- small deterministic hash of (slot, eggId) -> 0..1. Every product stays
+	-- below 2^53 so it's exact on every machine (server and phones agree).
+	local m = 4294967296
+	local h = (slot % 1000003) * 2654435761 % m
+	for i = 1, #eggId do
+		h = (h * 31 + string.byte(eggId, i)) % m
+	end
+	for _ = 1, 3 do
+		h = (h * 69069 + 1) % m
+	end
+	local roll = h / m
+	if roll >= rule.Chance then
+		return 0
+	end
+	local span = rule.Max - rule.Min + 1
+	local pick = math.floor((roll / rule.Chance) * span)
+	return rule.Min + math.min(pick, span - 1)
+end
+
 -- pet power including Golden / Rainbow multiplier
 function Util.PetPower(config, petName: string, variant: string?): number
 	local info = config.Pets[petName]

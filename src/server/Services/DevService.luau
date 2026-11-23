@@ -55,7 +55,7 @@ function Dev:Start()
 			Services.ShardService:FallingStar(math.min(zone, data.ZoneLevel))
 		elseif command == "Shard" then
 			local id = Util.RollShard(Config, 4)
-			Services.ShardService:StartCarry(player, id, nil)
+			Services.ShardService:StartCarry(player, { Kind = "Egg", Rarity = id, Egg = "Meadow" }, nil)
 		elseif command == "Reset" then
 			local fresh = Util.DeepCopy(Data.Template)
 			fresh.FirstJoin = os.time()

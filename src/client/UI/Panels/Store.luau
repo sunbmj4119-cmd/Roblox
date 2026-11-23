@@ -216,7 +216,7 @@ function Store.Build(content, ctx)
 		end
 		for key, button in passButtons do
 			if State.HasPass(key) then
-				Lib.SetButton(button, "✔ OWNED", C.Gray)
+				Lib.SetButton(button, "✅ OWNED", C.Gray)
 			else
 				Lib.SetButton(button, "R$ " .. Lib.Price("Pass", key), C.Green)
 			end
@@ -228,7 +228,7 @@ function Store.Build(content, ctx)
 		itemCards.StarterPack.Visible = starterOpen
 		Lib.SetButton(
 			clubButton,
-			if derived.Subscribed then "✔ MEMBER" else T("Join %s", sub.PriceText),
+			if derived.Subscribed then "✅ MEMBER" else T("Join %s", sub.PriceText),
 			if derived.Subscribed then C.Gray else C.Cyan
 		)
 		premiumCard.Visible = not derived.Premium

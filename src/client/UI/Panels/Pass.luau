@@ -48,7 +48,7 @@ function Pass.Build(content, ctx)
 		end,
 	})
 	Lib.Button({
-		Text = "✔ Claim All",
+		Text = "✅ Claim All",
 		Size = UDim2.fromOffset(150, 42),
 		Color = C.Green,
 		LayoutOrder = 3,
@@ -124,7 +124,7 @@ function Pass.Build(content, ctx)
 	local function styleBox(box, status, claimed, unlocked, locked)
 		local stroke = box:FindFirstChildOfClass("UIStroke")
 		if claimed then
-			status.Text = "✔"
+			status.Text = "✅"
 			stroke.Color = C.Green
 			box.BackgroundColor3 = Color3.fromRGB(40, 80, 55)
 		elseif locked then

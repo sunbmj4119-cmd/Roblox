@@ -185,7 +185,7 @@ local topHint = Lib.Text({
 
 local doneCluster = cluster("BuildDone", Vector2.new(1, 0), UDim2.new(1, -12, 0, 44), UDim2.fromOffset(130, 52))
 Lib.Button({
-	Text = "✔ DONE",
+	Text = "✅ DONE",
 	Color = C.Green,
 	Size = UDim2.fromScale(1, 1),
 	TextSize = 22,
@@ -446,7 +446,7 @@ actionButton("Remove", "🗑 Remove", C.Red, 3, function()
 		backToBrowse()
 	end
 end)
-actionButton("Cancel", "✖", C.Gray, 4, function()
+actionButton("Cancel", "X", C.Gray, 4, function()
 	backToBrowse()
 end)
 actionButtons.Cancel.Size = UDim2.fromOffset(64, 52)

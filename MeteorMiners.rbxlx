@@ -214,90 +214,162 @@ Config.Rebirth = {
 ---------------------------------------------------------------------------
 Config.BasePetSlots = 3
 Config.MaxPetSlots = 12
-Config.MaxPets = 60
+Config.MaxPets = 60 -- pet storage (the best ones go on your pedestals)
+Config.PetSellSeconds = 60 -- selling a pet pays this many seconds of its income
 
--- Power: equipped pets add their power to the mining damage multiplier.
+-- Pets live in your base: the best ones sit on your pedestals and earn
+-- Income (coins per second). Your top pets also follow you around and add
+-- their Power to your mining damage (automatic, no equipping needed).
 Config.Pets = {
 	-- Meadow
-	Bunny = { Rarity = "Common", Power = 0.1, Color = Color3.fromRGB(245, 245, 245), Shape = "Ball", Ears = true },
-	Chick = { Rarity = "Common", Power = 0.15, Color = Color3.fromRGB(255, 230, 90), Shape = "Ball" },
-	Puppy = { Rarity = "Uncommon", Power = 0.3, Color = Color3.fromRGB(190, 140, 90), Shape = "Block", Ears = true },
-	Kitty = { Rarity = "Uncommon", Power = 0.35, Color = Color3.fromRGB(255, 160, 80), Shape = "Block", Ears = true },
-	Fox = { Rarity = "Rare", Power = 0.8, Color = Color3.fromRGB(255, 110, 30), Shape = "Block", Ears = true },
-	Owl = { Rarity = "Epic", Power = 2, Color = Color3.fromRGB(150, 110, 80), Shape = "Ball", Wings = true },
-	["Golden Bunny"] = { Rarity = "Legendary", Power = 6, Color = Color3.fromRGB(255, 205, 50), Shape = "Ball", Ears = true },
+	Bunny = { Rarity = "Common", Power = 0.1, Income = 0.6, Color = Color3.fromRGB(245, 245, 245), Shape = "Ball", Ears = true },
+	Chick = { Rarity = "Common", Power = 0.15, Income = 0.9, Color = Color3.fromRGB(255, 230, 90), Shape = "Ball" },
+	Puppy = { Rarity = "Uncommon", Power = 0.3, Income = 1.8, Color = Color3.fromRGB(190, 140, 90), Shape = "Block", Ears = true },
+	Kitty = { Rarity = "Uncommon", Power = 0.35, Income = 2.1, Color = Color3.fromRGB(255, 160, 80), Shape = "Block", Ears = true },
+	Fox = { Rarity = "Rare", Power = 0.8, Income = 4.8, Color = Color3.fromRGB(255, 110, 30), Shape = "Block", Ears = true },
+	Owl = { Rarity = "Epic", Power = 2, Income = 12, Color = Color3.fromRGB(150, 110, 80), Shape = "Ball", Wings = true },
+	["Golden Bunny"] = { Rarity = "Legendary", Power = 6, Income = 36, Color = Color3.fromRGB(255, 205, 50), Shape = "Ball", Ears = true },
 	-- Frost
-	Penguin = { Rarity = "Common", Power = 0.6, Color = Color3.fromRGB(40, 45, 60), Shape = "Ball", Wings = true },
-	["Snow Fox"] = { Rarity = "Uncommon", Power = 1.2, Color = Color3.fromRGB(235, 245, 255), Shape = "Block", Ears = true },
-	["Polar Bear"] = { Rarity = "Rare", Power = 2.5, Color = Color3.fromRGB(250, 250, 250), Shape = "Block", Ears = true },
-	["Ice Owl"] = { Rarity = "Epic", Power = 6, Color = Color3.fromRGB(150, 220, 255), Shape = "Ball", Wings = true },
-	["Frost Wolf"] = { Rarity = "Legendary", Power = 18, Color = Color3.fromRGB(110, 180, 255), Shape = "Block", Ears = true },
-	Yeti = { Rarity = "Mythic", Power = 50, Color = Color3.fromRGB(200, 240, 255), Shape = "Block", Horns = true },
+	Penguin = { Rarity = "Common", Power = 0.6, Income = 24, Color = Color3.fromRGB(40, 45, 60), Shape = "Ball", Wings = true },
+	["Snow Fox"] = { Rarity = "Uncommon", Power = 1.2, Income = 48, Color = Color3.fromRGB(235, 245, 255), Shape = "Block", Ears = true },
+	["Polar Bear"] = { Rarity = "Rare", Power = 2.5, Income = 100, Color = Color3.fromRGB(250, 250, 250), Shape = "Block", Ears = true },
+	["Ice Owl"] = { Rarity = "Epic", Power = 6, Income = 240, Color = Color3.fromRGB(150, 220, 255), Shape = "Ball", Wings = true },
+	["Frost Wolf"] = { Rarity = "Legendary", Power = 18, Income = 720, Color = Color3.fromRGB(110, 180, 255), Shape = "Block", Ears = true },
+	Yeti = { Rarity = "Mythic", Power = 50, Income = 2000, Color = Color3.fromRGB(200, 240, 255), Shape = "Block", Horns = true },
 	-- Lava
-	["Magma Slime"] = { Rarity = "Common", Power = 3, Color = Color3.fromRGB(255, 90, 30), Shape = "Ball" },
-	["Fire Fox"] = { Rarity = "Uncommon", Power = 6, Color = Color3.fromRGB(255, 60, 20), Shape = "Block", Ears = true },
-	["Lava Golem"] = { Rarity = "Rare", Power = 12, Color = Color3.fromRGB(90, 40, 30), Shape = "Block", Horns = true },
-	["Phoenix Chick"] = { Rarity = "Epic", Power = 30, Color = Color3.fromRGB(255, 150, 30), Shape = "Ball", Wings = true },
+	["Magma Slime"] = { Rarity = "Common", Power = 3, Income = 510, Color = Color3.fromRGB(255, 90, 30), Shape = "Ball" },
+	["Fire Fox"] = { Rarity = "Uncommon", Power = 6, Income = 1000, Color = Color3.fromRGB(255, 60, 20), Shape = "Block", Ears = true },
+	["Lava Golem"] = { Rarity = "Rare", Power = 12, Income = 2000, Color = Color3.fromRGB(90, 40, 30), Shape = "Block", Horns = true },
+	["Phoenix Chick"] = { Rarity = "Epic", Power = 30, Income = 5100, Color = Color3.fromRGB(255, 150, 30), Shape = "Ball", Wings = true },
 	["Inferno Dragon"] = {
 		Rarity = "Legendary",
 		Power = 90,
+		Income = 15000,
 		Color = Color3.fromRGB(200, 30, 20),
 		Shape = "Block",
 		Wings = true,
 		Horns = true,
 	},
-	["Sun Serpent"] = { Rarity = "Mythic", Power = 250, Color = Color3.fromRGB(255, 220, 60), Shape = "Ball", Horns = true },
+	["Sun Serpent"] = { Rarity = "Mythic", Power = 250, Income = 42000, Color = Color3.fromRGB(255, 220, 60), Shape = "Ball", Horns = true },
 	-- Void
-	["Void Bat"] = { Rarity = "Common", Power = 15, Color = Color3.fromRGB(70, 40, 110), Shape = "Ball", Wings = true },
-	["Shadow Cat"] = { Rarity = "Uncommon", Power = 30, Color = Color3.fromRGB(35, 25, 50), Shape = "Block", Ears = true },
-	["Nebula Fox"] = { Rarity = "Rare", Power = 60, Color = Color3.fromRGB(150, 80, 255), Shape = "Block", Ears = true },
-	["Rift Owl"] = { Rarity = "Epic", Power = 150, Color = Color3.fromRGB(90, 60, 200), Shape = "Ball", Wings = true },
+	["Void Bat"] = { Rarity = "Common", Power = 15, Income = 6000, Color = Color3.fromRGB(70, 40, 110), Shape = "Ball", Wings = true },
+	["Shadow Cat"] = { Rarity = "Uncommon", Power = 30, Income = 12000, Color = Color3.fromRGB(35, 25, 50), Shape = "Block", Ears = true },
+	["Nebula Fox"] = { Rarity = "Rare", Power = 60, Income = 24000, Color = Color3.fromRGB(150, 80, 255), Shape = "Block", Ears = true },
+	["Rift Owl"] = { Rarity = "Epic", Power = 150, Income = 60000, Color = Color3.fromRGB(90, 60, 200), Shape = "Ball", Wings = true },
 	["Galaxy Dragon"] = {
 		Rarity = "Legendary",
 		Power = 450,
+		Income = 180000,
 		Color = Color3.fromRGB(60, 40, 160),
 		Shape = "Block",
 		Wings = true,
 		Horns = true,
 	},
-	["Void Emperor"] = { Rarity = "Mythic", Power = 1200, Color = Color3.fromRGB(20, 10, 40), Shape = "Block", Horns = true },
-	["Black Hole Kitty"] = { Rarity = "Secret", Power = 5000, Color = Color3.fromRGB(10, 10, 15), Shape = "Ball", Ears = true },
+	["Void Emperor"] = {
+		Rarity = "Mythic",
+		Power = 1200,
+		Income = 480000,
+		Color = Color3.fromRGB(20, 10, 40),
+		Shape = "Block",
+		Horns = true,
+	},
+	["Black Hole Kitty"] = {
+		Rarity = "Secret",
+		Power = 5000,
+		Income = 2000000,
+		Color = Color3.fromRGB(10, 10, 15),
+		Shape = "Ball",
+		Ears = true,
+	},
 	-- Gem egg
-	["Gem Pup"] = { Rarity = "Uncommon", Power = 2, Color = Color3.fromRGB(80, 230, 255), Shape = "Block", Ears = true },
-	["Crystal Cat"] = { Rarity = "Rare", Power = 5, Color = Color3.fromRGB(170, 240, 255), Shape = "Block", Ears = true },
-	["Prism Owl"] = { Rarity = "Epic", Power = 15, Color = Color3.fromRGB(255, 150, 255), Shape = "Ball", Wings = true },
+	["Gem Pup"] = { Rarity = "Uncommon", Power = 2, Income = 30, Color = Color3.fromRGB(80, 230, 255), Shape = "Block", Ears = true },
+	["Crystal Cat"] = { Rarity = "Rare", Power = 5, Income = 75, Color = Color3.fromRGB(170, 240, 255), Shape = "Block", Ears = true },
+	["Prism Owl"] = { Rarity = "Epic", Power = 15, Income = 220, Color = Color3.fromRGB(255, 150, 255), Shape = "Ball", Wings = true },
 	["Diamond Dragon"] = {
 		Rarity = "Legendary",
 		Power = 60,
+		Income = 900,
 		Color = Color3.fromRGB(190, 250, 255),
 		Shape = "Block",
 		Wings = true,
 		Horns = true,
 	},
-	["Jewel Phoenix"] = { Rarity = "Mythic", Power = 200, Color = Color3.fromRGB(255, 80, 200), Shape = "Ball", Wings = true },
+	["Jewel Phoenix"] = {
+		Rarity = "Mythic",
+		Power = 200,
+		Income = 3000,
+		Color = Color3.fromRGB(255, 80, 200),
+		Shape = "Ball",
+		Wings = true,
+	},
 	-- Cosmic egg (stardust only - earned in meteor events)
-	["Comet Pup"] = { Rarity = "Rare", Power = 20, Color = Color3.fromRGB(120, 200, 255), Shape = "Block", Ears = true },
-	["Meteor Cat"] = { Rarity = "Epic", Power = 60, Color = Color3.fromRGB(255, 120, 60), Shape = "Block", Ears = true },
-	["Star Owl"] = { Rarity = "Legendary", Power = 200, Color = Color3.fromRGB(255, 240, 120), Shape = "Ball", Wings = true },
+	["Comet Pup"] = { Rarity = "Rare", Power = 20, Income = 80, Color = Color3.fromRGB(120, 200, 255), Shape = "Block", Ears = true },
+	["Meteor Cat"] = { Rarity = "Epic", Power = 60, Income = 240, Color = Color3.fromRGB(255, 120, 60), Shape = "Block", Ears = true },
+	["Star Owl"] = { Rarity = "Legendary", Power = 200, Income = 800, Color = Color3.fromRGB(255, 240, 120), Shape = "Ball", Wings = true },
 	["Supernova Dragon"] = {
 		Rarity = "Mythic",
 		Power = 800,
+		Income = 3200,
 		Color = Color3.fromRGB(255, 60, 160),
 		Shape = "Block",
 		Wings = true,
 		Horns = true,
 	},
-	["Celestial Titan"] = { Rarity = "Secret", Power = 3000, Color = Color3.fromRGB(60, 255, 230), Shape = "Block", Horns = true },
+	["Celestial Titan"] = {
+		Rarity = "Secret",
+		Power = 3000,
+		Income = 12000,
+		Color = Color3.fromRGB(60, 255, 230),
+		Shape = "Block",
+		Horns = true,
+	},
 	-- Golden egg (Robux)
-	["Golden Pup"] = { Rarity = "Epic", Power = 50, Color = Color3.fromRGB(255, 210, 60), Shape = "Block", Ears = true },
-	["Golden Cat"] = { Rarity = "Legendary", Power = 150, Color = Color3.fromRGB(255, 190, 30), Shape = "Block", Ears = true },
-	["Golden Dragon"] = { Rarity = "Mythic", Power = 600, Color = Color3.fromRGB(255, 170, 0), Shape = "Block", Wings = true, Horns = true },
-	["Midas King"] = { Rarity = "Secret", Power = 2500, Color = Color3.fromRGB(255, 230, 120), Shape = "Ball", Horns = true },
+	["Golden Pup"] = { Rarity = "Epic", Power = 50, Income = 1500, Color = Color3.fromRGB(255, 210, 60), Shape = "Block", Ears = true },
+	["Golden Cat"] = {
+		Rarity = "Legendary",
+		Power = 150,
+		Income = 4500,
+		Color = Color3.fromRGB(255, 190, 30),
+		Shape = "Block",
+		Ears = true,
+	},
+	["Golden Dragon"] = {
+		Rarity = "Mythic",
+		Power = 600,
+		Income = 18000,
+		Color = Color3.fromRGB(255, 170, 0),
+		Shape = "Block",
+		Wings = true,
+		Horns = true,
+	},
+	["Midas King"] = {
+		Rarity = "Secret",
+		Power = 2500,
+		Income = 75000,
+		Color = Color3.fromRGB(255, 230, 120),
+		Shape = "Ball",
+		Horns = true,
+	},
 	-- Rewards-only pets
-	["Starter Dino"] = { Rarity = "Epic", Power = 4, Color = Color3.fromRGB(90, 220, 120), Shape = "Block", Horns = true },
-	["Rookie Rock"] = { Rarity = "Rare", Power = 5, Color = Color3.fromRGB(120, 120, 130), Shape = "Block" },
-	["Impact Wolf"] = { Rarity = "Mythic", Power = 400, Color = Color3.fromRGB(255, 80, 60), Shape = "Block", Ears = true, Horns = true },
-	["Champion Griffin"] = { Rarity = "Legendary", Power = 120, Color = Color3.fromRGB(255, 215, 0), Shape = "Ball", Wings = true },
+	["Starter Dino"] = { Rarity = "Epic", Power = 4, Income = 160, Color = Color3.fromRGB(90, 220, 120), Shape = "Block", Horns = true },
+	["Rookie Rock"] = { Rarity = "Rare", Power = 5, Income = 100, Color = Color3.fromRGB(120, 120, 130), Shape = "Block" },
+	["Impact Wolf"] = {
+		Rarity = "Mythic",
+		Power = 400,
+		Income = 8000,
+		Color = Color3.fromRGB(255, 80, 60),
+		Shape = "Block",
+		Ears = true,
+		Horns = true,
+	},
+	["Champion Griffin"] = {
+		Rarity = "Legendary",
+		Power = 120,
+		Income = 2400,
+		Color = Color3.fromRGB(255, 215, 0),
+		Shape = "Ball",
+		Wings = true,
+	},
 }
 
 -- Currency: "Coins" | "Gems" | "Stardust" | "Robux" (Robux eggs use Products below)
@@ -305,6 +377,7 @@ Config.Eggs = {
 	Meadow = {
 		Name = "Meadow Egg",
 		Currency = "Coins",
+		Stock = { Chance = 1, Min = 4, Max = 6 }, -- per 5-min restock
 		Price = 250,
 		Zone = 1,
 		Color = Color3.fromRGB(150, 230, 120),
@@ -321,6 +394,7 @@ Config.Eggs = {
 	Frost = {
 		Name = "Frost Egg",
 		Currency = "Coins",
+		Stock = { Chance = 0.85, Min = 2, Max = 4 }, -- per 5-min restock
 		Price = 15000,
 		Zone = 2,
 		Color = Color3.fromRGB(150, 210, 255),
@@ -336,6 +410,7 @@ Config.Eggs = {
 	Lava = {
 		Name = "Lava Egg",
 		Currency = "Coins",
+		Stock = { Chance = 0.6, Min = 1, Max = 3 }, -- per 5-min restock
 		Price = 400000,
 		Zone = 3,
 		Color = Color3.fromRGB(255, 110, 40),
@@ -351,6 +426,7 @@ Config.Eggs = {
 	Void = {
 		Name = "Void Egg",
 		Currency = "Coins",
+		Stock = { Chance = 0.4, Min = 1, Max = 2 }, -- per 5-min restock
 		Price = 6000000,
 		Zone = 4,
 		Color = Color3.fromRGB(130, 80, 220),
@@ -407,6 +483,8 @@ Config.Eggs = {
 		},
 	},
 }
+-- coin eggs restock every 5 minutes (same stock in every server)
+Config.Shop = { RestockSeconds = 300 }
 Config.EggOrder = { "Meadow", "Gem", "Cosmic", "Golden", "Frost", "Lava", "Void" }
 
 ---------------------------------------------------------------------------
@@ -425,7 +503,7 @@ Config.GamePasses = {
 	MegaPower = { Id = 0, Name = "2x Mining Power", Price = 199, Icon = "💥", Description = "Permanently double your mining damage" },
 	AutoMine = { Id = 0, Name = "Auto Mine", Price = 149, Icon = "🤖", Description = "Mine automatically while holding your pickaxe" },
 	FastCarry = { Id = 0, Name = "Fast Carry", Price = 129, Icon = "🏃", Description = "+35% run speed while carrying a shard" },
-	ExtraPets = { Id = 0, Name = "+3 Pet Slots", Price = 199, Icon = "🐾", Description = "Equip 3 more pets at once" },
+	ExtraPets = { Id = 0, Name = "+3 Pet Slots", Price = 199, Icon = "🐾", Description = "3 more pets follow you and boost mining" },
 	Lucky = { Id = 0, Name = "Lucky Hatch", Price = 179, Icon = "🍀", Description = "+50% luck on every egg" },
 	TripleHatch = { Id = 0, Name = "Triple Hatch", Price = 149, Icon = "🥚", Description = "Hatch 3 eggs at once" },
 	DoubleBase = { Id = 0, Name = "2x Base Income", Price = 199, Icon = "🏠", Description = "Your base earns double coins" },
@@ -721,9 +799,14 @@ Config.LuckyOres = {
 }
 
 -- hatched pets can be Golden / Rainbow (luck increases the chance, max x4)
+-- mutations: rolled on every hatch (rarest first). Event-only ones need
+-- that weather event to be active (see Config.Events).
 Config.PetVariants = {
-	{ Id = "Rainbow", Chance = 1 / 300, PowerMult = 6 },
-	{ Id = "Golden", Chance = 1 / 25, PowerMult = 2.5 },
+	{ Id = "Galaxy", Chance = 1 / 1000, Event = "Starfall", EventChance = 1 / 60, PowerMult = 8, IncomeMult = 12 },
+	{ Id = "Rainbow", Chance = 1 / 300, PowerMult = 6, IncomeMult = 8 },
+	{ Id = "Molten", Chance = 0, Event = "HeatWave", EventChance = 1 / 5, PowerMult = 2.5, IncomeMult = 3 },
+	{ Id = "Frozen", Chance = 0, Event = "Blizzard", EventChance = 1 / 5, PowerMult = 2, IncomeMult = 2.5 },
+	{ Id = "Golden", Chance = 1 / 25, PowerMult = 2.5, IncomeMult = 3 },
 }
 
 -- player level: XP from every block, fast early levels, coin bonus per level
@@ -763,6 +846,25 @@ Config.Events = {
 			GemChance = 0.15,
 		},
 		{
+			Id = "Blizzard",
+			Name = "❄️ BLIZZARD",
+			Description = "Hatched pets can be FROZEN (2.5x income)!",
+			Color = Color3.fromRGB(150, 220, 255),
+		},
+		{
+			Id = "HeatWave",
+			Name = "🔥 HEAT WAVE",
+			Description = "Hatched pets can be MOLTEN (3x income)!",
+			Color = Color3.fromRGB(255, 120, 50),
+		},
+		{
+			Id = "Starfall",
+			Name = "🌌 STARFALL",
+			Description = "Stars fall 3x faster + GALAXY pets!",
+			Color = Color3.fromRGB(170, 120, 255),
+			StarMult = 3,
+		},
+		{
 			Id = "DoubleOre",
 			Name = "💰 DOUBLE ORE",
 			Description = "All ore is worth 2x!",
@@ -793,14 +895,16 @@ Config.Tutorial = {
 Config.Shards = {
 	Order = { "Common", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
 	Rarities = {
-		Common = { Name = "Star Shard", Income = 0.5, Weight = 55, Speed = 0.92, Color = Color3.fromRGB(190, 230, 255) },
-		Rare = { Name = "Comet Shard", Income = 1.5, Weight = 26, Speed = 0.88, Color = Color3.fromRGB(70, 160, 255) },
-		Epic = { Name = "Nebula Shard", Income = 5, Weight = 12, Speed = 0.82, Color = Color3.fromRGB(185, 80, 255) },
-		Legendary = { Name = "Solar Shard", Income = 15, Weight = 5, Speed = 0.76, Color = Color3.fromRGB(255, 195, 40) },
-		Mythic = { Name = "Supernova Core", Income = 50, Weight = 1.6, Speed = 0.7, Color = Color3.fromRGB(255, 70, 150) },
-		Secret = { Name = "Black Hole Heart", Income = 200, Weight = 0.4, Speed = 0.62, Color = Color3.fromRGB(120, 40, 255) },
+		Common = { Name = "Star Egg", Luck = 1, Income = 0.5, Weight = 55, Speed = 0.92, Color = Color3.fromRGB(190, 230, 255) },
+		Rare = { Name = "Comet Egg", Luck = 2, Income = 1.5, Weight = 26, Speed = 0.88, Color = Color3.fromRGB(70, 160, 255) },
+		Epic = { Name = "Nebula Egg", Luck = 4, Income = 5, Weight = 12, Speed = 0.82, Color = Color3.fromRGB(185, 80, 255) },
+		Legendary = { Name = "Solar Egg", Luck = 8, Income = 15, Weight = 5, Speed = 0.76, Color = Color3.fromRGB(255, 195, 40) },
+		Mythic = { Name = "Supernova Egg", Luck = 16, Income = 50, Weight = 1.6, Speed = 0.7, Color = Color3.fromRGB(255, 70, 150) },
+		Secret = { Name = "Black Hole Egg", Luck = 40, Income = 200, Weight = 0.4, Speed = 0.62, Color = Color3.fromRGB(120, 40, 255) },
 	},
-	-- income scales with the OWNER's progress (zone level), so shards matter all game
+	-- the egg a falling star carries depends on where it lands (hub = zone 1)
+	ZoneEggs = { "Meadow", "Frost", "Lava", "Void", "Cosmic" },
+	-- (legacy) shard income scaling - shards are star eggs now
 	ZoneMult = { 1, 8, 60, 500, 4000 },
 	SellSeconds = 120, -- selling a shard pays this many seconds of its income
 	Points = { 10, 20, 45, 100, 250, 600 }, -- weekly ranked points per delivery, by rarity
@@ -2032,7 +2136,7 @@ return {
 	["CLAIM"] = "받기",
 	["CLAIM!"] = "받기!",
 	["CLAIM %s"] = "받기 %s",
-	["✔ DONE"] = "✔ 완료",
+	["✅ DONE"] = "✅ 완료",
 	["Next in %s"] = "%s 후",
 	["🎁 CLAIM DAY %d"] = "🎁 %d일차 받기",
 	["New quests in %s"] = "%s 후 새 퀘스트",
@@ -2041,10 +2145,10 @@ return {
 	["%s / %s to %s"] = "%s / %s (%s까지)",
 	["MAX RANK!"] = "최고 랭크!",
 	["Earn points by mining, meteor events, quests and PvP. Season resets in %s - rewards are paid when it ends!"] = "채굴, 운석, 퀘스트, PvP로 점수를 모으세요. %s 후 시즌이 초기화되고 그때 보상이 지급돼요!",
-	["👑 VIP chest ✔"] = "👑 VIP 상자 ✔",
+	["👑 VIP chest ✅"] = "👑 VIP 상자 ✅",
 	["👑 VIP chest 100💎"] = "👑 VIP 상자 100💎",
 	["👑 VIP: daily 100💎"] = "👑 VIP: 매일 100💎",
-	["👥 Group bonus +10% ✔"] = "👥 그룹 보너스 +10% ✔",
+	["👥 Group bonus +10% ✅"] = "👥 그룹 보너스 +10% ✅",
 	["👥 Join group: %s💎"] = "👥 그룹 가입: %s💎",
 	["⭐ Premium: +10% coins"] = "⭐ 프리미엄: 코인 +10%",
 	["📨 Invite friends: +10% each"] = "📨 친구 초대: 1명당 +10%",
@@ -2053,7 +2157,7 @@ return {
 	-- panels: pass
 	["FREE"] = "무료",
 	["PREMIUM"] = "프리미엄",
-	["✔ Claim All"] = "✔ 모두 받기",
+	["✅ Claim All"] = "✅ 모두 받기",
 	["Tier %d"] = "티어 %d",
 	["Tier %d / %d"] = "티어 %d / %d",
 	["%s  •  ends in %s"] = "%s  •  %s 후 종료",
@@ -2078,8 +2182,8 @@ return {
 	["⭐ Game Passes"] = "⭐ 게임패스",
 	["💎 Items & Boosts"] = "💎 아이템 & 부스트",
 	["👑 Club & Free"] = "👑 클럽 & 무료",
-	["✔ OWNED"] = "✔ 보유",
-	["✔ MEMBER"] = "✔ 회원",
+	["✅ OWNED"] = "✅ 보유",
+	["✅ MEMBER"] = "✅ 회원",
 	["%s (subscription)"] = "%s (구독)",
 	["Join %s"] = "가입 (%s)",
 	["Roblox Premium bonus"] = "로블록스 프리미엄 보너스",
@@ -2094,7 +2198,7 @@ return {
 
 	-- panels: gifts / spin / codes / rewards / settings
 	["Stay in the game to unlock free gifts!"] = "계속 접속해 있으면 무료 선물이 열려요!",
-	["✔ Claimed"] = "✔ 받음",
+	["✅ Claimed"] = "✅ 받음",
 	["Spin for free prizes!"] = "룰렛을 돌려 무료 상품을 받으세요!",
 	["👑 VIP spins every 2 hours"] = "👑 VIP는 2시간마다 돌릴 수 있어요",
 	["🎡 SPIN!"] = "🎡 돌리기!",
@@ -2294,6 +2398,86 @@ return {
 	["📦 Stored - your pedestals hold better shards. Place more pedestals!"] = "📦 보관함에 넣었어요 - 진열대에 더 좋은 조각이 있어요. 진열대를 더 놓으세요!",
 	["🏠 %s's BASE\n💰 %s/s  ❤️ %s"] = "🏠 %s의 기지\n💰 %s/초  ❤️ %s",
 	["🏠 %s's BASE\n💰 %s/s  ❤️ %s  📦 %s"] = "🏠 %s의 기지\n💰 %s/초  ❤️ %s  📦 %s",
+	-- v12: pets earn in bases, restocks, star eggs, trading, how to play
+	["Galaxy"] = "은하",
+	["Frozen"] = "얼음",
+	["Molten"] = "용암",
+	["Star Egg"] = "별 알",
+	["Comet Egg"] = "혜성 알",
+	["Nebula Egg"] = "성운 알",
+	["Solar Egg"] = "태양 알",
+	["Supernova Egg"] = "초신성 알",
+	["Black Hole Egg"] = "블랙홀 알",
+	["%s %s\n💰 %s/s"] = "%s %s\n💰 %s/초",
+	["%s declined the trade."] = "%s님이 거래를 거절했어요.",
+	["3 more pets follow you and boost mining"] = "펫 3마리가 더 따라다니며 채굴을 도와요",
+	["Carry stars and other players'\npets home. Bonk thieves!"] = "별과 다른 유저의 펫을\n기지로 옮기세요. 도둑은 때려요!",
+	["Grab the falling star 🌠 - carry it home and it hatches!"] = "떨어진 별 🌠을 잡아 기지로 가져가면 부화해요!",
+	["HATCH PETS"] = "펫 부화",
+	["HOW TO PLAY"] = "게임 방법",
+	["Hatch your first pet at the 🥚 egg stand - it earns 💰 in your base!"] = "🥚 알 받침대에서 첫 펫을 부화하세요 - 기지에서 💰를 벌어요!",
+	["Hatched pets can be FROZEN (2.5x income)!"] = "부화한 펫이 얼음 변이가 될 수 있어요 (수익 2.5배)!",
+	["Hatched pets can be MOLTEN (3x income)!"] = "부화한 펫이 용암 변이가 될 수 있어요 (수익 3배)!",
+	["It earns coins in your base now - guard it!"] = "이제 내 기지에서 코인을 벌어요 - 잘 지키세요!",
+	["LET'S GO!"] = "시작하기!",
+	["Nobody else is in this server yet"] = "아직 이 서버에 다른 유저가 없어요",
+	["Only %d left until the restock!"] = "재입고 전까지 %d개만 남았어요!",
+	["Pet storage full - sold the new %s for 💰%s"] = "펫 보관함이 가득 차서 새 %s을(를) 💰%s에 팔았어요",
+	["Pets stand in your 🏠 base\nand earn 💰 every second."] = "펫은 🏠 기지에 서서\n매초 💰를 벌어요.",
+	["Pick a player in this server to trade pets with"] = "펫을 거래할 유저를 고르세요",
+	["Press READY"] = "준비 누르기",
+	["SOLD OUT  •  %s"] = "품절  •  %s",
+	["STEAL & PROTECT"] = "훔치고 지키기",
+	["Sold %d %s pets for 💰%s"] = "%d마리의 %s 펫을 💰%s에 팔았어요",
+	["Sold out! New stock in %s"] = "품절! %s 후 재입고",
+	["Stars fall 3x faster + GALAXY pets!"] = "별이 3배 빨리 떨어지고 + 은하 펫 등장!",
+	["Swapping in %ds..."] = "%d초 후 교환...",
+	["Tap again to sell"] = "한 번 더 누르면 판매",
+	["Tap again to sell for 💰%s"] = "한 번 더 누르면 💰%s에 판매",
+	["Tap ore (or hold ⛏️) to mine.\nCoins come instantly!"] = "광석을 터치(또는 ⛏️ 꾹)해서 캐요.\n코인이 바로 들어와요!",
+	["That player is busy trading."] = "그 유저는 다른 거래 중이에요.",
+	["The owner left - the pet vanished!"] = "주인이 나가서 펫이 사라졌어요!",
+	["They are READY"] = "상대가 준비 완료",
+	["Trading with %s"] = "%s님과 거래 중",
+	["X Cancel"] = "X 취소",
+	["X Decline"] = "X 거절",
+	["You can offer up to 4 pets"] = "최대 4마리까지 올릴 수 있어요",
+	["You have empty pedestals - hatch more pets 🥚"] = "빈 진열대가 있어요 - 펫을 더 부화하세요 🥚",
+	["You need a base to steal pets!"] = "펫을 훔치려면 기지가 필요해요!",
+	["Your star shards hatched into pets! 🐾"] = "별 조각이 펫으로 부화했어요! 🐾",
+	["with %s"] = "%s님과",
+	["✅ Accept"] = "✅ 수락",
+	["✅ READY"] = "✅ 준비",
+	["✅ READY!"] = "✅ 준비 완료!",
+	["❄️ BLIZZARD"] = "❄️ 눈보라",
+	["❓ How to play"] = "❓ 게임 방법",
+	["🌌 STARFALL"] = "🌌 유성우",
+	["🎁 Your daily reward is ready - tap 🎁 Rewards!"] = "🎁 오늘의 보상이 준비됐어요 - 🎁 보상을 누르세요!",
+	["🏃 being stolen!"] = "🏃 도난 중!",
+	["🏠 Base 💰%s/s  •  Pets %d/%d  •  Index %d/%d"] = "🏠 기지 💰%s/초  •  펫 %d/%d  •  도감 %d/%d",
+	["🏠 earning"] = "🏠 수익 중",
+	["🐾 +3 Helpers"] = "🐾 도우미 +3",
+	["💰 %s/s in your base"] = "기지에서 💰 %s/초",
+	["📦 %d left  •  🔄 new stock in %s"] = "📦 %d개 남음  •  🔄 %s 후 재입고",
+	["📦 storage"] = "📦 보관함",
+	["🔥 HEAT WAVE"] = "🔥 폭염",
+	["🛡️ Your pet ran back home!"] = "🛡️ 펫이 기지로 돌아왔어요!",
+	["🤝 %s wants to trade!"] = "🤝 %s님이 거래를 원해요!",
+	["🤝 TRADE"] = "🤝 거래",
+	["🤝 TRADE COMPLETE!"] = "🤝 거래 완료!",
+	["🤝 Trade"] = "🤝 거래",
+	["🤝 Trade request sent to %s"] = "🤝 %s님에게 거래 요청을 보냈어요",
+	["🥚 Egg restock! %s is in stock!"] = "🥚 알 재입고! %s 입고!",
+	["🥚 The egg shops just restocked!"] = "🥚 알 상점이 재입고됐어요!",
+	["🦹 %s STOLEN!"] = "🦹 %s 훔치기 성공!",
+	["🦹 %s stole a %s from %s!"] = "🦹 %s님이 %s을(를) 훔쳤어요! (주인: %s)",
+	["💰 Sell Commons"] = "💰 일반 판매",
+	["💰 Sell Uncommons"] = "💰 고급 판매",
+	["Trade cancelled."] = "거래가 취소됐어요.",
+	["Trade cancelled - someone is carrying something."] = "거래 취소 - 누군가 물건을 들고 있어요.",
+	["Trade cancelled - a pet is no longer available."] = "거래 취소 - 펫을 더 이상 쓸 수 없어요.",
+	["Trade cancelled - not enough pet storage."] = "거래 취소 - 펫 보관함이 부족해요.",
+	["The other player left."] = "상대가 나갔어요.",
 }
 ]]></string>
         </Properties>
@@ -2302,9 +2486,17 @@ return {
         <Properties>
           <string name="Name">PetModel</string>
           <string name="Source"><![CDATA[--[[
-	Builds simple, readable pet models out of primitive parts so the game works
-	without any uploaded meshes. Replace with real models later by putting a
-	Model named after the pet inside ReplicatedStorage.PetModels.
+	PetModel: cute, characterful pets built from primitive parts (no assets).
+	Round "mochi" body, big shiny eyes, blushing cheeks, and features picked
+	from the species name / flags: bunny ears, cat ears, fox tail, floppy
+	puppy ears, owl beak + tufts, dragon horns, bat wings, slime shine,
+	penguin belly, crowns for kings ... Mutations change the look:
+	Golden (gold foil), Rainbow (colour cycle on clients), Galaxy (cosmic),
+	Frozen (ice), Molten (lava cracks + embers).
+
+	PetModel.Build(petName, variant) -> anchored Model, front faces -Z,
+	pivot = PrimaryPart "Body". A custom model named after the pet inside
+	ReplicatedStorage.PetModels replaces the generated one.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -2312,183 +2504,380 @@ local Config = require(script.Parent.Config)
 
 local PetModel = {}
 
-local function part(props)
+local function part(model: Model, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?, shape: Enum.PartType?)
 	local p = Instance.new("Part")
+	p.Name = name
 	p.Anchored = true
 	p.CanCollide = false
 	p.CanQuery = false
 	p.CanTouch = false
 	p.CastShadow = false
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = material or Enum.Material.SmoothPlastic
+	if shape then
+		p.Shape = shape
+	end
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
-	for k, v in props do
-		(p :: any)[k] = v
-	end
+	p.Parent = model
 	return p
 end
 
-local function weld(a, b)
-	local w = Instance.new("WeldConstraint")
-	w.Part0 = a
-	w.Part1 = b
-	w.Parent = a
+-- ellipsoid: a ball squashed / stretched with a sphere mesh
+local function blob(model: Model, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?)
+	local p = part(model, name, size, cf, color, material, Enum.PartType.Block)
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = p
+	return p
+end
+
+local function wedge(model: Model, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?)
+	local p = Instance.new("WedgePart")
+	p.Name = name
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.CastShadow = false
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = material or Enum.Material.SmoothPlastic
+	p.Parent = model
+	return p
+end
+
+local function has(name: string, ...): boolean
+	local lower = string.lower(name)
+	for _, word in { ... } do
+		if string.find(lower, word, 1, true) then
+			return true
+		end
+	end
+	return false
+end
+
+local function sparkles(parent: BasePart, color: Color3, rate: number, size: number?)
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Name = "Sparkles"
+	emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	emitter.Color = ColorSequence.new(color)
+	emitter.Size = NumberSequence.new(size or 0.35, 0)
+	emitter.Lifetime = NumberRange.new(0.5, 1)
+	emitter.Rate = rate
+	emitter.Speed = NumberRange.new(0.5, 1.5)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.LightEmission = 1
+	emitter.Parent = parent
+	return emitter
+end
+
+local function custom(petName: string): Model?
+	local folder = ReplicatedStorage:FindFirstChild("PetModels")
+	local source = folder and folder:FindFirstChild(petName)
+	if not source then
+		return nil
+	end
+	local clone = source:Clone()
+	if not clone:IsA("Model") or not clone.PrimaryPart then
+		return nil
+	end
+	for _, d in clone:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+			d.CanCollide = false
+			d.CanQuery = false
+			d.CanTouch = false
+		end
+	end
+	return clone
 end
 
 function PetModel.Build(petName: string, variant: string?): Model
-	local custom = ReplicatedStorage:FindFirstChild("PetModels")
-	if custom and custom:FindFirstChild(petName) then
-		local clone = (custom :: any)[petName]:Clone()
-		if clone:IsA("Model") and clone.PrimaryPart then
-			for _, d in clone:GetDescendants() do
-				if d:IsA("BasePart") then
-					d.Anchored = true
-					d.CanCollide = false
-					d.CanQuery = false
-					d.CanTouch = false
-				end
-			end
-			return clone
-		end
+	local customModel = custom(petName)
+	if customModel then
+		return customModel
 	end
 
 	local info = Config.Pets[petName] or { Rarity = "Common", Color = Color3.new(1, 1, 1), Shape = "Ball" }
 	local rarity = Config.Rarities[info.Rarity] or Config.Rarities.Common
-	local scale = 1.4 + rarity.Order * 0.12
+	local s = 1.9 + rarity.Order * 0.16 -- rarer pets are a bit bigger
+	local color = info.Color
+	local dark = color:Lerp(Color3.new(0, 0, 0), 0.35)
+	local light = color:Lerp(Color3.new(1, 1, 1), 0.45)
 
 	local model = Instance.new("Model")
 	model.Name = petName
 
-	local body = part({
-		Name = "Body",
-		Shape = if info.Shape == "Block" then Enum.PartType.Block else Enum.PartType.Ball,
-		Size = Vector3.one * scale,
-		Color = info.Color,
-		Material = if rarity.Order >= 5
-			then Enum.Material.Neon
-			elseif rarity.Order >= 4 then Enum.Material.Glass
-			else Enum.Material.SmoothPlastic,
-	})
-	if rarity.Order >= 5 then
-		body.Transparency = 0.05
-	end
-	body.Parent = model
+	-- body: a round, slightly squashed mochi (taller for "Block" species)
+	local tall = info.Shape == "Block"
+	local bodySize = Vector3.new(s, s * (if tall then 1.05 else 0.92), s * 0.95)
+	local body = blob(model, "Body", bodySize, CFrame.new(0, bodySize.Y / 2, 0), color)
 	model.PrimaryPart = body
+	local top = bodySize.Y
+	local front = -bodySize.Z / 2
 
-	local eyeSize = Vector3.one * scale * 0.18
+	local slime = has(petName, "slime")
+	if slime then
+		body.Material = Enum.Material.Glass
+		body.Transparency = 0.15
+		blob(model, "Shine", Vector3.new(s * 0.25, s * 0.18, s * 0.1), CFrame.new(-s * 0.22, top * 0.78, front * 0.8), Color3.new(1, 1, 1))
+	end
+
+	-- belly patch (penguins, owls, bears ...)
+	if has(petName, "penguin", "owl", "bear", "yeti", "pup", "dog") then
+		blob(model, "Belly", Vector3.new(s * 0.62, s * 0.55, s * 0.2), CFrame.new(0, top * 0.36, front * 0.86), light)
+	end
+
+	-- big shiny eyes
+	local eyeY = top * 0.6
+	local eyeSize = s * (if has(petName, "owl") then 0.36 else 0.28)
 	for _, side in { -1, 1 } do
-		local eye = part({
-			Name = "Eye",
-			Shape = Enum.PartType.Ball,
-			Size = eyeSize,
-			Color = Color3.new(0.05, 0.05, 0.05),
-			Material = Enum.Material.SmoothPlastic,
-			CFrame = body.CFrame * CFrame.new(side * scale * 0.2, scale * 0.12, -scale * 0.45),
-		})
-		eye.Parent = model
-		weld(body, eye)
-		local shine = part({
-			Name = "Shine",
-			Shape = Enum.PartType.Ball,
-			Size = eyeSize * 0.4,
-			Color = Color3.new(1, 1, 1),
-			Material = Enum.Material.Neon,
-			CFrame = eye.CFrame * CFrame.new(eyeSize.X * 0.15, eyeSize.X * 0.2, -eyeSize.X * 0.35),
-		})
-		shine.Parent = model
-		weld(body, shine)
+		local x = side * s * 0.21
+		blob(model, "Eye", Vector3.new(eyeSize, eyeSize * 1.15, eyeSize * 0.4), CFrame.new(x, eyeY, front * 0.88), Color3.new(1, 1, 1))
+		blob(
+			model,
+			"Pupil",
+			Vector3.new(eyeSize * 0.66, eyeSize * 0.8, eyeSize * 0.3),
+			CFrame.new(x, eyeY - eyeSize * 0.05, front * 0.96),
+			Color3.fromRGB(25, 20, 35)
+		)
+		blob(
+			model,
+			"Shine",
+			Vector3.new(eyeSize * 0.24, eyeSize * 0.24, eyeSize * 0.12),
+			CFrame.new(x + side * eyeSize * 0.12, eyeY + eyeSize * 0.18, front * 1.02),
+			Color3.new(1, 1, 1)
+		)
+		-- blush
+		local cheek = blob(
+			model,
+			"Blush",
+			Vector3.new(s * 0.16, s * 0.08, s * 0.05),
+			CFrame.new(side * s * 0.34, top * 0.42, front * 0.82),
+			Color3.fromRGB(255, 130, 150)
+		)
+		cheek.Transparency = 0.25
 	end
 
-	if info.Ears then
+	-- mouth / beak
+	if has(petName, "owl", "chick", "phoenix", "penguin", "griffin", "duck") then
+		wedge(
+			model,
+			"Beak",
+			Vector3.new(s * 0.16, s * 0.14, s * 0.18),
+			CFrame.new(0, top * 0.44, front * 1.02) * CFrame.Angles(math.rad(-90), 0, 0),
+			Color3.fromRGB(255, 170, 40)
+		)
+	else
+		blob(model, "Mouth", Vector3.new(s * 0.12, s * 0.06, s * 0.05), CFrame.new(0, top * 0.43, front * 0.96), Color3.fromRGB(60, 30, 40))
+	end
+
+	-- ears
+	if has(petName, "bunny") then
 		for _, side in { -1, 1 } do
-			local ear = part({
-				Name = "Ear",
-				Size = Vector3.new(scale * 0.22, scale * 0.4, scale * 0.12),
-				Color = info.Color:Lerp(Color3.new(0, 0, 0), 0.15),
-				Material = body.Material,
-				CFrame = body.CFrame * CFrame.new(side * scale * 0.28, scale * 0.55, 0) * CFrame.Angles(0, 0, math.rad(-side * 15)),
-			})
-			ear.Parent = model
-			weld(body, ear)
+			blob(
+				model,
+				"Ear",
+				Vector3.new(s * 0.2, s * 0.7, s * 0.14),
+				CFrame.new(side * s * 0.2, top + s * 0.25, 0) * CFrame.Angles(0, 0, math.rad(-side * 10)),
+				color
+			)
+			blob(
+				model,
+				"EarInner",
+				Vector3.new(s * 0.1, s * 0.5, s * 0.05),
+				CFrame.new(side * s * 0.2, top + s * 0.25, -s * 0.07) * CFrame.Angles(0, 0, math.rad(-side * 10)),
+				Color3.fromRGB(255, 170, 190)
+			)
+		end
+	elseif has(petName, "pup", "dog") then
+		for _, side in { -1, 1 } do
+			blob(
+				model,
+				"Ear",
+				Vector3.new(s * 0.18, s * 0.42, s * 0.12),
+				CFrame.new(side * s * 0.46, top * 0.72, 0) * CFrame.Angles(0, 0, math.rad(side * 25)),
+				dark
+			)
+		end
+	elseif has(petName, "bear", "yeti", "golem", "titan") then
+		for _, side in { -1, 1 } do
+			blob(model, "Ear", Vector3.new(s * 0.24, s * 0.24, s * 0.14), CFrame.new(side * s * 0.33, top * 0.95, 0), dark)
+		end
+	elseif info.Ears or has(petName, "cat", "kitty", "fox", "wolf") then
+		local tallEars = has(petName, "fox", "wolf")
+		for _, side in { -1, 1 } do
+			wedge(
+				model,
+				"Ear",
+				Vector3.new(s * 0.08, s * (if tallEars then 0.42 else 0.3), s * 0.3),
+				CFrame.new(side * s * 0.28, top * 0.92 + s * 0.12, 0) * CFrame.Angles(0, math.rad(90), math.rad(-side * 12)),
+				color
+			)
 		end
 	end
 
+	-- owl tufts / phoenix crest
+	if has(petName, "owl") then
+		for _, side in { -1, 1 } do
+			wedge(
+				model,
+				"Tuft",
+				Vector3.new(s * 0.06, s * 0.22, s * 0.16),
+				CFrame.new(side * s * 0.3, top * 0.98, 0) * CFrame.Angles(0, math.rad(90), math.rad(-side * 25)),
+				dark
+			)
+		end
+	elseif has(petName, "phoenix", "chick") then
+		for i = -1, 1 do
+			blob(
+				model,
+				"Crest",
+				Vector3.new(s * 0.1, s * 0.3, s * 0.1),
+				CFrame.new(i * s * 0.09, top + s * 0.08, 0) * CFrame.Angles(0, 0, math.rad(-i * 20)),
+				if has(petName, "phoenix") then Color3.fromRGB(255, 200, 40) else color
+			)
+		end
+	end
+
+	-- horns
+	if info.Horns or has(petName, "dragon", "dino", "serpent") then
+		for _, side in { -1, 1 } do
+			wedge(
+				model,
+				"Horn",
+				Vector3.new(s * 0.08, s * 0.3, s * 0.16),
+				CFrame.new(side * s * 0.22, top + s * 0.06, s * 0.05) * CFrame.Angles(math.rad(-15), math.rad(90), math.rad(-side * 15)),
+				Color3.fromRGB(250, 240, 210)
+			)
+		end
+	end
+
+	-- wings
 	if info.Wings then
+		local bat = has(petName, "bat")
 		for _, side in { -1, 1 } do
-			local wing = part({
-				Name = "Wing",
-				Size = Vector3.new(scale * 0.55, scale * 0.12, scale * 0.45),
-				Color = info.Color:Lerp(Color3.new(1, 1, 1), 0.3),
-				Material = body.Material,
-				CFrame = body.CFrame
-					* CFrame.new(side * scale * 0.62, scale * 0.05, scale * 0.1)
-					* CFrame.Angles(0, 0, math.rad(side * 25)),
-			})
-			wing.Parent = model
-			weld(body, wing)
-		end
-	end
-
-	if info.Horns then
-		for _, side in { -1, 1 } do
-			local horn = part({
-				Name = "Horn",
-				Size = Vector3.new(scale * 0.12, scale * 0.38, scale * 0.12),
-				Color = Color3.fromRGB(255, 240, 200),
-				Material = Enum.Material.SmoothPlastic,
-				CFrame = body.CFrame
-					* CFrame.new(side * scale * 0.18, scale * 0.6, -scale * 0.1)
-					* CFrame.Angles(math.rad(-15), 0, math.rad(-side * 10)),
-			})
-			horn.Parent = model
-			weld(body, horn)
-		end
-	end
-
-	if rarity.Order >= 5 then
-		local light = Instance.new("PointLight")
-		light.Color = rarity.Color
-		light.Range = 8
-		light.Brightness = 1.5
-		light.Parent = body
-	end
-	-- Golden / Rainbow variants: shiny material + glow + sparkles
-	if variant == "Golden" or variant == "Rainbow" then
-		local tint = if variant == "Golden" then Color3.fromRGB(255, 205, 50) else Color3.fromRGB(255, 90, 210)
-		for _, d in model:GetDescendants() do
-			if d:IsA("BasePart") and d.Name ~= "Eye" and d.Name ~= "Shine" then
-				d.Color = if variant == "Golden" then d.Color:Lerp(tint, 0.75) else tint
-				d.Material = if variant == "Golden" then Enum.Material.Foil else Enum.Material.Neon
+			local wing = blob(
+				model,
+				"Wing",
+				Vector3.new(s * 0.18, s * (if bat then 0.55 else 0.45), s * 0.55),
+				CFrame.new(side * s * 0.55, top * 0.55, s * 0.08) * CFrame.Angles(0, 0, math.rad(side * (if bat then 40 else 25))),
+				if bat then dark else light
+			)
+			if rarity.Order >= 5 then
+				wing.Material = Enum.Material.Neon
+				wing.Transparency = 0.2
 			end
 		end
-		model:SetAttribute("Variant", variant)
-		local glow = Instance.new("PointLight")
-		glow.Color = tint
-		glow.Range = 9
-		glow.Brightness = 2
-		glow.Parent = body
-		local shimmer = Instance.new("ParticleEmitter")
-		shimmer.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-		shimmer.Color = ColorSequence.new(if variant == "Golden" then Color3.fromRGB(255, 240, 150) else Color3.new(1, 1, 1))
-		shimmer.Size = NumberSequence.new(0.35, 0)
-		shimmer.Lifetime = NumberRange.new(0.5, 0.9)
-		shimmer.Rate = 8
-		shimmer.Speed = NumberRange.new(0.5, 1.5)
-		shimmer.SpreadAngle = Vector2.new(180, 180)
-		shimmer.LightEmission = 1
-		shimmer.Parent = body
 	end
 
+	-- tails
+	if has(petName, "fox", "wolf", "cat", "kitty", "dragon", "dino", "serpent") then
+		local fluffy = has(petName, "fox", "wolf")
+		local tail = blob(
+			model,
+			"Tail",
+			Vector3.new(s * (if fluffy then 0.3 else 0.16), s * (if fluffy then 0.3 else 0.16), s * (if fluffy then 0.62 else 0.55)),
+			CFrame.new(s * 0.12, top * 0.3, -front * 1.05) * CFrame.Angles(math.rad(35), 0, 0),
+			color
+		)
+		if fluffy then
+			blob(model, "TailTip", Vector3.new(s * 0.24, s * 0.24, s * 0.22), tail.CFrame * CFrame.new(0, 0, s * 0.26), Color3.new(1, 1, 1))
+		end
+	end
+
+	-- royalty
+	if has(petName, "king", "emperor", "midas", "titan") then
+		local gold = Color3.fromRGB(255, 205, 50)
+		part(
+			model,
+			"Crown",
+			Vector3.new(s * 0.16, s * 0.5, s * 0.5),
+			CFrame.new(0, top + s * 0.06, 0) * CFrame.Angles(0, 0, math.rad(90)),
+			gold,
+			Enum.Material.Foil,
+			Enum.PartType.Cylinder
+		)
+		for i = 0, 3 do
+			local angle = i * math.pi / 2
+			wedge(
+				model,
+				"CrownSpike",
+				Vector3.new(s * 0.06, s * 0.16, s * 0.12),
+				CFrame.new(math.cos(angle) * s * 0.2, top + s * 0.2, math.sin(angle) * s * 0.2) * CFrame.Angles(0, -angle, 0),
+				gold,
+				Enum.Material.Foil
+			)
+		end
+	end
+
+	-- little feet
+	for _, side in { -1, 1 } do
+		blob(model, "Foot", Vector3.new(s * 0.26, s * 0.14, s * 0.3), CFrame.new(side * s * 0.24, s * 0.05, front * 0.55), dark)
+	end
+
+	-- rarity flair
+	if rarity.Order >= 5 then
+		sparkles(body, rarity.Color, 4 + (rarity.Order - 5) * 4, 0.3)
+	end
 	if rarity.Order >= 6 then
-		local sparkle = Instance.new("ParticleEmitter")
-		sparkle.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-		sparkle.Color = ColorSequence.new(rarity.Color)
-		sparkle.Size = NumberSequence.new(0.3, 0)
-		sparkle.Lifetime = NumberRange.new(0.6, 1)
-		sparkle.Rate = 6
-		sparkle.Speed = NumberRange.new(0.5, 1.5)
-		sparkle.SpreadAngle = Vector2.new(180, 180)
-		sparkle.LightEmission = 1
-		sparkle.Parent = body
+		local halo = part(
+			model,
+			"Halo",
+			Vector3.new(0.12, s * 0.7, s * 0.7),
+			CFrame.new(0, top + s * 0.45, 0) * CFrame.Angles(0, 0, math.rad(90)),
+			rarity.Color,
+			Enum.Material.Neon,
+			Enum.PartType.Cylinder
+		)
+		halo.Transparency = 0.3
+	end
+
+	-- mutations
+	if variant then
+		model:SetAttribute("Variant", variant)
+		local keep = { Eye = true, Pupil = true, Shine = true, Blush = true, Mouth = true, EarInner = true, Halo = true }
+		local tint, material, glow
+		if variant == "Golden" then
+			tint, material, glow = Color3.fromRGB(255, 205, 50), Enum.Material.Foil, Color3.fromRGB(255, 230, 120)
+		elseif variant == "Rainbow" then
+			tint, material, glow = Color3.fromRGB(255, 90, 210), Enum.Material.Neon, Color3.new(1, 1, 1)
+		elseif variant == "Galaxy" then
+			tint, material, glow = Color3.fromRGB(70, 30, 140), Enum.Material.Glass, Color3.fromRGB(190, 140, 255)
+		elseif variant == "Frozen" then
+			tint, material, glow = Color3.fromRGB(170, 225, 255), Enum.Material.Ice, Color3.fromRGB(220, 245, 255)
+		elseif variant == "Molten" then
+			tint, material, glow = Color3.fromRGB(255, 110, 30), Enum.Material.CrackedLava, Color3.fromRGB(255, 160, 60)
+		end
+		if tint then
+			for _, d in model:GetDescendants() do
+				if d:IsA("BasePart") and not keep[d.Name] then
+					d.Color = if variant == "Golden" then d.Color:Lerp(tint, 0.75) else tint
+					d.Material = material
+				end
+			end
+			local light = Instance.new("PointLight")
+			light.Color = glow
+			light.Range = 10
+			light.Brightness = 2
+			light.Parent = body
+			sparkles(body, glow, if variant == "Galaxy" then 14 else 8, if variant == "Galaxy" then 0.45 else 0.35)
+			if variant == "Molten" then
+				local fire = Instance.new("ParticleEmitter")
+				fire.Texture = "rbxasset://textures/particles/fire_main.dds"
+				fire.Color = ColorSequence.new(Color3.fromRGB(255, 180, 60), Color3.fromRGB(255, 60, 20))
+				fire.Size = NumberSequence.new(0.6, 0)
+				fire.Lifetime = NumberRange.new(0.3, 0.6)
+				fire.Rate = 10
+				fire.Speed = NumberRange.new(1, 3)
+				fire.LightEmission = 1
+				fire.Parent = body
+			end
+		end
 	end
 
 	return model
@@ -2502,10 +2891,10 @@ return PetModel
         <Properties>
           <string name="Name">ShardModel</string>
           <string name="Source"><![CDATA[--[[
-	ShardModel: procedural star-shard crystal (no assets needed).
+	ShardModel: procedural STAR EGG (no assets needed). Falling stars and
+	meteors drop these; carried home they hatch into a pet.
 	ShardModel.Build(config, rarityId, scale) -> Model with PrimaryPart "Core".
-	Every part is unanchored-safe (welded to Core), non-colliding and
-	non-queryable; the caller decides Anchored / where to weld it.
+	Parts are welded to Core; the caller decides Anchored / where to weld it.
 ]]
 local ShardModel = {}
 
@@ -2526,50 +2915,59 @@ local function piece(name: string, size: Vector3, color: Color3, material: Enum.
 	return part
 end
 
+local function weld(a: BasePart, b: BasePart)
+	local w = Instance.new("WeldConstraint")
+	w.Part0 = a
+	w.Part1 = b
+	w.Parent = b
+end
+
 function ShardModel.Build(config, rarityId: string, scale: number?): Model
 	local def = config.Shards.Rarities[rarityId] or config.Shards.Rarities.Common
-	local s = scale or 1
+	local s = (scale or 1) * 1.15
 	local index = table.find(config.Shards.Order, rarityId) or 1
 	local model = Instance.new("Model")
-	model.Name = "Shard_" .. rarityId
+	model.Name = "StarEgg_" .. rarityId
 	model:SetAttribute("Rarity", rarityId)
 
+	-- the egg: a stretched sphere, glowing in the star's colour
 	local secret = rarityId == "Secret"
-	local coreColor = if secret then Color3.fromRGB(20, 10, 35) else def.Color
-	local core = piece("Core", Vector3.new(1.3, 2.6, 1.3) * s, coreColor, if secret then Enum.Material.Glass else Enum.Material.Neon, model)
-	core.CFrame = CFrame.Angles(0, math.rad(45), math.rad(12))
+	local core = piece(
+		"Core",
+		Vector3.new(2.2, 2.8, 2.2) * s,
+		if secret then Color3.fromRGB(25, 12, 45) else def.Color:Lerp(Color3.new(1, 1, 1), 0.35),
+		if secret then Enum.Material.Glass else Enum.Material.SmoothPlastic,
+		model
+	)
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = core
 	model.PrimaryPart = core
 
-	-- side crystals: rarer shards grow more of them
-	local count = math.min(2 + index, 6)
-	for i = 1, count do
-		local angle = (i / count) * math.pi * 2
-		local crystal = piece(
-			"Crystal",
-			Vector3.new(0.6, 1.2 + (i % 2) * 0.5, 0.6) * s,
-			def.Color:Lerp(Color3.new(1, 1, 1), 0.25),
-			Enum.Material.Neon,
-			model
-		)
-		crystal.CFrame = core.CFrame
-			* CFrame.new(math.cos(angle) * 0.75 * s, -0.5 * s, math.sin(angle) * 0.75 * s)
-			* CFrame.Angles(math.cos(angle) * 0.6, 0, math.sin(angle) * 0.6)
-		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = core
-		weld.Part1 = crystal
-		weld.Parent = crystal
+	-- glowing zig-zag band around the middle
+	local band = piece("Band", Vector3.new(0.35 * s, 2.25 * s, 2.25 * s), def.Color, Enum.Material.Neon, model)
+	band.Shape = Enum.PartType.Cylinder
+	band.CFrame = core.CFrame * CFrame.Angles(0, 0, math.rad(90))
+	weld(core, band)
+
+	-- little stars stuck to the shell (more for rarer eggs)
+	for i = 1, math.min(2 + index, 7) do
+		local angle = (i / math.min(2 + index, 7)) * math.pi * 2
+		local y = if i % 2 == 0 then 0.55 else -0.45
+		local star = piece("Star", Vector3.new(0.4, 0.4, 0.4) * s, Color3.fromRGB(255, 245, 190), Enum.Material.Neon, model)
+		star.CFrame = core.CFrame
+			* CFrame.new(math.cos(angle) * 1.02 * s, y * s, math.sin(angle) * 1.02 * s)
+			* CFrame.Angles(0, -angle, math.rad(45))
+		weld(core, star)
 	end
 
-	-- legendary+ get a spinning-looking halo ring
+	-- legendary+ eggs get a halo
 	if index >= 4 then
-		local ring = piece("Ring", Vector3.new(0.2, 3.4, 3.4) * s, def.Color, Enum.Material.Neon, model)
+		local ring = piece("Ring", Vector3.new(0.18, 3.4 * s, 3.4 * s), def.Color, Enum.Material.Neon, model)
 		ring.Shape = Enum.PartType.Cylinder
 		ring.Transparency = 0.35
-		ring.CFrame = CFrame.new(core.Position) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(math.rad(20), 0, 0)
-		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = core
-		weld.Part1 = ring
-		weld.Parent = ring
+		ring.CFrame = core.CFrame * CFrame.new(0, 1.9 * s, 0) * CFrame.Angles(0, 0, math.rad(90))
+		weld(core, ring)
 	end
 
 	local light = Instance.new("PointLight")
@@ -2855,6 +3253,54 @@ function Util.VariantDef(config, variant: string?)
 	return nil
 end
 
+-- coins per second a pet earns on a pedestal (mutation included, before boosts)
+function Util.PetIncome(config, petName: string, variant: string?): number
+	local info = config.Pets[petName]
+	if not info then
+		return 0
+	end
+	local def = Util.VariantDef(config, variant)
+	return (info.Income or 0) * (if def then def.IncomeMult or 1 else 1)
+end
+
+-- the egg shop restocks every RestockSeconds; slot = which restock we're in
+function Util.ShopSlot(config, serverTime: number): number
+	return math.floor(serverTime / config.Shop.RestockSeconds)
+end
+
+-- seconds until the next restock
+function Util.ShopRestockIn(config, serverTime: number): number
+	local period = config.Shop.RestockSeconds
+	return period - (serverTime % period)
+end
+
+-- how many of an egg are in stock this slot (same in every server: seeded).
+-- nil = not a restocking egg (always available)
+function Util.EggStock(config, eggId: string, slot: number): number?
+	local egg = config.Eggs[eggId]
+	local rule = egg and egg.Stock
+	if not rule then
+		return nil
+	end
+	-- small deterministic hash of (slot, eggId) -> 0..1. Every product stays
+	-- below 2^53 so it's exact on every machine (server and phones agree).
+	local m = 4294967296
+	local h = (slot % 1000003) * 2654435761 % m
+	for i = 1, #eggId do
+		h = (h * 31 + string.byte(eggId, i)) % m
+	end
+	for _ = 1, 3 do
+		h = (h * 69069 + 1) % m
+	end
+	local roll = h / m
+	if roll >= rule.Chance then
+		return 0
+	end
+	local span = rule.Max - rule.Min + 1
+	local pick = math.floor((roll / rule.Chance) * span)
+	return rule.Min + math.min(pick, span - 1)
+end
+
 -- pet power including Golden / Rainbow multiplier
 function Util.PetPower(config, petName: string, variant: string?): number
 	local info = config.Pets[petName]
@@ -2947,6 +3393,7 @@ return Util
 local servicesFolder = script.Parent:WaitForChild("Services")
 
 local ORDER = {
+	"Analytics",
 	"DataService",
 	"StatsService",
 	"MonetizationService",
@@ -2959,6 +3406,7 @@ local ORDER = {
 	"MiningService",
 	"BaseService",
 	"ShardService",
+	"TradeService",
 	"MeteorService",
 	"ProgressionService",
 	"LeaderboardService",
@@ -3000,6 +3448,63 @@ print("[Meteor Miners] server ready")
         </Properties>
         <Item class="ModuleScript" referent="14">
           <Properties>
+            <string name="Name">Analytics</string>
+            <string name="Source"><![CDATA[--[[
+	Analytics: thin, crash-proof wrapper around Roblox AnalyticsService.
+	Shows up in Creator Dashboard -> Analytics:
+	  * Onboarding funnel: where new players drop out of the tutorial
+	  * Economy: what coins / gems are earned and spent on
+	  * Custom events: steals, star eggs, trades ...
+	Every call is pcall'd so analytics can never break gameplay.
+]]
+local AnalyticsService = game:GetService("AnalyticsService")
+
+local Analytics = {}
+
+function Analytics:Funnel(player: Player, step: number, stepName: string)
+	pcall(function()
+		AnalyticsService:LogOnboardingFunnelStepEvent(player, step, stepName)
+	end)
+end
+
+-- flow: "Source" (earned) | "Sink" (spent)
+function Analytics:Economy(
+	player: Player,
+	flow: string,
+	currency: string,
+	amount: number,
+	balance: number,
+	transaction: string,
+	sku: string?
+)
+	if amount <= 0 then
+		return
+	end
+	pcall(function()
+		AnalyticsService:LogEconomyEvent(
+			player,
+			if flow == "Sink" then Enum.AnalyticsEconomyFlowType.Sink else Enum.AnalyticsEconomyFlowType.Source,
+			currency,
+			math.floor(amount),
+			math.floor(balance),
+			transaction,
+			sku
+		)
+	end)
+end
+
+function Analytics:Custom(player: Player, eventName: string, value: number?)
+	pcall(function()
+		AnalyticsService:LogCustomEvent(player, eventName, value or 1)
+	end)
+end
+
+return Analytics
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="15">
+          <Properties>
             <string name="Name">BaseService</string>
             <string name="Source"><![CDATA[--[[
 	BaseService: every player owns a 44x44 home in the base district.
@@ -3007,18 +3512,17 @@ print("[Meteor Miners] server ready")
 	* DECORATE: buy any decoration from the build menu and place it anywhere
 	  on the grid (move / rotate / remove at any time - removing refunds
 	  100%, so redecorating is free). Saved with your data, seen by everyone.
-	* PEDESTALS are decorations too: each one shows a star shard that earns
+	* PEDESTALS are decorations too: your best pets stand on them and earn
 	  coins every second into the base bank (green pad), even offline (50%,
-	  2h). Your best shards automatically go on the pedestals; the rest wait
-	  in storage.
+	  2h). The rest of your pets wait in storage.
 	* DEFEND: stun traps freeze thieves (and send a stolen shard straight
 	  home), the red pad locks the entrance for a minute.
 	* SHOW OFF: visitors can ❤️ like your base once a day -> weekly ranked
 	  points + the "Best Bases" leaderboard.
-	* STEAL: hold the prompt on someone else's shard, then run it home.
+	* STEAL: hold the prompt on someone else's pet, then run it home.
 
-	data.Base.Items  = { { Uid, Id, X, Z, R, Paid, Cur }, ... } (plot space)
-	data.Base.Shards = { { Id = rarityId, Away = true? }, ... } best first
+	data.Base.Items = { { Uid, Id, X, Z, R, Paid, Cur }, ... } (plot space)
+	data.Pets entries get Away = true while a thief carries them
 ]]
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -3026,7 +3530,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Util = require(Shared.Util)
-local ShardModel = require(Shared.ShardModel)
+local PetModel = require(Shared.PetModel)
 local DecorModel = require(Shared.DecorModel)
 local Net = require(script.Parent.Net)
 
@@ -3321,20 +3825,34 @@ local function pedestalItems(data)
 	return list
 end
 
-local function sortShards(data)
-	local shards = data.Base.Shards
-	for _, entry in shards do
-		if not Config.Shards.Rarities[entry.Id] then
-			entry.Id = "Common" -- a rarity that no longer exists (config change)
+-- the pets standing on pedestals: the best earners (not being stolen)
+local function displayedPets(data)
+	local slots = #pedestalItems(data)
+	local list = {}
+	for _, pet in data.Pets do
+		if not pet.Away and Config.Pets[pet.Name] then
+			table.insert(list, pet)
 		end
 	end
-	table.sort(shards, function(a, b)
-		return Util.ShardIndex(Config, a.Id) > Util.ShardIndex(Config, b.Id)
+	table.sort(list, function(a, b)
+		local ia = Util.PetIncome(Config, a.Name, a.Variant)
+		local ib = Util.PetIncome(Config, b.Name, b.Variant)
+		if ia == ib then
+			return a.Id < b.Id
+		end
+		return ia > ib
 	end)
+	local shown = {}
+	for i = 1, math.min(slots, #list) do
+		shown[i] = list[i]
+	end
+	return shown
 end
+Base.DisplayedPets = displayedPets
 
-function Base:ShardRate(player: Player, data, id: string): number
-	local rate = Util.ShardIncome(Config, id, data.ZoneLevel) * Services.StatsService:CoinMultiplier(player, data)
+-- coins per second of one pet for its owner (boosts included)
+function Base:PetRate(player: Player, data, pet): number
+	local rate = Util.PetIncome(Config, pet.Name, pet.Variant) * Services.StatsService:CoinMultiplier(player, data)
 	if Services.MonetizationService:HasPass(player, "DoubleBase") then
 		rate *= 2
 	end
@@ -3343,17 +3861,10 @@ end
 
 function Base:IncomeRate(player: Player, data): number
 	local total = 0
-	local slots = #pedestalItems(data)
-	for index, entry in data.Base.Shards do
-		if index <= slots and not entry.Away then
-			total += self:ShardRate(player, data, entry.Id)
-		end
+	for _, pet in displayedPets(data) do
+		total += self:PetRate(player, data, pet)
 	end
 	return total
-end
-
-local function sellValue(player: Player, data, id: string): number
-	return math.floor(Base:ShardRate(player, data, id) * Config.Shards.SellSeconds)
 end
 
 ---------------------------------------------------------------------------
@@ -3400,43 +3911,37 @@ function Base:RenderDisplays(player: Player)
 		return
 	end
 	plot.Displays:ClearAllChildren()
-	sortShards(data)
-	local shards = data.Base.Shards
+	local shown = displayedPets(data)
 	for slot, pedestal in pedestalItems(data) do
 		local model = plot.ItemModels[pedestal.Uid]
 		local top = model and model:FindFirstChild("Top")
-		local entry = shards[slot]
-		if top and top:IsA("BasePart") and entry then
-			if not entry.Away then
-				local def = Config.Shards.Rarities[entry.Id]
-				local shard = ShardModel.Build(Config, entry.Id, 1)
-				ShardModel.SetAnchored(shard, true)
-				shard:PivotTo(CFrame.new(top.Position + Vector3.new(0, 2.2, 0)))
-				shard:SetAttribute("Spin", true)
-				shard.Parent = plot.Displays
-				local label = billboard(shard.PrimaryPart :: BasePart, 7, 2.2, 3.2, def.Color, 60)
-				World.SetText(label, "%s\n💰 %s/s", def.Name, Util.Format(self:ShardRate(player, data, entry.Id)))
-				local core = shard.PrimaryPart :: BasePart
-				setPrompt(core, "Steal", def.Name, "Thief", SETTINGS.StealHold, function(thief)
-					Base:TrySteal(thief, player, entry)
-				end)
-				setPrompt(core, "Sell", def.Name, "Owner", 0.6, function(who)
-					if who == player then
-						Base:SellEntry(player, entry)
-					end
-				end)
+		local pet = shown[slot]
+		if top and top:IsA("BasePart") and pet then
+			local info = Config.Pets[pet.Name]
+			local rarity = Config.Rarities[info.Rarity] or Config.Rarities.Common
+			local display = PetModel.Build(pet.Name, pet.Variant)
+			display.Name = "Pet_" .. pet.Id
+			display:PivotTo(CFrame.new(top.Position + Vector3.new(0, 1.6, 0)) * (top.CFrame - top.Position))
+			display:SetAttribute("Spin", true)
+			display:SetAttribute("PetId", pet.Id)
+			display.Parent = plot.Displays
+			local anchor = display.PrimaryPart :: BasePart
+			local label = billboard(anchor, 8, 2.4, 3.4, rarity.Color, 60)
+			local rate = Util.Format(self:PetRate(player, data, pet))
+			if pet.Variant then
+				World.SetText(label, "%s %s\n💰 %s/s", pet.Variant, pet.Name, rate)
 			else
-				local anchor = part({
-					Name = "StolenMark",
-					Size = Vector3.one,
-					CFrame = CFrame.new(top.Position + Vector3.new(0, 2, 0)),
-					Transparency = 1,
-					CanCollide = false,
-					CanQuery = false,
-					CanTouch = false,
-				}, plot.Displays)
-				World.SetText(billboard(anchor, 7, 2, 0, Color3.fromRGB(255, 90, 90), 80), "⚠️ STOLEN!")
+				World.SetText(label, "%s\n💰 %s/s", pet.Name, rate)
 			end
+			local petId = pet.Id
+			setPrompt(anchor, "Steal", pet.Name, "Thief", SETTINGS.StealHold, function(thief)
+				Base:TrySteal(thief, player, petId)
+			end)
+			setPrompt(anchor, "Sell", pet.Name, "Owner", 0.6, function(who)
+				if who == player then
+					Base:SellPet(player, petId)
+				end
+			end)
 		end
 	end
 	self:RefreshLabels(player, true)
@@ -3467,8 +3972,7 @@ function Base:RefreshLabels(player: Player, force: boolean?)
 		return
 	end
 	local rate = self:IncomeRate(player, data)
-	local slots = #pedestalItems(data)
-	local stored = math.max(0, #data.Base.Shards - slots)
+	local stored = math.max(0, #data.Pets - #displayedPets(data))
 	local signText = Util.Format(rate) .. "|" .. data.Base.Likes .. "|" .. stored
 	if force or signText ~= plot.LastLabel then
 		plot.LastLabel = signText
@@ -3555,92 +4059,37 @@ function Base:IsLocked(owner: Player): boolean
 	return plot ~= nil and plot.LockedUntil > now()
 end
 
--- a carried shard arrives home. Returns a short result for the client.
-function Base:AddShard(player: Player, id: string): (string, number)
-	local data = Data:Get(player)
-	if not data then
-		return "None", 0
-	end
-	local shards = data.Base.Shards
-	local capacity = #pedestalItems(data) + SETTINGS.StorageMax
-	local result, coins = "Placed", 0
-	local slots = #pedestalItems(data)
-	if #shards < capacity then
-		local entry = { Id = id }
-		table.insert(shards, entry)
-		sortShards(data)
-		if (table.find(shards, entry) or 0) > slots then
-			result = "Stored" -- every pedestal holds a better shard
-		end
-	else
-		-- completely full: the new shard replaces the weakest one if it's better, the other is sold
-		local worstIndex, worstValue = nil, math.huge
-		for i, entry in shards do
-			if not entry.Away then
-				local value = Util.ShardIndex(Config, entry.Id)
-				if value < worstValue then
-					worstIndex, worstValue = i, value
-				end
-			end
-		end
-		if worstIndex and Util.ShardIndex(Config, id) > worstValue then
-			coins = sellValue(player, data, shards[worstIndex].Id)
-			shards[worstIndex] = { Id = id }
-			result = "Replaced"
-		else
-			coins = sellValue(player, data, id)
-			result = "Sold"
-		end
-		data.Coins += coins
-		data.Stats.LifetimeCoins += coins
-	end
-	data.Stats.ShardsDelivered = (data.Stats.ShardsDelivered or 0) + 1
-	Data:MarkDirty(player)
-	self:RenderDisplays(player)
-	return result, coins
-end
-
-function Base:SetAway(owner: Player, entry, away: boolean)
-	entry.Away = if away then true else nil
-	if owner.Parent then
-		Data:MarkDirty(owner)
-		self:RenderDisplays(owner)
-	end
-end
-
-function Base:RemoveEntry(owner: Player, entry)
+-- a pet is being carried away by a thief (or came back)
+function Base:SetAway(owner: Player, petId: number, away: boolean)
 	local data = Data:Get(owner)
-	if not data then
+	local pet = data and Services.PetService.FindPet(data, petId)
+	if not pet then
 		return
 	end
-	local index = table.find(data.Base.Shards, entry)
-	if index then
-		table.remove(data.Base.Shards, index)
+	pet.Away = if away then true else nil
+	if owner.Parent then
+		Services.PetService:Changed(owner)
 	end
-	Data:MarkDirty(owner)
-	self:RenderDisplays(owner)
 end
 
-function Base:SellEntry(player: Player, entry)
+function Base:SellPet(player: Player, petId: number)
 	local data = Data:Get(player)
-	if not data or entry.Away then
+	local pet, index = nil, nil
+	if data then
+		pet, index = Services.PetService.FindPet(data, petId)
+	end
+	if not pet or pet.Away then
 		return
 	end
-	local index = table.find(data.Base.Shards, entry)
-	if not index then
-		return
-	end
-	local coins = sellValue(player, data, entry.Id)
-	table.remove(data.Base.Shards, index)
+	local coins = Services.PetService:SellValue(pet.Name, pet.Variant)
+	table.remove(data.Pets, index)
 	data.Coins += coins
 	data.Stats.LifetimeCoins += coins
-	local def = Config.Shards.Rarities[entry.Id]
-	Net:Notify(player, "Sold %s for 💰%s", Color3.fromRGB(255, 220, 120), def.Name, Util.Format(coins))
-	Data:MarkDirty(player)
-	self:RenderDisplays(player)
+	Net:Notify(player, "Sold %s for 💰%s", Color3.fromRGB(255, 220, 120), pet.Name, Util.Format(coins))
+	Services.PetService:Changed(player)
 end
 
-function Base:TrySteal(thief: Player, owner: Player, entry)
+function Base:TrySteal(thief: Player, owner: Player, petId: number)
 	if thief == owner or not owner.Parent then
 		return
 	end
@@ -3650,7 +4099,7 @@ function Base:TrySteal(thief: Player, owner: Player, entry)
 		return
 	end
 	if not plotOf[thief] then
-		Net:Notify(thief, "You need a base to steal shards!")
+		Net:Notify(thief, "You need a base to steal pets!")
 		return
 	end
 	if self:IsLocked(owner) then
@@ -3658,18 +4107,20 @@ function Base:TrySteal(thief: Player, owner: Player, entry)
 		return
 	end
 	local data = Data:Get(owner)
-	if not data or entry.Away or not table.find(data.Base.Shards, entry) then
+	local pet = data and Services.PetService.FindPet(data, petId)
+	if not pet or pet.Away then
 		return
 	end
-	local def = Config.Shards.Rarities[entry.Id]
-	self:SetAway(owner, entry, true)
-	if not shards:StartCarry(thief, entry.Id, { From = owner, Entry = entry }) then
-		self:SetAway(owner, entry, false)
+	self:SetAway(owner, petId, true)
+	local item = { Kind = "Pet", Name = pet.Name, Variant = pet.Variant }
+	if not shards:StartCarry(thief, item, { From = owner, PetId = petId }) then
+		self:SetAway(owner, petId, false)
 		return
 	end
-	Net:Send(owner, "BaseAlarm", thief.DisplayName, def.Name)
-	Net:Notify(owner, "🚨 %s is stealing your %s! Bonk them!", Color3.fromRGB(255, 80, 80), thief.DisplayName, def.Name)
-	Net:Notify(thief, "🏃 You stole a %s! Run to your base!", Color3.fromRGB(255, 170, 80), def.Name)
+	local display = pet.Name
+	Net:Send(owner, "BaseAlarm", thief.DisplayName, display)
+	Net:Notify(owner, "🚨 %s is stealing your %s! Bonk them!", Color3.fromRGB(255, 80, 80), thief.DisplayName, display)
+	Net:Notify(thief, "🏃 You stole a %s! Run to your base!", Color3.fromRGB(255, 170, 80), display)
 end
 
 function Base:Collect(player: Player)
@@ -3685,6 +4136,7 @@ function Base:Collect(player: Player)
 	data.Coins += amount
 	data.Stats.LifetimeCoins += amount
 	Services.ProgressionService:AddQuest(player, "Collect", 1)
+	Services.Analytics:Economy(player, "Source", "Coins", amount, data.Coins, "Gameplay", "BaseCollect")
 	Net:Send(player, "BaseCollected", amount)
 	Data:MarkDirty(player)
 	self:RefreshLabels(player)
@@ -4010,10 +4462,6 @@ function Base:Start()
 
 	Data:OnLoaded(function(player, data)
 		local base = data.Base
-		-- shards a thief was carrying when the server closed are still ours
-		for _, entry in base.Shards do
-			entry.Away = nil
-		end
 		-- forget likes older than yesterday (keeps the save small)
 		local today = Util.DayNumber()
 		for key, day in base.LikedBy do
@@ -4026,8 +4474,8 @@ function Base:Start()
 	end)
 	Data:OnLeaving(function(_player, data)
 		data.Base.LastOnline = os.time()
-		for _, entry in data.Base.Shards do
-			entry.Away = nil
+		for _, pet in data.Pets do
+			pet.Away = nil
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
@@ -4095,7 +4543,7 @@ return Base
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="15">
+        <Item class="ModuleScript" referent="16">
           <Properties>
             <string name="Name">BoostService</string>
             <string name="Source"><![CDATA[--[[
@@ -4201,7 +4649,7 @@ return Boosts
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="16">
+        <Item class="ModuleScript" referent="17">
           <Properties>
             <string name="Name">CharacterService</string>
             <string name="Source"><![CDATA[--[[
@@ -4495,7 +4943,7 @@ return CharacterService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="17">
+        <Item class="ModuleScript" referent="18">
           <Properties>
             <string name="Name">DataService</string>
             <string name="Source"><![CDATA[--[[
@@ -4557,6 +5005,7 @@ local TEMPLATE = {
 		LikedBy = {}, -- ["userId"] = day number
 	},
 	SpeedTier = 1,
+	Shop = { Slot = 0, Bought = {} }, -- egg restock purchases (per 5-min restock)
 	Pets = {}, -- { { Id = 1, Name = "Bunny", Variant = "Golden"? }, ... }
 	Equipped = {}, -- { petId, ... }
 	NextPetUid = 1,
@@ -4581,7 +5030,7 @@ local TEMPLATE = {
 	Daily = { Day = 0, Quests = {}, Streak = 0, LastClaimDay = 0, VipChestDay = 0, ClubDay = 0 },
 	Season = { Id = 0, XP = 0, Premium = false, ClaimedFree = {}, ClaimedPremium = {} },
 	Weekly = { Week = 0, Points = 0 },
-	Flags = { StarterPack = false, GroupReward = false },
+	Flags = { StarterPack = false, GroupReward = false, HowToSeen = false },
 	Receipts = {},
 	FirstJoin = 0,
 	LastAdTime = 0,
@@ -4836,6 +5285,21 @@ function DataService:OnLoaded(callback)
 	end
 end
 
+-- cloud tests only: load a stand-in player's data (no DataStore, never on live servers)
+function DataService:InjectForTest(player: any, data)
+	assert(not RunService:IsRunning(), "test hook used on a live server")
+	Util.Reconcile(data, TEMPLATE)
+	profiles[player] = { Data = data, CanSave = false, Dirty = true, Saving = false, Released = false, SessionId = "test" }
+	local errors = {}
+	for _, callback in loadedCallbacks do
+		local ok, err = pcall(callback, player, data)
+		if not ok then
+			table.insert(errors, tostring(err))
+		end
+	end
+	return errors
+end
+
 function DataService:OnLeaving(callback)
 	table.insert(leavingCallbacks, callback)
 end
@@ -4939,7 +5403,7 @@ return DataService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="18">
+        <Item class="ModuleScript" referent="19">
           <Properties>
             <string name="Name">DevService</string>
             <string name="Source"><![CDATA[--[[
@@ -4999,7 +5463,7 @@ function Dev:Start()
 			Services.ShardService:FallingStar(math.min(zone, data.ZoneLevel))
 		elseif command == "Shard" then
 			local id = Util.RollShard(Config, 4)
-			Services.ShardService:StartCarry(player, id, nil)
+			Services.ShardService:StartCarry(player, { Kind = "Egg", Rarity = id, Egg = "Meadow" }, nil)
 		elseif command == "Reset" then
 			local fresh = Util.DeepCopy(Data.Template)
 			fresh.FirstJoin = os.time()
@@ -5021,7 +5485,7 @@ return Dev
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="19">
+        <Item class="ModuleScript" referent="20">
           <Properties>
             <string name="Name">EconomyService</string>
             <string name="Source"><![CDATA[--[[
@@ -5169,7 +5633,7 @@ return Economy
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="20">
+        <Item class="ModuleScript" referent="21">
           <Properties>
             <string name="Name">EventService</string>
             <string name="Source"><![CDATA[--[[
@@ -5273,7 +5737,7 @@ return Events
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="21">
+        <Item class="ModuleScript" referent="22">
           <Properties>
             <string name="Name">LeaderboardService</string>
             <string name="Source"><![CDATA[--[[
@@ -5597,7 +6061,7 @@ return Leaderboards
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="22">
+        <Item class="ModuleScript" referent="23">
           <Properties>
             <string name="Name">MeteorService</string>
             <string name="Source"><![CDATA[--[[
@@ -6046,7 +6510,7 @@ return Meteor
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="23">
+        <Item class="ModuleScript" referent="24">
           <Properties>
             <string name="Name">MiningService</string>
             <string name="Source"><![CDATA[--[[
@@ -6680,7 +7144,7 @@ return Mining
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="24">
+        <Item class="ModuleScript" referent="25">
           <Properties>
             <string name="Name">MonetizationService</string>
             <string name="Source"><![CDATA[--[[
@@ -7087,7 +7551,7 @@ return Monetization
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="25">
+        <Item class="ModuleScript" referent="26">
           <Properties>
             <string name="Name">Net</string>
             <string name="Source"><![CDATA[--[[
@@ -7147,9 +7611,18 @@ function Net:OnRequest(name: string, minInterval: number, handler)
 end
 
 function Net:Send(player: Player, kind: string, ...)
-	if player and player.Parent then
+	-- (cloud tests use stand-in players: only real Players get remote messages)
+	if player and typeof(player) == "Instance" and player.Parent then
 		messageRemote:FireClient(player, kind, ...)
 	end
+end
+
+-- cloud tests only: run an action / request handler directly (never on live servers)
+function Net:CallForTest(name: string, player: any, ...)
+	assert(not game:GetService("RunService"):IsRunning(), "test hook used on a live server")
+	local handler = requestHandlers[name] or actionHandlers[name]
+	assert(handler, "no handler " .. name)
+	return handler.Fn(player, ...)
 end
 
 function Net:Broadcast(kind: string, ...)
@@ -7210,14 +7683,21 @@ return Net
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="26">
+        <Item class="ModuleScript" referent="27">
           <Properties>
             <string name="Name">PetService</string>
             <string name="Source"><![CDATA[--[[
-	PetService: eggs (coins / gems / stardust / Robux), luck, inventory,
-	equip/unequip, and server-wide hatch announcements for rare pets.
-	Equipped pet names are replicated through a player attribute so every
-	client can render everyone's pets locally (cheap on the server).
+	PetService: eggs, hatching, mutations and the pet inventory.
+
+	* Pets live in your base: the best ones sit on pedestals and earn coins
+	  every second (BaseService). Your strongest pets also follow you around
+	  and add their power to your mining damage - chosen automatically.
+	* Coin eggs restock every 5 minutes (same stock in every server, see
+	  Util.EggStock); each player can buy up to the stock per restock.
+	* Mutations (Golden, Rainbow, Galaxy + weather-only Frozen / Molten) are
+	  rolled on every hatch.
+	* Star eggs from falling stars / meteors hatch when carried home.
+	* Selling a pet pays one minute of its income.
 ]]
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -7249,49 +7729,113 @@ local function power(pet): number
 	return Util.PetPower(Config, pet.Name, pet.Variant)
 end
 
--- Golden / Rainbow roll; luck raises the chance (capped at x4)
+local function income(pet): number
+	return Util.PetIncome(Config, pet.Name, pet.Variant)
+end
+PetService.Income = income
+
+function PetService:SellValue(name: string, variant: string?): number
+	return math.max(1, math.floor(Util.PetIncome(Config, name, variant) * Config.PetSellSeconds))
+end
+
+local function activeEventId(): string?
+	local event = Services.EventService:Active()
+	return event and event.Id or nil
+end
+
+-- mutation roll (rarest first); weather events unlock / boost some of them
 local function rollVariant(luck: number): string?
 	local mult = math.clamp(luck, 1, 4)
+	local event = activeEventId()
 	for _, def in Config.PetVariants do
-		if math.random() < def.Chance * mult then
+		local chance = def.Chance or 0
+		if def.Event and def.Event == event then
+			chance = math.max(chance, def.EventChance or 0)
+		end
+		if chance > 0 and math.random() < chance * mult then
 			return def.Id
 		end
 	end
 	return nil
 end
+PetService.RollVariant = rollVariant
 
+-- the strongest pets follow you (no equipping needed)
 function PetService:RefreshEquipped(player: Player)
 	local data = Data:Get(player)
 	if not data then
 		return
 	end
-	local byId = {}
+	local sorted = {}
 	for _, pet in data.Pets do
-		byId[pet.Id] = pet
-	end
-	local slots = Services.StatsService:PetSlots(player, data)
-	local valid, names = {}, {}
-	for _, id in data.Equipped do
-		if byId[id] and not table.find(valid, id) and #valid < slots then
-			table.insert(valid, id)
-			-- "Variant|Name" so every client can render golden/rainbow pets
-			table.insert(names, (byId[id].Variant or "") .. "|" .. byId[id].Name)
+		if not pet.Away and Config.Pets[pet.Name] then
+			table.insert(sorted, pet)
 		end
 	end
-	data.Equipped = valid
+	table.sort(sorted, function(a, b)
+		return power(a) > power(b)
+	end)
+	local slots = Services.StatsService:PetSlots(player, data)
+	local ids, names = {}, {}
+	for i = 1, math.min(slots, #sorted) do
+		table.insert(ids, sorted[i].Id)
+		-- "Variant|Name" so every client can render golden/rainbow pets
+		table.insert(names, (sorted[i].Variant or "") .. "|" .. sorted[i].Name)
+	end
+	data.Equipped = ids
 	player:SetAttribute("Pets", HttpService:JSONEncode(names))
 	Data:MarkDirty(player)
 end
 
-local function addPet(player: Player, data, name: string, variant: string?)
+-- call after any change to the pet list
+function PetService:Changed(player: Player)
+	self:RefreshEquipped(player)
+	local base = Services.BaseService
+	if base then
+		base:RenderDisplays(player)
+	end
+end
+
+local function findPet(data, petId)
+	for index, pet in data.Pets do
+		if pet.Id == petId then
+			return pet, index
+		end
+	end
+	return nil, nil
+end
+PetService.FindPet = findPet
+
+local function addPet(data, name: string, variant: string?)
 	local pet = { Id = data.NextPetUid, Name = name, Variant = variant }
 	data.NextPetUid += 1
 	table.insert(data.Pets, pet)
 	data.PetIndex[name] = true
-	if #data.Equipped < Services.StatsService:PetSlots(player, data) then
-		table.insert(data.Equipped, pet.Id)
-	end
 	return pet
+end
+
+-- inventory full: keep the better of (new pet, weakest pet) and sell the other.
+-- Returns true when the new pet may be added, plus coins paid for a sold pet.
+local function makeRoom(player: Player, data, name: string, variant: string?): (boolean, number)
+	if #data.Pets < Config.MaxPets then
+		return true, 0
+	end
+	local weakest, weakestIndex = nil, nil
+	for index, pet in data.Pets do
+		if not pet.Away and (not weakest or income(pet) < income(weakest)) then
+			weakest, weakestIndex = pet, index
+		end
+	end
+	if weakest and Util.PetIncome(Config, name, variant) > income(weakest) then
+		local coins = PetService:SellValue(weakest.Name, weakest.Variant)
+		table.remove(data.Pets, weakestIndex)
+		data.Coins += coins
+		return true, coins
+	end
+	local coins = PetService:SellValue(name, variant)
+	data.Coins += coins
+	Net:Notify(player, "Pet storage full - sold the new %s for 💰%s", Color3.fromRGB(255, 220, 120), name, Util.Format(coins))
+	return false, coins
 end
 
 local function announceIfRare(player: Player, name: string, variant: string?, eggName: string)
@@ -7300,7 +7844,7 @@ local function announceIfRare(player: Player, name: string, variant: string?, eg
 	if not rarity then
 		return
 	end
-	if rarity.Order >= Config.AnnounceRarity or variant == "Rainbow" then
+	if rarity.Order >= Config.AnnounceRarity or variant == "Rainbow" or variant == "Galaxy" then
 		Net:Announce(
 			"🥚 %s hatched a %s %s %s from the %s!",
 			if variant == "Rainbow" then Color3.fromRGB(255, 120, 230) else rarity.Color,
@@ -7313,15 +7857,19 @@ local function announceIfRare(player: Player, name: string, variant: string?, eg
 	end
 end
 
-local function roll(player: Player, data, eggId: string, count: number)
+-- roll `count` pets from an egg; extraLuck multiplies the player's luck
+local function roll(player: Player, data, eggId: string, count: number, extraLuck: number?)
 	local egg = Config.Eggs[eggId]
-	local luck = Services.StatsService:Luck(player, data)
+	local luck = Services.StatsService:Luck(player, data) * (extraLuck or 1)
 	local fn = luckFn(luck)
 	local results = {}
 	for _ = 1, count do
 		local name = Util.WeightedPick(egg.Pets, fn)
 		local variant = rollVariant(luck)
-		addPet(player, data, name, variant)
+		local ok = makeRoom(player, data, name, variant)
+		if ok then
+			addPet(data, name, variant)
+		end
 		table.insert(results, { Name = name, Variant = variant })
 		announceIfRare(player, name, variant, egg.Name)
 	end
@@ -7329,7 +7877,7 @@ local function roll(player: Player, data, eggId: string, count: number)
 	Services.ProgressionService:TutorialEvent(player, "Hatch", count)
 	Services.ProgressionService:AddQuest(player, "Hatch", count)
 	Services.ProgressionService:AddSeasonXP(player, 25 * count)
-	PetService:RefreshEquipped(player)
+	PetService:Changed(player)
 	return results
 end
 
@@ -7338,8 +7886,10 @@ function PetService:GrantPet(player: Player, name: string, variant: string?)
 	if not data or not Config.Pets[name] then
 		return
 	end
-	addPet(player, data, name, variant)
-	self:RefreshEquipped(player)
+	if makeRoom(player, data, name, variant) then
+		addPet(data, name, variant)
+	end
+	self:Changed(player)
 	Net:Send(player, "HatchResult", { { Name = name, Variant = variant } }, nil)
 end
 
@@ -7350,6 +7900,61 @@ function PetService:PaidHatch(player: Player, eggId: string, count: number)
 	end
 	local results = roll(player, data, eggId, count)
 	Net:Send(player, "HatchResult", results, eggId)
+end
+
+-- a star egg carried home hatches (luck from the star's rarity)
+function PetService:HatchStarEgg(player: Player, eggId: string, luck: number)
+	local data = Data:Get(player)
+	if not data or not Config.Eggs[eggId] then
+		return nil
+	end
+	local results = roll(player, data, eggId, 1, luck)
+	Net:Send(player, "HatchResult", results, eggId)
+	return results[1]
+end
+
+-- stealing: take a pet out of one inventory and put it into another
+function PetService:TakePet(player: Player, petId: number)
+	local data = Data:Get(player)
+	local pet, index = nil, nil
+	if data then
+		pet, index = findPet(data, petId)
+	end
+	if not pet then
+		return nil
+	end
+	table.remove(data.Pets, index)
+	self:Changed(player)
+	return { Name = pet.Name, Variant = pet.Variant }
+end
+
+function PetService:GivePet(player: Player, name: string, variant: string?)
+	local data = Data:Get(player)
+	if not data or not Config.Pets[name] then
+		return
+	end
+	if makeRoom(player, data, name, variant) then
+		addPet(data, name, variant)
+	end
+	self:Changed(player)
+end
+
+---------------------------------------------------------------------------
+-- egg shop stock (coin eggs restock every few minutes)
+---------------------------------------------------------------------------
+-- how many of this egg the player can still buy in the current restock (nil = unlimited)
+function PetService:StockLeft(data, eggId: string): number?
+	local slot = Util.ShopSlot(Config, workspace:GetServerTimeNow())
+	local stock = Util.EggStock(Config, eggId, slot)
+	if stock == nil then
+		return nil
+	end
+	local shop = data.Shop
+	if shop.Slot ~= slot then
+		shop.Slot = slot
+		shop.Bought = {}
+	end
+	return math.max(0, stock - (shop.Bought[eggId] or 0))
 end
 
 local function hatch(player: Player, eggId, count)
@@ -7365,8 +7970,13 @@ local function hatch(player: Player, eggId, count)
 	if data.ZoneLevel < egg.Zone then
 		return { Error = Net:L(player, "Unlock %s first!", Config.Zones[egg.Zone].Name) }
 	end
-	if #data.Pets + count > Config.MaxPets then
-		return { Error = Net:L(player, "Pet inventory full! Delete some pets first.") }
+	local left = PetService:StockLeft(data, eggId)
+	if left ~= nil and left < count then
+		local wait = Util.ShopRestockIn(Config, workspace:GetServerTimeNow())
+		if left == 0 then
+			return { Error = Net:L(player, "Sold out! New stock in %s", Util.FormatTime(wait)) }
+		end
+		return { Error = Net:L(player, "Only %d left until the restock!", left) }
 	end
 	local cost = egg.Price * count
 	local balance = data[egg.Currency] or 0
@@ -7374,17 +7984,32 @@ local function hatch(player: Player, eggId, count)
 		return { Error = Net:L(player, "Not enough %s! Need %s more.", CURRENCY_NAMES[egg.Currency], Util.Format(cost - balance)) }
 	end
 	data[egg.Currency] -= cost
+	Services.Analytics:Economy(player, "Sink", egg.Currency, cost, data[egg.Currency], "Shop", "Egg_" .. eggId)
+	if left ~= nil then
+		data.Shop.Bought[eggId] = (data.Shop.Bought[eggId] or 0) + count
+	end
 	local results = roll(player, data, eggId, count)
 	return { Pets = results, Egg = eggId }
 end
 
-local function findPet(data, petId)
-	for index, pet in data.Pets do
-		if pet.Id == petId then
-			return pet, index
+---------------------------------------------------------------------------
+-- old saves: star shards (before pets earned money) become pets
+---------------------------------------------------------------------------
+local function migrate(player: Player, data)
+	local shards = data.Base and data.Base.Shards
+	if type(shards) ~= "table" or #shards == 0 then
+		return
+	end
+	for _, entry in shards do
+		local rarity = Config.Shards.Rarities[entry.Id]
+		local luck = if rarity then rarity.Luck or 1 else 1
+		local name = Util.WeightedPick(Config.Eggs.Meadow.Pets, luckFn(luck))
+		if #data.Pets < Config.MaxPets then
+			addPet(data, name, nil)
 		end
 	end
-	return nil, nil
+	data.Base.Shards = {}
+	Net:Notify(player, "Your star shards hatched into pets! 🐾", Color3.fromRGB(150, 230, 255))
 end
 
 function PetService:Init(services)
@@ -7393,91 +8018,83 @@ function PetService:Init(services)
 end
 
 function PetService:Start()
-	Data:OnLoaded(function(player)
+	Data:OnLoaded(function(player, data)
+		for _, pet in data.Pets do
+			pet.Away = nil -- a theft interrupted by a server shutdown never happened
+		end
+		migrate(player, data)
 		self:RefreshEquipped(player)
 	end)
 
 	Net:OnRequest("Hatch", 0.35, hatch)
 
-	Net:On("EquipPet", 0.1, function(player, petId)
-		local data = Data:Get(player)
-		if not data or type(petId) ~= "number" or not findPet(data, petId) or table.find(data.Equipped, petId) then
-			return
-		end
-		if #data.Equipped >= Services.StatsService:PetSlots(player, data) then
-			Net:Notify(player, "All pet slots are full! Unequip one or get more slots.")
-			Net:Send(player, "Upsell", "ExtraPets")
-			return
-		end
-		table.insert(data.Equipped, petId)
-		self:RefreshEquipped(player)
-	end)
-
-	Net:On("UnequipPet", 0.1, function(player, petId)
-		local data = Data:Get(player)
-		if not data then
-			return
-		end
-		local index = table.find(data.Equipped, petId)
-		if index then
-			table.remove(data.Equipped, index)
-			self:RefreshEquipped(player)
-		end
-	end)
-
-	Net:On("EquipBest", 0.5, function(player)
-		local data = Data:Get(player)
-		if not data then
-			return
-		end
-		local sorted = table.clone(data.Pets)
-		table.sort(sorted, function(a, b)
-			return power(a) > power(b)
-		end)
-		local slots = Services.StatsService:PetSlots(player, data)
-		data.Equipped = {}
-		for i = 1, math.min(slots, #sorted) do
-			table.insert(data.Equipped, sorted[i].Id)
-		end
-		self:RefreshEquipped(player)
-	end)
-
-	Net:On("DeletePet", 0.1, function(player, petId)
-		local data = Data:Get(player)
-		if not data then
-			return
-		end
-		local _, index = findPet(data, petId)
-		if index then
-			table.remove(data.Pets, index)
-			local equippedIndex = table.find(data.Equipped, petId)
-			if equippedIndex then
-				table.remove(data.Equipped, equippedIndex)
+	-- restock announcements (every server sees the same stock at the same time)
+	task.spawn(function()
+		local lastSlot = Util.ShopSlot(Config, workspace:GetServerTimeNow())
+		while true do
+			task.wait(1)
+			local slot = Util.ShopSlot(Config, workspace:GetServerTimeNow())
+			if slot ~= lastSlot then
+				lastSlot = slot
+				Net:Broadcast("Restock", slot)
+				-- the rarest egg in stock gets a shout-out
+				local best = nil
+				for _, eggId in Config.EggOrder do
+					local egg = Config.Eggs[eggId]
+					local stock = Util.EggStock(Config, eggId, slot)
+					if stock and stock > 0 and egg.Stock.Chance < 0.7 and (not best or egg.Price > Config.Eggs[best].Price) then
+						best = eggId
+					end
+				end
+				if best then
+					Net:Announce("🥚 Egg restock! %s is in stock!", Config.Eggs[best].Color, Config.Eggs[best].Name)
+				else
+					Net:Announce("🥚 The egg shops just restocked!", Color3.fromRGB(150, 230, 120))
+				end
 			end
-			self:RefreshEquipped(player)
 		end
 	end)
 
-	-- quick cleanup: delete every unequipped pet of a low rarity
-	Net:On("DeleteRarity", 1, function(player, rarity)
+	-- sell one pet for a minute of its income
+	Net:On("SellPet", 0.1, function(player, petId)
+		local data = Data:Get(player)
+		if not data or type(petId) ~= "number" then
+			return
+		end
+		local pet, index = findPet(data, petId)
+		if not pet or pet.Away then
+			return
+		end
+		local coins = self:SellValue(pet.Name, pet.Variant)
+		table.remove(data.Pets, index)
+		data.Coins += coins
+		data.Stats.LifetimeCoins += coins
+		Net:Notify(player, "Sold %s for 💰%s", Color3.fromRGB(255, 220, 120), pet.Name, Util.Format(coins))
+		self:Changed(player)
+	end)
+
+	-- quick cleanup: sell every plain pet of a low rarity (keeps your best ones)
+	Net:On("SellRarity", 1, function(player, rarity)
 		local data = Data:Get(player)
 		if not data or (rarity ~= "Common" and rarity ~= "Uncommon") then
 			return
 		end
-		local kept = {}
-		local removed = 0
+		local kept, coins, removed = {}, 0, 0
 		for _, pet in data.Pets do
 			local info = Config.Pets[pet.Name]
-			-- golden / rainbow pets are never bulk-deleted
-			if info and info.Rarity == rarity and not pet.Variant and not table.find(data.Equipped, pet.Id) then
+			-- mutated pets are never bulk-sold
+			if info and info.Rarity == rarity and not pet.Variant and not pet.Away then
 				removed += 1
+				coins += self:SellValue(pet.Name, nil)
 			else
 				table.insert(kept, pet)
 			end
 		end
 		data.Pets = kept
-		self:RefreshEquipped(player)
-		Net:Notify(player, "Deleted %d %s pets", nil, removed, rarity)
+		data.Coins += coins
+		data.Stats.LifetimeCoins += coins
+		self:Changed(player)
+		Net:Notify(player, "Sold %d %s pets for 💰%s", Color3.fromRGB(255, 220, 120), removed, rarity, Util.Format(coins))
 	end)
 end
 
@@ -7485,7 +8102,7 @@ return PetService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="27">
+        <Item class="ModuleScript" referent="28">
           <Properties>
             <string name="Name">ProgressionService</string>
             <string name="Source"><![CDATA[--[[
@@ -7589,6 +8206,7 @@ function Progression:TutorialEvent(player: Player, id: string, amount: number?)
 		return
 	end
 	self:GrantReward(player, step.Reward, nil, true)
+	Services.Analytics:Funnel(player, tutorial.Step + 1, step.Id)
 	tutorial.Step += 1
 	tutorial.Progress = 0
 	if tutorial.Step > #steps then
@@ -7794,6 +8412,9 @@ function Progression:Start()
 		sessionStart[player] = os.time()
 		giftsClaimed[player] = {}
 		player:SetAttribute("Lang", data.Settings.Lang)
+		if not data.Tutorial.Done and data.Tutorial.Step == 1 and data.Tutorial.Progress == 0 then
+			Services.Analytics:Funnel(player, 1, "Joined")
+		end
 		-- veterans who already did everything skip the tutorial
 		if not data.Tutorial.Done and data.Stats.EggsHatched > 0 and data.PickaxeTier > 1 then
 			data.Tutorial.Done = true
@@ -7994,6 +8615,14 @@ function Progression:Start()
 		return { Index = index, Text = self:RewardText(player, entry.Reward) }
 	end)
 
+	Net:On("SeenHowTo", 5, function(player)
+		local data = Data:Get(player)
+		if data and not data.Flags.HowToSeen then
+			data.Flags.HowToSeen = true
+			Data:MarkDirty(player)
+		end
+	end)
+
 	Net:On("SetLanguage", 1, function(player, lang)
 		local data = Data:Get(player)
 		if not data or (lang ~= "ko" and lang ~= "en" and lang ~= "auto") then
@@ -8024,7 +8653,7 @@ return Progression
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="28">
+        <Item class="ModuleScript" referent="29">
           <Properties>
             <string name="Name">ShardService</string>
             <string name="Source"><![CDATA[--[[
@@ -8048,6 +8677,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Util = require(Shared.Util)
 local ShardModel = require(Shared.ShardModel)
+local PetModel = require(Shared.PetModel)
 local Net = require(script.Parent.Net)
 
 local Shards = {}
@@ -8087,6 +8717,43 @@ local function rarityName(id: string): string
 	return if def then def.Name else id
 end
 
+--[[ carried / dropped items:
+	{ Kind = "Egg", Rarity = "Rare", Egg = "Meadow" }  -- a star egg (hatches at home)
+	{ Kind = "Pet", Name = "Fox", Variant = "Golden"? } -- a stolen pet ]]
+local function itemName(item): string
+	if item.Kind == "Pet" then
+		return item.Name -- plain species name: translates on every client
+	end
+	return rarityName(item.Rarity)
+end
+
+local function itemColor(item): Color3
+	if item.Kind == "Pet" then
+		local info = Config.Pets[item.Name]
+		local rarity = info and Config.Rarities[info.Rarity]
+		return if rarity then rarity.Color else Color3.new(1, 1, 1)
+	end
+	local def = SETTINGS.Rarities[item.Rarity]
+	return if def then def.Color else Color3.new(1, 1, 1)
+end
+
+-- 1..7: how valuable the item is (speed penalty, guardian, points)
+local function itemTier(item): number
+	if item.Kind == "Pet" then
+		local info = Config.Pets[item.Name]
+		local rarity = info and Config.Rarities[info.Rarity]
+		return if rarity then rarity.Order else 1
+	end
+	return Util.ShardIndex(Config, item.Rarity)
+end
+
+local function buildItemModel(item, scale: number): Model
+	if item.Kind == "Pet" then
+		return PetModel.Build(item.Name, item.Variant)
+	end
+	return ShardModel.Build(Config, item.Rarity, scale)
+end
+
 ---------------------------------------------------------------------------
 -- carrying
 ---------------------------------------------------------------------------
@@ -8097,24 +8764,35 @@ end
 -- walk speed multiplier while carrying (heavier = rarer = slower)
 function Shards:SpeedMult(player: Player): number
 	local info = carrying[player]
-	local def = info and SETTINGS.Rarities[info.Id]
-	if not def then
+	if not info then
 		return 1
 	end
-	local mult = def.Speed
+	local mult = 0.95 - itemTier(info.Item) * 0.045 -- 0.9 (common) .. 0.64 (secret)
 	if Services.MonetizationService:HasPass(player, "FastCarry") then
 		mult *= Config.PvP.CarrySpeedPass
 	end
 	return mult
 end
 
-local function attachModel(player: Player, id: string): Model?
+local function attachModel(player: Player, item): Model?
 	local root = rootOf(player)
 	if not root then
 		return nil
 	end
-	local model = ShardModel.Build(Config, id, 0.8)
+	local model = buildItemModel(item, 0.8)
 	model.Name = "CarriedShard"
+	-- weld every part to the main one so the whole model rides along
+	local primary = model.PrimaryPart :: BasePart
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d ~= primary then
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = primary
+			weld.Part1 = d
+			weld.Parent = d
+			d.Massless = true
+		end
+	end
+	primary.Massless = true
 	ShardModel.SetAnchored(model, false)
 	model:PivotTo(root.CFrame * CFrame.new(0, 5.2, 0))
 	local weld = Instance.new("WeldConstraint")
@@ -8124,7 +8802,7 @@ local function attachModel(player: Player, id: string): Model?
 	local highlight = Instance.new("Highlight")
 	highlight.Name = "CarrierGlow"
 	highlight.FillTransparency = 1
-	highlight.OutlineColor = SETTINGS.Rarities[id].Color
+	highlight.OutlineColor = itemColor(item)
 	highlight.OutlineTransparency = 0.1
 	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
 	highlight.Parent = model
@@ -8141,37 +8819,39 @@ local function endCarry(player: Player)
 		info.Model:Destroy()
 	end
 	player:SetAttribute("Carrying", nil)
+	player:SetAttribute("CarryTier", nil)
 	player:SetAttribute("CarryStolen", nil)
 	Services.CharacterService:ApplyWalkSpeed(player)
 	return info
 end
 
-function Shards:StartCarry(player: Player, id: string, meta)
-	if carrying[player] then
+function Shards:StartCarry(player: Player, item, meta)
+	if carrying[player] or type(item) ~= "table" then
 		return false
 	end
-	local model = attachModel(player, id)
+	local model = attachModel(player, item)
 	if not model then
 		return false
 	end
-	carrying[player] = { Id = id, Meta = meta or {}, Model = model }
-	player:SetAttribute("Carrying", id)
+	carrying[player] = { Item = item, Meta = meta or {}, Model = model }
+	player:SetAttribute("Carrying", itemName(item))
+	player:SetAttribute("CarryTier", itemTier(item))
 	player:SetAttribute("CarryStolen", meta ~= nil and meta.From ~= nil)
 	Services.CharacterService:ApplyWalkSpeed(player)
 	local fromName = if meta and meta.From then meta.From.DisplayName else nil
-	Net:Send(player, "CarryStart", id, fromName)
+	Net:Send(player, "CarryStart", itemName(item), fromName, itemTier(item))
 	return true
 end
 
--- the shard flies back to the base it was stolen from
+-- a stolen pet runs back to the base it was taken from
 local function returnHome(meta, message: boolean)
 	local owner = meta and meta.From
-	if not owner or not owner.Parent or not meta.Entry then
+	if not owner or not owner.Parent or not meta.PetId then
 		return
 	end
-	Services.BaseService:SetAway(owner, meta.Entry, false)
+	Services.BaseService:SetAway(owner, meta.PetId, false)
 	if message then
-		Net:Notify(owner, "🛡️ Your %s flew back home!", Color3.fromRGB(120, 230, 255), rarityName(meta.Entry.Id))
+		Net:Notify(owner, "🛡️ Your pet ran back home!", Color3.fromRGB(120, 230, 255))
 	end
 end
 
@@ -8260,10 +8940,9 @@ local function buildGuardian(color: Color3): (Model, BasePart)
 	return model, root
 end
 
-local function spawnGuardian(id: string, home: Vector3)
-	local def = SETTINGS.Rarities[id]
-	local index = Util.ShardIndex(Config, id)
-	local model, root = buildGuardian(def.Color)
+local function spawnGuardian(item, home: Vector3)
+	local index = itemTier(item)
+	local model, root = buildGuardian(itemColor(item))
 	local start = Vector3.new(home.X + 6, GUARDIAN_Y, home.Z)
 	model:PivotTo(CFrame.new(start))
 	model.Parent = World:Folder("Shards")
@@ -8278,7 +8957,7 @@ local function spawnGuardian(id: string, home: Vector3)
 		Target = nil,
 		ChaseUntil = 0,
 		StunnedUntil = 0,
-		ShardId = id,
+		Item = item,
 	}
 	guardians[model] = record
 	return record
@@ -8322,10 +9001,11 @@ function Shards:NearestGuardian(position: Vector3, range: number): Model?
 end
 
 -- opts: Beacon (bool), PriorityUser/PriorityUntil, BlockUser/BlockUntil, Lifetime
-function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
+function Shards:SpawnGround(item, position: Vector3, meta, opts)
 	opts = opts or {}
-	local def = SETTINGS.Rarities[id]
-	local model = ShardModel.Build(Config, id, 1.15)
+	local color = itemColor(item)
+	local model = buildItemModel(item, 1.15)
+	model.Name = if item.Kind == "Pet" then "Shard_Pet" else "Shard_" .. item.Rarity
 	ShardModel.SetAnchored(model, true)
 	model:PivotTo(CFrame.new(position + Vector3.new(0, 7.5, 0)))
 	model:SetAttribute("Spin", true)
@@ -8342,13 +9022,13 @@ function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 	hitbox.Parent = model
 
 	if opts.Beacon ~= false then
-		local index = Util.ShardIndex(Config, id)
+		local index = itemTier(item)
 		local beacon = Instance.new("Part")
 		beacon.Name = "Beacon"
 		beacon.Shape = Enum.PartType.Cylinder
 		beacon.Size = Vector3.new(180, 1 + index * 0.5, 1 + index * 0.5)
 		beacon.CFrame = CFrame.new(position + Vector3.new(0, 90, 0)) * CFrame.Angles(0, 0, math.rad(90))
-		beacon.Color = def.Color
+		beacon.Color = color
 		beacon.Material = Enum.Material.Neon
 		beacon.Transparency = 0.45
 		beacon.Anchored = true
@@ -8371,8 +9051,8 @@ function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 	text.Size = UDim2.fromScale(1, 1)
 	text.Font = Enum.Font.FredokaOne
 	text.TextScaled = true
-	text.TextColor3 = def.Color
-	World.SetText(text, if meta and meta.From then "⚠️ %s" else "🌠 %s", def.Name)
+	text.TextColor3 = color
+	World.SetText(text, if meta and meta.From then "⚠️ %s" else "🌠 %s", itemName(item))
 	local stroke = Instance.new("UIStroke")
 	stroke.Thickness = 2.5
 	stroke.Parent = text
@@ -8381,7 +9061,7 @@ function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 
 	model.Parent = World:Folder("Shards")
 	local record = {
-		Id = id,
+		Item = item,
 		Meta = meta,
 		PriorityUser = opts.PriorityUser,
 		PriorityUntil = opts.PriorityUntil or 0,
@@ -8391,8 +9071,8 @@ function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 	ground[model] = record
 	if opts.Guardian then
 		record.Guardian = opts.Guardian
-	elseif opts.WithGuardian and Util.ShardIndex(Config, id) >= GUARDIAN.MinRarity then
-		record.Guardian = spawnGuardian(id, position)
+	elseif opts.WithGuardian and itemTier(item) >= GUARDIAN.MinRarity then
+		record.Guardian = spawnGuardian(item, position)
 	end
 
 	hitbox.Touched:Connect(function(hit)
@@ -8433,12 +9113,12 @@ tryPickup = function(model: Model, record, hit: BasePart)
 		return
 	end
 	local meta = record.Meta
-	-- the owner of a stolen shard gets it back instantly
+	-- the owner of a stolen pet gets it back instantly
 	if meta and meta.From == player then
 		destroyGround(model)
-		Services.BaseService:SetAway(player, meta.Entry, false)
-		Net:Notify(player, "🛡️ You got your %s back!", Color3.fromRGB(120, 230, 255), rarityName(record.Id))
-		Net:Send(player, "ShardRecovered", record.Id)
+		Services.BaseService:SetAway(player, meta.PetId, false)
+		Net:Notify(player, "🛡️ You got your %s back!", Color3.fromRGB(120, 230, 255), itemName(record.Item))
+		Net:Send(player, "ShardRecovered", itemName(record.Item))
 		return
 	end
 	if not Services.BaseService:HasBase(player) then
@@ -8446,7 +9126,7 @@ tryPickup = function(model: Model, record, hit: BasePart)
 		return
 	end
 	destroyGround(model)
-	if Shards:StartCarry(player, record.Id, meta) and record.Guardian then
+	if Shards:StartCarry(player, record.Item, meta) and record.Guardian then
 		local guardian = record.Guardian
 		guardian.Target = player
 		guardian.ChaseUntil = os.clock() + GUARDIAN.ChaseSeconds
@@ -8463,7 +9143,7 @@ function Shards:Confiscate(player: Player, owner: Player): boolean
 	end
 	endCarry(player)
 	returnHome(info.Meta, false)
-	Net:Send(player, "CarryLost", info.Id, owner.DisplayName)
+	Net:Send(player, "CarryLost", itemName(info.Item), owner.DisplayName)
 	return true
 end
 
@@ -8483,14 +9163,14 @@ function Shards:Drop(player: Player, attacker: Player?)
 	local angle = rng:NextNumber(0, math.pi * 2)
 	local spot = Vector3.new(position.X + math.cos(angle) * 5, 0, position.Z + math.sin(angle) * 5)
 	local meta = if info.Meta and info.Meta.From then info.Meta else nil
-	self:SpawnGround(info.Id, spot, meta, {
+	self:SpawnGround(info.Item, spot, meta, {
 		Beacon = true,
 		BlockUser = player.UserId,
 		BlockUntil = now() + SETTINGS.RegrabDelay,
 	})
-	Net:Send(player, "CarryLost", info.Id, if attacker then attacker.DisplayName else nil)
+	Net:Send(player, "CarryLost", itemName(info.Item), if attacker then attacker.DisplayName else nil)
 	if attacker then
-		Net:Notify(attacker, "💥 %s dropped a %s - grab it!", Color3.fromRGB(255, 170, 80), player.DisplayName, rarityName(info.Id))
+		Net:Notify(attacker, "💥 %s dropped a %s - grab it!", Color3.fromRGB(255, 170, 80), player.DisplayName, itemName(info.Item))
 	end
 end
 
@@ -8502,29 +9182,47 @@ local function deliver(player: Player)
 	if not info then
 		return
 	end
-	local id = info.Id
+	local item = info.Item
 	local meta = info.Meta
 	local data = Data:Get(player)
-	if meta and meta.From then
-		local owner = meta.From
-		if owner.Parent and meta.Entry then
-			Services.BaseService:RemoveEntry(owner, meta.Entry)
-			Net:Notify(owner, "💔 %s stole your %s!", Color3.fromRGB(255, 90, 90), player.DisplayName, rarityName(id))
+	local tier = itemTier(item)
+	local pets = Services.PetService
+	if item.Kind == "Pet" then
+		-- a stolen pet: it leaves the owner's base and joins ours
+		local owner = meta and meta.From
+		local taken = owner and owner.Parent and meta.PetId and pets:TakePet(owner, meta.PetId)
+		if not taken then
+			Net:Notify(player, "The owner left - the pet vanished!")
+			return
 		end
+		pets:GivePet(player, taken.Name, taken.Variant)
+		local display = taken.Name
+		Net:Notify(owner, "💔 %s stole your %s!", Color3.fromRGB(255, 90, 90), player.DisplayName, display)
 		if data then
 			data.Stats.ShardsStolen += 1
 		end
 		Services.ProgressionService:AddQuest(player, "Steal", 1)
+		Services.Analytics:Custom(player, "PetStolen", tier)
+		Net:Send(player, "ShardDelivered", display, "Stolen", 0)
+		if tier >= 5 then
+			Net:Announce("🦹 %s stole a %s from %s!", itemColor(item), player.DisplayName, display, owner.DisplayName)
+		end
+	else
+		-- a star egg: it hatches right here
+		local def = SETTINGS.Rarities[item.Rarity]
+		local result = pets:HatchStarEgg(player, item.Egg, if def then def.Luck or 1 else 1)
+		if data then
+			data.Stats.ShardsDelivered = (data.Stats.ShardsDelivered or 0) + 1
+		end
+		Services.Analytics:Custom(player, "StarEggHatched", tier)
+		Net:Send(player, "ShardDelivered", rarityName(item.Rarity), "Hatched", 0, result and result.Name)
+		if tier >= 4 then
+			Net:Announce("🌟 %s brought a %s home!", itemColor(item), player.DisplayName, rarityName(item.Rarity))
+		end
 	end
-	local result, coins = Services.BaseService:AddShard(player, id)
 	Services.ProgressionService:AddQuest(player, "Shard", 1)
 	Services.ProgressionService:TutorialEvent(player, "Shard", 1)
-	local index = Util.ShardIndex(Config, id)
-	Services.ProgressionService:AddPoints(player, SETTINGS.Points[index] or 10)
-	Net:Send(player, "ShardDelivered", id, result, coins)
-	if index >= 4 then
-		Net:Announce("🌟 %s brought a %s home!", SETTINGS.Rarities[id].Color, player.DisplayName, rarityName(id))
-	end
+	Services.ProgressionService:AddPoints(player, SETTINGS.Points[math.clamp(tier, 1, #SETTINGS.Points)] or 10)
 end
 
 ---------------------------------------------------------------------------
@@ -8556,10 +9254,11 @@ function Shards:FallingStar(forcedZone: number?)
 	end
 	local luck = 1 + math.max(0, zone - 1) * SETTINGS.FallingStar.LuckPerZone
 	local id = Util.RollShard(Config, luck, rng)
+	local item = { Kind = "Egg", Rarity = id, Egg = SETTINGS.ZoneEggs[math.max(zone, 1)] or "Meadow" }
 	local flight = 1.8
 	Net:Broadcast("StarFall", position, id, flight)
 	task.delay(flight, function()
-		self:SpawnGround(id, position, nil, { Beacon = true, WithGuardian = true })
+		self:SpawnGround(item, position, nil, { Beacon = true, WithGuardian = true })
 		local where = if zone == 0 then "Hub" else Config.Zones[zone].Name
 		Net:Announce("🌠 A falling star crashed in %s! Grab the %s!", SETTINGS.Rarities[id].Color, where, rarityName(id))
 	end)
@@ -8583,7 +9282,7 @@ function Shards:TutorialStar(player: Player)
 		if not player.Parent then
 			return
 		end
-		tutorialStars[player] = self:SpawnGround("Rare", position, nil, {
+		tutorialStars[player] = self:SpawnGround({ Kind = "Egg", Rarity = "Rare", Egg = "Meadow" }, position, nil, {
 			Beacon = true,
 			PriorityUser = player.UserId,
 			PriorityUntil = now() + 300,
@@ -8605,14 +9304,15 @@ function Shards:SpillMeteor(position: Vector3, ranking)
 		if i == 1 and top then
 			-- the winner's prize: Epic or better, reserved for them for a moment
 			local id = Util.RollShard(Config, settings.Luck, rng, 3)
-			self:SpawnGround(id, spot, nil, {
+			self:SpawnGround({ Kind = "Egg", Rarity = id, Egg = "Cosmic" }, spot, nil, {
 				Beacon = true,
 				PriorityUser = top.UserId,
 				PriorityUntil = now() + settings.TopPriority,
 			})
 			Net:Notify(top, "🥇 Your %s prize shard is waiting - grab it!", Color3.fromRGB(255, 220, 90), rarityName(id))
 		else
-			self:SpawnGround(Util.RollShard(Config, settings.Luck, rng), spot, nil, { Beacon = true })
+			local id = Util.RollShard(Config, settings.Luck, rng)
+			self:SpawnGround({ Kind = "Egg", Rarity = id, Egg = "Cosmic" }, spot, nil, { Beacon = true })
 		end
 	end
 end
@@ -8671,16 +9371,16 @@ local function stepGuardians(dt: number)
 					local gap = ((root.Position - g.Position) * Vector3.new(1, 0, 1)).Magnitude
 					if gap <= GUARDIAN.CatchRange then
 						-- caught! the guardian takes the shard back to the crash site
-						local id = info.Id
+						local caughtItem = info.Item
 						endCarry(target)
 						Services.CharacterService:Stun(target, 1.2)
 						local push = (root.Position - g.Position) * Vector3.new(1, 0, 1)
 						push = if push.Magnitude > 0.01 then push.Unit else Vector3.zAxis
 						Net:Send(target, "Knockback", push * 45 + Vector3.new(0, 30, 0))
-						Net:Send(target, "CaughtByGuardian", id)
+						Net:Send(target, "CaughtByGuardian", itemName(caughtItem))
 						g.Target = nil
 						g.Done = false
-						Shards:SpawnGround(id, g.Home, nil, {
+						Shards:SpawnGround(caughtItem, g.Home, nil, {
 							Beacon = true,
 							Guardian = g,
 							BlockUser = target.UserId,
@@ -8798,7 +9498,8 @@ function Shards:Start()
 		task.wait(25)
 		while true do
 			local star = SETTINGS.FallingStar
-			task.wait(rng:NextNumber(star.MinInterval, star.MaxInterval))
+			local mult = math.max(1, Services.EventService:Get("StarMult", 1))
+			task.wait(rng:NextNumber(star.MinInterval, star.MaxInterval) / mult)
 			if #Players:GetPlayers() > 0 then
 				local ok, err = pcall(self.FallingStar, self)
 				if not ok then
@@ -8813,7 +9514,7 @@ return Shards
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="29">
+        <Item class="ModuleScript" referent="30">
           <Properties>
             <string name="Name">StatsService</string>
             <string name="Source"><![CDATA[--[[
@@ -9065,7 +9766,277 @@ return Stats
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="30">
+        <Item class="ModuleScript" referent="31">
+          <Properties>
+            <string name="Name">TradeService</string>
+            <string name="Source"><![CDATA[--[[
+	TradeService: swap pets with another player in the same server.
+
+	Flow: request -> the other player accepts -> both pick up to MaxPets pets
+	-> both press Ready -> 3 second countdown -> swap.
+	Safety: every change resets both Ready flags (no bait-and-switch), the
+	server re-checks ownership at the moment of the swap, pets being stolen
+	can't be traded, and the swap happens all at once (both sides or none).
+]]
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Net = require(script.Parent.Net)
+
+local Trade = {}
+local Services
+local Data
+
+local SETTINGS = { MaxPets = 4, Countdown = 3, RequestSeconds = 20 }
+Trade.Settings = SETTINGS
+
+local requests = {} -- [target] = { From = player, Expires = os.clock() }
+local trades = {} -- [player] = session (both players point to the same session)
+
+local function other(session, player: Player): Player
+	return if session.A == player then session.B else session.A
+end
+
+local function petInfo(data, petId)
+	for _, pet in data.Pets do
+		if pet.Id == petId then
+			return pet
+		end
+	end
+	return nil
+end
+
+-- what each client sees: both offers (names so the other side can render them)
+local function sendState(session)
+	for _, player in { session.A, session.B } do
+		local partner = other(session, player)
+		local function describe(who: Player)
+			local data = Data:Get(who)
+			local list = {}
+			for _, petId in session.Offers[who] do
+				local pet = data and petInfo(data, petId)
+				if pet then
+					table.insert(list, { Id = pet.Id, Name = pet.Name, Variant = pet.Variant })
+				end
+			end
+			return list
+		end
+		Net:Send(player, "TradeState", {
+			Partner = partner.DisplayName,
+			Mine = describe(player),
+			Theirs = describe(partner),
+			MyReady = session.Ready[player] == true,
+			TheirReady = session.Ready[partner] == true,
+			Countdown = session.CountdownEnds,
+		})
+	end
+end
+
+local function close(session, reason: string?)
+	for _, player in { session.A, session.B } do
+		if trades[player] == session then
+			trades[player] = nil
+			if player.Parent then
+				Net:Send(player, "TradeClosed", if reason then Net:L(player, reason) else nil)
+			end
+		end
+	end
+	session.Closed = true
+end
+
+local function resetReady(session)
+	session.Ready = {}
+	session.CountdownEnds = nil
+end
+
+-- validate + swap atomically
+local function complete(session)
+	local a, b = session.A, session.B
+	local dataA, dataB = Data:Get(a), Data:Get(b)
+	if not dataA or not dataB then
+		close(session, "Trade cancelled.")
+		return
+	end
+	local shards = Services.ShardService
+	if shards:IsCarrying(a) or shards:IsCarrying(b) then
+		close(session, "Trade cancelled - someone is carrying something.")
+		return
+	end
+	local function collect(data, ids)
+		local list = {}
+		for _, petId in ids do
+			local pet = petInfo(data, petId)
+			if not pet or pet.Away then
+				return nil
+			end
+			table.insert(list, pet)
+		end
+		return list
+	end
+	local giveA = collect(dataA, session.Offers[a])
+	local giveB = collect(dataB, session.Offers[b])
+	if not giveA or not giveB then
+		close(session, "Trade cancelled - a pet is no longer available.")
+		return
+	end
+	if #dataA.Pets - #giveA + #giveB > Config.MaxPets or #dataB.Pets - #giveB + #giveA > Config.MaxPets then
+		close(session, "Trade cancelled - not enough pet storage.")
+		return
+	end
+	-- remove from both, then add to both (all checks passed above)
+	local function remove(data, pets)
+		for _, pet in pets do
+			local index = table.find(data.Pets, pet)
+			if index then
+				table.remove(data.Pets, index)
+			end
+		end
+	end
+	local function add(data, pets)
+		for _, pet in pets do
+			local copy = { Id = data.NextPetUid, Name = pet.Name, Variant = pet.Variant }
+			data.NextPetUid += 1
+			table.insert(data.Pets, copy)
+			data.PetIndex[pet.Name] = true
+		end
+	end
+	remove(dataA, giveA)
+	remove(dataB, giveB)
+	add(dataA, giveB)
+	add(dataB, giveA)
+	Services.PetService:Changed(a)
+	Services.PetService:Changed(b)
+	Services.Analytics:Custom(a, "Trade", #giveA + #giveB)
+	Services.Analytics:Custom(b, "Trade", #giveA + #giveB)
+	-- save both right away so a crash can't duplicate or lose pets
+	task.spawn(Data.Save, Data, a)
+	task.spawn(Data.Save, Data, b)
+	for _, player in { a, b } do
+		Net:Send(player, "TradeDone", other(session, player).DisplayName)
+	end
+	close(session, nil)
+end
+
+-- cloud tests only: open a trade between two stand-in players
+function Trade:BeginForTest(a: any, b: any)
+	assert(not game:GetService("RunService"):IsRunning(), "test hook used on a live server")
+	local session = { A = a, B = b, Offers = { [a] = {}, [b] = {} }, Ready = {} }
+	trades[a] = session
+	trades[b] = session
+	return session
+end
+
+function Trade:IsTrading(player: Player): boolean
+	return trades[player] ~= nil
+end
+
+function Trade:Init(services)
+	Services = services
+	Data = services.DataService
+end
+
+function Trade:Start()
+	Net:On("TradeRequest", 3, function(player, targetUserId)
+		local target = type(targetUserId) == "number" and Players:GetPlayerByUserId(targetUserId)
+		if not target or target == player or not Data:Get(player) or not Data:Get(target) then
+			return
+		end
+		if trades[player] or trades[target] then
+			Net:Notify(player, "That player is busy trading.")
+			return
+		end
+		requests[target] = { From = player, Expires = os.clock() + SETTINGS.RequestSeconds }
+		Net:Send(target, "TradeRequested", player.UserId, player.DisplayName)
+		Net:Notify(player, "🤝 Trade request sent to %s", Color3.fromRGB(150, 230, 255), target.DisplayName)
+	end)
+
+	Net:On("TradeRespond", 1, function(player, accept)
+		local request = requests[player]
+		requests[player] = nil
+		if not request or os.clock() > request.Expires then
+			return
+		end
+		local from = request.From
+		if not accept then
+			Net:Notify(from, "%s declined the trade.", nil, player.DisplayName)
+			return
+		end
+		if not from.Parent or trades[from] or trades[player] then
+			Net:Notify(player, "That player is busy trading.")
+			return
+		end
+		local session = { A = from, B = player, Offers = { [from] = {}, [player] = {} }, Ready = {} }
+		trades[from] = session
+		trades[player] = session
+		sendState(session)
+	end)
+
+	Net:On("TradeSetOffer", 0.2, function(player, petIds)
+		local session = trades[player]
+		local data = Data:Get(player)
+		if not session or not data or type(petIds) ~= "table" then
+			return
+		end
+		local clean, seen = {}, {}
+		for _, petId in petIds do
+			if type(petId) == "number" and not seen[petId] and #clean < SETTINGS.MaxPets then
+				local pet = petInfo(data, petId)
+				if pet and not pet.Away then
+					seen[petId] = true
+					table.insert(clean, petId)
+				end
+			end
+		end
+		session.Offers[player] = clean
+		resetReady(session) -- any change: both have to confirm again
+		sendState(session)
+	end)
+
+	Net:On("TradeReady", 0.3, function(player, ready)
+		local session = trades[player]
+		if not session then
+			return
+		end
+		session.Ready[player] = ready == true
+		if session.Ready[session.A] and session.Ready[session.B] then
+			session.CountdownEnds = workspace:GetServerTimeNow() + SETTINGS.Countdown
+			local token = {}
+			session.Token = token
+			sendState(session)
+			task.delay(SETTINGS.Countdown, function()
+				if not session.Closed and session.Token == token and session.Ready[session.A] and session.Ready[session.B] then
+					complete(session)
+				end
+			end)
+		else
+			session.CountdownEnds = nil
+			sendState(session)
+		end
+	end)
+
+	Net:On("TradeCancel", 0.3, function(player)
+		local session = trades[player]
+		if session then
+			close(session, "Trade cancelled.")
+		end
+	end)
+
+	Players.PlayerRemoving:Connect(function(player)
+		requests[player] = nil
+		local session = trades[player]
+		if session then
+			close(session, "The other player left.")
+		end
+	end)
+end
+
+return Trade
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="32">
           <Properties>
             <string name="Name">WorldService</string>
             <string name="Source"><![CDATA[--[[
@@ -10109,23 +11080,23 @@ return World
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="31">
+  <Item class="StarterPlayer" referent="33">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="32">
+    <Item class="StarterPlayerScripts" referent="34">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="33">
+      <Item class="Folder" referent="35">
         <Properties>
           <string name="Name">Client</string>
         </Properties>
-        <Item class="Folder" referent="34">
+        <Item class="Folder" referent="36">
           <Properties>
             <string name="Name">Controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="35">
+          <Item class="ModuleScript" referent="37">
             <Properties>
               <string name="Name">Ambience</string>
               <string name="Source"><![CDATA[--[[
@@ -10249,7 +11220,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="36">
+          <Item class="ModuleScript" referent="38">
             <Properties>
               <string name="Name">Build</string>
               <string name="Source"><![CDATA[--[[
@@ -10439,7 +11410,7 @@ local topHint = Lib.Text({
 
 local doneCluster = cluster("BuildDone", Vector2.new(1, 0), UDim2.new(1, -12, 0, 44), UDim2.fromOffset(130, 52))
 Lib.Button({
-	Text = "✔ DONE",
+	Text = "✅ DONE",
 	Color = C.Green,
 	Size = UDim2.fromScale(1, 1),
 	TextSize = 22,
@@ -10700,7 +11671,7 @@ actionButton("Remove", "🗑 Remove", C.Red, 3, function()
 		backToBrowse()
 	end
 end)
-actionButton("Cancel", "✖", C.Gray, 4, function()
+actionButton("Cancel", "X", C.Gray, 4, function()
 	backToBrowse()
 end)
 actionButtons.Cancel.Size = UDim2.fromOffset(64, 52)
@@ -10945,7 +11916,7 @@ return Build
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="37">
+          <Item class="ModuleScript" referent="39">
             <Properties>
               <string name="Name">DevTools</string>
               <string name="Source"><![CDATA[--[[
@@ -11009,7 +11980,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="38">
+          <Item class="ModuleScript" referent="40">
             <Properties>
               <string name="Name">Guide</string>
               <string name="Source"><![CDATA[--[[
@@ -11067,9 +12038,11 @@ beam.Enabled = false
 beam.Parent = marker
 
 local billboard = Lib.New("BillboardGui", {
-	Size = UDim2.fromOffset(240, 70),
-	StudsOffsetWorldSpace = Vector3.new(0, 6, 0),
+	-- studs, not pixels: a small sign near you, never a giant banner over the HUD
+	Size = UDim2.new(9, 0, 2.6, 0),
+	StudsOffsetWorldSpace = Vector3.new(0, 5, 0),
 	AlwaysOnTop = true,
+	MaxDistance = 160,
 	Adornee = marker,
 	Enabled = false,
 	ResetOnSpawn = false,
@@ -11079,7 +12052,7 @@ local label = Lib.Text({
 	Text = "",
 	TextColor3 = Color3.fromRGB(255, 230, 120),
 	Size = UDim2.fromScale(1, 0.55),
-	MaxTextSize = 30,
+	MaxTextSize = 22,
 	Parent = billboard,
 })
 local arrow = Lib.Text({
@@ -11252,7 +12225,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="39">
+          <Item class="ModuleScript" referent="41">
             <Properties>
               <string name="Name">HUD</string>
               <string name="Source"><![CDATA[--[[
@@ -11290,7 +12263,7 @@ local DARK = Color3.fromRGB(20, 22, 34)
 ---------------------------------------------------------------------------
 -- toasts & announcements
 ---------------------------------------------------------------------------
-local toastCluster = Root.Cluster("Toasts", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 168), UDim2.fromOffset(520, 220))
+local toastCluster = Root.Cluster("Toasts", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 168), UDim2.fromOffset(520, 220), Root.Overlay)
 toastCluster.ZIndex = 40
 Lib.List(Enum.FillDirection.Vertical, 6).Parent = toastCluster
 
@@ -11708,12 +12681,35 @@ local function nextGoal(data, derived): string
 	if player:GetAttribute("Carrying") then
 		return T("Run to your base 🏠 before someone bonks you!")
 	end
-	local base = data.Base
-	if base and #base.Shards == 0 then
-		return T("Grab a falling star 🌠 and carry it to your base 🏠")
+	local pets = #data.Pets
+	if pets == 0 then
+		return T("Hatch your first pet at the 🥚 egg stand - it earns 💰 in your base!")
 	end
-	if base and (player:GetAttribute("BaseBank") or 0) >= math.max(100, data.Coins * 0.25) then
-		return T("Collect 💰%s at your base 🏠", Util.Format(player:GetAttribute("BaseBank") or 0))
+	-- a star on the ground we can reach?
+	local map = workspace:FindFirstChild("Map")
+	local stars = map and map:FindFirstChild("Shards")
+	if stars then
+		for _, model in stars:GetChildren() do
+			local hitbox = model:FindFirstChild("Hitbox")
+			local zone = hitbox and hitbox:IsA("BasePart") and Util.ZoneAt(Config, hitbox.Position)
+			if zone and zone <= data.ZoneLevel and model:GetAttribute("Stolen") ~= true then
+				return T("Grab the falling star 🌠 - carry it home and it hatches!")
+			end
+		end
+	end
+	local bank = player:GetAttribute("BaseBank") or 0
+	if bank >= math.max(100, data.Coins * 0.25) then
+		return T("Collect 💰%s at your base 🏠", Util.Format(bank))
+	end
+	local pedestals = 0
+	for _, item in data.Base and data.Base.Items or {} do
+		local def = Config.Decor[item.Id]
+		if def and def.Function == "Pedestal" then
+			pedestals += 1
+		end
+	end
+	if pets < pedestals and data.Coins >= Config.Eggs.Meadow.Price then
+		return T("You have empty pedestals - hatch more pets 🥚")
 	end
 	local pick = Config.Pickaxes[data.PickaxeTier + 1]
 	local zone = Config.Zones[data.ZoneLevel + 1]
@@ -11928,7 +12924,7 @@ function HUD.Refresh()
 
 	-- bottom buttons only after the tutorial
 	local done = tutorialDone(data)
-	autoButton.Visible = done
+	autoButton.Visible = done and State.HasPass("AutoMine")
 	if State.HasPass("AutoMine") then
 		Lib.SetButton(autoButton, if State.AutoMine then "🤖 AUTO: ON" else "🤖 AUTO: OFF", if State.AutoMine then C.Green else C.Gray)
 	else
@@ -11998,7 +12994,7 @@ local function confetti()
 	end
 end
 
-local celebration = Root.Cluster("Celebration", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.36), UDim2.fromOffset(560, 120))
+local celebration = Root.Cluster("Celebration", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.36), UDim2.fromOffset(560, 120), Root.Overlay)
 local celebrationTitle =
 	Lib.Text({ Text = "", TextColor3 = C.Gold, Size = UDim2.fromScale(1, 0.62), MaxTextSize = 60, Visible = false, Parent = celebration })
 local celebrationSub = Lib.Text({
@@ -12078,7 +13074,7 @@ Net.On("OpenPanel", function(panel, arg)
 	if panel == "Daily" then
 		local data = State.Data
 		if data and tutorialDone(data) then
-			Panels.Open("Quests")
+			HUD.Toast(T("🎁 Your daily reward is ready - tap 🎁 Rewards!"), C.Gold)
 		end
 	else
 		Panels.Open(panel, arg)
@@ -12115,7 +13111,174 @@ return HUD
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="40">
+          <Item class="ModuleScript" referent="42">
+            <Properties>
+              <string name="Name">HowTo</string>
+              <string name="Source"><![CDATA[--[[
+	"How to play" card: three big pictures, one line each, one button.
+	Shown once on a player's first visit (server remembers it), and any time
+	from Settings -> ❓ How to play.
+]]
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local Client = script.Parent.Parent
+local Net = require(Client.Net)
+local State = require(Client.State)
+local Lib = require(Client.UI.Lib)
+local Root = require(Client.UI.Root)
+
+local New, C = Lib.New, Lib.Colors
+local HowTo = {}
+
+local STEPS = {
+	{
+		Icon = "⛏️",
+		Title = "MINE",
+		Text = "Tap ore (or hold ⛏️) to mine.\nCoins come instantly!",
+		Color = Color3.fromRGB(255, 190, 70),
+	},
+	{
+		Icon = "🥚",
+		Title = "HATCH PETS",
+		Text = "Pets stand in your 🏠 base\nand earn 💰 every second.",
+		Color = Color3.fromRGB(120, 220, 120),
+	},
+	{
+		Icon = "🌠",
+		Title = "STEAL & PROTECT",
+		Text = "Carry stars and other players'\npets home. Bonk thieves!",
+		Color = Color3.fromRGB(170, 130, 255),
+	},
+}
+
+local screen = New("TextButton", {
+	Name = "HowToPlay",
+	Text = "",
+	AutoButtonColor = false,
+	BackgroundColor3 = Color3.new(0, 0, 0),
+	BackgroundTransparency = 0.35,
+	Size = UDim2.fromScale(1, 1),
+	Visible = false,
+	ZIndex = 50,
+	Parent = Root.Overlay,
+})
+local cluster = Root.Cluster("HowToCards", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(820, 400), screen)
+Lib.Text({
+	Text = "HOW TO PLAY",
+	TextColor3 = Color3.fromRGB(255, 230, 120),
+	Size = UDim2.new(1, 0, 0, 56),
+	MaxTextSize = 46,
+	ZIndex = 51,
+	Parent = cluster,
+})
+local row = New("Frame", {
+	BackgroundTransparency = 1,
+	Size = UDim2.new(1, 0, 0, 250),
+	Position = UDim2.fromOffset(0, 64),
+	ZIndex = 51,
+	Parent = cluster,
+}, { Lib.List(Enum.FillDirection.Horizontal, 16, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Center) })
+
+for order, step in STEPS do
+	local card = New("Frame", {
+		BackgroundColor3 = C.Panel,
+		Size = UDim2.fromOffset(250, 240),
+		LayoutOrder = order,
+		ZIndex = 51,
+		Parent = row,
+	}, { Lib.Corner(20), Lib.Stroke(step.Color, 4, 0) })
+	Lib.Text({
+		Text = tostring(order),
+		TextColor3 = step.Color,
+		Size = UDim2.fromOffset(40, 40),
+		Position = UDim2.fromOffset(10, 6),
+		MaxTextSize = 30,
+		ZIndex = 52,
+		Parent = card,
+	})
+	Lib.Text({
+		Text = step.Icon,
+		Size = UDim2.new(1, 0, 0, 90),
+		Position = UDim2.fromOffset(0, 16),
+		MaxTextSize = 80,
+		Outline = false,
+		ZIndex = 52,
+		Parent = card,
+	})
+	Lib.Text({
+		Text = step.Title,
+		TextColor3 = step.Color,
+		Size = UDim2.new(1, -16, 0, 36),
+		Position = UDim2.fromOffset(8, 112),
+		MaxTextSize = 30,
+		ZIndex = 52,
+		Parent = card,
+	})
+	Lib.Text({
+		Text = step.Text,
+		Font = Lib.BodyFont,
+		Size = UDim2.new(1, -20, 0, 70),
+		Position = UDim2.fromOffset(10, 154),
+		MaxTextSize = 20,
+		ZIndex = 52,
+		Parent = card,
+	})
+end
+
+local goButton = Lib.Button({
+	Text = "LET'S GO!",
+	Color = C.Green,
+	Size = UDim2.fromOffset(260, 64),
+	Position = UDim2.new(0.5, 0, 1, -66),
+	AnchorPoint = Vector2.new(0.5, 0),
+	TextSize = 32,
+	ZIndex = 52,
+	Parent = cluster,
+	OnClick = function()
+		HowTo.Hide()
+	end,
+})
+local scale = New("UIScale", { Parent = cluster })
+
+function HowTo.Show()
+	screen.Visible = true
+	scale.Scale = 0.6
+	TweenService:Create(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	Lib.PlaySound("Reward")
+end
+
+function HowTo.Hide()
+	if not screen.Visible then
+		return
+	end
+	screen.Visible = false
+	Net.Fire("SeenHowTo")
+	Lib.Pop(goButton)
+end
+
+-- first visit: show it once the save has loaded
+local shownOnce = false
+State.OnChanged(function()
+	local data = State.Data
+	if shownOnce or not data or not data.Flags then
+		return
+	end
+	shownOnce = true
+	if not data.Flags.HowToSeen then
+		task.delay(1.5, function()
+			if Players.LocalPlayer.Parent then
+				HowTo.Show()
+			end
+		end)
+	end
+end)
+
+return HowTo
+]]></string>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="43">
             <Properties>
               <string name="Name">MeteorUI</string>
               <string name="Source"><![CDATA[--[[
@@ -12143,26 +13306,27 @@ local player = Players.LocalPlayer
 local MeteorUI = {}
 
 -- countdown pill ---------------------------------------------------------
-local top = Root.Cluster("Meteor", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8), UDim2.fromOffset(470, 48))
+local top = Root.Cluster("Meteor", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8), UDim2.fromOffset(380, 44))
 local pill = New("Frame", {
 	BackgroundColor3 = Color3.fromRGB(20, 22, 34),
-	BackgroundTransparency = 0.1,
-	Size = UDim2.fromOffset(340, 46),
+	BackgroundTransparency = 0.15,
+	Size = UDim2.fromOffset(250, 40),
+	Position = UDim2.fromOffset(0, 2),
 	Parent = top,
-}, { Lib.Corner(23), Lib.Stroke(Color3.fromRGB(255, 150, 60), 2.5, 0) })
+}, { Lib.Corner(20), Lib.Stroke(Color3.fromRGB(255, 150, 60), 2, 0) })
 local pillText = Lib.Text({
 	Text = "☄️ Meteor",
 	TextColor3 = Color3.fromRGB(255, 190, 120),
-	Size = UDim2.new(1, -20, 1, -10),
-	Position = UDim2.fromOffset(10, 5),
-	MaxTextSize = 24,
+	Size = UDim2.new(1, -16, 1, -8),
+	Position = UDim2.fromOffset(8, 4),
+	MaxTextSize = 20,
 	Parent = pill,
 })
 local goButton = Lib.Button({
 	Text = "GO ☄️",
 	Color = Color3.fromRGB(255, 120, 40),
-	Size = UDim2.fromOffset(116, 44),
-	Position = UDim2.fromOffset(350, 1),
+	Size = UDim2.fromOffset(120, 42),
+	Position = UDim2.fromOffset(258, 1),
 	Parent = top,
 	OnClick = function()
 		Net.Fire("GoToMeteor")
@@ -12170,10 +13334,10 @@ local goButton = Lib.Button({
 })
 goButton.Visible = false
 local summonButton = Lib.Button({
-	Text = "☄️ Summon",
+	Text = "☄️+",
 	Color = Color3.fromRGB(150, 80, 40),
-	Size = UDim2.fromOffset(116, 44),
-	Position = UDim2.fromOffset(350, 1),
+	Size = UDim2.fromOffset(56, 42),
+	Position = UDim2.fromOffset(258, 1),
 	TextSize = 18,
 	Parent = top,
 	OnClick = function()
@@ -12251,7 +13415,8 @@ Net.On("MeteorRank", function(list, myPlace, myScore)
 end)
 
 -- result popup ---------------------------------------------------------------
-local resultCluster = Root.Cluster("MeteorResult", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.42), UDim2.fromOffset(460, 220))
+local resultCluster =
+	Root.Cluster("MeteorResult", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.42), UDim2.fromOffset(460, 220), Root.Overlay)
 local result = New("Frame", {
 	BackgroundColor3 = C.Panel,
 	Size = UDim2.fromScale(1, 1),
@@ -12400,7 +13565,7 @@ return MeteorUI
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="41">
+          <Item class="ModuleScript" referent="44">
             <Properties>
               <string name="Name">Mining</string>
               <string name="Source"><![CDATA[--[[
@@ -13350,7 +14515,7 @@ return Mining
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="42">
+          <Item class="ModuleScript" referent="45">
             <Properties>
               <string name="Name">PetFollow</string>
               <string name="Source"><![CDATA[--[[
@@ -13455,7 +14620,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="43">
+          <Item class="ModuleScript" referent="46">
             <Properties>
               <string name="Name">Shards</string>
               <string name="Source"><![CDATA[--[[
@@ -13480,7 +14645,6 @@ local Util = require(Shared.Util)
 
 local Client = script.Parent.Parent
 local Net = require(Client.Net)
-local State = require(Client.State)
 local Lib = require(Client.UI.Lib)
 local Root = require(Client.UI.Root)
 
@@ -13493,6 +14657,15 @@ local Shards = {}
 
 local function rarity(id: string)
 	return Config.Shards.Rarities[id] or Config.Shards.Rarities.Common
+end
+
+-- colour of a value tier 1..7 (Common .. Secret)
+local TIER_COLORS = {}
+for _, def in Config.Rarities do
+	TIER_COLORS[def.Order] = def.Color
+end
+local function tierColor(tier: number?): Color3
+	return TIER_COLORS[math.clamp(tier or 1, 1, 7)] or C.Gold
 end
 
 local function hud()
@@ -13549,12 +14722,12 @@ local function refreshBanner()
 		banner.Visible = false
 		return
 	end
-	local def = rarity(carrying)
+	local color = tierColor(player:GetAttribute("CarryTier"))
 	local stolen = player:GetAttribute("CarryStolen") == true
-	bannerTitle.Text = T(if stolen then "🏃 STOLEN %s - RUN HOME! 🏠" else "🌠 %s - RUN HOME! 🏠", T(def.Name))
-	bannerTitle.TextColor3 = def.Color
+	bannerTitle.Text = T(if stolen then "🏃 STOLEN %s - RUN HOME! 🏠" else "🌠 %s - RUN HOME! 🏠", T(carrying))
+	bannerTitle.TextColor3 = color
 	bannerSub.Text = T("You're slower and anyone can bonk you - don't get caught!")
-	bannerStroke.Color = def.Color
+	bannerStroke.Color = color
 	banner.Visible = true
 	bannerScale.Scale = 1.25
 	TweenService:Create(bannerScale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
@@ -13572,38 +14745,28 @@ end)
 ---------------------------------------------------------------------------
 -- events
 ---------------------------------------------------------------------------
-Net.On("CarryStart", function(id, fromName)
+Net.On("CarryStart", function(name, fromName, tier)
 	Lib.PlaySound("Lucky", 0.8)
 	if not fromName then
-		toast(T("🌠 You got a %s! Bring it to your base 🏠", T(rarity(id).Name)), rarity(id).Color)
+		toast(T("🌠 You got a %s! Bring it to your base 🏠", T(tostring(name))), tierColor(tier))
 	end
 end)
 
-Net.On("CarryLost", function(id)
-	toast(T("💥 You dropped the %s!", T(rarity(id).Name)), C.Red)
+Net.On("CarryLost", function(name)
+	toast(T("💥 You dropped the %s!", T(tostring(name))), C.Red)
 end)
 
-Net.On("ShardDelivered", function(id, result, coins)
-	local def = rarity(id)
-	local data, derived = State.Data, State.Derived
-	local income = Util.ShardIncome(Config, id, if data then data.ZoneLevel else 1) * ((derived and derived.CoinMult) or 1)
-	local sub
-	if result == "Stored" then
-		sub = T("📦 Stored - your pedestals hold better shards. Place more pedestals!")
-	elseif result == "Sold" then
-		sub = T("Base full - sold it for 💰%s. Buy more pedestals!", Util.Format(coins or 0))
-	elseif result == "Replaced" then
-		sub = T("Replaced your weakest shard (+💰%s)", Util.Format(coins or 0))
-	else
-		sub = T("+💰%s every second - even offline!", Util.Format(income))
+-- star eggs show the normal hatch animation (HatchResult); stolen pets get a cheer
+Net.On("ShardDelivered", function(name, result)
+	if result == "Stolen" then
+		Lib.PlaySound("LevelUp")
+		celebrate(T("🦹 %s STOLEN!", T(tostring(name))), T("It earns coins in your base now - guard it!"), C.Pink, true)
 	end
-	Lib.PlaySound("LevelUp")
-	celebrate(T("🏠 %s SECURED!", T(def.Name)), sub, def.Color, Util.ShardIndex(Config, id) >= 3)
 end)
 
-Net.On("ShardRecovered", function(id)
+Net.On("ShardRecovered", function(name)
 	Lib.PlaySound("Reward")
-	celebrate(T("🛡️ RECOVERED!"), T(rarity(id).Name), C.Cyan)
+	celebrate(T("🛡️ RECOVERED!"), T(tostring(name)), C.Cyan)
 end)
 
 Net.On("BaseCollected", function(amount)
@@ -13678,9 +14841,9 @@ Net.On("GuardianChase", function(seconds)
 	celebrate(T("🗿 THE GUARDIAN WOKE UP!"), T("Run! It chases you for %d seconds", seconds or 12), Color3.fromRGB(255, 150, 80))
 end)
 
-Net.On("CaughtByGuardian", function(id)
+Net.On("CaughtByGuardian", function(name)
 	Lib.PlaySound("Bonked")
-	toast(T("🗿 The guardian took the %s back!", T(rarity(id).Name)), C.Red)
+	toast(T("🗿 The guardian took the %s back!", T(tostring(name))), C.Red)
 end)
 
 Net.On("BaseLiked", function()
@@ -13872,7 +15035,17 @@ RunService.RenderStepped:Connect(function()
 	for model, pivot in spinning do
 		-- only animate what's near the camera (cheap on phones)
 		if model.Parent and (pivot.Position - eye).Magnitude < 140 then
-			model:PivotTo(pivot * CFrame.new(0, math.sin(t * 2 + pivot.X) * 0.4, 0) * CFrame.Angles(0, t * 1.6, 0))
+			if model:GetAttribute("PetId") then
+				-- pets on pedestals: happy bounce + little sway (they face the street)
+				local phase = t * 3 + pivot.X
+				local hop = math.abs(math.sin(phase)) * 0.5
+				model:PivotTo(pivot * CFrame.new(0, hop, 0) * CFrame.Angles(0, math.sin(phase * 0.5) * 0.35, math.sin(phase) * 0.06))
+				if model:GetAttribute("Variant") == "Rainbow" and model.PrimaryPart then
+					model.PrimaryPart.Color = Color3.fromHSV((t * 0.3) % 1, 0.7, 1)
+				end
+			else
+				model:PivotTo(pivot * CFrame.new(0, math.sin(t * 2 + pivot.X) * 0.4, 0) * CFrame.Angles(0, t * 1.6, 0))
+			end
 		end
 	end
 end)
@@ -13881,7 +15054,123 @@ return Shards
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="44">
+          <Item class="ModuleScript" referent="47">
+            <Properties>
+              <string name="Name">TradeUI</string>
+              <string name="Source"><![CDATA[--[[
+	Trading glue: incoming request popup + keeps the live trade state for
+	the Trade panel (UI/Panels/Trade.luau). The server does all the checks.
+]]
+local Client = script.Parent.Parent
+local Net = require(Client.Net)
+local Lib = require(Client.UI.Lib)
+local Root = require(Client.UI.Root)
+local Panels = require(Client.UI.Panels)
+
+local New, C, T = Lib.New, Lib.Colors, Lib.T
+local TradeUI = { State = nil }
+
+-- request popup ------------------------------------------------------------
+local cluster = Root.Cluster("TradeRequest", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 120), UDim2.fromOffset(440, 130), Root.Overlay)
+local popup = New("Frame", {
+	BackgroundColor3 = C.Panel,
+	Size = UDim2.fromScale(1, 1),
+	Visible = false,
+	Parent = cluster,
+}, { Lib.Corner(16), Lib.Stroke(C.Cyan, 3, 0) })
+local popupText = Lib.Text({
+	Text = "",
+	Size = UDim2.new(1, -20, 0, 44),
+	Position = UDim2.fromOffset(10, 8),
+	MaxTextSize = 24,
+	Parent = popup,
+})
+local requestFrom = nil
+local requestToken = 0
+local function hidePopup()
+	popup.Visible = false
+	requestFrom = nil
+end
+Lib.Button({
+	Text = "✅ Accept",
+	Color = C.Green,
+	Size = UDim2.fromOffset(190, 54),
+	Position = UDim2.new(0.5, -200, 1, -66),
+	TextSize = 22,
+	Parent = popup,
+	OnClick = function()
+		if requestFrom then
+			Net.Fire("TradeRespond", true)
+		end
+		hidePopup()
+	end,
+})
+Lib.Button({
+	Text = "X Decline",
+	Color = C.Red,
+	Size = UDim2.fromOffset(190, 54),
+	Position = UDim2.new(0.5, 10, 1, -66),
+	TextSize = 22,
+	Parent = popup,
+	OnClick = function()
+		if requestFrom then
+			Net.Fire("TradeRespond", false)
+		end
+		hidePopup()
+	end,
+})
+
+Net.On("TradeRequested", function(userId, name)
+	requestFrom = userId
+	requestToken += 1
+	local token = requestToken
+	popupText.Text = T("🤝 %s wants to trade!", tostring(name))
+	popup.Visible = true
+	Lib.Pop(popup)
+	Lib.PlaySound("Reward")
+	task.delay(20, function()
+		if token == requestToken then
+			hidePopup()
+		end
+	end)
+end)
+
+-- live trade ---------------------------------------------------------------------
+Net.On("TradeState", function(state)
+	TradeUI.State = state
+	if Panels.Current == "Trade" then
+		Panels.RefreshCurrent()
+	else
+		Panels.Open("Trade")
+	end
+end)
+
+Net.On("TradeClosed", function(reason)
+	TradeUI.State = nil
+	if Panels.Current == "Trade" then
+		Panels.Close()
+	end
+	local hud = TradeUI.HUD
+	if hud and type(reason) == "string" then
+		hud.Toast(reason, C.Red)
+	end
+end)
+
+Net.On("TradeDone", function(partner)
+	Lib.PlaySound("Legendary")
+	local hud = TradeUI.HUD
+	if hud and hud.Celebrate then
+		hud.Celebrate(T("🤝 TRADE COMPLETE!"), T("with %s", tostring(partner)), C.Cyan, true)
+	end
+end)
+
+Panels.Provide("TradeUI", TradeUI)
+
+return TradeUI
+]]></string>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="48">
             <Properties>
               <string name="Name">WorldFX</string>
               <string name="Source"><![CDATA[--[[
@@ -14022,7 +15311,7 @@ return {}
             </Properties>
           </Item>
         </Item>
-        <Item class="LocalScript" referent="45">
+        <Item class="LocalScript" referent="49">
           <Properties>
             <string name="Name">Main</string>
             <string name="Source"><![CDATA[--[[
@@ -14080,6 +15369,8 @@ require(Controllers:WaitForChild("Guide"))
 require(Controllers:WaitForChild("Ambience"))
 require(Controllers:WaitForChild("Shards")).HUD = HUD
 require(Controllers:WaitForChild("Build")).HUD = HUD
+Panels.Provide("HowTo", require(Controllers:WaitForChild("HowTo")))
+require(Controllers:WaitForChild("TradeUI")).HUD = HUD
 
 -- ask for a fresh snapshot in case the first one arrived before we listened
 Net.Fire("Sync")
@@ -14091,7 +15382,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="46">
+        <Item class="ModuleScript" referent="50">
           <Properties>
             <string name="Name">Net</string>
             <string name="Source"><![CDATA[local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14135,7 +15426,7 @@ return Net
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="47">
+        <Item class="ModuleScript" referent="51">
           <Properties>
             <string name="Name">State</string>
             <string name="Source"><![CDATA[--[[
@@ -14198,11 +15489,11 @@ return State
 ]]></string>
           </Properties>
         </Item>
-        <Item class="Folder" referent="48">
+        <Item class="Folder" referent="52">
           <Properties>
             <string name="Name">UI</string>
           </Properties>
-          <Item class="ModuleScript" referent="49">
+          <Item class="ModuleScript" referent="53">
             <Properties>
               <string name="Name">Hatch</string>
               <string name="Source"><![CDATA[--[[
@@ -14250,6 +15541,9 @@ local function slot(petName: string, variant: string?, eggColor: Color3)
 	local variantColor = if variant == "Rainbow"
 		then Color3.fromRGB(255, 120, 230)
 		elseif variant == "Golden" then Color3.fromRGB(255, 210, 60)
+		elseif variant == "Galaxy" then Color3.fromRGB(190, 140, 255)
+		elseif variant == "Frozen" then Color3.fromRGB(170, 225, 255)
+		elseif variant == "Molten" then Color3.fromRGB(255, 130, 50)
 		else nil
 	local rarity = Config.Rarities[info.Rarity]
 	local frame = New("Frame", {
@@ -14300,7 +15594,7 @@ local function slot(petName: string, variant: string?, eggColor: Color3)
 		Parent = frame,
 	})
 	local powerLabel = Lib.Text({
-		Text = Lib.T("💥 +%sx power", Util.Format(Util.PetPower(Config, petName, variant))),
+		Text = Lib.T("💰 %s/s in your base", Util.Format(Util.PetIncome(Config, petName, variant))),
 		Font = Lib.BodyFont,
 		Size = UDim2.new(1, 0, 0, 26),
 		Position = UDim2.fromOffset(0, 340),
@@ -14423,7 +15717,7 @@ return Hatch
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="50">
+          <Item class="ModuleScript" referent="54">
             <Properties>
               <string name="Name">Lib</string>
               <string name="Source"><![CDATA[--[[
@@ -14750,7 +16044,7 @@ return Lib
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="51">
+          <Item class="ModuleScript" referent="55">
             <Properties>
               <string name="Name">Panels</string>
               <string name="Source"><![CDATA[--[[
@@ -14771,7 +16065,19 @@ Panels.CurrentArg = nil
 local New = Lib.New
 local C = Lib.Colors
 
-local cluster = Root.Cluster("Panels", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(700, 500))
+-- dim backdrop: the HUD stays visible but clearly behind the panel; tap it to close
+local backdrop = New("TextButton", {
+	Name = "Backdrop",
+	Text = "",
+	AutoButtonColor = false,
+	BackgroundColor3 = Color3.new(0, 0, 0),
+	BackgroundTransparency = 0.45,
+	Size = UDim2.fromScale(1, 1),
+	Visible = false,
+	ZIndex = 0,
+	Parent = Root.PanelGui,
+})
+local cluster = Root.Cluster("Panels", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.52), UDim2.fromOffset(700, 500), Root.PanelGui)
 local registry = {}
 local opened = {} -- [name] = { Window, Api }
 
@@ -14829,7 +16135,7 @@ local function makeWindow(name: string, def)
 	})
 	Lib.Button({
 		Name = "Close",
-		Text = "✕",
+		Text = "X",
 		Color = C.Red,
 		Size = UDim2.fromOffset(46, 46),
 		Position = UDim2.new(1, -54, 0, 6),
@@ -14884,6 +16190,7 @@ function Panels.Open(name: string, arg: any?)
 	end
 	Panels.Current = name
 	Panels.CurrentArg = arg
+	backdrop.Visible = true
 	entry.Window.Visible = true
 	Lib.Pop(entry.Window)
 	for _, hook in { "OnOpen", "Refresh" } do
@@ -14915,6 +16222,7 @@ function Panels.Close()
 	end
 	Panels.Current = nil
 	Panels.CurrentArg = nil
+	backdrop.Visible = false
 end
 
 function Panels.Toggle(name: string, arg: any?)
@@ -14935,6 +16243,10 @@ function Panels.RefreshCurrent()
 		end
 	end
 end
+
+backdrop.Activated:Connect(function()
+	Panels.Close()
+end)
 
 State.OnChanged(Panels.RefreshCurrent)
 task.spawn(function()
@@ -14962,7 +16274,7 @@ end
 return Panels
 ]]></string>
             </Properties>
-            <Item class="ModuleScript" referent="52">
+            <Item class="ModuleScript" referent="56">
               <Properties>
                 <string name="Name">Codes</string>
                 <string name="Source"><![CDATA[-- Promo codes: free rewards for players who find codes on YouTube / TikTok /
@@ -15063,11 +16375,13 @@ return Codes
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="53">
+            <Item class="ModuleScript" referent="57">
               <Properties>
                 <string name="Name">Egg</string>
-                <string name="Source"><![CDATA[-- Egg shop: shows exact odds (incl. your luck) BEFORE buying - required for
--- paid random items and good for trust. Golden Egg is hidden where restricted.
+                <string name="Source"><![CDATA[-- Egg shop: shows exact odds (incl. your luck) and what each pet earns
+-- BEFORE buying - required for paid random items and good for trust.
+-- Coin eggs restock every 5 minutes (stock + countdown shown here).
+-- Golden Egg is hidden where restricted.
 local Egg = { Title = "🥚 EGG", Color = Color3.fromRGB(255, 200, 70) }
 
 local CURRENCY_ICON = { Coins = "💰", Gems = "💎", Stardust = "✨" }
@@ -15204,9 +16518,9 @@ function Egg.Build(content, ctx)
 			local chance =
 				Lib.Text({ Text = "", Size = UDim2.new(1, -8, 0, 22), Position = UDim2.fromOffset(4, 48), MaxTextSize = 20, Parent = card })
 			Lib.Text({
-				Text = "💥 +" .. Util.Format(pet.Power) .. "x",
+				Text = "💰" .. Util.Format(pet.Income) .. "/s",
 				Font = Lib.BodyFont,
-				TextColor3 = C.Sub,
+				TextColor3 = C.Coins,
 				Size = UDim2.new(1, -8, 0, 18),
 				Position = UDim2.fromOffset(4, 72),
 				MaxTextSize = 14,
@@ -15238,7 +16552,7 @@ function Egg.Build(content, ctx)
 		for petName, card in cards do
 			card.Chance.Text = Util.FormatPercent(odds[petName] or 0)
 			local discovered = data.PetIndex[petName] == true
-			card.Name.Text = (if discovered then "✔ " else "") .. T(petName)
+			card.Name.Text = (if discovered then "✅ " else "") .. T(petName)
 		end
 
 		local luckText = T("🍀 Your luck: x%s", string.format("%.2f", luck))
@@ -15268,15 +16582,42 @@ function Egg.Build(content, ctx)
 			single.Visible = true
 			triple.Visible = true
 			local balance = data[egg.Currency] or 0
-			Lib.SetButton(
-				single,
-				if locked then "🔒 Unlock zone" else T("Hatch 1  %s", icon .. Util.Format(egg.Price)),
-				if balance >= egg.Price then C.Green else C.Red
-			)
+			-- restocking eggs: how many are left for us + time to the next restock
+			local now = State.Now()
+			local slot = Util.ShopSlot(Config, now)
+			local stock = Util.EggStock(Config, eggId, slot)
+			local left = nil
+			if stock then
+				local shop = data.Shop
+				local bought = if shop and shop.Slot == slot then (shop.Bought[eggId] or 0) else 0
+				left = math.max(0, stock - bought)
+				local wait = Util.FormatTime(Util.ShopRestockIn(Config, now))
+				luckLabel.Text = luckLabel.Text .. "  •  " .. T("📦 %d left  •  🔄 new stock in %s", left, wait)
+			end
+			if left == 0 then
+				Lib.SetButton(single, T("SOLD OUT  •  %s", Util.FormatTime(Util.ShopRestockIn(Config, now))), C.Gray)
+			else
+				Lib.SetButton(
+					single,
+					if locked then "🔒 Unlock zone" else T("Hatch 1  %s", icon .. Util.Format(egg.Price)),
+					if balance >= egg.Price then C.Green else C.Red
+				)
+			end
 			local tripleText = if State.HasPass("TripleHatch") then T("Hatch 3  %s", icon .. Util.Format(egg.Price * 3)) else "🔒 Hatch 3"
 			Lib.SetButton(triple, tripleText, C.Purple)
 		end
 	end
+
+	-- tick the restock countdown while the panel is open
+	task.spawn(function()
+		while content.Parent do
+			task.wait(1)
+			local window = content.Parent
+			if window and window:IsA("GuiObject") and window.Visible and Config.Eggs[eggId].Stock then
+				refresh()
+			end
+		end
+	end)
 
 	return {
 		OnOpen = function(arg)
@@ -15297,7 +16638,7 @@ return Egg
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="54">
+            <Item class="ModuleScript" referent="58">
               <Properties>
                 <string name="Name">Gifts</string>
                 <string name="Source"><![CDATA[-- Playtime gifts: claimable after N minutes in this session (session length)
@@ -15363,7 +16704,7 @@ function Gifts.Build(content, ctx)
 		for i, box in boxes do
 			local remaining = box.Gift.Minutes * 60 - elapsed
 			if claimed[i] then
-				Lib.SetButton(box.Button, "✔ Claimed", C.Gray)
+				Lib.SetButton(box.Button, "✅ Claimed", C.Gray)
 			elseif remaining <= 0 then
 				Lib.SetButton(box.Button, "CLAIM!", C.Green)
 			else
@@ -15379,7 +16720,7 @@ return Gifts
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="55">
+            <Item class="ModuleScript" referent="59">
               <Properties>
                 <string name="Name">Pass</string>
                 <string name="Source"><![CDATA[-- Season pass: free + premium tracks, XP bar, premium / skip upsells
@@ -15432,7 +16773,7 @@ function Pass.Build(content, ctx)
 		end,
 	})
 	Lib.Button({
-		Text = "✔ Claim All",
+		Text = "✅ Claim All",
 		Size = UDim2.fromOffset(150, 42),
 		Color = C.Green,
 		LayoutOrder = 3,
@@ -15508,7 +16849,7 @@ function Pass.Build(content, ctx)
 	local function styleBox(box, status, claimed, unlocked, locked)
 		local stroke = box:FindFirstChildOfClass("UIStroke")
 		if claimed then
-			status.Text = "✔"
+			status.Text = "✅"
 			stroke.Color = C.Green
 			box.BackgroundColor3 = Color3.fromRGB(40, 80, 55)
 		elseif locked then
@@ -15561,11 +16902,43 @@ return Pass
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="56">
+            <Item class="ModuleScript" referent="60">
               <Properties>
                 <string name="Name">Pets</string>
-                <string name="Source"><![CDATA[-- Pet inventory: equip / unequip / equip best / delete, slot upsell
+                <string name="Source"><![CDATA[--[[
+	Pet collection: every pet you own, best earners first.
+	🏠 = standing on a pedestal in your base (earning coins every second)
+	⭐ = following you (adds mining power)   📦 = waiting in storage
+	Tap 💰 twice to sell a pet (pays one minute of its income).
+]]
+local PetModel = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("PetModel"))
+
 local Pets = { Title = "🐾 PETS", Color = Color3.fromRGB(120, 200, 90) }
+
+local MAX_VIEWPORTS = 24 -- 3D previews for the best pets (keeps phones smooth)
+
+local function viewport(parent: GuiObject, petName: string, variant: string?)
+	local frame = Instance.new("ViewportFrame")
+	frame.BackgroundTransparency = 1
+	frame.Size = UDim2.fromOffset(64, 56)
+	frame.Position = UDim2.new(0.5, 0, 0, 4)
+	frame.AnchorPoint = Vector2.new(0.5, 0)
+	frame.Ambient = Color3.fromRGB(200, 200, 210)
+	frame.LightColor = Color3.new(1, 1, 1)
+	frame.Parent = parent
+	local model = PetModel.Build(petName, variant)
+	model.Parent = frame
+	local camera = Instance.new("Camera")
+	local _, size = model:GetBoundingBox()
+	local pivot = model:GetPivot()
+	local center = pivot.Position + Vector3.new(0, size.Y * 0.45, 0)
+	local distance = math.max(size.X, size.Y) * 1.55
+	camera.CFrame = CFrame.lookAt(center + pivot.LookVector * distance + Vector3.new(0, size.Y * 0.15, 0), center)
+	camera.FieldOfView = 40
+	camera.Parent = frame
+	frame.CurrentCamera = camera
+	return frame
+end
 
 function Pets.Build(content, ctx)
 	local Lib, State, Net, Config, Util = ctx.Lib, ctx.State, ctx.Net, ctx.Config, ctx.Util
@@ -15585,41 +16958,55 @@ function Pets.Build(content, ctx)
 		Size = UDim2.new(1, 0, 0, 40),
 		Parent = content,
 	}, { Lib.List(Enum.FillDirection.Horizontal, 8, Enum.HorizontalAlignment.Left) })
+
+	local confirmBulk = {}
+	local function bulkButton(rarity: string, text: string, order: number)
+		local button
+		button = Lib.Button({
+			Text = text,
+			Color = C.Gold,
+			Size = UDim2.fromOffset(170, 38),
+			LayoutOrder = order,
+			TextSize = 16,
+			Parent = actions,
+			OnClick = function()
+				local last = confirmBulk[rarity]
+				if last and os.clock() - last < 2.5 then
+					confirmBulk[rarity] = nil
+					Net.Fire("SellRarity", rarity)
+					Lib.SetButton(button, text)
+				else
+					confirmBulk[rarity] = os.clock()
+					Lib.SetButton(button, T("Tap again to sell"))
+					task.delay(2.5, function()
+						if button.Parent then
+							Lib.SetButton(button, text)
+						end
+					end)
+				end
+			end,
+		})
+		return button
+	end
+	bulkButton("Common", "💰 Sell Commons", 1)
+	bulkButton("Uncommon", "💰 Sell Uncommons", 2)
 	Lib.Button({
-		Text = "⭐ Equip Best",
-		Color = C.Green,
-		Size = UDim2.fromOffset(140, 38),
-		LayoutOrder = 1,
+		Text = "🤝 Trade",
+		Color = C.Cyan,
+		Size = UDim2.fromOffset(120, 38),
+		LayoutOrder = 4,
+		TextSize = 16,
 		Parent = actions,
 		OnClick = function()
-			Net.Fire("EquipBest")
-		end,
-	})
-	Lib.Button({
-		Text = "🗑 Commons",
-		Color = C.Red,
-		Size = UDim2.fromOffset(130, 38),
-		LayoutOrder = 2,
-		Parent = actions,
-		OnClick = function()
-			Net.Fire("DeleteRarity", "Common")
-		end,
-	})
-	Lib.Button({
-		Text = "🗑 Uncommons",
-		Color = C.Red,
-		Size = UDim2.fromOffset(140, 38),
-		LayoutOrder = 3,
-		Parent = actions,
-		OnClick = function()
-			Net.Fire("DeleteRarity", "Uncommon")
+			ctx.Panels.Open("Trade")
 		end,
 	})
 	local slotsButton = Lib.Button({
-		Text = "🐾 +3 Slots",
-		Color = C.Gold,
-		Size = UDim2.fromOffset(130, 38),
-		LayoutOrder = 4,
+		Text = "🐾 +3 Helpers",
+		Color = C.Purple,
+		Size = UDim2.fromOffset(150, 38),
+		LayoutOrder = 3,
+		TextSize = 16,
 		Parent = actions,
 		OnClick = function()
 			if ctx.Upsell then
@@ -15629,124 +17016,133 @@ function Pets.Build(content, ctx)
 	})
 
 	local grid = Lib.Scroll({ Position = UDim2.fromOffset(0, 78), Size = UDim2.new(1, 0, 1, -78), Parent = content })
-	Lib.Grid(UDim2.fromOffset(118, 120), 8).Parent = grid
+	Lib.Grid(UDim2.fromOffset(122, 136), 8).Parent = grid
 	Lib.Padding(4).Parent = grid
 
 	local signature = ""
-	local confirmDelete = {} -- [petId] = os.clock()
+	local confirmSell = {} -- [petId] = os.clock()
 
-	local function power(pet)
-		return Util.PetPower(Config, pet.Name, pet.Variant)
+	local function income(pet)
+		return Util.PetIncome(Config, pet.Name, pet.Variant)
 	end
 
-	local function rebuild(data)
-		Lib.Clear(grid)
-		local equipped = {}
-		for _, id in data.Equipped do
-			equipped[id] = true
+	local function pedestalCount(data): number
+		local count = 0
+		for _, item in data.Base and data.Base.Items or {} do
+			local def = Config.Decor[item.Id]
+			if def and def.Function == "Pedestal" then
+				count += 1
+			end
 		end
-		local pets = table.clone(data.Pets)
+		return count
+	end
+
+	local function rebuild(data, derived)
+		Lib.Clear(grid)
+		local following = {}
+		for _, id in data.Equipped do
+			following[id] = true
+		end
+		local pets = {}
+		for _, pet in data.Pets do
+			if Config.Pets[pet.Name] then
+				table.insert(pets, pet)
+			end
+		end
+		-- same order as the server uses for pedestals: best income first
 		table.sort(pets, function(a, b)
-			local ea, eb = equipped[a.Id] and 1 or 0, equipped[b.Id] and 1 or 0
-			if ea ~= eb then
-				return ea > eb
+			if income(a) == income(b) then
+				return a.Id < b.Id
 			end
-			if power(a) ~= power(b) then
-				return power(a) > power(b)
-			end
-			return a.Id < b.Id
+			return income(a) > income(b)
 		end)
+		local slots = pedestalCount(data)
+		local shown = 0
+		local mult = (derived.CoinMult or 1) * (if State.HasPass("DoubleBase") then 2 else 1)
 		for order, pet in pets do
 			local info = Config.Pets[pet.Name]
-			if info then
-				local rarity = Config.Rarities[info.Rarity]
-				local isEquipped = equipped[pet.Id] == true
-				local card = New("TextButton", {
-					Text = "",
-					AutoButtonColor = true,
-					BackgroundColor3 = if isEquipped then Color3.fromRGB(45, 95, 60) else C.Card,
-					LayoutOrder = order,
-					Parent = grid,
-				}, {
-					Lib.Corner(12),
-					Lib.Stroke(
-						if pet.Variant == "Rainbow"
-							then Color3.fromRGB(255, 120, 230)
-							elseif pet.Variant == "Golden" then Color3.fromRGB(255, 210, 60)
-							else rarity.Color,
-						if pet.Variant then 4 else 3,
-						0
-					),
-				})
-				local swatch = New("Frame", {
-					Size = UDim2.fromOffset(42, 42),
-					Position = UDim2.new(0.5, 0, 0, 8),
+			local rarity = Config.Rarities[info.Rarity]
+			local onDisplay = false
+			if not pet.Away and shown < slots then
+				shown += 1
+				onDisplay = true
+			end
+			local card = New("Frame", {
+				BackgroundColor3 = if onDisplay then Color3.fromRGB(40, 70, 60) else C.Card,
+				LayoutOrder = order,
+				Parent = grid,
+			}, {
+				Lib.Corner(12),
+				Lib.Stroke(if pet.Variant then Color3.fromRGB(255, 210, 60) else rarity.Color, if pet.Variant then 4 else 3, 0),
+			})
+			if order <= MAX_VIEWPORTS then
+				viewport(card, pet.Name, pet.Variant)
+			else
+				New("Frame", {
+					Size = UDim2.fromOffset(44, 44),
+					Position = UDim2.new(0.5, 0, 0, 10),
 					AnchorPoint = Vector2.new(0.5, 0),
-					BackgroundColor3 = if pet.Variant == "Golden"
-						then Color3.fromRGB(255, 205, 50)
-						elseif pet.Variant == "Rainbow" then Color3.fromRGB(255, 90, 210)
-						else info.Color,
+					BackgroundColor3 = info.Color,
 					Parent = card,
-				}, { Lib.Corner(if info.Shape == "Ball" then 21 else 8), Lib.Stroke(Color3.new(0, 0, 0), 2, 0.3) })
-				Lib.Text({
-					Text = "• •",
-					TextColor3 = Color3.new(0, 0, 0),
-					Outline = false,
-					Size = UDim2.fromScale(1, 0.5),
-					Position = UDim2.fromScale(0, 0.15),
-					Parent = swatch,
-				})
-				Lib.Text({
-					Text = (if pet.Variant then "✨" else "") .. Util.PetDisplayName(T(pet.Name), pet.Variant and T(pet.Variant)),
-					Size = UDim2.new(1, -6, 0, 20),
-					Position = UDim2.fromOffset(3, 54),
-					MaxTextSize = 15,
+				}, { Lib.Corner(22), Lib.Stroke(Color3.new(0, 0, 0), 2, 0.3) })
+			end
+			local name = T(pet.Name)
+			if pet.Variant then
+				name = T(pet.Variant) .. " " .. name
+			end
+			Lib.Text({
+				Text = name,
+				Size = UDim2.new(1, -6, 0, 20),
+				Position = UDim2.fromOffset(3, 62),
+				MaxTextSize = 14,
+				Parent = card,
+			})
+			Lib.Text({
+				Text = "💰" .. Util.Format(income(pet) * mult) .. "/s",
+				TextColor3 = C.Coins,
+				Size = UDim2.new(1, -6, 0, 18),
+				Position = UDim2.fromOffset(3, 84),
+				MaxTextSize = 15,
+				Parent = card,
+			})
+			local status = if pet.Away then T("🏃 being stolen!") elseif onDisplay then T("🏠 earning") else T("📦 storage")
+			if following[pet.Id] then
+				status = "⭐ " .. status
+			end
+			Lib.Text({
+				Text = status,
+				Font = Lib.BodyFont,
+				TextColor3 = if onDisplay then C.Green else C.Sub,
+				Size = UDim2.new(1, -34, 0, 16),
+				Position = UDim2.fromOffset(4, 110),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				MaxTextSize = 11,
+				Parent = card,
+			})
+			if not pet.Away then
+				local sell = New("TextButton", {
+					Text = "💰",
+					TextScaled = true,
+					BackgroundColor3 = C.Gold,
+					Size = UDim2.fromOffset(26, 26),
+					Position = UDim2.new(1, -30, 1, -30),
 					Parent = card,
-				})
-				Lib.Text({
-					Text = "+" .. Util.Format(power(pet)) .. "x",
-					TextColor3 = rarity.Color,
-					Size = UDim2.new(1, -6, 0, 18),
-					Position = UDim2.fromOffset(3, 74),
-					MaxTextSize = 15,
-					Parent = card,
-				})
-				Lib.Text({
-					Text = if isEquipped then "EQUIPPED" else "tap to equip",
-					Font = Lib.BodyFont,
-					TextColor3 = if isEquipped then C.Green else C.Sub,
-					Size = UDim2.new(1, -30, 0, 16),
-					Position = UDim2.fromOffset(3, 98),
-					MaxTextSize = 12,
-					Parent = card,
-				})
-				card.Activated:Connect(function()
-					Net.Fire(if isEquipped then "UnequipPet" else "EquipPet", pet.Id)
+				}, { Lib.Corner(6) })
+				sell.Activated:Connect(function()
+					local last = confirmSell[pet.Id]
+					if last and os.clock() - last < 2.5 then
+						Net.Fire("SellPet", pet.Id)
+					else
+						confirmSell[pet.Id] = os.clock()
+						sell.Text = "?"
+						ctx.Toast(T("Tap again to sell for 💰%s", Util.Format(math.floor(income(pet) * Config.PetSellSeconds))), C.Gold)
+						task.delay(2.5, function()
+							if sell.Parent then
+								sell.Text = "💰"
+							end
+						end)
+					end
 				end)
-				if not isEquipped then
-					local del = New("TextButton", {
-						Text = "🗑",
-						TextScaled = true,
-						BackgroundColor3 = C.Red,
-						Size = UDim2.fromOffset(24, 24),
-						Position = UDim2.new(1, -28, 1, -28),
-						Parent = card,
-					}, { Lib.Corner(6) })
-					del.Activated:Connect(function()
-						local last = confirmDelete[pet.Id]
-						if last and os.clock() - last < 2.5 then
-							Net.Fire("DeletePet", pet.Id)
-						else
-							confirmDelete[pet.Id] = os.clock()
-							del.Text = "?"
-							task.delay(2.5, function()
-								if del.Parent then
-									del.Text = "🗑"
-								end
-							end)
-						end
-					end)
-				end
 			end
 		end
 	end
@@ -15763,11 +17159,10 @@ function Pets.Build(content, ctx)
 		for _ in Config.Pets do
 			totalPets += 1
 		end
+		local player = game:GetService("Players").LocalPlayer
 		header.Text = T(
-			"Equipped %d/%d  •  Power +%sx  •  Pets %d/%d  •  Index %d/%d",
-			#data.Equipped,
-			derived.PetSlots or 3,
-			Util.Format(derived.PetPower or 0),
+			"🏠 Base 💰%s/s  •  Pets %d/%d  •  Index %d/%d",
+			Util.Format(player:GetAttribute("BaseRate") or 0),
 			#data.Pets,
 			Config.MaxPets,
 			indexCount,
@@ -15776,12 +17171,12 @@ function Pets.Build(content, ctx)
 		slotsButton.Visible = not State.HasPass("ExtraPets")
 		local parts = {}
 		for _, pet in data.Pets do
-			table.insert(parts, pet.Id .. (pet.Variant or ""))
+			table.insert(parts, pet.Id .. (pet.Variant or "") .. (if pet.Away then "!" else ""))
 		end
-		local sig = table.concat(parts, ",") .. "|" .. table.concat(data.Equipped, ",")
+		local sig = table.concat(parts, ",") .. "|" .. table.concat(data.Equipped, ",") .. "|" .. tostring(derived.CoinMult)
 		if sig ~= signature then
 			signature = sig
-			rebuild(data)
+			rebuild(data, derived)
 		end
 	end
 
@@ -15792,7 +17187,7 @@ return Pets
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="57">
+            <Item class="ModuleScript" referent="61">
               <Properties>
                 <string name="Name">Quests</string>
                 <string name="Source"><![CDATA[-- Daily login streak, daily quests, weekly ranked ladder, VIP chest, group reward
@@ -16046,7 +17441,7 @@ function Quests.Build(content, ctx)
 				row.Text.Text = T(def.Text)
 				row.SetBar(quest.Progress / def.Target, string.format("%d / %d", quest.Progress, def.Target))
 				if quest.Claimed then
-					Lib.SetButton(row.Button, "✔ DONE", C.Gray)
+					Lib.SetButton(row.Button, "✅ DONE", C.Gray)
 				elseif quest.Progress >= def.Target then
 					Lib.SetButton(row.Button, T("CLAIM %s", Util.RewardText(def.Reward, T)), C.Green)
 				else
@@ -16079,14 +17474,14 @@ function Quests.Build(content, ctx)
 		-- perks
 		if State.HasPass("VIP") then
 			local claimed = data.Daily.VipChestDay == today
-			Lib.SetButton(vipButton, if claimed then "👑 VIP chest ✔" else "👑 VIP chest 100💎", if claimed then C.Gray else C.Gold)
+			Lib.SetButton(vipButton, if claimed then "👑 VIP chest ✅" else "👑 VIP chest 100💎", if claimed then C.Gray else C.Gold)
 		else
 			Lib.SetButton(vipButton, "👑 VIP: daily 100💎", C.Gold)
 		end
 		groupButton.Visible = Config.GroupId ~= 0
 		Lib.SetButton(
 			groupButton,
-			if data.Flags.GroupReward then "👥 Group bonus +10% ✔" else T("👥 Join group: %s💎", Config.Social.GroupJoinGems),
+			if data.Flags.GroupReward then "👥 Group bonus +10% ✅" else T("👥 Join group: %s💎", Config.Social.GroupJoinGems),
 			if data.Flags.GroupReward then C.Gray else C.Blue
 		)
 		premiumButton.Visible = not derived.Premium
@@ -16100,7 +17495,7 @@ return Quests
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="58">
+            <Item class="ModuleScript" referent="62">
               <Properties>
                 <string name="Name">Rebirth</string>
                 <string name="Source"><![CDATA[-- Rebirth: reset coins/upgrades for a permanent coin multiplier + gems
@@ -16190,7 +17585,7 @@ return Rebirth
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="59">
+            <Item class="ModuleScript" referent="63">
               <Properties>
                 <string name="Name">Rewards</string>
                 <string name="Source"><![CDATA[-- One place for every free reward (instead of 4 separate menu buttons)
@@ -16275,10 +17670,10 @@ return Rewards
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="60">
+            <Item class="ModuleScript" referent="64">
               <Properties>
                 <string name="Name">Settings</string>
-                <string name="Source"><![CDATA[-- Settings: language (auto / 한국어 / English) and sound
+                <string name="Source"><![CDATA[-- Settings: language (auto / 한국어 / English), sound, how to play
 local TeleportService = game:GetService("TeleportService")
 
 local Settings = { Title = "⚙️ SETTINGS", Color = Color3.fromRGB(110, 115, 140) }
@@ -16339,12 +17734,26 @@ function Settings.Build(content, ctx)
 	Lib.Text({ Text = "🔊 Sound", Size = UDim2.new(1, 0, 0, 34), Position = UDim2.fromOffset(0, 170), MaxTextSize = 28, Parent = content })
 	local soundButton = Lib.Button({
 		Size = UDim2.fromOffset(240, 54),
-		Position = UDim2.new(0.5, -120, 0, 214),
+		Position = UDim2.new(0.5, -250, 0, 214),
 		TextSize = 24,
 		Parent = content,
 		OnClick = function()
 			Lib.Muted = not Lib.Muted
 			ctx.Panels.RefreshCurrent()
+		end,
+	})
+	Lib.Button({
+		Text = "❓ How to play",
+		Color = C.Blue,
+		Size = UDim2.fromOffset(240, 54),
+		Position = UDim2.new(0.5, 10, 0, 214),
+		TextSize = 24,
+		Parent = content,
+		OnClick = function()
+			ctx.Panels.Close()
+			if ctx.HowTo then
+				ctx.HowTo.Show()
+			end
 		end,
 	})
 
@@ -16363,7 +17772,7 @@ return Settings
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="61">
+            <Item class="ModuleScript" referent="65">
               <Properties>
                 <string name="Name">Shop</string>
                 <string name="Source"><![CDATA[-- Pickaxe + running-speed upgrades (coins sink, sequential tiers)
@@ -16500,7 +17909,7 @@ return Shop
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="62">
+            <Item class="ModuleScript" referent="66">
               <Properties>
                 <string name="Name">Spin</string>
                 <string name="Source"><![CDATA[-- Free prize wheel: one spin every few hours (VIP: faster). The server picks
@@ -16725,7 +18134,7 @@ return Spin
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="63">
+            <Item class="ModuleScript" referent="67">
               <Properties>
                 <string name="Name">Store</string>
                 <string name="Source"><![CDATA[-- Robux store: game passes, consumables (gems/boosts/server luck/meteor),
@@ -16946,7 +18355,7 @@ function Store.Build(content, ctx)
 		end
 		for key, button in passButtons do
 			if State.HasPass(key) then
-				Lib.SetButton(button, "✔ OWNED", C.Gray)
+				Lib.SetButton(button, "✅ OWNED", C.Gray)
 			else
 				Lib.SetButton(button, "R$ " .. Lib.Price("Pass", key), C.Green)
 			end
@@ -16958,7 +18367,7 @@ function Store.Build(content, ctx)
 		itemCards.StarterPack.Visible = starterOpen
 		Lib.SetButton(
 			clubButton,
-			if derived.Subscribed then "✔ MEMBER" else T("Join %s", sub.PriceText),
+			if derived.Subscribed then "✅ MEMBER" else T("Join %s", sub.PriceText),
 			if derived.Subscribed then C.Gray else C.Cyan
 		)
 		premiumCard.Visible = not derived.Premium
@@ -16983,7 +18392,7 @@ return Store
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="64">
+            <Item class="ModuleScript" referent="68">
               <Properties>
                 <string name="Name">Teleport</string>
                 <string name="Source"><![CDATA[-- Zone list: teleport to unlocked zones, unlock the next one
@@ -17065,8 +18474,256 @@ return Teleport
 ]]></string>
               </Properties>
             </Item>
+            <Item class="ModuleScript" referent="69">
+              <Properties>
+                <string name="Name">Trade</string>
+                <string name="Source"><![CDATA[--[[
+	Trade panel.
+	* Not trading yet: pick a player in this server to send a request.
+	* Trading: tap your pets below to offer up to 4, check what you get,
+	  press READY. When both are ready a 3 second countdown swaps the pets.
+	  Any change resets READY for both (so nobody can switch at the last second).
+]]
+local Players = game:GetService("Players")
+
+local Trade = { Title = "🤝 TRADE", Color = Color3.fromRGB(60, 190, 220) }
+
+function Trade.Build(content, ctx)
+	local Lib, State, Net, Config, Util = ctx.Lib, ctx.State, ctx.Net, ctx.Config, ctx.Util
+	local New, C, T = Lib.New, Lib.Colors, Lib.T
+	local player = Players.LocalPlayer
+
+	local status = Lib.Text({
+		Text = "",
+		Size = UDim2.new(1, 0, 0, 26),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		MaxTextSize = 20,
+		Parent = content,
+	})
+
+	-- picking a partner -------------------------------------------------------
+	local pickList = Lib.Scroll({ Position = UDim2.fromOffset(0, 34), Size = UDim2.new(1, 0, 1, -34), Parent = content })
+	Lib.List(Enum.FillDirection.Vertical, 8).Parent = pickList
+	Lib.Padding(4).Parent = pickList
+
+	-- trading ----------------------------------------------------------------
+	local tradeView = New("Frame", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(0, 34),
+		Size = UDim2.new(1, 0, 1, -34),
+		Visible = false,
+		Parent = content,
+	})
+	local function offerRow(y: number, title: string)
+		Lib.Text({
+			Text = title,
+			Size = UDim2.new(0, 130, 0, 30),
+			Position = UDim2.fromOffset(0, y + 14),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			MaxTextSize = 18,
+			Parent = tradeView,
+		})
+		local row = New("Frame", {
+			BackgroundColor3 = C.PanelLight,
+			Size = UDim2.new(1, -140, 0, 56),
+			Position = UDim2.fromOffset(136, y),
+			Parent = tradeView,
+		}, {
+			Lib.Corner(12),
+			Lib.Padding(6),
+			Lib.List(Enum.FillDirection.Horizontal, 6, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center),
+		})
+		return row
+	end
+	local myRow = offerRow(0, "You give")
+	local theirRow = offerRow(64, "You get")
+	local readyButton = Lib.Button({
+		Text = "✅ READY",
+		Color = C.Green,
+		Size = UDim2.fromOffset(170, 46),
+		Position = UDim2.fromOffset(136, 128),
+		TextSize = 20,
+		Parent = tradeView,
+	})
+	Lib.Button({
+		Text = "X Cancel",
+		Color = C.Red,
+		Size = UDim2.fromOffset(150, 46),
+		Position = UDim2.fromOffset(316, 128),
+		TextSize = 20,
+		Parent = tradeView,
+		OnClick = function()
+			Net.Fire("TradeCancel")
+		end,
+	})
+	local inventory = Lib.Scroll({ Position = UDim2.fromOffset(0, 184), Size = UDim2.new(1, 0, 1, -184), Parent = tradeView })
+	Lib.Grid(UDim2.fromOffset(118, 64), 6).Parent = inventory
+	Lib.Padding(4).Parent = inventory
+
+	local myReady = false
+	readyButton.Activated:Connect(function()
+		Net.Fire("TradeReady", not myReady)
+	end)
+
+	local function chip(parent: Instance, pet, order: number)
+		local info = Config.Pets[pet.Name]
+		local rarity = info and Config.Rarities[info.Rarity] or Config.Rarities.Common
+		local frame = New("Frame", {
+			BackgroundColor3 = C.Card,
+			Size = UDim2.fromOffset(110, 44),
+			LayoutOrder = order,
+			Parent = parent,
+		}, { Lib.Corner(10), Lib.Stroke(rarity.Color, 2.5, 0) })
+		Lib.Text({
+			Text = (if pet.Variant then T(pet.Variant) .. " " else "") .. T(pet.Name),
+			Size = UDim2.new(1, -8, 0, 22),
+			Position = UDim2.fromOffset(4, 2),
+			MaxTextSize = 14,
+			Parent = frame,
+		})
+		Lib.Text({
+			Text = "💰" .. Util.Format(Util.PetIncome(Config, pet.Name, pet.Variant)) .. "/s",
+			TextColor3 = C.Coins,
+			Size = UDim2.new(1, -8, 0, 16),
+			Position = UDim2.fromOffset(4, 24),
+			MaxTextSize = 12,
+			Parent = frame,
+		})
+		return frame
+	end
+
+	local function refresh()
+		local data = State.Data
+		local state = ctx.TradeUI and ctx.TradeUI.State
+		if not data then
+			return
+		end
+		if not state then
+			-- choose someone
+			pickList.Visible = true
+			tradeView.Visible = false
+			status.Text = T("Pick a player in this server to trade pets with")
+			Lib.Clear(pickList)
+			local count = 0
+			for _, other in Players:GetPlayers() do
+				if other ~= player then
+					count += 1
+					local row = New("Frame", {
+						BackgroundColor3 = C.Card,
+						Size = UDim2.new(1, -12, 0, 54),
+						LayoutOrder = count,
+						Parent = pickList,
+					}, { Lib.Corner(12) })
+					Lib.Text({
+						Text = other.DisplayName,
+						Size = UDim2.new(1, -190, 1, -10),
+						Position = UDim2.fromOffset(14, 5),
+						TextXAlignment = Enum.TextXAlignment.Left,
+						MaxTextSize = 22,
+						Parent = row,
+					})
+					Lib.Button({
+						Text = "🤝 Trade",
+						Color = C.Cyan,
+						Size = UDim2.fromOffset(150, 42),
+						Position = UDim2.new(1, -160, 0.5, 0),
+						AnchorPoint = Vector2.new(0, 0.5),
+						TextSize = 20,
+						Parent = row,
+						OnClick = function()
+							Net.Fire("TradeRequest", other.UserId)
+						end,
+					})
+				end
+			end
+			if count == 0 then
+				status.Text = T("Nobody else is in this server yet")
+			end
+			return
+		end
+
+		pickList.Visible = false
+		tradeView.Visible = true
+		myReady = state.MyReady == true
+		local text = T("Trading with %s", state.Partner)
+		if state.Countdown then
+			local left = math.max(0, math.ceil(state.Countdown - State.Now()))
+			text ..= "  •  " .. T("Swapping in %ds...", left)
+		elseif state.TheirReady then
+			text ..= "  •  " .. T("They are READY")
+		end
+		status.Text = text
+		Lib.SetButton(readyButton, if myReady then T("✅ READY!") else T("Press READY"), if myReady then C.Green else C.Gray)
+
+		for _, row in { myRow, theirRow } do
+			for _, child in row:GetChildren() do
+				if child:IsA("Frame") then
+					child:Destroy()
+				end
+			end
+		end
+		local offered = {}
+		for i, pet in state.Mine do
+			offered[pet.Id] = true
+			chip(myRow, pet, i)
+		end
+		for i, pet in state.Theirs do
+			chip(theirRow, pet, i)
+		end
+
+		-- my pets: tap to add / remove from the offer
+		Lib.Clear(inventory)
+		local pets = table.clone(data.Pets)
+		table.sort(pets, function(a, b)
+			return Util.PetIncome(Config, a.Name, a.Variant) > Util.PetIncome(Config, b.Name, b.Variant)
+		end)
+		for order, pet in pets do
+			if not pet.Away and Config.Pets[pet.Name] then
+				local card = chip(inventory, pet, order)
+				if offered[pet.Id] then
+					card.BackgroundColor3 = Color3.fromRGB(40, 90, 60)
+				end
+				local button = New("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Parent = card })
+				button.Activated:Connect(function()
+					local ids = {}
+					for _, mine in state.Mine do
+						if mine.Id ~= pet.Id then
+							table.insert(ids, mine.Id)
+						end
+					end
+					if not offered[pet.Id] then
+						if #ids >= 4 then
+							ctx.Toast(T("You can offer up to 4 pets"), C.Red)
+							return
+						end
+						table.insert(ids, pet.Id)
+					end
+					Net.Fire("TradeSetOffer", ids)
+				end)
+			end
+		end
+	end
+
+	return {
+		Refresh = refresh,
+		Tick = function()
+			local state = ctx.TradeUI and ctx.TradeUI.State
+			if state and state.Countdown then
+				refresh()
+			end
+		end,
+		OnOpen = function()
+			refresh()
+		end,
+	}
+end
+
+return Trade
+]]></string>
+              </Properties>
+            </Item>
           </Item>
-          <Item class="ModuleScript" referent="65">
+          <Item class="ModuleScript" referent="70">
             <Properties>
               <string name="Name">Root</string>
               <string name="Source"><![CDATA[--[[
@@ -17086,6 +18743,16 @@ Root.Gui = Lib.New("ScreenGui", {
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	IgnoreGuiInset = false,
 	DisplayOrder = 5,
+	Parent = player:WaitForChild("PlayerGui"),
+})
+
+-- panels (shop, pets ...) sit above the HUD with a dim backdrop
+Root.PanelGui = Lib.New("ScreenGui", {
+	Name = "MeteorMinersPanels",
+	ResetOnSpawn = false,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	IgnoreGuiInset = true,
+	DisplayOrder = 12,
 	Parent = player:WaitForChild("PlayerGui"),
 })
 
@@ -17142,7 +18809,7 @@ return Root
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="66">
+          <Item class="ModuleScript" referent="71">
             <Properties>
               <string name="Name">Upsell</string>
               <string name="Source"><![CDATA[--[[
@@ -17160,7 +18827,8 @@ local State = require(script.Parent.Parent.State)
 local New, C = Lib.New, Lib.Colors
 local Upsell = {}
 
-local cluster = Root.Cluster("Upsell", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(420, 300))
+-- above panels (upsells often open from a panel)
+local cluster = Root.Cluster("Upsell", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(420, 300), Root.Overlay)
 cluster.ZIndex = 50
 local frame = New("Frame", {
 	Size = UDim2.fromScale(1, 1),
@@ -17275,13 +18943,13 @@ return Upsell
       </Item>
     </Item>
   </Item>
-  <Item class="TextChatService" referent="67">
+  <Item class="TextChatService" referent="72">
     <Properties>
       <string name="Name">TextChatService</string>
       <token name="ChatVersion">1</token>
     </Properties>
   </Item>
-  <Item class="Workspace" referent="68">
+  <Item class="Workspace" referent="73">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>

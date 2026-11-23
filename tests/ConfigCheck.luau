@@ -87,6 +87,7 @@ end
 for name, pet in Config.Pets do
 	check(Config.Rarities[pet.Rarity] ~= nil, "pet " .. name .. " has unknown rarity " .. tostring(pet.Rarity))
 	check(type(pet.Power) == "number" and pet.Power > 0, "pet " .. name .. " needs Power > 0")
+	check(type(pet.Income) == "number" and pet.Income > 0, "pet " .. name .. " needs Income > 0")
 end
 
 -- zones & ores
@@ -196,8 +197,15 @@ end
 for _, def in Config.Events.List do
 	check(type(def.Id) == "string" and type(def.Name) == "string" and def.Description, "event needs Id/Name/Description")
 end
+local EVENT_IDS = {}
+for _, event in Config.Events.List do
+	EVENT_IDS[event.Id] = true
+end
 for _, def in Config.PetVariants do
-	check(def.Chance > 0 and def.Chance < 1 and def.PowerMult > 1, "bad pet variant " .. tostring(def.Id))
+	local chance = math.max(def.Chance or 0, def.EventChance or 0)
+	check(chance > 0 and chance < 1 and def.PowerMult > 1, "bad pet variant " .. tostring(def.Id))
+	check(type(def.IncomeMult) == "number" and def.IncomeMult > 1, "variant " .. tostring(def.Id) .. " needs IncomeMult > 1")
+	check(def.Event == nil or EVENT_IDS[def.Event], "variant " .. tostring(def.Id) .. " uses unknown event " .. tostring(def.Event))
 end
 for _, def in Config.LuckyOres do
 	check(def.Chance > 0 and def.Chance < 1 and def.ValueMult > 1, "bad lucky ore " .. tostring(def.Id))
@@ -255,6 +263,54 @@ check(math.abs(counts.Bunny / 20000 - 0.40) < 0.02, "WeightedPick distribution o
 
 -- tutorial: valid steps, and a brand-new player (0 coins) can always afford
 -- the pickaxe and the first egg from the step rewards alone (no dead end)
+-- egg shop: stock is deterministic, in range, and coin eggs pay back in minutes
+for _, zoneEgg in Config.Shards.ZoneEggs do
+	check(Config.Eggs[zoneEgg] ~= nil, "Shards.ZoneEggs has unknown egg " .. zoneEgg)
+end
+check(#Config.Shards.ZoneEggs == #Config.Zones, "Shards.ZoneEggs needs one egg per zone")
+for eggId, egg in Config.Eggs do
+	if egg.Stock then
+		check(egg.Currency == "Coins", "only coin eggs restock (" .. eggId .. ")")
+		local inStock, minSeen, maxSeen = 0, math.huge, 0
+		for slot = 5000000, 5000999 do
+			local stock = Util.EggStock(Config, eggId, slot)
+			check(stock == Util.EggStock(Config, eggId, slot), "stock not deterministic for " .. eggId)
+			if stock > 0 then
+				inStock += 1
+				minSeen = math.min(minSeen, stock)
+				maxSeen = math.max(maxSeen, stock)
+			end
+		end
+		local share = inStock / 1000
+		check(math.abs(share - egg.Stock.Chance) < 0.08, string.format("%s in stock %.2f vs Chance %.2f", eggId, share, egg.Stock.Chance))
+		check(minSeen >= egg.Stock.Min and maxSeen <= egg.Stock.Max, eggId .. " stock outside Min/Max")
+		-- expected income of one hatch vs price: payback should be a few minutes
+		local total, expected = 0, 0
+		for _, entry in egg.Pets do
+			total += entry[2]
+		end
+		for _, entry in egg.Pets do
+			expected += Config.Pets[entry[1]].Income * entry[2] / total
+		end
+		local payback = egg.Price / expected
+		check(payback > 60 and payback < 900, string.format("%s payback %.0fs is off (60-900s)", eggId, payback))
+		print(
+			string.format(
+				"Egg %-7s price %-9s EV income %8.1f/s  payback %4.0fs  in stock %2.0f%%",
+				eggId,
+				Util.Format(egg.Price),
+				expected,
+				payback,
+				share * 100
+			)
+		)
+	else
+		check(Util.EggStock(Config, eggId, 1) == nil, eggId .. " has no stock rule but returned stock")
+	end
+end
+check(Util.PetIncome(Config, "Fox", "Golden") > Util.PetIncome(Config, "Fox", nil), "golden pets must earn more")
+check(Util.ShopRestockIn(Config, 600) == Config.Shop.RestockSeconds, "restock timer wrong at slot start")
+
 local TUTORIAL_EVENTS = { Mine = true, Pickaxe = true, Hatch = true, Shard = true }
 for i, step in Config.Tutorial.Steps do
 	check(TUTORIAL_EVENTS[step.Id] == true, "tutorial step " .. i .. " has unknown Id " .. tostring(step.Id))

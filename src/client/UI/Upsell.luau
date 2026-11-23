@@ -13,7 +13,8 @@ local State = require(script.Parent.Parent.State)
 local New, C = Lib.New, Lib.Colors
 local Upsell = {}
 
-local cluster = Root.Cluster("Upsell", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(420, 300))
+-- above panels (upsells often open from a panel)
+local cluster = Root.Cluster("Upsell", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(420, 300), Root.Overlay)
 cluster.ZIndex = 50
 local frame = New("Frame", {
 	Size = UDim2.fromScale(1, 1),

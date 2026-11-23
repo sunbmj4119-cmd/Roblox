@@ -53,9 +53,11 @@ beam.Enabled = false
 beam.Parent = marker
 
 local billboard = Lib.New("BillboardGui", {
-	Size = UDim2.fromOffset(240, 70),
-	StudsOffsetWorldSpace = Vector3.new(0, 6, 0),
+	-- studs, not pixels: a small sign near you, never a giant banner over the HUD
+	Size = UDim2.new(9, 0, 2.6, 0),
+	StudsOffsetWorldSpace = Vector3.new(0, 5, 0),
 	AlwaysOnTop = true,
+	MaxDistance = 160,
 	Adornee = marker,
 	Enabled = false,
 	ResetOnSpawn = false,
@@ -65,7 +67,7 @@ local label = Lib.Text({
 	Text = "",
 	TextColor3 = Color3.fromRGB(255, 230, 120),
 	Size = UDim2.fromScale(1, 0.55),
-	MaxTextSize = 30,
+	MaxTextSize = 22,
 	Parent = billboard,
 })
 local arrow = Lib.Text({

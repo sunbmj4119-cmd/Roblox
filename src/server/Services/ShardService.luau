@@ -19,6 +19,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Util = require(Shared.Util)
 local ShardModel = require(Shared.ShardModel)
+local PetModel = require(Shared.PetModel)
 local Net = require(script.Parent.Net)
 
 local Shards = {}
@@ -58,6 +59,43 @@ local function rarityName(id: string): string
 	return if def then def.Name else id
 end
 
+--[[ carried / dropped items:
+	{ Kind = "Egg", Rarity = "Rare", Egg = "Meadow" }  -- a star egg (hatches at home)
+	{ Kind = "Pet", Name = "Fox", Variant = "Golden"? } -- a stolen pet ]]
+local function itemName(item): string
+	if item.Kind == "Pet" then
+		return item.Name -- plain species name: translates on every client
+	end
+	return rarityName(item.Rarity)
+end
+
+local function itemColor(item): Color3
+	if item.Kind == "Pet" then
+		local info = Config.Pets[item.Name]
+		local rarity = info and Config.Rarities[info.Rarity]
+		return if rarity then rarity.Color else Color3.new(1, 1, 1)
+	end
+	local def = SETTINGS.Rarities[item.Rarity]
+	return if def then def.Color else Color3.new(1, 1, 1)
+end
+
+-- 1..7: how valuable the item is (speed penalty, guardian, points)
+local function itemTier(item): number
+	if item.Kind == "Pet" then
+		local info = Config.Pets[item.Name]
+		local rarity = info and Config.Rarities[info.Rarity]
+		return if rarity then rarity.Order else 1
+	end
+	return Util.ShardIndex(Config, item.Rarity)
+end
+
+local function buildItemModel(item, scale: number): Model
+	if item.Kind == "Pet" then
+		return PetModel.Build(item.Name, item.Variant)
+	end
+	return ShardModel.Build(Config, item.Rarity, scale)
+end
+
 ---------------------------------------------------------------------------
 -- carrying
 ---------------------------------------------------------------------------
@@ -68,24 +106,35 @@ end
 -- walk speed multiplier while carrying (heavier = rarer = slower)
 function Shards:SpeedMult(player: Player): number
 	local info = carrying[player]
-	local def = info and SETTINGS.Rarities[info.Id]
-	if not def then
+	if not info then
 		return 1
 	end
-	local mult = def.Speed
+	local mult = 0.95 - itemTier(info.Item) * 0.045 -- 0.9 (common) .. 0.64 (secret)
 	if Services.MonetizationService:HasPass(player, "FastCarry") then
 		mult *= Config.PvP.CarrySpeedPass
 	end
 	return mult
 end
 
-local function attachModel(player: Player, id: string): Model?
+local function attachModel(player: Player, item): Model?
 	local root = rootOf(player)
 	if not root then
 		return nil
 	end
-	local model = ShardModel.Build(Config, id, 0.8)
+	local model = buildItemModel(item, 0.8)
 	model.Name = "CarriedShard"
+	-- weld every part to the main one so the whole model rides along
+	local primary = model.PrimaryPart :: BasePart
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d ~= primary then
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = primary
+			weld.Part1 = d
+			weld.Parent = d
+			d.Massless = true
+		end
+	end
+	primary.Massless = true
 	ShardModel.SetAnchored(model, false)
 	model:PivotTo(root.CFrame * CFrame.new(0, 5.2, 0))
 	local weld = Instance.new("WeldConstraint")
@@ -95,7 +144,7 @@ local function attachModel(player: Player, id: string): Model?
 	local highlight = Instance.new("Highlight")
 	highlight.Name = "CarrierGlow"
 	highlight.FillTransparency = 1
-	highlight.OutlineColor = SETTINGS.Rarities[id].Color
+	highlight.OutlineColor = itemColor(item)
 	highlight.OutlineTransparency = 0.1
 	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
 	highlight.Parent = model
@@ -112,37 +161,39 @@ local function endCarry(player: Player)
 		info.Model:Destroy()
 	end
 	player:SetAttribute("Carrying", nil)
+	player:SetAttribute("CarryTier", nil)
 	player:SetAttribute("CarryStolen", nil)
 	Services.CharacterService:ApplyWalkSpeed(player)
 	return info
 end
 
-function Shards:StartCarry(player: Player, id: string, meta)
-	if carrying[player] then
+function Shards:StartCarry(player: Player, item, meta)
+	if carrying[player] or type(item) ~= "table" then
 		return false
 	end
-	local model = attachModel(player, id)
+	local model = attachModel(player, item)
 	if not model then
 		return false
 	end
-	carrying[player] = { Id = id, Meta = meta or {}, Model = model }
-	player:SetAttribute("Carrying", id)
+	carrying[player] = { Item = item, Meta = meta or {}, Model = model }
+	player:SetAttribute("Carrying", itemName(item))
+	player:SetAttribute("CarryTier", itemTier(item))
 	player:SetAttribute("CarryStolen", meta ~= nil and meta.From ~= nil)
 	Services.CharacterService:ApplyWalkSpeed(player)
 	local fromName = if meta and meta.From then meta.From.DisplayName else nil
-	Net:Send(player, "CarryStart", id, fromName)
+	Net:Send(player, "CarryStart", itemName(item), fromName, itemTier(item))
 	return true
 end
 
--- the shard flies back to the base it was stolen from
+-- a stolen pet runs back to the base it was taken from
 local function returnHome(meta, message: boolean)
 	local owner = meta and meta.From
-	if not owner or not owner.Parent or not meta.Entry then
+	if not owner or not owner.Parent or not meta.PetId then
 		return
 	end
-	Services.BaseService:SetAway(owner, meta.Entry, false)
+	Services.BaseService:SetAway(owner, meta.PetId, false)
 	if message then
-		Net:Notify(owner, "🛡️ Your %s flew back home!", Color3.fromRGB(120, 230, 255), rarityName(meta.Entry.Id))
+		Net:Notify(owner, "🛡️ Your pet ran back home!", Color3.fromRGB(120, 230, 255))
 	end
 end
 
@@ -231,10 +282,9 @@ local function buildGuardian(color: Color3): (Model, BasePart)
 	return model, root
 end
 
-local function spawnGuardian(id: string, home: Vector3)
-	local def = SETTINGS.Rarities[id]
-	local index = Util.ShardIndex(Config, id)
-	local model, root = buildGuardian(def.Color)
+local function spawnGuardian(item, home: Vector3)
+	local index = itemTier(item)
+	local model, root = buildGuardian(itemColor(item))
 	local start = Vector3.new(home.X + 6, GUARDIAN_Y, home.Z)
 	model:PivotTo(CFrame.new(start))
 	model.Parent = World:Folder("Shards")
@@ -249,7 +299,7 @@ local function spawnGuardian(id: string, home: Vector3)
 		Target = nil,
 		ChaseUntil = 0,
 		StunnedUntil = 0,
-		ShardId = id,
+		Item = item,
 	}
 	guardians[model] = record
 	return record
@@ -293,10 +343,11 @@ function Shards:NearestGuardian(position: Vector3, range: number): Model?
 end
 
 -- opts: Beacon (bool), PriorityUser/PriorityUntil, BlockUser/BlockUntil, Lifetime
-function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
+function Shards:SpawnGround(item, position: Vector3, meta, opts)
 	opts = opts or {}
-	local def = SETTINGS.Rarities[id]
-	local model = ShardModel.Build(Config, id, 1.15)
+	local color = itemColor(item)
+	local model = buildItemModel(item, 1.15)
+	model.Name = if item.Kind == "Pet" then "Shard_Pet" else "Shard_" .. item.Rarity
 	ShardModel.SetAnchored(model, true)
 	model:PivotTo(CFrame.new(position + Vector3.new(0, 7.5, 0)))
 	model:SetAttribute("Spin", true)
@@ -313,13 +364,13 @@ function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 	hitbox.Parent = model
 
 	if opts.Beacon ~= false then
-		local index = Util.ShardIndex(Config, id)
+		local index = itemTier(item)
 		local beacon = Instance.new("Part")
 		beacon.Name = "Beacon"
 		beacon.Shape = Enum.PartType.Cylinder
 		beacon.Size = Vector3.new(180, 1 + index * 0.5, 1 + index * 0.5)
 		beacon.CFrame = CFrame.new(position + Vector3.new(0, 90, 0)) * CFrame.Angles(0, 0, math.rad(90))
-		beacon.Color = def.Color
+		beacon.Color = color
 		beacon.Material = Enum.Material.Neon
 		beacon.Transparency = 0.45
 		beacon.Anchored = true
@@ -342,8 +393,8 @@ function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 	text.Size = UDim2.fromScale(1, 1)
 	text.Font = Enum.Font.FredokaOne
 	text.TextScaled = true
-	text.TextColor3 = def.Color
-	World.SetText(text, if meta and meta.From then "⚠️ %s" else "🌠 %s", def.Name)
+	text.TextColor3 = color
+	World.SetText(text, if meta and meta.From then "⚠️ %s" else "🌠 %s", itemName(item))
 	local stroke = Instance.new("UIStroke")
 	stroke.Thickness = 2.5
 	stroke.Parent = text
@@ -352,7 +403,7 @@ function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 
 	model.Parent = World:Folder("Shards")
 	local record = {
-		Id = id,
+		Item = item,
 		Meta = meta,
 		PriorityUser = opts.PriorityUser,
 		PriorityUntil = opts.PriorityUntil or 0,
@@ -362,8 +413,8 @@ function Shards:SpawnGround(id: string, position: Vector3, meta, opts)
 	ground[model] = record
 	if opts.Guardian then
 		record.Guardian = opts.Guardian
-	elseif opts.WithGuardian and Util.ShardIndex(Config, id) >= GUARDIAN.MinRarity then
-		record.Guardian = spawnGuardian(id, position)
+	elseif opts.WithGuardian and itemTier(item) >= GUARDIAN.MinRarity then
+		record.Guardian = spawnGuardian(item, position)
 	end
 
 	hitbox.Touched:Connect(function(hit)
@@ -404,12 +455,12 @@ tryPickup = function(model: Model, record, hit: BasePart)
 		return
 	end
 	local meta = record.Meta
-	-- the owner of a stolen shard gets it back instantly
+	-- the owner of a stolen pet gets it back instantly
 	if meta and meta.From == player then
 		destroyGround(model)
-		Services.BaseService:SetAway(player, meta.Entry, false)
-		Net:Notify(player, "🛡️ You got your %s back!", Color3.fromRGB(120, 230, 255), rarityName(record.Id))
-		Net:Send(player, "ShardRecovered", record.Id)
+		Services.BaseService:SetAway(player, meta.PetId, false)
+		Net:Notify(player, "🛡️ You got your %s back!", Color3.fromRGB(120, 230, 255), itemName(record.Item))
+		Net:Send(player, "ShardRecovered", itemName(record.Item))
 		return
 	end
 	if not Services.BaseService:HasBase(player) then
@@ -417,7 +468,7 @@ tryPickup = function(model: Model, record, hit: BasePart)
 		return
 	end
 	destroyGround(model)
-	if Shards:StartCarry(player, record.Id, meta) and record.Guardian then
+	if Shards:StartCarry(player, record.Item, meta) and record.Guardian then
 		local guardian = record.Guardian
 		guardian.Target = player
 		guardian.ChaseUntil = os.clock() + GUARDIAN.ChaseSeconds
@@ -434,7 +485,7 @@ function Shards:Confiscate(player: Player, owner: Player): boolean
 	end
 	endCarry(player)
 	returnHome(info.Meta, false)
-	Net:Send(player, "CarryLost", info.Id, owner.DisplayName)
+	Net:Send(player, "CarryLost", itemName(info.Item), owner.DisplayName)
 	return true
 end
 
@@ -454,14 +505,14 @@ function Shards:Drop(player: Player, attacker: Player?)
 	local angle = rng:NextNumber(0, math.pi * 2)
 	local spot = Vector3.new(position.X + math.cos(angle) * 5, 0, position.Z + math.sin(angle) * 5)
 	local meta = if info.Meta and info.Meta.From then info.Meta else nil
-	self:SpawnGround(info.Id, spot, meta, {
+	self:SpawnGround(info.Item, spot, meta, {
 		Beacon = true,
 		BlockUser = player.UserId,
 		BlockUntil = now() + SETTINGS.RegrabDelay,
 	})
-	Net:Send(player, "CarryLost", info.Id, if attacker then attacker.DisplayName else nil)
+	Net:Send(player, "CarryLost", itemName(info.Item), if attacker then attacker.DisplayName else nil)
 	if attacker then
-		Net:Notify(attacker, "💥 %s dropped a %s - grab it!", Color3.fromRGB(255, 170, 80), player.DisplayName, rarityName(info.Id))
+		Net:Notify(attacker, "💥 %s dropped a %s - grab it!", Color3.fromRGB(255, 170, 80), player.DisplayName, itemName(info.Item))
 	end
 end
 
@@ -473,29 +524,47 @@ local function deliver(player: Player)
 	if not info then
 		return
 	end
-	local id = info.Id
+	local item = info.Item
 	local meta = info.Meta
 	local data = Data:Get(player)
-	if meta and meta.From then
-		local owner = meta.From
-		if owner.Parent and meta.Entry then
-			Services.BaseService:RemoveEntry(owner, meta.Entry)
-			Net:Notify(owner, "💔 %s stole your %s!", Color3.fromRGB(255, 90, 90), player.DisplayName, rarityName(id))
+	local tier = itemTier(item)
+	local pets = Services.PetService
+	if item.Kind == "Pet" then
+		-- a stolen pet: it leaves the owner's base and joins ours
+		local owner = meta and meta.From
+		local taken = owner and owner.Parent and meta.PetId and pets:TakePet(owner, meta.PetId)
+		if not taken then
+			Net:Notify(player, "The owner left - the pet vanished!")
+			return
 		end
+		pets:GivePet(player, taken.Name, taken.Variant)
+		local display = taken.Name
+		Net:Notify(owner, "💔 %s stole your %s!", Color3.fromRGB(255, 90, 90), player.DisplayName, display)
 		if data then
 			data.Stats.ShardsStolen += 1
 		end
 		Services.ProgressionService:AddQuest(player, "Steal", 1)
+		Services.Analytics:Custom(player, "PetStolen", tier)
+		Net:Send(player, "ShardDelivered", display, "Stolen", 0)
+		if tier >= 5 then
+			Net:Announce("🦹 %s stole a %s from %s!", itemColor(item), player.DisplayName, display, owner.DisplayName)
+		end
+	else
+		-- a star egg: it hatches right here
+		local def = SETTINGS.Rarities[item.Rarity]
+		local result = pets:HatchStarEgg(player, item.Egg, if def then def.Luck or 1 else 1)
+		if data then
+			data.Stats.ShardsDelivered = (data.Stats.ShardsDelivered or 0) + 1
+		end
+		Services.Analytics:Custom(player, "StarEggHatched", tier)
+		Net:Send(player, "ShardDelivered", rarityName(item.Rarity), "Hatched", 0, result and result.Name)
+		if tier >= 4 then
+			Net:Announce("🌟 %s brought a %s home!", itemColor(item), player.DisplayName, rarityName(item.Rarity))
+		end
 	end
-	local result, coins = Services.BaseService:AddShard(player, id)
 	Services.ProgressionService:AddQuest(player, "Shard", 1)
 	Services.ProgressionService:TutorialEvent(player, "Shard", 1)
-	local index = Util.ShardIndex(Config, id)
-	Services.ProgressionService:AddPoints(player, SETTINGS.Points[index] or 10)
-	Net:Send(player, "ShardDelivered", id, result, coins)
-	if index >= 4 then
-		Net:Announce("🌟 %s brought a %s home!", SETTINGS.Rarities[id].Color, player.DisplayName, rarityName(id))
-	end
+	Services.ProgressionService:AddPoints(player, SETTINGS.Points[math.clamp(tier, 1, #SETTINGS.Points)] or 10)
 end
 
 ---------------------------------------------------------------------------
@@ -527,10 +596,11 @@ function Shards:FallingStar(forcedZone: number?)
 	end
 	local luck = 1 + math.max(0, zone - 1) * SETTINGS.FallingStar.LuckPerZone
 	local id = Util.RollShard(Config, luck, rng)
+	local item = { Kind = "Egg", Rarity = id, Egg = SETTINGS.ZoneEggs[math.max(zone, 1)] or "Meadow" }
 	local flight = 1.8
 	Net:Broadcast("StarFall", position, id, flight)
 	task.delay(flight, function()
-		self:SpawnGround(id, position, nil, { Beacon = true, WithGuardian = true })
+		self:SpawnGround(item, position, nil, { Beacon = true, WithGuardian = true })
 		local where = if zone == 0 then "Hub" else Config.Zones[zone].Name
 		Net:Announce("🌠 A falling star crashed in %s! Grab the %s!", SETTINGS.Rarities[id].Color, where, rarityName(id))
 	end)
@@ -554,7 +624,7 @@ function Shards:TutorialStar(player: Player)
 		if not player.Parent then
 			return
 		end
-		tutorialStars[player] = self:SpawnGround("Rare", position, nil, {
+		tutorialStars[player] = self:SpawnGround({ Kind = "Egg", Rarity = "Rare", Egg = "Meadow" }, position, nil, {
 			Beacon = true,
 			PriorityUser = player.UserId,
 			PriorityUntil = now() + 300,
@@ -576,14 +646,15 @@ function Shards:SpillMeteor(position: Vector3, ranking)
 		if i == 1 and top then
 			-- the winner's prize: Epic or better, reserved for them for a moment
 			local id = Util.RollShard(Config, settings.Luck, rng, 3)
-			self:SpawnGround(id, spot, nil, {
+			self:SpawnGround({ Kind = "Egg", Rarity = id, Egg = "Cosmic" }, spot, nil, {
 				Beacon = true,
 				PriorityUser = top.UserId,
 				PriorityUntil = now() + settings.TopPriority,
 			})
 			Net:Notify(top, "🥇 Your %s prize shard is waiting - grab it!", Color3.fromRGB(255, 220, 90), rarityName(id))
 		else
-			self:SpawnGround(Util.RollShard(Config, settings.Luck, rng), spot, nil, { Beacon = true })
+			local id = Util.RollShard(Config, settings.Luck, rng)
+			self:SpawnGround({ Kind = "Egg", Rarity = id, Egg = "Cosmic" }, spot, nil, { Beacon = true })
 		end
 	end
 end
@@ -642,16 +713,16 @@ local function stepGuardians(dt: number)
 					local gap = ((root.Position - g.Position) * Vector3.new(1, 0, 1)).Magnitude
 					if gap <= GUARDIAN.CatchRange then
 						-- caught! the guardian takes the shard back to the crash site
-						local id = info.Id
+						local caughtItem = info.Item
 						endCarry(target)
 						Services.CharacterService:Stun(target, 1.2)
 						local push = (root.Position - g.Position) * Vector3.new(1, 0, 1)
 						push = if push.Magnitude > 0.01 then push.Unit else Vector3.zAxis
 						Net:Send(target, "Knockback", push * 45 + Vector3.new(0, 30, 0))
-						Net:Send(target, "CaughtByGuardian", id)
+						Net:Send(target, "CaughtByGuardian", itemName(caughtItem))
 						g.Target = nil
 						g.Done = false
-						Shards:SpawnGround(id, g.Home, nil, {
+						Shards:SpawnGround(caughtItem, g.Home, nil, {
 							Beacon = true,
 							Guardian = g,
 							BlockUser = target.UserId,
@@ -769,7 +840,8 @@ function Shards:Start()
 		task.wait(25)
 		while true do
 			local star = SETTINGS.FallingStar
-			task.wait(rng:NextNumber(star.MinInterval, star.MaxInterval))
+			local mult = math.max(1, Services.EventService:Get("StarMult", 1))
+			task.wait(rng:NextNumber(star.MinInterval, star.MaxInterval) / mult)
 			if #Players:GetPlayers() > 0 then
 				local ok, err = pcall(self.FallingStar, self)
 				if not ok then

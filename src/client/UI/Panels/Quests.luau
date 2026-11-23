@@ -249,7 +249,7 @@ function Quests.Build(content, ctx)
 				row.Text.Text = T(def.Text)
 				row.SetBar(quest.Progress / def.Target, string.format("%d / %d", quest.Progress, def.Target))
 				if quest.Claimed then
-					Lib.SetButton(row.Button, "✔ DONE", C.Gray)
+					Lib.SetButton(row.Button, "✅ DONE", C.Gray)
 				elseif quest.Progress >= def.Target then
 					Lib.SetButton(row.Button, T("CLAIM %s", Util.RewardText(def.Reward, T)), C.Green)
 				else
@@ -282,14 +282,14 @@ function Quests.Build(content, ctx)
 		-- perks
 		if State.HasPass("VIP") then
 			local claimed = data.Daily.VipChestDay == today
-			Lib.SetButton(vipButton, if claimed then "👑 VIP chest ✔" else "👑 VIP chest 100💎", if claimed then C.Gray else C.Gold)
+			Lib.SetButton(vipButton, if claimed then "👑 VIP chest ✅" else "👑 VIP chest 100💎", if claimed then C.Gray else C.Gold)
 		else
 			Lib.SetButton(vipButton, "👑 VIP: daily 100💎", C.Gold)
 		end
 		groupButton.Visible = Config.GroupId ~= 0
 		Lib.SetButton(
 			groupButton,
-			if data.Flags.GroupReward then "👥 Group bonus +10% ✔" else T("👥 Join group: %s💎", Config.Social.GroupJoinGems),
+			if data.Flags.GroupReward then "👥 Group bonus +10% ✅" else T("👥 Join group: %s💎", Config.Social.GroupJoinGems),
 			if data.Flags.GroupReward then C.Gray else C.Blue
 		)
 		premiumButton.Visible = not derived.Premium

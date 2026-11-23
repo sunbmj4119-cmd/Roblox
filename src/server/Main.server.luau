@@ -5,6 +5,7 @@
 local servicesFolder = script.Parent:WaitForChild("Services")
 
 local ORDER = {
+	"Analytics",
 	"DataService",
 	"StatsService",
 	"MonetizationService",
@@ -17,6 +18,7 @@ local ORDER = {
 	"MiningService",
 	"BaseService",
 	"ShardService",
+	"TradeService",
 	"MeteorService",
 	"ProgressionService",
 	"LeaderboardService",

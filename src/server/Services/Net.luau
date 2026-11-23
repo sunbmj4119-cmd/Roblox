@@ -55,9 +55,18 @@ function Net:OnRequest(name: string, minInterval: number, handler)
 end
 
 function Net:Send(player: Player, kind: string, ...)
-	if player and player.Parent then
+	-- (cloud tests use stand-in players: only real Players get remote messages)
+	if player and typeof(player) == "Instance" and player.Parent then
 		messageRemote:FireClient(player, kind, ...)
 	end
+end
+
+-- cloud tests only: run an action / request handler directly (never on live servers)
+function Net:CallForTest(name: string, player: any, ...)
+	assert(not game:GetService("RunService"):IsRunning(), "test hook used on a live server")
+	local handler = requestHandlers[name] or actionHandlers[name]
+	assert(handler, "no handler " .. name)
+	return handler.Fn(player, ...)
 end
 
 function Net:Broadcast(kind: string, ...)

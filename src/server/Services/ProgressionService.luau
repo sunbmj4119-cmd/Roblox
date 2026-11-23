@@ -99,6 +99,7 @@ function Progression:TutorialEvent(player: Player, id: string, amount: number?)
 		return
 	end
 	self:GrantReward(player, step.Reward, nil, true)
+	Services.Analytics:Funnel(player, tutorial.Step + 1, step.Id)
 	tutorial.Step += 1
 	tutorial.Progress = 0
 	if tutorial.Step > #steps then
@@ -304,6 +305,9 @@ function Progression:Start()
 		sessionStart[player] = os.time()
 		giftsClaimed[player] = {}
 		player:SetAttribute("Lang", data.Settings.Lang)
+		if not data.Tutorial.Done and data.Tutorial.Step == 1 and data.Tutorial.Progress == 0 then
+			Services.Analytics:Funnel(player, 1, "Joined")
+		end
 		-- veterans who already did everything skip the tutorial
 		if not data.Tutorial.Done and data.Stats.EggsHatched > 0 and data.PickaxeTier > 1 then
 			data.Tutorial.Done = true
@@ -502,6 +506,14 @@ function Progression:Start()
 		end
 		Data:MarkDirty(player)
 		return { Index = index, Text = self:RewardText(player, entry.Reward) }
+	end)
+
+	Net:On("SeenHowTo", 5, function(player)
+		local data = Data:Get(player)
+		if data and not data.Flags.HowToSeen then
+			data.Flags.HowToSeen = true
+			Data:MarkDirty(player)
+		end
 	end)
 
 	Net:On("SetLanguage", 1, function(player, lang)

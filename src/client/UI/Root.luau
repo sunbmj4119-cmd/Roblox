@@ -18,6 +18,16 @@ Root.Gui = Lib.New("ScreenGui", {
 	Parent = player:WaitForChild("PlayerGui"),
 })
 
+-- panels (shop, pets ...) sit above the HUD with a dim backdrop
+Root.PanelGui = Lib.New("ScreenGui", {
+	Name = "MeteorMinersPanels",
+	ResetOnSpawn = false,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	IgnoreGuiInset = true,
+	DisplayOrder = 12,
+	Parent = player:WaitForChild("PlayerGui"),
+})
+
 Root.Overlay = Lib.New("ScreenGui", {
 	Name = "MeteorMinersOverlay",
 	ResetOnSpawn = false,

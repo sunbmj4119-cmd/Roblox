@@ -1,5 +1,7 @@
--- Egg shop: shows exact odds (incl. your luck) BEFORE buying - required for
--- paid random items and good for trust. Golden Egg is hidden where restricted.
+-- Egg shop: shows exact odds (incl. your luck) and what each pet earns
+-- BEFORE buying - required for paid random items and good for trust.
+-- Coin eggs restock every 5 minutes (stock + countdown shown here).
+-- Golden Egg is hidden where restricted.
 local Egg = { Title = "🥚 EGG", Color = Color3.fromRGB(255, 200, 70) }
 
 local CURRENCY_ICON = { Coins = "💰", Gems = "💎", Stardust = "✨" }
@@ -136,9 +138,9 @@ function Egg.Build(content, ctx)
 			local chance =
 				Lib.Text({ Text = "", Size = UDim2.new(1, -8, 0, 22), Position = UDim2.fromOffset(4, 48), MaxTextSize = 20, Parent = card })
 			Lib.Text({
-				Text = "💥 +" .. Util.Format(pet.Power) .. "x",
+				Text = "💰" .. Util.Format(pet.Income) .. "/s",
 				Font = Lib.BodyFont,
-				TextColor3 = C.Sub,
+				TextColor3 = C.Coins,
 				Size = UDim2.new(1, -8, 0, 18),
 				Position = UDim2.fromOffset(4, 72),
 				MaxTextSize = 14,
@@ -170,7 +172,7 @@ function Egg.Build(content, ctx)
 		for petName, card in cards do
 			card.Chance.Text = Util.FormatPercent(odds[petName] or 0)
 			local discovered = data.PetIndex[petName] == true
-			card.Name.Text = (if discovered then "✔ " else "") .. T(petName)
+			card.Name.Text = (if discovered then "✅ " else "") .. T(petName)
 		end
 
 		local luckText = T("🍀 Your luck: x%s", string.format("%.2f", luck))
@@ -200,15 +202,42 @@ function Egg.Build(content, ctx)
 			single.Visible = true
 			triple.Visible = true
 			local balance = data[egg.Currency] or 0
-			Lib.SetButton(
-				single,
-				if locked then "🔒 Unlock zone" else T("Hatch 1  %s", icon .. Util.Format(egg.Price)),
-				if balance >= egg.Price then C.Green else C.Red
-			)
+			-- restocking eggs: how many are left for us + time to the next restock
+			local now = State.Now()
+			local slot = Util.ShopSlot(Config, now)
+			local stock = Util.EggStock(Config, eggId, slot)
+			local left = nil
+			if stock then
+				local shop = data.Shop
+				local bought = if shop and shop.Slot == slot then (shop.Bought[eggId] or 0) else 0
+				left = math.max(0, stock - bought)
+				local wait = Util.FormatTime(Util.ShopRestockIn(Config, now))
+				luckLabel.Text = luckLabel.Text .. "  •  " .. T("📦 %d left  •  🔄 new stock in %s", left, wait)
+			end
+			if left == 0 then
+				Lib.SetButton(single, T("SOLD OUT  •  %s", Util.FormatTime(Util.ShopRestockIn(Config, now))), C.Gray)
+			else
+				Lib.SetButton(
+					single,
+					if locked then "🔒 Unlock zone" else T("Hatch 1  %s", icon .. Util.Format(egg.Price)),
+					if balance >= egg.Price then C.Green else C.Red
+				)
+			end
 			local tripleText = if State.HasPass("TripleHatch") then T("Hatch 3  %s", icon .. Util.Format(egg.Price * 3)) else "🔒 Hatch 3"
 			Lib.SetButton(triple, tripleText, C.Purple)
 		end
 	end
+
+	-- tick the restock countdown while the panel is open
+	task.spawn(function()
+		while content.Parent do
+			task.wait(1)
+			local window = content.Parent
+			if window and window:IsA("GuiObject") and window.Visible and Config.Eggs[eggId].Stock then
+				refresh()
+			end
+		end
+	end)
 
 	return {
 		OnOpen = function(arg)

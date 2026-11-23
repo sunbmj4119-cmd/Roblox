@@ -16,7 +16,19 @@ Panels.CurrentArg = nil
 local New = Lib.New
 local C = Lib.Colors
 
-local cluster = Root.Cluster("Panels", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(700, 500))
+-- dim backdrop: the HUD stays visible but clearly behind the panel; tap it to close
+local backdrop = New("TextButton", {
+	Name = "Backdrop",
+	Text = "",
+	AutoButtonColor = false,
+	BackgroundColor3 = Color3.new(0, 0, 0),
+	BackgroundTransparency = 0.45,
+	Size = UDim2.fromScale(1, 1),
+	Visible = false,
+	ZIndex = 0,
+	Parent = Root.PanelGui,
+})
+local cluster = Root.Cluster("Panels", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.52), UDim2.fromOffset(700, 500), Root.PanelGui)
 local registry = {}
 local opened = {} -- [name] = { Window, Api }
 
@@ -74,7 +86,7 @@ local function makeWindow(name: string, def)
 	})
 	Lib.Button({
 		Name = "Close",
-		Text = "✕",
+		Text = "X",
 		Color = C.Red,
 		Size = UDim2.fromOffset(46, 46),
 		Position = UDim2.new(1, -54, 0, 6),
@@ -129,6 +141,7 @@ function Panels.Open(name: string, arg: any?)
 	end
 	Panels.Current = name
 	Panels.CurrentArg = arg
+	backdrop.Visible = true
 	entry.Window.Visible = true
 	Lib.Pop(entry.Window)
 	for _, hook in { "OnOpen", "Refresh" } do
@@ -160,6 +173,7 @@ function Panels.Close()
 	end
 	Panels.Current = nil
 	Panels.CurrentArg = nil
+	backdrop.Visible = false
 end
 
 function Panels.Toggle(name: string, arg: any?)
@@ -180,6 +194,10 @@ function Panels.RefreshCurrent()
 		end
 	end
 end
+
+backdrop.Activated:Connect(function()
+	Panels.Close()
+end)
 
 State.OnChanged(Panels.RefreshCurrent)
 task.spawn(function()

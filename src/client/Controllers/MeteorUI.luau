@@ -23,26 +23,27 @@ local player = Players.LocalPlayer
 local MeteorUI = {}
 
 -- countdown pill ---------------------------------------------------------
-local top = Root.Cluster("Meteor", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8), UDim2.fromOffset(470, 48))
+local top = Root.Cluster("Meteor", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8), UDim2.fromOffset(380, 44))
 local pill = New("Frame", {
 	BackgroundColor3 = Color3.fromRGB(20, 22, 34),
-	BackgroundTransparency = 0.1,
-	Size = UDim2.fromOffset(340, 46),
+	BackgroundTransparency = 0.15,
+	Size = UDim2.fromOffset(250, 40),
+	Position = UDim2.fromOffset(0, 2),
 	Parent = top,
-}, { Lib.Corner(23), Lib.Stroke(Color3.fromRGB(255, 150, 60), 2.5, 0) })
+}, { Lib.Corner(20), Lib.Stroke(Color3.fromRGB(255, 150, 60), 2, 0) })
 local pillText = Lib.Text({
 	Text = "☄️ Meteor",
 	TextColor3 = Color3.fromRGB(255, 190, 120),
-	Size = UDim2.new(1, -20, 1, -10),
-	Position = UDim2.fromOffset(10, 5),
-	MaxTextSize = 24,
+	Size = UDim2.new(1, -16, 1, -8),
+	Position = UDim2.fromOffset(8, 4),
+	MaxTextSize = 20,
 	Parent = pill,
 })
 local goButton = Lib.Button({
 	Text = "GO ☄️",
 	Color = Color3.fromRGB(255, 120, 40),
-	Size = UDim2.fromOffset(116, 44),
-	Position = UDim2.fromOffset(350, 1),
+	Size = UDim2.fromOffset(120, 42),
+	Position = UDim2.fromOffset(258, 1),
 	Parent = top,
 	OnClick = function()
 		Net.Fire("GoToMeteor")
@@ -50,10 +51,10 @@ local goButton = Lib.Button({
 })
 goButton.Visible = false
 local summonButton = Lib.Button({
-	Text = "☄️ Summon",
+	Text = "☄️+",
 	Color = Color3.fromRGB(150, 80, 40),
-	Size = UDim2.fromOffset(116, 44),
-	Position = UDim2.fromOffset(350, 1),
+	Size = UDim2.fromOffset(56, 42),
+	Position = UDim2.fromOffset(258, 1),
 	TextSize = 18,
 	Parent = top,
 	OnClick = function()
@@ -131,7 +132,8 @@ Net.On("MeteorRank", function(list, myPlace, myScore)
 end)
 
 -- result popup ---------------------------------------------------------------
-local resultCluster = Root.Cluster("MeteorResult", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.42), UDim2.fromOffset(460, 220))
+local resultCluster =
+	Root.Cluster("MeteorResult", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.42), UDim2.fromOffset(460, 220), Root.Overlay)
 local result = New("Frame", {
 	BackgroundColor3 = C.Panel,
 	Size = UDim2.fromScale(1, 1),

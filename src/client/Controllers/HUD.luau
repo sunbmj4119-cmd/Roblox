@@ -33,7 +33,7 @@ local DARK = Color3.fromRGB(20, 22, 34)
 ---------------------------------------------------------------------------
 -- toasts & announcements
 ---------------------------------------------------------------------------
-local toastCluster = Root.Cluster("Toasts", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 168), UDim2.fromOffset(520, 220))
+local toastCluster = Root.Cluster("Toasts", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 168), UDim2.fromOffset(520, 220), Root.Overlay)
 toastCluster.ZIndex = 40
 Lib.List(Enum.FillDirection.Vertical, 6).Parent = toastCluster
 
@@ -451,12 +451,35 @@ local function nextGoal(data, derived): string
 	if player:GetAttribute("Carrying") then
 		return T("Run to your base 🏠 before someone bonks you!")
 	end
-	local base = data.Base
-	if base and #base.Shards == 0 then
-		return T("Grab a falling star 🌠 and carry it to your base 🏠")
+	local pets = #data.Pets
+	if pets == 0 then
+		return T("Hatch your first pet at the 🥚 egg stand - it earns 💰 in your base!")
 	end
-	if base and (player:GetAttribute("BaseBank") or 0) >= math.max(100, data.Coins * 0.25) then
-		return T("Collect 💰%s at your base 🏠", Util.Format(player:GetAttribute("BaseBank") or 0))
+	-- a star on the ground we can reach?
+	local map = workspace:FindFirstChild("Map")
+	local stars = map and map:FindFirstChild("Shards")
+	if stars then
+		for _, model in stars:GetChildren() do
+			local hitbox = model:FindFirstChild("Hitbox")
+			local zone = hitbox and hitbox:IsA("BasePart") and Util.ZoneAt(Config, hitbox.Position)
+			if zone and zone <= data.ZoneLevel and model:GetAttribute("Stolen") ~= true then
+				return T("Grab the falling star 🌠 - carry it home and it hatches!")
+			end
+		end
+	end
+	local bank = player:GetAttribute("BaseBank") or 0
+	if bank >= math.max(100, data.Coins * 0.25) then
+		return T("Collect 💰%s at your base 🏠", Util.Format(bank))
+	end
+	local pedestals = 0
+	for _, item in data.Base and data.Base.Items or {} do
+		local def = Config.Decor[item.Id]
+		if def and def.Function == "Pedestal" then
+			pedestals += 1
+		end
+	end
+	if pets < pedestals and data.Coins >= Config.Eggs.Meadow.Price then
+		return T("You have empty pedestals - hatch more pets 🥚")
 	end
 	local pick = Config.Pickaxes[data.PickaxeTier + 1]
 	local zone = Config.Zones[data.ZoneLevel + 1]
@@ -671,7 +694,7 @@ function HUD.Refresh()
 
 	-- bottom buttons only after the tutorial
 	local done = tutorialDone(data)
-	autoButton.Visible = done
+	autoButton.Visible = done and State.HasPass("AutoMine")
 	if State.HasPass("AutoMine") then
 		Lib.SetButton(autoButton, if State.AutoMine then "🤖 AUTO: ON" else "🤖 AUTO: OFF", if State.AutoMine then C.Green else C.Gray)
 	else
@@ -741,7 +764,7 @@ local function confetti()
 	end
 end
 
-local celebration = Root.Cluster("Celebration", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.36), UDim2.fromOffset(560, 120))
+local celebration = Root.Cluster("Celebration", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.36), UDim2.fromOffset(560, 120), Root.Overlay)
 local celebrationTitle =
 	Lib.Text({ Text = "", TextColor3 = C.Gold, Size = UDim2.fromScale(1, 0.62), MaxTextSize = 60, Visible = false, Parent = celebration })
 local celebrationSub = Lib.Text({
@@ -788,6 +811,18 @@ Net.On("Reward", function(text, source)
 	HUD.Toast("🎁 " .. (if source then source .. ": " else "") .. text, C.Gold)
 	Lib.PlaySound("Reward")
 end)
+-- coins granted all at once (coin crate purchase)
+Net.On("Sold", function(coins)
+	Lib.PlaySound("Coin")
+	flyCoins(coins)
+end)
+-- egg shops restocked (the banner comes from the server announcement)
+Net.On("Restock", function()
+	Lib.PlaySound("Event", 0.6)
+	if Panels.Current == "Egg" then
+		Panels.RefreshCurrent()
+	end
+end)
 Net.On("LevelUp", function(level, gems)
 	Lib.PlaySound("LevelUp")
 	celebrate(T("⭐ LEVEL %s!", tostring(level)), T("+%s 💎  •  +2%% coins forever", tostring(gems)), C.Gold)
@@ -821,7 +856,7 @@ Net.On("OpenPanel", function(panel, arg)
 	if panel == "Daily" then
 		local data = State.Data
 		if data and tutorialDone(data) then
-			Panels.Open("Quests")
+			HUD.Toast(T("🎁 Your daily reward is ready - tap 🎁 Rewards!"), C.Gold)
 		end
 	else
 		Panels.Open(panel, arg)

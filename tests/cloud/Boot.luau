@@ -12,9 +12,24 @@ end
 -- boot (same order as Main.server.luau)
 local folder = ServerScriptService.Server.Services
 local ORDER = {
-	"DataService", "StatsService", "MonetizationService", "BoostService", "EventService", "WorldService",
-	"CharacterService", "EconomyService", "PetService", "MiningService", "BaseService", "ShardService",
-	"MeteorService", "ProgressionService", "LeaderboardService", "DevService",
+	"Analytics",
+	"DataService",
+	"StatsService",
+	"MonetizationService",
+	"BoostService",
+	"EventService",
+	"WorldService",
+	"CharacterService",
+	"EconomyService",
+	"PetService",
+	"MiningService",
+	"BaseService",
+	"ShardService",
+	"TradeService",
+	"MeteorService",
+	"ProgressionService",
+	"LeaderboardService",
+	"DevService",
 }
 local Services = {}
 for _, name in ORDER do
@@ -115,7 +130,7 @@ end
 local shards = Services.ShardService
 local spot = Vector3.new(-30, 0, 10)
 local ok, err = pcall(function()
-	shards:SpawnGround("Epic", spot, nil, { Beacon = true, WithGuardian = true })
+	shards:SpawnGround({ Kind = "Egg", Rarity = "Epic", Egg = "Meadow" }, spot, nil, { Beacon = true, WithGuardian = true })
 end)
 if not ok then
 	fail("spawn star: " .. tostring(err))

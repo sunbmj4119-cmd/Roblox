@@ -57,6 +57,7 @@ local TEMPLATE = {
 		LikedBy = {}, -- ["userId"] = day number
 	},
 	SpeedTier = 1,
+	Shop = { Slot = 0, Bought = {} }, -- egg restock purchases (per 5-min restock)
 	Pets = {}, -- { { Id = 1, Name = "Bunny", Variant = "Golden"? }, ... }
 	Equipped = {}, -- { petId, ... }
 	NextPetUid = 1,
@@ -81,7 +82,7 @@ local TEMPLATE = {
 	Daily = { Day = 0, Quests = {}, Streak = 0, LastClaimDay = 0, VipChestDay = 0, ClubDay = 0 },
 	Season = { Id = 0, XP = 0, Premium = false, ClaimedFree = {}, ClaimedPremium = {} },
 	Weekly = { Week = 0, Points = 0 },
-	Flags = { StarterPack = false, GroupReward = false },
+	Flags = { StarterPack = false, GroupReward = false, HowToSeen = false },
 	Receipts = {},
 	FirstJoin = 0,
 	LastAdTime = 0,
@@ -334,6 +335,21 @@ function DataService:OnLoaded(callback)
 	for player, profile in profiles do
 		task.spawn(callback, player, profile.Data)
 	end
+end
+
+-- cloud tests only: load a stand-in player's data (no DataStore, never on live servers)
+function DataService:InjectForTest(player: any, data)
+	assert(not RunService:IsRunning(), "test hook used on a live server")
+	Util.Reconcile(data, TEMPLATE)
+	profiles[player] = { Data = data, CanSave = false, Dirty = true, Saving = false, Released = false, SessionId = "test" }
+	local errors = {}
+	for _, callback in loadedCallbacks do
+		local ok, err = pcall(callback, player, data)
+		if not ok then
+			table.insert(errors, tostring(err))
+		end
+	end
+	return errors
 end
 
 function DataService:OnLeaving(callback)
