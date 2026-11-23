@@ -113,12 +113,39 @@ function Trade.Build(content, ctx)
 		return frame
 	end
 
+	local signature = ""
 	local function refresh()
 		local data = State.Data
 		local state = ctx.TradeUI and ctx.TradeUI.State
 		if not data then
 			return
 		end
+		-- only rebuild when something on screen changes (no lost taps mid-press)
+		local parts = {}
+		if state then
+			for _, list in { state.Mine, state.Theirs } do
+				for _, pet in list do
+					table.insert(parts, tostring(pet.Id))
+				end
+				table.insert(parts, "|")
+			end
+			table.insert(parts, tostring(state.MyReady) .. tostring(state.TheirReady) .. tostring(state.Countdown))
+			if state.Countdown then
+				table.insert(parts, tostring(math.ceil(state.Countdown - State.Now())))
+			end
+			for _, pet in data.Pets do
+				table.insert(parts, pet.Id .. (if pet.Away then "!" else ""))
+			end
+		else
+			for _, other in Players:GetPlayers() do
+				table.insert(parts, tostring(other.UserId))
+			end
+		end
+		local sig = (if state then "T" else "P") .. table.concat(parts, ",")
+		if sig == signature then
+			return
+		end
+		signature = sig
 		if not state then
 			-- choose someone
 			pickList.Visible = true
@@ -224,6 +251,14 @@ function Trade.Build(content, ctx)
 			end
 		end
 	end
+
+	-- keep the partner list fresh while the panel is open
+	Players.PlayerAdded:Connect(function()
+		refresh()
+	end)
+	Players.PlayerRemoving:Connect(function()
+		task.defer(refresh)
+	end)
 
 	return {
 		Refresh = refresh,

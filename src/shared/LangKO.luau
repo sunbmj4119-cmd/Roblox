@@ -815,4 +815,5 @@ return {
 	["Trade cancelled - a pet is no longer available."] = "거래 취소 - 펫을 더 이상 쓸 수 없어요.",
 	["Trade cancelled - not enough pet storage."] = "거래 취소 - 펫 보관함이 부족해요.",
 	["The other player left."] = "상대가 나갔어요.",
+	["Pet storage full - sold your weakest %s for 💰%s"] = "펫 보관함이 가득 차서 가장 약한 %s을(를) 💰%s에 팔았어요",
 }

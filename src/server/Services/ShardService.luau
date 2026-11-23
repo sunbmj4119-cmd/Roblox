@@ -467,8 +467,15 @@ tryPickup = function(model: Model, record, hit: BasePart)
 		Net:Notify(player, "All bases are taken - you'll get one when someone leaves.")
 		return
 	end
+	-- start carrying first; only then remove it from the ground (if carrying
+	-- fails, e.g. no character yet, the item simply stays where it is)
+	ground[model] = nil
+	if not Shards:StartCarry(player, record.Item, meta) then
+		ground[model] = record
+		return
+	end
 	destroyGround(model)
-	if Shards:StartCarry(player, record.Item, meta) and record.Guardian then
+	if record.Guardian then
 		local guardian = record.Guardian
 		guardian.Target = player
 		guardian.ChaseUntil = os.clock() + GUARDIAN.ChaseSeconds
@@ -538,6 +545,9 @@ local function deliver(player: Player)
 			return
 		end
 		pets:GivePet(player, taken.Name, taken.Variant)
+		-- save both right away so a crash can't leave the pet in two places
+		task.spawn(Data.Save, Data, owner)
+		task.spawn(Data.Save, Data, player)
 		local display = taken.Name
 		Net:Notify(owner, "💔 %s stole your %s!", Color3.fromRGB(255, 90, 90), player.DisplayName, display)
 		if data then

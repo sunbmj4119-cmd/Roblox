@@ -2478,6 +2478,7 @@ return {
 	["Trade cancelled - a pet is no longer available."] = "거래 취소 - 펫을 더 이상 쓸 수 없어요.",
 	["Trade cancelled - not enough pet storage."] = "거래 취소 - 펫 보관함이 부족해요.",
 	["The other player left."] = "상대가 나갔어요.",
+	["Pet storage full - sold your weakest %s for 💰%s"] = "펫 보관함이 가득 차서 가장 약한 %s을(를) 💰%s에 팔았어요",
 }
 ]]></string>
         </Properties>
@@ -7817,6 +7818,7 @@ end
 -- inventory full: keep the better of (new pet, weakest pet) and sell the other.
 -- Returns true when the new pet may be added, plus coins paid for a sold pet.
 local function makeRoom(player: Player, data, name: string, variant: string?): (boolean, number)
+	data.PetIndex[name] = true -- discovered, even if it gets sold right away
 	if #data.Pets < Config.MaxPets then
 		return true, 0
 	end
@@ -7830,10 +7832,19 @@ local function makeRoom(player: Player, data, name: string, variant: string?): (
 		local coins = PetService:SellValue(weakest.Name, weakest.Variant)
 		table.remove(data.Pets, weakestIndex)
 		data.Coins += coins
+		data.Stats.LifetimeCoins += coins
+		Net:Notify(
+			player,
+			"Pet storage full - sold your weakest %s for 💰%s",
+			Color3.fromRGB(255, 220, 120),
+			weakest.Name,
+			Util.Format(coins)
+		)
 		return true, coins
 	end
 	local coins = PetService:SellValue(name, variant)
 	data.Coins += coins
+	data.Stats.LifetimeCoins += coins
 	Net:Notify(player, "Pet storage full - sold the new %s for 💰%s", Color3.fromRGB(255, 220, 120), name, Util.Format(coins))
 	return false, coins
 end
@@ -8000,11 +8011,14 @@ local function migrate(player: Player, data)
 	if type(shards) ~= "table" or #shards == 0 then
 		return
 	end
+	-- same rules as a star egg carried home: the player's zone egg, luck by rarity
+	local zoneEgg = Config.Shards.ZoneEggs[math.clamp(data.ZoneLevel, 1, #Config.Shards.ZoneEggs)] or "Meadow"
+	local pool = Config.Eggs[zoneEgg].Pets
 	for _, entry in shards do
 		local rarity = Config.Shards.Rarities[entry.Id]
 		local luck = if rarity then rarity.Luck or 1 else 1
-		local name = Util.WeightedPick(Config.Eggs.Meadow.Pets, luckFn(luck))
-		if #data.Pets < Config.MaxPets then
+		local name = Util.WeightedPick(pool, luckFn(luck))
+		if makeRoom(player, data, name, nil) then
 			addPet(data, name, nil)
 		end
 	end
@@ -9125,8 +9139,15 @@ tryPickup = function(model: Model, record, hit: BasePart)
 		Net:Notify(player, "All bases are taken - you'll get one when someone leaves.")
 		return
 	end
+	-- start carrying first; only then remove it from the ground (if carrying
+	-- fails, e.g. no character yet, the item simply stays where it is)
+	ground[model] = nil
+	if not Shards:StartCarry(player, record.Item, meta) then
+		ground[model] = record
+		return
+	end
 	destroyGround(model)
-	if Shards:StartCarry(player, record.Item, meta) and record.Guardian then
+	if record.Guardian then
 		local guardian = record.Guardian
 		guardian.Target = player
 		guardian.ChaseUntil = os.clock() + GUARDIAN.ChaseSeconds
@@ -9196,6 +9217,9 @@ local function deliver(player: Player)
 			return
 		end
 		pets:GivePet(player, taken.Name, taken.Variant)
+		-- save both right away so a crash can't leave the pet in two places
+		task.spawn(Data.Save, Data, owner)
+		task.spawn(Data.Save, Data, player)
 		local display = taken.Name
 		Net:Notify(owner, "💔 %s stole your %s!", Color3.fromRGB(255, 90, 90), player.DisplayName, display)
 		if data then
@@ -9976,11 +10000,12 @@ function Trade:Start()
 	Net:On("TradeSetOffer", 0.2, function(player, petIds)
 		local session = trades[player]
 		local data = Data:Get(player)
-		if not session or not data or type(petIds) ~= "table" then
+		if not session or not data or type(petIds) ~= "table" or #petIds > SETTINGS.MaxPets then
 			return
 		end
 		local clean, seen = {}, {}
-		for _, petId in petIds do
+		for i = 1, #petIds do
+			local petId = petIds[i]
 			if type(petId) == "number" and not seen[petId] and #clean < SETTINGS.MaxPets then
 				local pet = petInfo(data, petId)
 				if pet and not pet.Away then
@@ -13041,6 +13066,18 @@ Net.On("Reward", function(text, source)
 	HUD.Toast("🎁 " .. (if source then source .. ": " else "") .. text, C.Gold)
 	Lib.PlaySound("Reward")
 end)
+-- coins granted all at once (coin crate purchase)
+Net.On("Sold", function(coins)
+	Lib.PlaySound("Coin")
+	flyCoins(coins)
+end)
+-- egg shops restocked (the banner comes from the server announcement)
+Net.On("Restock", function()
+	Lib.PlaySound("Event", 0.6)
+	if Panels.Current == "Egg" then
+		Panels.RefreshCurrent()
+	end
+end)
 Net.On("LevelUp", function(level, gems)
 	Lib.PlaySound("LevelUp")
 	celebrate(T("⭐ LEVEL %s!", tostring(level)), T("+%s 💎  •  +2%% coins forever", tostring(gems)), C.Gold)
@@ -13163,7 +13200,13 @@ local screen = New("TextButton", {
 	ZIndex = 50,
 	Parent = Root.Overlay,
 })
-local cluster = Root.Cluster("HowToCards", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(820, 400), screen)
+local outer = Root.Cluster("HowToCards", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(820, 400), screen)
+-- inner frame: its own UIScale for the pop animation (the cluster's UIScale fits the screen)
+local cluster = New("Frame", {
+	BackgroundTransparency = 1,
+	Size = UDim2.fromScale(1, 1),
+	Parent = outer,
+})
 Lib.Text({
 	Text = "HOW TO PLAY",
 	TextColor3 = Color3.fromRGB(255, 230, 120),
@@ -17173,7 +17216,15 @@ function Pets.Build(content, ctx)
 		for _, pet in data.Pets do
 			table.insert(parts, pet.Id .. (pet.Variant or "") .. (if pet.Away then "!" else ""))
 		end
-		local sig = table.concat(parts, ",") .. "|" .. table.concat(data.Equipped, ",") .. "|" .. tostring(derived.CoinMult)
+		local sig = table.concat(parts, ",")
+			.. "|"
+			.. table.concat(data.Equipped, ",")
+			.. "|"
+			.. tostring(derived.CoinMult)
+			.. "|"
+			.. pedestalCount(data)
+			.. "|"
+			.. tostring(State.HasPass("DoubleBase"))
 		if sig ~= signature then
 			signature = sig
 			rebuild(data, derived)
@@ -18592,12 +18643,39 @@ function Trade.Build(content, ctx)
 		return frame
 	end
 
+	local signature = ""
 	local function refresh()
 		local data = State.Data
 		local state = ctx.TradeUI and ctx.TradeUI.State
 		if not data then
 			return
 		end
+		-- only rebuild when something on screen changes (no lost taps mid-press)
+		local parts = {}
+		if state then
+			for _, list in { state.Mine, state.Theirs } do
+				for _, pet in list do
+					table.insert(parts, tostring(pet.Id))
+				end
+				table.insert(parts, "|")
+			end
+			table.insert(parts, tostring(state.MyReady) .. tostring(state.TheirReady) .. tostring(state.Countdown))
+			if state.Countdown then
+				table.insert(parts, tostring(math.ceil(state.Countdown - State.Now())))
+			end
+			for _, pet in data.Pets do
+				table.insert(parts, pet.Id .. (if pet.Away then "!" else ""))
+			end
+		else
+			for _, other in Players:GetPlayers() do
+				table.insert(parts, tostring(other.UserId))
+			end
+		end
+		local sig = (if state then "T" else "P") .. table.concat(parts, ",")
+		if sig == signature then
+			return
+		end
+		signature = sig
 		if not state then
 			-- choose someone
 			pickList.Visible = true
@@ -18703,6 +18781,14 @@ function Trade.Build(content, ctx)
 			end
 		end
 	end
+
+	-- keep the partner list fresh while the panel is open
+	Players.PlayerAdded:Connect(function()
+		refresh()
+	end)
+	Players.PlayerRemoving:Connect(function()
+		task.defer(refresh)
+	end)
 
 	return {
 		Refresh = refresh,

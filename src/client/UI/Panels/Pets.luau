@@ -266,7 +266,15 @@ function Pets.Build(content, ctx)
 		for _, pet in data.Pets do
 			table.insert(parts, pet.Id .. (pet.Variant or "") .. (if pet.Away then "!" else ""))
 		end
-		local sig = table.concat(parts, ",") .. "|" .. table.concat(data.Equipped, ",") .. "|" .. tostring(derived.CoinMult)
+		local sig = table.concat(parts, ",")
+			.. "|"
+			.. table.concat(data.Equipped, ",")
+			.. "|"
+			.. tostring(derived.CoinMult)
+			.. "|"
+			.. pedestalCount(data)
+			.. "|"
+			.. tostring(State.HasPass("DoubleBase"))
 		if sig ~= signature then
 			signature = sig
 			rebuild(data, derived)

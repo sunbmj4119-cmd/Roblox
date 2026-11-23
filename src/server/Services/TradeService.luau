@@ -205,11 +205,12 @@ function Trade:Start()
 	Net:On("TradeSetOffer", 0.2, function(player, petIds)
 		local session = trades[player]
 		local data = Data:Get(player)
-		if not session or not data or type(petIds) ~= "table" then
+		if not session or not data or type(petIds) ~= "table" or #petIds > SETTINGS.MaxPets then
 			return
 		end
 		local clean, seen = {}, {}
-		for _, petId in petIds do
+		for i = 1, #petIds do
+			local petId = petIds[i]
 			if type(petId) == "number" and not seen[petId] and #clean < SETTINGS.MaxPets then
 				local pet = petInfo(data, petId)
 				if pet and not pet.Away then

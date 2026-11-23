@@ -129,6 +129,7 @@ end
 -- inventory full: keep the better of (new pet, weakest pet) and sell the other.
 -- Returns true when the new pet may be added, plus coins paid for a sold pet.
 local function makeRoom(player: Player, data, name: string, variant: string?): (boolean, number)
+	data.PetIndex[name] = true -- discovered, even if it gets sold right away
 	if #data.Pets < Config.MaxPets then
 		return true, 0
 	end
@@ -142,10 +143,19 @@ local function makeRoom(player: Player, data, name: string, variant: string?): (
 		local coins = PetService:SellValue(weakest.Name, weakest.Variant)
 		table.remove(data.Pets, weakestIndex)
 		data.Coins += coins
+		data.Stats.LifetimeCoins += coins
+		Net:Notify(
+			player,
+			"Pet storage full - sold your weakest %s for 💰%s",
+			Color3.fromRGB(255, 220, 120),
+			weakest.Name,
+			Util.Format(coins)
+		)
 		return true, coins
 	end
 	local coins = PetService:SellValue(name, variant)
 	data.Coins += coins
+	data.Stats.LifetimeCoins += coins
 	Net:Notify(player, "Pet storage full - sold the new %s for 💰%s", Color3.fromRGB(255, 220, 120), name, Util.Format(coins))
 	return false, coins
 end
@@ -312,11 +322,14 @@ local function migrate(player: Player, data)
 	if type(shards) ~= "table" or #shards == 0 then
 		return
 	end
+	-- same rules as a star egg carried home: the player's zone egg, luck by rarity
+	local zoneEgg = Config.Shards.ZoneEggs[math.clamp(data.ZoneLevel, 1, #Config.Shards.ZoneEggs)] or "Meadow"
+	local pool = Config.Eggs[zoneEgg].Pets
 	for _, entry in shards do
 		local rarity = Config.Shards.Rarities[entry.Id]
 		local luck = if rarity then rarity.Luck or 1 else 1
-		local name = Util.WeightedPick(Config.Eggs.Meadow.Pets, luckFn(luck))
-		if #data.Pets < Config.MaxPets then
+		local name = Util.WeightedPick(pool, luckFn(luck))
+		if makeRoom(player, data, name, nil) then
 			addPet(data, name, nil)
 		end
 	end

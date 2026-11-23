@@ -47,7 +47,13 @@ local screen = New("TextButton", {
 	ZIndex = 50,
 	Parent = Root.Overlay,
 })
-local cluster = Root.Cluster("HowToCards", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(820, 400), screen)
+local outer = Root.Cluster("HowToCards", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(820, 400), screen)
+-- inner frame: its own UIScale for the pop animation (the cluster's UIScale fits the screen)
+local cluster = New("Frame", {
+	BackgroundTransparency = 1,
+	Size = UDim2.fromScale(1, 1),
+	Parent = outer,
+})
 Lib.Text({
 	Text = "HOW TO PLAY",
 	TextColor3 = Color3.fromRGB(255, 230, 120),
