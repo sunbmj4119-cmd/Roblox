@@ -595,6 +595,15 @@ function Util.TitleUnlocked(config, title, data, hasPass): boolean
 	if need.LifetimeCoins and (stats.LifetimeCoins or 0) < need.LifetimeCoins then
 		return false
 	end
+	if need.Titanic and (stats.TitanicsFound or 0) < need.Titanic then
+		return false
+	end
+	if need.Pranks and (stats.Pranks or 0) < need.Pranks then
+		return false
+	end
+	if need.Lucky and (stats.LuckyBlocks or 0) < need.Lucky then
+		return false
+	end
 	if need.Pass and not (hasPass and hasPass(need.Pass)) then
 		return false
 	end

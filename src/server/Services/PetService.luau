@@ -221,7 +221,21 @@ local function announceIfRare(player: Player, name: string, variant: string?, eg
 		return
 	end
 	local eggName = eggId and Config.Eggs[eggId] and Config.Eggs[eggId].Name or ""
-	if variant == "Huge" then
+	-- big moments: a beam of light on the player for everyone in the server
+	if variant == "Huge" or variant == "Titanic" or rarity.Order >= 7 then
+		Net:Broadcast("BigHatch", player.UserId, variant or info.Rarity)
+	end
+	if variant == "Titanic" then
+		-- shouted in EVERY server
+		Services.EventService:GlobalAnnounce(
+			"🗿 %s hatched a TITANIC %s%s!%s",
+			Color3.fromRGB(255, 120, 60),
+			player.DisplayName,
+			name,
+			if serial then " #" .. serial else "",
+			oddsText(eggId, name, variant)
+		)
+	elseif variant == "Huge" then
 		Net:Announce(
 			"🐘 %s hatched a HUGE %s%s!%s",
 			Color3.fromRGB(255, 200, 60),
@@ -258,6 +272,8 @@ local function roll(player: Player, data, eggId: string, count: number, extraLuc
 		table.insert(results, { Name = name, Variant = variant })
 		if variant == "Huge" then
 			data.Stats.HugesFound = (data.Stats.HugesFound or 0) + 1
+		elseif variant == "Titanic" then
+			data.Stats.TitanicsFound = (data.Stats.TitanicsFound or 0) + 1
 		end
 		if pet and Util.WantsSerial(Config, name, variant) then
 			giveSerial(player, data, pet, function(serial)

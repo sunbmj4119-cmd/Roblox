@@ -28,6 +28,7 @@
 	data.Base.Items = { { Uid, Id, X, Z, R, Paid, Cur, Paint? }, ... } (plot space)
 	data.Pets entries get Away = true while a thief carries them
 ]]
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextService = game:GetService("TextService")
@@ -211,24 +212,94 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		CanCollide = false,
 	}, model)
 
-	-- name sign above the gate
-	local signAnchor = part({
-		Name = "SignAnchor",
-		Size = Vector3.one,
-		CFrame = at(0, 17, -PLOT_HALF),
-		Transparency = 1,
+	-- nameplate on the front wall: owner's avatar + house name, facing the
+	-- avenue (a real sign, so it never covers the owner's own screen)
+	local signBoard = part({
+		Name = "SignBoard",
+		Size = Vector3.new(17, 7, 0.6),
+		CFrame = at(-GATE_HALF - 11, 5.2, -PLOT_HALF - 0.9),
+		Color = Color3.fromRGB(30, 32, 46),
+		Material = Enum.Material.SmoothPlastic,
+	}, model)
+	local signGui = Instance.new("SurfaceGui")
+	signGui.Name = "Sign"
+	signGui.Face = Enum.NormalId.Front
+	signGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	signGui.PixelsPerStud = 30
+	signGui.LightInfluence = 0
+	signGui.MaxDistance = 220
+	local avatar = Instance.new("ImageLabel")
+	avatar.Name = "Avatar"
+	avatar.BackgroundColor3 = Color3.fromRGB(60, 64, 90)
+	avatar.Size = UDim2.new(0, 170, 0, 170)
+	avatar.Position = UDim2.new(0, 20, 0.5, 0)
+	avatar.AnchorPoint = Vector2.new(0, 0.5)
+	avatar.Image = ""
+	local avatarCorner = Instance.new("UICorner")
+	avatarCorner.CornerRadius = UDim.new(0.5, 0)
+	avatarCorner.Parent = avatar
+	avatar.Parent = signGui
+	local sign = Instance.new("TextLabel")
+	sign.Name = "Text"
+	sign.BackgroundTransparency = 1
+	sign.Size = UDim2.new(1, -220, 1, -20)
+	sign.Position = UDim2.fromOffset(205, 10)
+	sign.Font = Enum.Font.FredokaOne
+	sign.TextScaled = true
+	sign.RichText = true
+	sign.TextColor3 = Color3.new(1, 1, 1)
+	sign.TextXAlignment = Enum.TextXAlignment.Left
+	local signStroke = Instance.new("UIStroke")
+	signStroke.Thickness = 2
+	signStroke.Parent = sign
+	sign.Parent = signGui
+	signGui.Parent = signBoard
+	for _, x in { -GATE_HALF - 18.5, -GATE_HALF - 3.5 } do
+		part({
+			Name = "SignPost",
+			Size = Vector3.new(0.6, 8.6, 0.6),
+			CFrame = at(x, 4.3, -PLOT_HALF - 1.1),
+			Color = Color3.fromRGB(70, 72, 92),
+			Material = Enum.Material.Metal,
+		}, model)
+	end
+
+	-- 👑 floating crown over the gate of the most liked house in the server
+	local crown = Instance.new("Model")
+	crown.Name = "Crown"
+	local crownBase = part({
+		Name = "CrownBase",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(1.2, 6, 6),
+		CFrame = at(0, 24, -PLOT_HALF) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(255, 205, 60),
+		Material = Enum.Material.Neon,
 		CanCollide = false,
 		CanQuery = false,
-		CanTouch = false,
-	}, model)
-	local sign = billboard(signAnchor, 26, 7.5, 0, Color3.new(1, 1, 1), 180)
+		Transparency = 1,
+	}, crown)
+	for i = 1, 5 do
+		local angle = i / 5 * math.pi * 2
+		part({
+			Name = "CrownSpike",
+			Size = Vector3.new(1, 2.4, 1),
+			CFrame = at(math.cos(angle) * 2.5, 25.6, -PLOT_HALF + math.sin(angle) * 2.5) * CFrame.Angles(0, angle, 0),
+			Color = Color3.fromRGB(255, 205, 60),
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			CanQuery = false,
+			Transparency = 1,
+		}, crown)
+	end
+	crown.PrimaryPart = crownBase
+	crown.Parent = model
 
 	-- like post on the avenue side of the gate
 	local heart = part({
 		Name = "LikeHeart",
 		Shape = Enum.PartType.Ball,
 		Size = Vector3.one * 2.2,
-		CFrame = at(-GATE_HALF - 4, 4.4, -PLOT_HALF - 1.6),
+		CFrame = at(GATE_HALF + 4, 4.4, -PLOT_HALF - 1.6),
 		Color = Color3.fromRGB(255, 80, 120),
 		Material = Enum.Material.Neon,
 		CanCollide = false,
@@ -236,7 +307,7 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 	part({
 		Name = "LikePost",
 		Size = Vector3.new(0.4, 3.4, 0.4),
-		CFrame = at(-GATE_HALF - 4, 1.7, -PLOT_HALF - 1.6),
+		CFrame = at(GATE_HALF + 4, 1.7, -PLOT_HALF - 1.6),
 		Color = Color3.fromRGB(240, 240, 245),
 		Material = Enum.Material.Metal,
 		CanCollide = false,
@@ -254,7 +325,7 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 	}, model)
-	local bankLabel = billboard(collect, 9, 3, 3.5, Color3.fromRGB(140, 255, 170), 70)
+	local bankLabel = billboard(collect, 6.5, 2.2, 3, Color3.fromRGB(140, 255, 170), 40)
 	local lockPad = part({
 		Name = "LockPad",
 		Size = Vector3.new(7, 0.4, 7),
@@ -263,7 +334,7 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 	}, model)
-	local lockLabel = billboard(lockPad, 9, 2.4, 3.2, Color3.fromRGB(255, 150, 150), 50)
+	local lockLabel = billboard(lockPad, 6.5, 1.8, 2.8, Color3.fromRGB(255, 150, 150), 35)
 
 	-- expand board (owner only): grow the house
 	local board = part({
@@ -280,7 +351,7 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		Color = Color3.fromRGB(100, 70, 45),
 		Material = Enum.Material.Wood,
 	}, model)
-	local expandLabel = billboard(board, 8, 3, 3.4, Color3.fromRGB(255, 220, 120), 60)
+	local expandLabel = billboard(board, 6, 2.2, 3, Color3.fromRGB(255, 220, 120), 30)
 
 	model.Parent = World:Folder("Bases")
 	local items = Instance.new("Folder")
@@ -299,6 +370,8 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		BuildArea = buildArea,
 		Shell = shell,
 		Sign = sign,
+		Avatar = avatar,
+		Crown = crown,
 		BankLabel = bankLabel,
 		LockLabel = lockLabel,
 		ExpandBoard = board,
@@ -321,7 +394,8 @@ end
 local function applyStyle(plot, data)
 	local styleId, style = Util.HouseStyle(Config, data)
 	local level = houseLevel(data)
-	local key = styleId .. ":" .. level
+	local roofIndex = tonumber(data.Base.Roof) or 0
+	local key = styleId .. ":" .. level .. ":" .. roofIndex
 	if plot.StyleKey == key then
 		return
 	end
@@ -414,6 +488,111 @@ local function applyStyle(plot, data)
 		CFrame = at(0, gateHeight - 0.6, -PLOT_HALF),
 		Color = style.Trim,
 		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, shell)
+
+	-- the house itself at the back of the land (grows with the level)
+	local roofColor = Config.Paint[roofIndex] or style.Trim
+	local width = 13 + level * 3
+	local depth = 10
+	local height = if level >= 4 then 12 else 7.5
+	local cz = PLOT_HALF - 1.5 - depth / 2
+	local houseMaterial = if (style.WallTransparency or 0) > 0.2 then Enum.Material.SmoothPlastic else wallMaterial
+	part({
+		Name = "House",
+		Size = Vector3.new(width, height, depth),
+		CFrame = at(0, height / 2, cz),
+		Color = style.Wall,
+		Material = houseMaterial,
+	}, shell)
+	for i = 0, 3 do -- stepped roof in your colour
+		part({
+			Name = "Roof",
+			Size = Vector3.new(width + 1.6 - i * 0.8, 1, depth + 1.6 - i * 2.8),
+			CFrame = at(0, height + 0.5 + i, cz),
+			Color = roofColor,
+			Material = Enum.Material.SmoothPlastic,
+		}, shell)
+	end
+	local front = cz - depth / 2 - 0.15
+	part({
+		Name = "Door",
+		Size = Vector3.new(3.4, 5.6, 0.3),
+		CFrame = at(0, 2.8, front),
+		Color = Color3.fromRGB(110, 70, 45),
+		Material = Enum.Material.WoodPlanks,
+	}, shell)
+	part({
+		Name = "DoorKnob",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.one * 0.45,
+		CFrame = at(1.1, 2.8, front - 0.25),
+		Color = Color3.fromRGB(255, 210, 90),
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, shell)
+	local floors = if level >= 4 then { 3.8, 8.8 } else { 3.8 }
+	for _, y in floors do
+		for _, x in { -width / 2 + 3, width / 2 - 3, -width / 4 - 0.5, width / 4 + 0.5 } do
+			if math.abs(x) > 3 or y > 5 then
+				part({
+					Name = "Window",
+					Size = Vector3.new(2.4, 2.2, 0.3),
+					CFrame = at(x, y, front),
+					Color = Color3.fromRGB(255, 225, 150),
+					Material = Enum.Material.Neon,
+					Transparency = 0.15,
+					CanCollide = false,
+				}, shell)
+			end
+		end
+	end
+	if level >= 4 then
+		-- castle towers
+		for _, side in { -1, 1 } do
+			local towerH = height + 5
+			part({
+				Name = "HouseTower",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(towerH, 4.4, 4.4),
+				CFrame = at(side * (width / 2 + 1.6), towerH / 2, cz) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = style.Pillar,
+				Material = houseMaterial,
+			}, shell)
+			for i = 0, 2 do
+				part({
+					Name = "TowerRoof",
+					Size = Vector3.new(4.6 - i * 1.4, 1.2, 4.6 - i * 1.4),
+					CFrame = at(side * (width / 2 + 1.6), towerH + 0.6 + i * 1.2, cz) * CFrame.Angles(0, math.rad(45), 0),
+					Color = roofColor,
+					Material = Enum.Material.SmoothPlastic,
+				}, shell)
+			end
+		end
+	else
+		part({
+			Name = "Chimney",
+			Size = Vector3.new(1.6, 3.2, 1.6),
+			CFrame = at(width / 2 - 3, height + 2.6, cz + 2),
+			Color = style.Pillar,
+			Material = houseMaterial,
+		}, shell)
+	end
+	-- a flag in your roof colour on top
+	part({
+		Name = "FlagPole",
+		Size = Vector3.new(0.3, 5, 0.3),
+		CFrame = at(0, height + 6.5, cz),
+		Color = Color3.fromRGB(235, 235, 240),
+		Material = Enum.Material.Metal,
+		CanCollide = false,
+	}, shell)
+	part({
+		Name = "Flag",
+		Size = Vector3.new(2.8, 1.6, 0.15),
+		CFrame = at(1.5, height + 8, cz),
+		Color = roofColor,
+		Material = Enum.Material.Fabric,
 		CanCollide = false,
 	}, shell)
 
@@ -580,7 +759,7 @@ function Base:RenderDisplays(player: Player)
 		petModel.Parent = plot.Displays
 		local anchor = petModel.PrimaryPart :: BasePart
 		local _, size = petModel:GetBoundingBox()
-		local label = billboard(anchor, 8, 2.4, size.Y + 1.4, rarity.Color, 60)
+		local label = billboard(anchor, 5.5, 1.7, size.Y + 1, rarity.Color, 40)
 		local rate = Util.Format(self:PetRate(player, data, pet, inVault))
 		local icon = if inVault then "🔒" elseif exclusive then "💎" else "🌠"
 		local serial = if pet.Serial then " #" .. tostring(pet.Serial) else ""
@@ -607,7 +786,84 @@ function Base:RenderDisplays(player: Player)
 	for slot, pedestal in displayItems do
 		put(pedestal, display[slot], false)
 	end
+	-- 🎭 prank pets: they look like a jackpot, but grabbing one is a trap
+	for _, item in data.Base.Items do
+		local def = Config.Decor[item.Id]
+		local model = def and def.Function == "Decoy" and plot.ItemModels[item.Uid]
+		local top = model and model:FindFirstChild("Top")
+		if top and top:IsA("BasePart") then
+			local fake = def.Fake
+			local petModel = PetModel.Build(fake.Name, fake.Variant)
+			petModel.Name = "Decoy_" .. item.Uid
+			petModel:PivotTo(CFrame.new(top.Position + Vector3.new(0, 1.6, 0)) * (top.CFrame - top.Position))
+			local boxCFrame, boxSize = petModel:GetBoundingBox()
+			local lift = (top.Position.Y + 0.2) - (boxCFrame.Position.Y - boxSize.Y / 2)
+			if lift > 0 then
+				petModel:PivotTo(petModel:GetPivot() + Vector3.new(0, lift, 0))
+			end
+			petModel:SetAttribute("Spin", true)
+			petModel.Parent = plot.Displays
+			local anchor = petModel.PrimaryPart :: BasePart
+			local info = Config.Pets[fake.Name]
+			local rarity = Config.Rarities[info.Rarity] or Config.Rarities.Common
+			local label = billboard(anchor, 5.5, 1.7, boxSize.Y + 1, rarity.Color, 40)
+			local fakeRate = Util.Format(Util.PetIncome(Config, fake.Name, fake.Variant))
+			World.SetText(label, "%s %s %s%s\n💰 %s/s", "🌠", fake.Variant, fake.Name, "", fakeRate)
+			local decoyModel = model
+			setPrompt(anchor, "Steal", fake.Name, "Thief", SETTINGS.StealHold, function(thief)
+				Base:SpringDecoy(player, thief, decoyModel)
+			end)
+		end
+	end
+	-- pets in storage walk around the yard (clients render them, see YardPets)
+	local yard, shown = {}, {}
+	for _, pet in vault do
+		shown[pet] = true
+	end
+	for _, pet in display do
+		shown[pet] = true
+	end
+	local storage = {}
+	for _, pet in data.Pets do
+		if not shown[pet] and not pet.Away and Config.Pets[pet.Name] then
+			table.insert(storage, pet)
+		end
+	end
+	table.sort(storage, function(a, b)
+		return Util.PetIncome(Config, a.Name, a.Variant) > Util.PetIncome(Config, b.Name, b.Variant)
+	end)
+	for i = 1, math.min(SETTINGS.YardPets, #storage) do
+		table.insert(yard, (storage[i].Variant or "") .. "|" .. storage[i].Name)
+	end
+	plot.Model:SetAttribute("Yard", HttpService:JSONEncode(yard))
 	self:RefreshLabels(player, true)
+end
+
+-- a thief grabbed a prank pet: confetti, a launch, a short stun, a laugh
+local decoyReady = {} -- [model] = os.clock()
+function Base:SpringDecoy(owner: Player, thief: Player, model: Model)
+	if thief == owner or not owner.Parent then
+		return
+	end
+	if (decoyReady[model] or 0) > os.clock() then
+		return
+	end
+	decoyReady[model] = os.clock() + 6
+	model.AncestryChanged:Once(function()
+		decoyReady[model] = nil
+	end)
+	Services.CharacterService:Stun(thief, 2)
+	Net:Send(thief, "Stunned", 2)
+	Net:Send(thief, "Launch", Vector3.new(0, 120, 0))
+	Net:Broadcast("Confetti", model:GetPivot().Position)
+	local data = Data:Get(owner)
+	if data then
+		data.Stats.Pranks = (data.Stats.Pranks or 0) + 1
+		Data:MarkDirty(owner)
+	end
+	Net:Notify(thief, "🎭 It was a PRANK PET! 😂", Color3.fromRGB(255, 170, 90))
+	Net:Notify(owner, "😂 %s fell for your prank pet!", Color3.fromRGB(255, 200, 90), thief.DisplayName)
+	Net:Announce("🎭 %s got pranked by %s's fake pet!", Color3.fromRGB(255, 190, 90), thief.DisplayName, owner.DisplayName)
 end
 
 function Base:Render(player: Player)
@@ -813,6 +1069,14 @@ end
 
 local function clearPlot(plot)
 	plot.Owner = nil
+	plot.Avatar.Image = ""
+	plot.Model:SetAttribute("Yard", "[]")
+	plot.Model:SetAttribute("BestHouse", false)
+	for _, crownPart in plot.Crown:GetChildren() do
+		if crownPart:IsA("BasePart") then
+			crownPart.Transparency = 1
+		end
+	end
 	for _, model in plot.ItemModels do
 		model:Destroy()
 	end
@@ -1152,7 +1416,7 @@ end
 
 local function isPedestal(id: string): boolean
 	local def = Config.Decor[id]
-	return def ~= nil and (def.Function == "Pedestal" or def.Function == "Vault")
+	return def ~= nil and (def.Function == "Pedestal" or def.Function == "Vault" or def.Function == "Decoy")
 end
 
 -- returns ok, message
@@ -1266,6 +1530,92 @@ function Base:Paint(player: Player, uid, color): (boolean, string?)
 	if isPedestal(item.Id) then
 		self:RenderDisplays(player)
 	end
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+-- 🐾 tidy up: all pedestals line up in neat rows (vaults at the back near the
+-- house, display pedestals in front). Nothing else moves; all or nothing.
+function Base:ArrangePedestals(player: Player): (boolean, string?)
+	local data = Data:Get(player)
+	local plot = plotOf[player]
+	if not data or not plot then
+		return false, "You need a base first!"
+	end
+	local items = data.Base.Items
+	local others, peds = {}, {}
+	for _, item in items do
+		local def = Config.Decor[item.Id]
+		if def and (def.Function == "Pedestal" or def.Function == "Vault" or def.Function == "Decoy") then
+			table.insert(peds, item)
+		else
+			table.insert(others, item)
+		end
+	end
+	local order = { Vault = 1, Pedestal = 2, Decoy = 3 }
+	table.sort(peds, function(a, b)
+		local oa, ob = order[Config.Decor[a.Id].Function], order[Config.Decor[b.Id].Function]
+		if oa ~= ob then
+			return oa < ob
+		end
+		return a.Uid < b.Uid
+	end)
+	local level = houseLevel(data)
+	local bounds = DecorModel.Bounds(Config, level)
+	local opts = validateOpts(player, data)
+	local spacing = 6
+	local width = bounds.MaxX - bounds.MinX
+	local columns = math.max(1, math.floor(width / spacing))
+	local startX = bounds.MinX + (width - (columns - 1) * spacing) / 2
+	local saved = {}
+	for _, item in peds do
+		saved[item] = { item.X, item.Z, item.R }
+	end
+	local placed = table.clone(others)
+	local index = 1
+	local z = bounds.MaxZ - 3
+	while index <= #peds and z - 2 >= bounds.MinZ do
+		for column = 0, columns - 1 do
+			local item = peds[index]
+			if not item then
+				break
+			end
+			local x, sz = DecorModel.Snap(Config, item.Id, startX + column * spacing, z, 0)
+			if DecorModel.Validate(Config, placed, item.Id, x, sz, 0, item.Uid, opts) then
+				item.X, item.Z, item.R = x, sz, 0
+				table.insert(placed, item)
+				index += 1
+			end
+		end
+		z -= spacing
+	end
+	if index <= #peds then
+		for item, transform in saved do
+			item.X, item.Z, item.R = transform[1], transform[2], transform[3]
+		end
+		return false, "Not enough free room - move some decorations first!"
+	end
+	for _, item in peds do
+		renderItem(plot, item)
+	end
+	self:RenderDisplays(player)
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+-- 🎨 roof + flag colour (0 = the style's colour)
+function Base:SetRoof(player: Player, color): (boolean, string?)
+	local data = Data:Get(player)
+	local plot = plotOf[player]
+	if not data or not plot or not finite(color) then
+		return false, "Can't paint that"
+	end
+	color = math.floor(color)
+	if color < 0 or color > #Config.Paint then
+		return false, "Can't paint that"
+	end
+	data.Base.Roof = color
+	applyStyle(plot, data)
 	Data:MarkDirty(player)
 	return true, nil
 end
@@ -1572,6 +1922,7 @@ local function assign(player: Player, data)
 	plot.Owner = player
 	plotOf[player] = plot
 	plot.Model:SetAttribute("OwnerId", player.UserId)
+	plot.Avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(player.UserId) .. "&w=150&h=150"
 	player:SetAttribute("BaseIndex", plot.Index)
 	-- nobody can rob you the moment you arrive
 	lockFor(plot, SETTINGS.JoinLockSeconds)
@@ -1719,10 +2070,79 @@ function Base:Start()
 		onPlayer(player)
 	end
 
+	-- 👑 the most liked house in the server wears a crown
+	local bestPlot = nil
+	local function updateCrown()
+		local best, bestLikes = nil, 0
+		for owner, plot in plotOf do
+			local data = Data:Get(owner)
+			local likes = data and data.Base.Likes or 0
+			if likes > bestLikes then
+				best, bestLikes = plot, likes
+			end
+		end
+		if best == bestPlot then
+			return
+		end
+		bestPlot = best
+		for _, plot in plots do
+			local isBest = plot == best
+			plot.Model:SetAttribute("BestHouse", isBest)
+			for _, crownPart in plot.Crown:GetChildren() do
+				if crownPart:IsA("BasePart") then
+					crownPart.Transparency = if isBest then 0 else 1
+				end
+			end
+		end
+	end
+
+	-- someone walks onto your land: you get a heads-up (once a minute per visitor)
+	local visiting = {} -- [visitor] = plot index they're standing in
+	local visitNotified = {} -- ["visitor:owner"] = os.clock()
+	local function checkVisitors()
+		for _, visitor in Players:GetPlayers() do
+			local root = visitor.Character and visitor.Character:FindFirstChild("HumanoidRootPart")
+			local inside = nil
+			if root and root:IsA("BasePart") then
+				for _, plot in plots do
+					local owner = plot.Owner
+					if owner and owner ~= visitor then
+						local p = plot.CFrame:PointToObjectSpace(root.Position)
+						if math.abs(p.X) <= PLOT_HALF and math.abs(p.Z) <= PLOT_HALF then
+							inside = plot
+						end
+					end
+				end
+			end
+			local index = inside and inside.Index or nil
+			if index ~= visiting[visitor] then
+				visiting[visitor] = index
+				if inside and inside.Owner then
+					local key = visitor.UserId .. ":" .. inside.Owner.UserId
+					if os.clock() - (visitNotified[key] or -999) > 60 then
+						visitNotified[key] = os.clock()
+						Net:Notify(inside.Owner, "👀 %s walked onto your land!", Color3.fromRGB(150, 220, 255), visitor.DisplayName)
+					end
+				end
+			end
+		end
+		for visitor in visiting do
+			if not visitor.Parent then
+				visiting[visitor] = nil
+			end
+		end
+	end
+
 	-- income tick
 	task.spawn(function()
+		local ticks = 0
 		while true do
 			task.wait(1)
+			ticks += 1
+			pcall(checkVisitors)
+			if ticks % 5 == 0 then
+				pcall(updateCrown)
+			end
 			for player, plot in plotOf do
 				local data = Data:Get(player)
 				if data and player.Parent then
@@ -1793,6 +2213,12 @@ function Base:Start()
 	end)
 	Net:OnRequest("BasePaint", 0.1, function(player, uid, color)
 		return reply(player, self:Paint(player, uid, color))
+	end)
+	Net:OnRequest("BaseArrange", 1, function(player)
+		return reply(player, self:ArrangePedestals(player))
+	end)
+	Net:OnRequest("HouseRoof", 0.2, function(player, color)
+		return reply(player, self:SetRoof(player, color))
 	end)
 	Net:OnRequest("HouseUpgrade", 0.5, function(player)
 		return reply(player, self:Upgrade(player))

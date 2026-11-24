@@ -142,12 +142,12 @@ selectHighlight.Parent = workspace
 -- UI
 ---------------------------------------------------------------------------
 -- the "DECORATE" button shows up while you stand in your own base
-local entry = Root.Cluster("BuildEntry", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -76), UDim2.fromOffset(230, 56))
+local entry = Root.Cluster("BuildEntry", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -70), UDim2.fromOffset(170, 44))
 local entryButton = Lib.Button({
 	Text = "🔨 DECORATE",
 	Color = Color3.fromRGB(255, 150, 60),
 	Size = UDim2.fromScale(1, 1),
-	TextSize = 24,
+	TextSize = 19,
 	Parent = entry,
 	OnClick = function()
 		Build.Enter()
@@ -629,6 +629,13 @@ local function refreshHouse()
 		elseif kind == "Name" then
 			card.Price.Text = if base.Name ~= "" then base.Name else T("tap to name")
 			card.Price.TextColor3 = C.Sub
+		elseif kind == "Roof" then
+			local color = Config.Paint[tonumber(base.Roof) or 0]
+			card.Price.Text = if color then "■■■" else T("Auto")
+			card.Price.TextColor3 = color or C.Sub
+		elseif kind == "Tidy" then
+			card.Price.Text = T("one tap")
+			card.Price.TextColor3 = C.Sub
 		elseif kind == "Skin" then
 			local owned = def.Id == "Auto" or base.Skins[def.Id] == true
 			local active = (base.Skin or "Auto") == def.Id
@@ -688,6 +695,36 @@ local function buildHouseCards()
 					end)
 				elseif type(message) == "string" and hud then
 					hud.Toast(message, C.Red)
+				end
+			end)
+		end)
+	)
+	order += 1
+	add(
+		"Tidy",
+		makeCard(order, "🐾", "Tidy Pets", function()
+			task.spawn(function()
+				local ok, message = Net.Invoke("BaseArrange")
+				if ok then
+					Lib.PlaySound("Reward")
+					if Build.HUD then
+						Build.HUD.Toast(T("🐾 Pedestals lined up neatly!"), C.Green)
+					end
+				elseif type(message) == "string" and Build.HUD then
+					Build.HUD.Toast(message, C.Red)
+				end
+			end)
+		end)
+	)
+	order += 1
+	add(
+		"Roof",
+		makeCard(order, "🎨", "Roof Color", function()
+			local data = State.Data
+			local current = data and tonumber(data.Base.Roof) or 0
+			task.spawn(function()
+				if Net.Invoke("HouseRoof", (current + 1) % (#Config.Paint + 1)) then
+					Lib.PlaySound("UI", 0.7, 0.2)
 				end
 			end)
 		end)

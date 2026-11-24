@@ -48,7 +48,7 @@ local function cylinder(
 	material: Enum.Material,
 	extra
 )
-	return part(
+	local p = part(
 		model,
 		name,
 		Vector3.new(height, diameter, diameter),
@@ -57,6 +57,10 @@ local function cylinder(
 		material,
 		extra
 	)
+	if not (extra and extra.Shape) then
+		p.Shape = Enum.PartType.Cylinder -- (round, not a box)
+	end
+	return p
 end
 
 local function light(parent: BasePart, color: Color3, range: number, brightness: number?)
@@ -80,6 +84,11 @@ BUILDERS.Pedestal = function(m)
 	cylinder(m, "Ring", 0.3, 4.1, 2.45, Color3.fromRGB(120, 220, 255), Enum.Material.Neon)
 	local top = part(m, "Top", Vector3.one * 0.2, CFrame.new(0, 2.6, 0), Color3.new(), Enum.Material.SmoothPlastic, { Transparency = 1 })
 	top:SetAttribute("IsTop", true)
+end
+
+BUILDERS.Decoy = function(m)
+	-- looks exactly like a real pedestal (that's the joke)
+	BUILDERS.Pedestal(m)
 end
 
 BUILDERS.Vault = function(m)
@@ -504,6 +513,7 @@ end
 -- parts recolored by 🎨 paint (by part name)
 local PAINT = {
 	Pedestal = { "Ring" },
+	Decoy = { "Ring" },
 	Vault = { "Ring", "Lock" },
 	Tree = { "Leaves", "Leaves2" },
 	Pine = { "Needles" },

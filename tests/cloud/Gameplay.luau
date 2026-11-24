@@ -39,6 +39,7 @@ local ORDER = {
 	"ShardService",
 	"TradeService",
 	"MeteorService",
+	"LuckyService",
 	"ProgressionService",
 	"LeaderboardService",
 	"DevService",
@@ -441,6 +442,80 @@ check(dataA.Title == "Miner", "wore a locked title")
 check(Util.CurrentTitle(Config, dataA, function()
 	return false
 end).Id == "Miner", "current title wrong")
+
+-- 16) tidy up: every pedestal lines up in rows (vaults at the back)
+check(Base:ArrangePedestals(A) == true, "auto-arrange failed")
+local rows, vaultZ, displayZ = {}, -math.huge, math.huge
+for _, item in dataA.Base.Items do
+	local def = Config.Decor[item.Id]
+	if def and (def.Function == "Pedestal" or def.Function == "Vault") then
+		rows[item.Z] = true
+		check(item.R == 0, "arranged pedestal is rotated")
+		if def.Function == "Vault" then
+			vaultZ = math.max(vaultZ, item.Z)
+		else
+			displayZ = math.min(displayZ, item.Z)
+		end
+	end
+end
+local rowCount = 0
+for _ in rows do
+	rowCount += 1
+end
+check(rowCount <= 3, "pedestals are not in neat rows: " .. rowCount)
+check(vaultZ >= displayZ, "vaults should stand at the back")
+
+-- 17) your house: roof colour, a real building, a prank pet
+check(Base:SetRoof(A, 2) == true and dataA.Base.Roof == 2, "roof colour not saved")
+local roof = plotA.Shell:FindFirstChild("Roof")
+check(plotA.Shell:FindFirstChild("House") ~= nil and roof and roof.Color == Config.Paint[2], "house / roof missing")
+check(Base:SetRoof(A, 0 / 0) ~= true, "NaN roof colour accepted")
+local decoyOk, decoyWhy = Net:CallForTest("BasePlace", A, "Decoy", -14, -20, 0)
+check(decoyOk == true, "prank pet not placed: " .. tostring(decoyWhy))
+local decoyItem = dataA.Base.Items[#dataA.Base.Items]
+check(plotA.Displays:FindFirstChild("Decoy_" .. decoyItem.Uid) ~= nil, "prank pet model missing")
+Base:SpringDecoy(A, B, plotA.ItemModels[decoyItem.Uid])
+check((dataA.Stats.Pranks or 0) == 1, "prank not counted")
+Base:SpringDecoy(A, B, plotA.ItemModels[decoyItem.Uid])
+check((dataA.Stats.Pranks or 0) == 1, "prank pet fired twice in a row")
+
+-- 18) pets in storage wander in the yard (published for clients)
+local okYard, yard = pcall(HttpService.JSONDecode, HttpService, plotA.Model:GetAttribute("Yard") or "")
+check(okYard and type(yard) == "table" and #yard >= 1, "no yard pets published")
+
+-- 19) lucky blocks: spawn, open 30 (every outcome must work)
+local block = S.LuckyService:Spawn(nil)
+check(block ~= nil and block.Parent ~= nil, "lucky block did not spawn")
+local kinds = {}
+for _ = 1, 30 do
+	local okOpen, kind = pcall(S.LuckyService.Open, S.LuckyService, A, Vector3.new(0, 0, 0))
+	check(okOpen, "lucky block failed: " .. tostring(kind))
+	if okOpen and kind then
+		kinds[kind] = true
+	end
+	if S.ShardService:IsCarrying(A) then
+		S.ShardService:Drop(A)
+	end
+end
+check((dataA.Stats.LuckyBlocks or 0) >= 30, "lucky blocks not counted")
+results.luckyKinds = kinds
+
+-- 20) events: thief night bonus, party (2x luck + rain)
+S.EventService:Trigger("ThiefNight")
+check(S.EventService:Get("StealBonus", 0) > 0, "thief night has no steal bonus")
+S.EventService:StartParty(1)
+check(S.EventService:PartyActive() and (workspace:GetAttribute("PartyEnd") or 0) > os.time(), "party did not start")
+
+-- 21) the most liked house wears the crown
+dataA.Base.Likes = 50
+task.wait(5.5)
+check(plotA.Model:GetAttribute("BestHouse") == true, "best house has no crown")
+check(plotB.Model:GetAttribute("BestHouse") ~= true, "two crowns")
+
+-- 22) titanic pets are huge-er
+local PetModelModule = require(Shared.PetModel)
+local _, titanicSize = PetModelModule.Build("Bunny", "Titanic"):GetBoundingBox()
+check(titanicSize.Y > hugeSize.Y * 1.5, "titanic pet is not bigger than a huge one")
 
 results.alicePets = #dataA.Pets
 results.bobPets = #dataB.Pets

@@ -47,6 +47,12 @@ for path in client + server:
         add(m.group(1))
     for m in re.finditer(r"Net:Announce\(\s*" + STR, src):
         add(m.group(1))
+    for m in re.finditer(r"GlobalAnnounce\(\s*" + STR, src):
+        add(m.group(1))
+    for m in re.finditer(r"(?:ActionText|ObjectText)\s*=\s*" + STR, src):
+        add(m.group(1))
+    for m in re.finditer(r"makeCard\([^,\n]+,\s*" + STR + r",\s*" + STR, src):
+        add(m.group(2))
     # T(if cond then "a" else "b", ...) and SetText(label, if ... then "a" else "b")
     for m in re.finditer(r"(?:\bT|SetText\([^,\n]+,)\(?\s*if [^\n]*?then\s*" + STR + r"\s*else\s*" + STR, src):
         add(m.group(1))
@@ -117,7 +123,7 @@ for m in re.finditer(r'^\t(\w+) = \{ Rarity', config, re.M):  # Bunny = { Rarity
     add(m.group(1))
 for m in re.finditer(r'^\t(Common|Uncommon|Rare|Epic|Legendary|Mythic|Secret) =', config, re.M):
     add(m.group(1))
-for m in re.finditer(r'Id = "(Golden|Rainbow|Galaxy|Huge|Molten|Frozen)"', config):
+for m in re.finditer(r'Id = "(Golden|Rainbow|Galaxy|Huge|Titanic|Molten|Frozen)"', config):
     add(m.group(1))
 # placement rules (shared by server + build mode) return messages
 decor = read(ROOT + "/src/shared/DecorModel.luau")

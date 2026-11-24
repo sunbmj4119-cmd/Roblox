@@ -693,6 +693,9 @@ Config.Titles = {
 	{ Id = "LegendCollector", Name = "🌟 Legend Collector", Color = Color3.fromRGB(255, 230, 90), Need = { Index = 35 } },
 	{ Id = "Palace", Name = "🏰 Palace Owner", Color = Color3.fromRGB(210, 140, 255), Need = { HouseLevel = 5 } },
 	{ Id = "Tycoon", Name = "💰 Tycoon", Color = Color3.fromRGB(255, 215, 60), Need = { LifetimeCoins = 1000000000 } },
+	{ Id = "Lucky", Name = "🍀 Lucky Charm", Color = Color3.fromRGB(120, 255, 140), Need = { Lucky = 25 } },
+	{ Id = "Prankster", Name = "🎭 Prankster", Color = Color3.fromRGB(255, 170, 90), Need = { Pranks = 10 } },
+	{ Id = "Titanic", Name = "🗿 Titanic Owner", Color = Color3.fromRGB(255, 120, 60), Need = { Titanic = 1 } },
 	{ Id = "VIP", Name = "👑 VIP", Color = Color3.fromRGB(255, 200, 60), Need = { Pass = "VIP" } },
 }
 
@@ -828,6 +831,8 @@ Config.LuckyOres = {
 -- mutations: rolled on every hatch (rarest first). Event-only ones need
 -- that weather event to be active (see Config.Events).
 Config.PetVariants = {
+	-- TITANIC: 4x the size, numbered, announced in EVERY server
+	{ Id = "Titanic", Chance = 1 / 25000, PowerMult = 20, IncomeMult = 30, Scale = 4, Serial = true, Global = true },
 	{ Id = "Galaxy", Chance = 1 / 1000, Event = "Starfall", EventChance = 1 / 60, PowerMult = 8, IncomeMult = 12 },
 	-- HUGE: twice the size, numbered (#1, #2, ...) and announced to the whole server
 	{ Id = "Huge", Chance = 1 / 500, PowerMult = 5, IncomeMult = 6, Scale = 2, Serial = true },
@@ -899,8 +904,51 @@ Config.Events = {
 			Color = Color3.fromRGB(255, 170, 60),
 			ValueMult = 2,
 		},
+		{
+			Id = "LuckyRain",
+			Name = "🍀 LUCKY BLOCK RAIN",
+			Description = "Lucky blocks are falling - open them!",
+			Color = Color3.fromRGB(120, 255, 140),
+			LuckyBlocks = 10,
+		},
+		{
+			Id = "ThiefNight",
+			Name = "🌙 THIEF NIGHT",
+			Description = "Stolen pets pay a bonus! (vault pets stay safe)",
+			Color = Color3.fromRGB(150, 120, 255),
+			StealBonus = 120, -- seconds of the pet's income paid on delivery
+			Night = true,
+		},
 	},
 }
+
+-- 🍀 lucky blocks: drop in the hub + on the avenue every few minutes. Open one
+-- for a random surprise (coins, gems, boosts, pets, a HUGE pet... or a prank)
+Config.LuckyBlocks = {
+	MinInterval = 240,
+	MaxInterval = 420,
+	Count = 4,
+	Lifetime = 150,
+	OpenHold = 0.8,
+	Outcomes = {
+		{ Kind = "Coins", Weight = 30, Seconds = 90, Min = 400 }, -- seconds of your base income
+		{ Kind = "Gems", Weight = 18, Min = 15, Max = 60 },
+		{ Kind = "Boost", Weight = 12, Boost = "Luck2x", Seconds = 300 },
+		{ Kind = "Boost", Weight = 8, Boost = "Coins2x", Seconds = 300 },
+		{ Kind = "Pet", Weight = 10, Luck = 3 },
+		{ Kind = "StarEgg", Weight = 5, Rarity = "Legendary" },
+		{ Kind = "Launch", Weight = 9 },
+		{ Kind = "Zap", Weight = 6, Seconds = 2 },
+		{ Kind = "Huge", Weight = 1 },
+		{ Kind = "Jackpot", Weight = 1, Gems = 500 },
+	},
+}
+
+-- 🎉 weekly party (like the big games' admin events): every Saturday the
+-- whole game gets lucky block rain, a starfall and 2x luck for everyone.
+-- Times are UTC (11:00 UTC = 20:00 in Korea). The owner can also start one
+-- in EVERY server from the DEV panel ("Party").
+Config.WeeklyParty = { WeekDay = 7, HourUTC = 11, Minutes = 20, RainEvery = 120 }
 
 -- first-time tutorial: one clear goal at a time, small reward per step
 Config.Tutorial = {
@@ -960,8 +1008,9 @@ Config.Base = {
 	VipVaults = 1, -- VIP: +1 vault pedestal
 	StorageMax = 10, -- (legacy)
 	Cell = 2, -- placement grid in studs
-	-- house levels: bigger land, more decorations, more vaults, fancier walls.
-	-- Build = buildable area in plot space (the entrance strip stays clear)
+	-- house levels: bigger land, more decorations, more vaults, fancier walls
+	-- and a bigger house. Build = buildable area in plot space (the entrance
+	-- strip stays clear, the house stands behind z = 22)
 	Levels = {
 		{
 			Name = "Cozy Cottage",
@@ -982,7 +1031,7 @@ Config.Base = {
 		{
 			Name = "Golden Manor",
 			Cost = 60000,
-			Build = { MinX = -24, MaxX = 24, MinZ = -24, MaxZ = 24 },
+			Build = { MinX = -24, MaxX = 24, MinZ = -24, MaxZ = 20 },
 			MaxItems = 80,
 			Vaults = 2,
 			Style = "Gold",
@@ -990,7 +1039,7 @@ Config.Base = {
 		{
 			Name = "Crystal Palace",
 			Cost = 1500000,
-			Build = { MinX = -28, MaxX = 28, MinZ = -26, MaxZ = 28 },
+			Build = { MinX = -28, MaxX = 28, MinZ = -26, MaxZ = 20 },
 			MaxItems = 100,
 			Vaults = 3,
 			Style = "Crystal",
@@ -998,7 +1047,7 @@ Config.Base = {
 		{
 			Name = "Galaxy Castle",
 			Cost = 40000000,
-			Build = { MinX = -32, MaxX = 32, MinZ = -26, MaxZ = 32 },
+			Build = { MinX = -32, MaxX = 32, MinZ = -26, MaxZ = 20 },
 			MaxItems = 120,
 			Vaults = 4,
 			Style = "Galaxy",
@@ -1023,6 +1072,7 @@ Config.Base = {
 	-- a freshly stolen pet can't go into the thief's vault for this long (so revenge can win it back)
 	HotSeconds = 300,
 	StolenCarrySeconds = 90, -- a stolen pet runs home if nobody delivers it in time
+	YardPets = 6, -- pets in storage that wander around your yard
 	-- serial thieves get a bounty: rob 2+ different players within 15 min
 	Bounty = { MinVictims = 2, WindowSeconds = 900, IncomeSeconds = 60 },
 	StealHold = 1.2,
@@ -1173,6 +1223,17 @@ Config.Decor = {
 	Vault = { Name = "Vault Pedestal", Category = "Base", Icon = "🔒", Size = { 2, 2 }, Price = 0, Function = "Vault" },
 	Trap = { Name = "Stun Trap", Category = "Base", Icon = "⚡", Size = { 2, 2 }, Price = 2500, Limit = 4, Function = "Trap" },
 	JumpPad = { Name = "Jump Pad", Category = "Base", Icon = "🦘", Size = { 2, 2 }, Price = 800, Limit = 4, Function = "Jump" },
+	-- looks like a jackpot pet on a pedestal; a thief who grabs it gets launched 😂
+	Decoy = {
+		Name = "Prank Pet",
+		Category = "Base",
+		Icon = "🎭",
+		Size = { 2, 2 },
+		Price = 6000,
+		Limit = 2,
+		Function = "Decoy",
+		Fake = { Name = "Galaxy Dragon", Variant = "Rainbow" },
+	},
 	-- nature
 	Tree = { Name = "Tree", Category = "Nature", Icon = "🌳", Size = { 2, 2 }, Price = 120 },
 	Pine = { Name = "Pine Tree", Category = "Nature", Icon = "🌲", Size = { 2, 2 }, Price = 150 },
@@ -1217,6 +1278,7 @@ Config.DecorOrder = {
 	"Vault",
 	"Trap",
 	"JumpPad",
+	"Decoy",
 	"Tree",
 	"Pine",
 	"Bush",

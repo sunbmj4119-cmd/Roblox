@@ -55,6 +55,15 @@ function Titles.Build(content, ctx)
 			return T("Find a HUGE pet"), string.format("%d/%d", math.min(stats.HugesFound or 0, need.Huge), need.Huge)
 		elseif need.LifetimeCoins then
 			return T("Earn %s coins in total", Util.Format(need.LifetimeCoins)), ""
+		elseif need.Titanic then
+			return T("Find a TITANIC pet"), string.format("%d/%d", math.min(stats.TitanicsFound or 0, need.Titanic), need.Titanic)
+		elseif need.Pranks then
+			local have = stats.Pranks or 0
+			return T("Prank %d thieves with a 🎭 Prank Pet", need.Pranks),
+				string.format("%d/%d", math.min(have, need.Pranks), need.Pranks)
+		elseif need.Lucky then
+			local have = stats.LuckyBlocks or 0
+			return T("Open %d lucky blocks", need.Lucky), string.format("%d/%d", math.min(have, need.Lucky), need.Lucky)
 		elseif need.Pass then
 			return T("Own the VIP pass"), ""
 		end

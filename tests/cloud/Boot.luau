@@ -27,6 +27,7 @@ local ORDER = {
 	"ShardService",
 	"TradeService",
 	"MeteorService",
+	"LuckyService",
 	"ProgressionService",
 	"LeaderboardService",
 	"DevService",
@@ -143,6 +144,11 @@ for styleId in Config.HouseStyles do
 	else
 		fail("style " .. styleId .. ": " .. tostring(errStyle))
 	end
+end
+-- lucky blocks spawn (and drop from the sky)
+local okLucky, luckyBlock = pcall(Services.LuckyService.Spawn, Services.LuckyService, nil)
+if not okLucky or not luckyBlock then
+	fail("lucky block: " .. tostring(luckyBlock))
 end
 -- hall of fame plinths exist
 if not (Services.WorldService.StatueSpots and #Services.WorldService.StatueSpots == 3) then

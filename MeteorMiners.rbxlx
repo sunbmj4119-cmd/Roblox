@@ -711,6 +711,9 @@ Config.Titles = {
 	{ Id = "LegendCollector", Name = "🌟 Legend Collector", Color = Color3.fromRGB(255, 230, 90), Need = { Index = 35 } },
 	{ Id = "Palace", Name = "🏰 Palace Owner", Color = Color3.fromRGB(210, 140, 255), Need = { HouseLevel = 5 } },
 	{ Id = "Tycoon", Name = "💰 Tycoon", Color = Color3.fromRGB(255, 215, 60), Need = { LifetimeCoins = 1000000000 } },
+	{ Id = "Lucky", Name = "🍀 Lucky Charm", Color = Color3.fromRGB(120, 255, 140), Need = { Lucky = 25 } },
+	{ Id = "Prankster", Name = "🎭 Prankster", Color = Color3.fromRGB(255, 170, 90), Need = { Pranks = 10 } },
+	{ Id = "Titanic", Name = "🗿 Titanic Owner", Color = Color3.fromRGB(255, 120, 60), Need = { Titanic = 1 } },
 	{ Id = "VIP", Name = "👑 VIP", Color = Color3.fromRGB(255, 200, 60), Need = { Pass = "VIP" } },
 }
 
@@ -846,6 +849,8 @@ Config.LuckyOres = {
 -- mutations: rolled on every hatch (rarest first). Event-only ones need
 -- that weather event to be active (see Config.Events).
 Config.PetVariants = {
+	-- TITANIC: 4x the size, numbered, announced in EVERY server
+	{ Id = "Titanic", Chance = 1 / 25000, PowerMult = 20, IncomeMult = 30, Scale = 4, Serial = true, Global = true },
 	{ Id = "Galaxy", Chance = 1 / 1000, Event = "Starfall", EventChance = 1 / 60, PowerMult = 8, IncomeMult = 12 },
 	-- HUGE: twice the size, numbered (#1, #2, ...) and announced to the whole server
 	{ Id = "Huge", Chance = 1 / 500, PowerMult = 5, IncomeMult = 6, Scale = 2, Serial = true },
@@ -917,8 +922,51 @@ Config.Events = {
 			Color = Color3.fromRGB(255, 170, 60),
 			ValueMult = 2,
 		},
+		{
+			Id = "LuckyRain",
+			Name = "🍀 LUCKY BLOCK RAIN",
+			Description = "Lucky blocks are falling - open them!",
+			Color = Color3.fromRGB(120, 255, 140),
+			LuckyBlocks = 10,
+		},
+		{
+			Id = "ThiefNight",
+			Name = "🌙 THIEF NIGHT",
+			Description = "Stolen pets pay a bonus! (vault pets stay safe)",
+			Color = Color3.fromRGB(150, 120, 255),
+			StealBonus = 120, -- seconds of the pet's income paid on delivery
+			Night = true,
+		},
 	},
 }
+
+-- 🍀 lucky blocks: drop in the hub + on the avenue every few minutes. Open one
+-- for a random surprise (coins, gems, boosts, pets, a HUGE pet... or a prank)
+Config.LuckyBlocks = {
+	MinInterval = 240,
+	MaxInterval = 420,
+	Count = 4,
+	Lifetime = 150,
+	OpenHold = 0.8,
+	Outcomes = {
+		{ Kind = "Coins", Weight = 30, Seconds = 90, Min = 400 }, -- seconds of your base income
+		{ Kind = "Gems", Weight = 18, Min = 15, Max = 60 },
+		{ Kind = "Boost", Weight = 12, Boost = "Luck2x", Seconds = 300 },
+		{ Kind = "Boost", Weight = 8, Boost = "Coins2x", Seconds = 300 },
+		{ Kind = "Pet", Weight = 10, Luck = 3 },
+		{ Kind = "StarEgg", Weight = 5, Rarity = "Legendary" },
+		{ Kind = "Launch", Weight = 9 },
+		{ Kind = "Zap", Weight = 6, Seconds = 2 },
+		{ Kind = "Huge", Weight = 1 },
+		{ Kind = "Jackpot", Weight = 1, Gems = 500 },
+	},
+}
+
+-- 🎉 weekly party (like the big games' admin events): every Saturday the
+-- whole game gets lucky block rain, a starfall and 2x luck for everyone.
+-- Times are UTC (11:00 UTC = 20:00 in Korea). The owner can also start one
+-- in EVERY server from the DEV panel ("Party").
+Config.WeeklyParty = { WeekDay = 7, HourUTC = 11, Minutes = 20, RainEvery = 120 }
 
 -- first-time tutorial: one clear goal at a time, small reward per step
 Config.Tutorial = {
@@ -978,8 +1026,9 @@ Config.Base = {
 	VipVaults = 1, -- VIP: +1 vault pedestal
 	StorageMax = 10, -- (legacy)
 	Cell = 2, -- placement grid in studs
-	-- house levels: bigger land, more decorations, more vaults, fancier walls.
-	-- Build = buildable area in plot space (the entrance strip stays clear)
+	-- house levels: bigger land, more decorations, more vaults, fancier walls
+	-- and a bigger house. Build = buildable area in plot space (the entrance
+	-- strip stays clear, the house stands behind z = 22)
 	Levels = {
 		{
 			Name = "Cozy Cottage",
@@ -1000,7 +1049,7 @@ Config.Base = {
 		{
 			Name = "Golden Manor",
 			Cost = 60000,
-			Build = { MinX = -24, MaxX = 24, MinZ = -24, MaxZ = 24 },
+			Build = { MinX = -24, MaxX = 24, MinZ = -24, MaxZ = 20 },
 			MaxItems = 80,
 			Vaults = 2,
 			Style = "Gold",
@@ -1008,7 +1057,7 @@ Config.Base = {
 		{
 			Name = "Crystal Palace",
 			Cost = 1500000,
-			Build = { MinX = -28, MaxX = 28, MinZ = -26, MaxZ = 28 },
+			Build = { MinX = -28, MaxX = 28, MinZ = -26, MaxZ = 20 },
 			MaxItems = 100,
 			Vaults = 3,
 			Style = "Crystal",
@@ -1016,7 +1065,7 @@ Config.Base = {
 		{
 			Name = "Galaxy Castle",
 			Cost = 40000000,
-			Build = { MinX = -32, MaxX = 32, MinZ = -26, MaxZ = 32 },
+			Build = { MinX = -32, MaxX = 32, MinZ = -26, MaxZ = 20 },
 			MaxItems = 120,
 			Vaults = 4,
 			Style = "Galaxy",
@@ -1041,6 +1090,7 @@ Config.Base = {
 	-- a freshly stolen pet can't go into the thief's vault for this long (so revenge can win it back)
 	HotSeconds = 300,
 	StolenCarrySeconds = 90, -- a stolen pet runs home if nobody delivers it in time
+	YardPets = 6, -- pets in storage that wander around your yard
 	-- serial thieves get a bounty: rob 2+ different players within 15 min
 	Bounty = { MinVictims = 2, WindowSeconds = 900, IncomeSeconds = 60 },
 	StealHold = 1.2,
@@ -1191,6 +1241,17 @@ Config.Decor = {
 	Vault = { Name = "Vault Pedestal", Category = "Base", Icon = "🔒", Size = { 2, 2 }, Price = 0, Function = "Vault" },
 	Trap = { Name = "Stun Trap", Category = "Base", Icon = "⚡", Size = { 2, 2 }, Price = 2500, Limit = 4, Function = "Trap" },
 	JumpPad = { Name = "Jump Pad", Category = "Base", Icon = "🦘", Size = { 2, 2 }, Price = 800, Limit = 4, Function = "Jump" },
+	-- looks like a jackpot pet on a pedestal; a thief who grabs it gets launched 😂
+	Decoy = {
+		Name = "Prank Pet",
+		Category = "Base",
+		Icon = "🎭",
+		Size = { 2, 2 },
+		Price = 6000,
+		Limit = 2,
+		Function = "Decoy",
+		Fake = { Name = "Galaxy Dragon", Variant = "Rainbow" },
+	},
 	-- nature
 	Tree = { Name = "Tree", Category = "Nature", Icon = "🌳", Size = { 2, 2 }, Price = 120 },
 	Pine = { Name = "Pine Tree", Category = "Nature", Icon = "🌲", Size = { 2, 2 }, Price = 150 },
@@ -1235,6 +1296,7 @@ Config.DecorOrder = {
 	"Vault",
 	"Trap",
 	"JumpPad",
+	"Decoy",
 	"Tree",
 	"Pine",
 	"Bush",
@@ -1428,7 +1490,7 @@ local function cylinder(
 	material: Enum.Material,
 	extra
 )
-	return part(
+	local p = part(
 		model,
 		name,
 		Vector3.new(height, diameter, diameter),
@@ -1437,6 +1499,10 @@ local function cylinder(
 		material,
 		extra
 	)
+	if not (extra and extra.Shape) then
+		p.Shape = Enum.PartType.Cylinder -- (round, not a box)
+	end
+	return p
 end
 
 local function light(parent: BasePart, color: Color3, range: number, brightness: number?)
@@ -1460,6 +1526,11 @@ BUILDERS.Pedestal = function(m)
 	cylinder(m, "Ring", 0.3, 4.1, 2.45, Color3.fromRGB(120, 220, 255), Enum.Material.Neon)
 	local top = part(m, "Top", Vector3.one * 0.2, CFrame.new(0, 2.6, 0), Color3.new(), Enum.Material.SmoothPlastic, { Transparency = 1 })
 	top:SetAttribute("IsTop", true)
+end
+
+BUILDERS.Decoy = function(m)
+	-- looks exactly like a real pedestal (that's the joke)
+	BUILDERS.Pedestal(m)
 end
 
 BUILDERS.Vault = function(m)
@@ -1884,6 +1955,7 @@ end
 -- parts recolored by 🎨 paint (by part name)
 local PAINT = {
 	Pedestal = { "Ring" },
+	Decoy = { "Ring" },
 	Vault = { "Ring", "Lock" },
 	Tree = { "Leaves", "Leaves2" },
 	Pine = { "Needles" },
@@ -3127,6 +3199,46 @@ return {
 	["🔓 OPEN"] = "🔓 열림",
 	["⏰ Too slow - the pet ran back home!"] = "⏰ 너무 느렸어요 - 펫이 집으로 도망갔어요!",
 	["🔥 just stolen"] = "🔥 갓 훔친 펫",
+	-- v16: lucky blocks, prank pets, party, titanic, yard
+	["Find a TITANIC pet"] = "타이타닉 펫 찾기",
+	["House Name"] = "집 이름",
+	["Lucky Block"] = "럭키 블록",
+	["Lucky blocks are falling - open them!"] = "럭키 블록이 떨어지고 있어요 - 열어 보세요!",
+	["More"] = "더보기",
+	["Not enough free room - move some decorations first!"] = "빈 자리가 부족해요 - 장식을 조금 옮겨 주세요!",
+	["Open %d lucky blocks"] = "럭키 블록 %d개 열기",
+	["Prank %d thieves with a 🎭 Prank Pet"] = "🎭 가짜 펫으로 도둑 %d명 골탕 먹이기",
+	["Prank Pet"] = "가짜 펫",
+	["Roof Color"] = "지붕 색",
+	["Stolen pets pay a bonus! (vault pets stay safe)"] = "훔친 펫에 보너스! (금고 펫은 안전)",
+	["Tidy Pets"] = "펫 정리",
+	["Titanic"] = "타이타닉",
+	["one tap"] = "한 번에",
+	["⚡ ZAP! A prank block froze you!"] = "⚡ 찌릿! 장난 블록에 얼어붙었어요!",
+	["🌙 THIEF NIGHT"] = "🌙 도둑의 밤",
+	["🌙 Thief Night bonus: +💰%s!"] = "🌙 도둑의 밤 보너스: +💰%s!",
+	["🍀 %s found a HUGE %s in a lucky block!"] = "🍀 %s님이 럭키 블록에서 거대 %s 발견!",
+	["🍀 A star egg! Run it home before someone bonks you!"] = "🍀 별알이에요! 맞기 전에 집으로 달려요!",
+	["🍀 JACKPOT! %s won 💎%d from a lucky block!"] = "🍀 잭팟! %s님이 럭키 블록에서 💎%d 획득!",
+	["🍀 LUCKY BLOCK RAIN"] = "🍀 럭키 블록 비",
+	["🍀 Lucky Charm"] = "🍀 행운의 부적",
+	["🍀 Lucky block: +💎%d!"] = "🍀 럭키 블록: +💎%d!",
+	["🍀 Lucky block: +💰%s!"] = "🍀 럭키 블록: +💰%s!",
+	["🍀 Lucky block: a pet popped out!"] = "🍀 럭키 블록: 펫이 튀어나왔어요!",
+	["🍀 Lucky blocks just dropped! Find them!"] = "🍀 럭키 블록이 떨어졌어요! 찾아 보세요!",
+	["🎉 PARTY %s  •  🍀 + 2x luck"] = "🎉 파티 %s  •  🍀 + 행운 2배",
+	["🎉 PARTY TIME! Lucky blocks, a starfall and 2x luck for everyone!"] = "🎉 파티 타임! 럭키 블록, 유성우, 모두 행운 2배!",
+	["🎉 The weekly PARTY starts in 10 minutes! Lucky blocks + 2x luck!"] = "🎉 10분 뒤 주간 파티 시작! 럭키 블록 + 행운 2배!",
+	["🎭 %s got pranked by %s's fake pet!"] = "🎭 %s님이 %s님의 가짜 펫에 속았어요!",
+	["🎭 It was a PRANK PET! 😂"] = "🎭 가짜 펫이었어요! 😂",
+	["🎭 Prankster"] = "🎭 장난꾸러기",
+	["🏡 Welcome home!"] = "🏡 집에 왔어요!",
+	["🐾 Pedestals lined up neatly!"] = "🐾 받침대를 가지런히 정리했어요!",
+	["👀 %s walked onto your land!"] = "👀 %s님이 내 땅에 들어왔어요!",
+	["💥 BOOM! It was a prank block!"] = "💥 펑! 장난 블록이었어요!",
+	["🗿 %s hatched a TITANIC %s%s!%s"] = "🗿 %s님이 타이타닉 %s%s 부화!%s",
+	["🗿 Titanic Owner"] = "🗿 타이타닉 주인",
+	["😂 %s fell for your prank pet!"] = "😂 %s님이 내 가짜 펫에 속았어요!",
 }
 ]]></string>
         </Properties>
@@ -4270,6 +4382,15 @@ function Util.TitleUnlocked(config, title, data, hasPass): boolean
 	if need.LifetimeCoins and (stats.LifetimeCoins or 0) < need.LifetimeCoins then
 		return false
 	end
+	if need.Titanic and (stats.TitanicsFound or 0) < need.Titanic then
+		return false
+	end
+	if need.Pranks and (stats.Pranks or 0) < need.Pranks then
+		return false
+	end
+	if need.Lucky and (stats.LuckyBlocks or 0) < need.Lucky then
+		return false
+	end
 	if need.Pass and not (hasPass and hasPass(need.Pass)) then
 		return false
 	end
@@ -4331,6 +4452,7 @@ local ORDER = {
 	"ShardService",
 	"TradeService",
 	"MeteorService",
+	"LuckyService",
 	"ProgressionService",
 	"LeaderboardService",
 	"DevService",
@@ -4459,6 +4581,7 @@ return Analytics
 	data.Base.Items = { { Uid, Id, X, Z, R, Paid, Cur, Paint? }, ... } (plot space)
 	data.Pets entries get Away = true while a thief carries them
 ]]
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextService = game:GetService("TextService")
@@ -4642,24 +4765,94 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		CanCollide = false,
 	}, model)
 
-	-- name sign above the gate
-	local signAnchor = part({
-		Name = "SignAnchor",
-		Size = Vector3.one,
-		CFrame = at(0, 17, -PLOT_HALF),
-		Transparency = 1,
+	-- nameplate on the front wall: owner's avatar + house name, facing the
+	-- avenue (a real sign, so it never covers the owner's own screen)
+	local signBoard = part({
+		Name = "SignBoard",
+		Size = Vector3.new(17, 7, 0.6),
+		CFrame = at(-GATE_HALF - 11, 5.2, -PLOT_HALF - 0.9),
+		Color = Color3.fromRGB(30, 32, 46),
+		Material = Enum.Material.SmoothPlastic,
+	}, model)
+	local signGui = Instance.new("SurfaceGui")
+	signGui.Name = "Sign"
+	signGui.Face = Enum.NormalId.Front
+	signGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	signGui.PixelsPerStud = 30
+	signGui.LightInfluence = 0
+	signGui.MaxDistance = 220
+	local avatar = Instance.new("ImageLabel")
+	avatar.Name = "Avatar"
+	avatar.BackgroundColor3 = Color3.fromRGB(60, 64, 90)
+	avatar.Size = UDim2.new(0, 170, 0, 170)
+	avatar.Position = UDim2.new(0, 20, 0.5, 0)
+	avatar.AnchorPoint = Vector2.new(0, 0.5)
+	avatar.Image = ""
+	local avatarCorner = Instance.new("UICorner")
+	avatarCorner.CornerRadius = UDim.new(0.5, 0)
+	avatarCorner.Parent = avatar
+	avatar.Parent = signGui
+	local sign = Instance.new("TextLabel")
+	sign.Name = "Text"
+	sign.BackgroundTransparency = 1
+	sign.Size = UDim2.new(1, -220, 1, -20)
+	sign.Position = UDim2.fromOffset(205, 10)
+	sign.Font = Enum.Font.FredokaOne
+	sign.TextScaled = true
+	sign.RichText = true
+	sign.TextColor3 = Color3.new(1, 1, 1)
+	sign.TextXAlignment = Enum.TextXAlignment.Left
+	local signStroke = Instance.new("UIStroke")
+	signStroke.Thickness = 2
+	signStroke.Parent = sign
+	sign.Parent = signGui
+	signGui.Parent = signBoard
+	for _, x in { -GATE_HALF - 18.5, -GATE_HALF - 3.5 } do
+		part({
+			Name = "SignPost",
+			Size = Vector3.new(0.6, 8.6, 0.6),
+			CFrame = at(x, 4.3, -PLOT_HALF - 1.1),
+			Color = Color3.fromRGB(70, 72, 92),
+			Material = Enum.Material.Metal,
+		}, model)
+	end
+
+	-- 👑 floating crown over the gate of the most liked house in the server
+	local crown = Instance.new("Model")
+	crown.Name = "Crown"
+	local crownBase = part({
+		Name = "CrownBase",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(1.2, 6, 6),
+		CFrame = at(0, 24, -PLOT_HALF) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(255, 205, 60),
+		Material = Enum.Material.Neon,
 		CanCollide = false,
 		CanQuery = false,
-		CanTouch = false,
-	}, model)
-	local sign = billboard(signAnchor, 26, 7.5, 0, Color3.new(1, 1, 1), 180)
+		Transparency = 1,
+	}, crown)
+	for i = 1, 5 do
+		local angle = i / 5 * math.pi * 2
+		part({
+			Name = "CrownSpike",
+			Size = Vector3.new(1, 2.4, 1),
+			CFrame = at(math.cos(angle) * 2.5, 25.6, -PLOT_HALF + math.sin(angle) * 2.5) * CFrame.Angles(0, angle, 0),
+			Color = Color3.fromRGB(255, 205, 60),
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			CanQuery = false,
+			Transparency = 1,
+		}, crown)
+	end
+	crown.PrimaryPart = crownBase
+	crown.Parent = model
 
 	-- like post on the avenue side of the gate
 	local heart = part({
 		Name = "LikeHeart",
 		Shape = Enum.PartType.Ball,
 		Size = Vector3.one * 2.2,
-		CFrame = at(-GATE_HALF - 4, 4.4, -PLOT_HALF - 1.6),
+		CFrame = at(GATE_HALF + 4, 4.4, -PLOT_HALF - 1.6),
 		Color = Color3.fromRGB(255, 80, 120),
 		Material = Enum.Material.Neon,
 		CanCollide = false,
@@ -4667,7 +4860,7 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 	part({
 		Name = "LikePost",
 		Size = Vector3.new(0.4, 3.4, 0.4),
-		CFrame = at(-GATE_HALF - 4, 1.7, -PLOT_HALF - 1.6),
+		CFrame = at(GATE_HALF + 4, 1.7, -PLOT_HALF - 1.6),
 		Color = Color3.fromRGB(240, 240, 245),
 		Material = Enum.Material.Metal,
 		CanCollide = false,
@@ -4685,7 +4878,7 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 	}, model)
-	local bankLabel = billboard(collect, 9, 3, 3.5, Color3.fromRGB(140, 255, 170), 70)
+	local bankLabel = billboard(collect, 6.5, 2.2, 3, Color3.fromRGB(140, 255, 170), 40)
 	local lockPad = part({
 		Name = "LockPad",
 		Size = Vector3.new(7, 0.4, 7),
@@ -4694,7 +4887,7 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 	}, model)
-	local lockLabel = billboard(lockPad, 9, 2.4, 3.2, Color3.fromRGB(255, 150, 150), 50)
+	local lockLabel = billboard(lockPad, 6.5, 1.8, 2.8, Color3.fromRGB(255, 150, 150), 35)
 
 	-- expand board (owner only): grow the house
 	local board = part({
@@ -4711,7 +4904,7 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		Color = Color3.fromRGB(100, 70, 45),
 		Material = Enum.Material.Wood,
 	}, model)
-	local expandLabel = billboard(board, 8, 3, 3.4, Color3.fromRGB(255, 220, 120), 60)
+	local expandLabel = billboard(board, 6, 2.2, 3, Color3.fromRGB(255, 220, 120), 30)
 
 	model.Parent = World:Folder("Bases")
 	local items = Instance.new("Folder")
@@ -4730,6 +4923,8 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		BuildArea = buildArea,
 		Shell = shell,
 		Sign = sign,
+		Avatar = avatar,
+		Crown = crown,
 		BankLabel = bankLabel,
 		LockLabel = lockLabel,
 		ExpandBoard = board,
@@ -4752,7 +4947,8 @@ end
 local function applyStyle(plot, data)
 	local styleId, style = Util.HouseStyle(Config, data)
 	local level = houseLevel(data)
-	local key = styleId .. ":" .. level
+	local roofIndex = tonumber(data.Base.Roof) or 0
+	local key = styleId .. ":" .. level .. ":" .. roofIndex
 	if plot.StyleKey == key then
 		return
 	end
@@ -4845,6 +5041,111 @@ local function applyStyle(plot, data)
 		CFrame = at(0, gateHeight - 0.6, -PLOT_HALF),
 		Color = style.Trim,
 		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, shell)
+
+	-- the house itself at the back of the land (grows with the level)
+	local roofColor = Config.Paint[roofIndex] or style.Trim
+	local width = 13 + level * 3
+	local depth = 10
+	local height = if level >= 4 then 12 else 7.5
+	local cz = PLOT_HALF - 1.5 - depth / 2
+	local houseMaterial = if (style.WallTransparency or 0) > 0.2 then Enum.Material.SmoothPlastic else wallMaterial
+	part({
+		Name = "House",
+		Size = Vector3.new(width, height, depth),
+		CFrame = at(0, height / 2, cz),
+		Color = style.Wall,
+		Material = houseMaterial,
+	}, shell)
+	for i = 0, 3 do -- stepped roof in your colour
+		part({
+			Name = "Roof",
+			Size = Vector3.new(width + 1.6 - i * 0.8, 1, depth + 1.6 - i * 2.8),
+			CFrame = at(0, height + 0.5 + i, cz),
+			Color = roofColor,
+			Material = Enum.Material.SmoothPlastic,
+		}, shell)
+	end
+	local front = cz - depth / 2 - 0.15
+	part({
+		Name = "Door",
+		Size = Vector3.new(3.4, 5.6, 0.3),
+		CFrame = at(0, 2.8, front),
+		Color = Color3.fromRGB(110, 70, 45),
+		Material = Enum.Material.WoodPlanks,
+	}, shell)
+	part({
+		Name = "DoorKnob",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.one * 0.45,
+		CFrame = at(1.1, 2.8, front - 0.25),
+		Color = Color3.fromRGB(255, 210, 90),
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, shell)
+	local floors = if level >= 4 then { 3.8, 8.8 } else { 3.8 }
+	for _, y in floors do
+		for _, x in { -width / 2 + 3, width / 2 - 3, -width / 4 - 0.5, width / 4 + 0.5 } do
+			if math.abs(x) > 3 or y > 5 then
+				part({
+					Name = "Window",
+					Size = Vector3.new(2.4, 2.2, 0.3),
+					CFrame = at(x, y, front),
+					Color = Color3.fromRGB(255, 225, 150),
+					Material = Enum.Material.Neon,
+					Transparency = 0.15,
+					CanCollide = false,
+				}, shell)
+			end
+		end
+	end
+	if level >= 4 then
+		-- castle towers
+		for _, side in { -1, 1 } do
+			local towerH = height + 5
+			part({
+				Name = "HouseTower",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(towerH, 4.4, 4.4),
+				CFrame = at(side * (width / 2 + 1.6), towerH / 2, cz) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = style.Pillar,
+				Material = houseMaterial,
+			}, shell)
+			for i = 0, 2 do
+				part({
+					Name = "TowerRoof",
+					Size = Vector3.new(4.6 - i * 1.4, 1.2, 4.6 - i * 1.4),
+					CFrame = at(side * (width / 2 + 1.6), towerH + 0.6 + i * 1.2, cz) * CFrame.Angles(0, math.rad(45), 0),
+					Color = roofColor,
+					Material = Enum.Material.SmoothPlastic,
+				}, shell)
+			end
+		end
+	else
+		part({
+			Name = "Chimney",
+			Size = Vector3.new(1.6, 3.2, 1.6),
+			CFrame = at(width / 2 - 3, height + 2.6, cz + 2),
+			Color = style.Pillar,
+			Material = houseMaterial,
+		}, shell)
+	end
+	-- a flag in your roof colour on top
+	part({
+		Name = "FlagPole",
+		Size = Vector3.new(0.3, 5, 0.3),
+		CFrame = at(0, height + 6.5, cz),
+		Color = Color3.fromRGB(235, 235, 240),
+		Material = Enum.Material.Metal,
+		CanCollide = false,
+	}, shell)
+	part({
+		Name = "Flag",
+		Size = Vector3.new(2.8, 1.6, 0.15),
+		CFrame = at(1.5, height + 8, cz),
+		Color = roofColor,
+		Material = Enum.Material.Fabric,
 		CanCollide = false,
 	}, shell)
 
@@ -5011,7 +5312,7 @@ function Base:RenderDisplays(player: Player)
 		petModel.Parent = plot.Displays
 		local anchor = petModel.PrimaryPart :: BasePart
 		local _, size = petModel:GetBoundingBox()
-		local label = billboard(anchor, 8, 2.4, size.Y + 1.4, rarity.Color, 60)
+		local label = billboard(anchor, 5.5, 1.7, size.Y + 1, rarity.Color, 40)
 		local rate = Util.Format(self:PetRate(player, data, pet, inVault))
 		local icon = if inVault then "🔒" elseif exclusive then "💎" else "🌠"
 		local serial = if pet.Serial then " #" .. tostring(pet.Serial) else ""
@@ -5038,7 +5339,84 @@ function Base:RenderDisplays(player: Player)
 	for slot, pedestal in displayItems do
 		put(pedestal, display[slot], false)
 	end
+	-- 🎭 prank pets: they look like a jackpot, but grabbing one is a trap
+	for _, item in data.Base.Items do
+		local def = Config.Decor[item.Id]
+		local model = def and def.Function == "Decoy" and plot.ItemModels[item.Uid]
+		local top = model and model:FindFirstChild("Top")
+		if top and top:IsA("BasePart") then
+			local fake = def.Fake
+			local petModel = PetModel.Build(fake.Name, fake.Variant)
+			petModel.Name = "Decoy_" .. item.Uid
+			petModel:PivotTo(CFrame.new(top.Position + Vector3.new(0, 1.6, 0)) * (top.CFrame - top.Position))
+			local boxCFrame, boxSize = petModel:GetBoundingBox()
+			local lift = (top.Position.Y + 0.2) - (boxCFrame.Position.Y - boxSize.Y / 2)
+			if lift > 0 then
+				petModel:PivotTo(petModel:GetPivot() + Vector3.new(0, lift, 0))
+			end
+			petModel:SetAttribute("Spin", true)
+			petModel.Parent = plot.Displays
+			local anchor = petModel.PrimaryPart :: BasePart
+			local info = Config.Pets[fake.Name]
+			local rarity = Config.Rarities[info.Rarity] or Config.Rarities.Common
+			local label = billboard(anchor, 5.5, 1.7, boxSize.Y + 1, rarity.Color, 40)
+			local fakeRate = Util.Format(Util.PetIncome(Config, fake.Name, fake.Variant))
+			World.SetText(label, "%s %s %s%s\n💰 %s/s", "🌠", fake.Variant, fake.Name, "", fakeRate)
+			local decoyModel = model
+			setPrompt(anchor, "Steal", fake.Name, "Thief", SETTINGS.StealHold, function(thief)
+				Base:SpringDecoy(player, thief, decoyModel)
+			end)
+		end
+	end
+	-- pets in storage walk around the yard (clients render them, see YardPets)
+	local yard, shown = {}, {}
+	for _, pet in vault do
+		shown[pet] = true
+	end
+	for _, pet in display do
+		shown[pet] = true
+	end
+	local storage = {}
+	for _, pet in data.Pets do
+		if not shown[pet] and not pet.Away and Config.Pets[pet.Name] then
+			table.insert(storage, pet)
+		end
+	end
+	table.sort(storage, function(a, b)
+		return Util.PetIncome(Config, a.Name, a.Variant) > Util.PetIncome(Config, b.Name, b.Variant)
+	end)
+	for i = 1, math.min(SETTINGS.YardPets, #storage) do
+		table.insert(yard, (storage[i].Variant or "") .. "|" .. storage[i].Name)
+	end
+	plot.Model:SetAttribute("Yard", HttpService:JSONEncode(yard))
 	self:RefreshLabels(player, true)
+end
+
+-- a thief grabbed a prank pet: confetti, a launch, a short stun, a laugh
+local decoyReady = {} -- [model] = os.clock()
+function Base:SpringDecoy(owner: Player, thief: Player, model: Model)
+	if thief == owner or not owner.Parent then
+		return
+	end
+	if (decoyReady[model] or 0) > os.clock() then
+		return
+	end
+	decoyReady[model] = os.clock() + 6
+	model.AncestryChanged:Once(function()
+		decoyReady[model] = nil
+	end)
+	Services.CharacterService:Stun(thief, 2)
+	Net:Send(thief, "Stunned", 2)
+	Net:Send(thief, "Launch", Vector3.new(0, 120, 0))
+	Net:Broadcast("Confetti", model:GetPivot().Position)
+	local data = Data:Get(owner)
+	if data then
+		data.Stats.Pranks = (data.Stats.Pranks or 0) + 1
+		Data:MarkDirty(owner)
+	end
+	Net:Notify(thief, "🎭 It was a PRANK PET! 😂", Color3.fromRGB(255, 170, 90))
+	Net:Notify(owner, "😂 %s fell for your prank pet!", Color3.fromRGB(255, 200, 90), thief.DisplayName)
+	Net:Announce("🎭 %s got pranked by %s's fake pet!", Color3.fromRGB(255, 190, 90), thief.DisplayName, owner.DisplayName)
 end
 
 function Base:Render(player: Player)
@@ -5244,6 +5622,14 @@ end
 
 local function clearPlot(plot)
 	plot.Owner = nil
+	plot.Avatar.Image = ""
+	plot.Model:SetAttribute("Yard", "[]")
+	plot.Model:SetAttribute("BestHouse", false)
+	for _, crownPart in plot.Crown:GetChildren() do
+		if crownPart:IsA("BasePart") then
+			crownPart.Transparency = 1
+		end
+	end
 	for _, model in plot.ItemModels do
 		model:Destroy()
 	end
@@ -5583,7 +5969,7 @@ end
 
 local function isPedestal(id: string): boolean
 	local def = Config.Decor[id]
-	return def ~= nil and (def.Function == "Pedestal" or def.Function == "Vault")
+	return def ~= nil and (def.Function == "Pedestal" or def.Function == "Vault" or def.Function == "Decoy")
 end
 
 -- returns ok, message
@@ -5697,6 +6083,92 @@ function Base:Paint(player: Player, uid, color): (boolean, string?)
 	if isPedestal(item.Id) then
 		self:RenderDisplays(player)
 	end
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+-- 🐾 tidy up: all pedestals line up in neat rows (vaults at the back near the
+-- house, display pedestals in front). Nothing else moves; all or nothing.
+function Base:ArrangePedestals(player: Player): (boolean, string?)
+	local data = Data:Get(player)
+	local plot = plotOf[player]
+	if not data or not plot then
+		return false, "You need a base first!"
+	end
+	local items = data.Base.Items
+	local others, peds = {}, {}
+	for _, item in items do
+		local def = Config.Decor[item.Id]
+		if def and (def.Function == "Pedestal" or def.Function == "Vault" or def.Function == "Decoy") then
+			table.insert(peds, item)
+		else
+			table.insert(others, item)
+		end
+	end
+	local order = { Vault = 1, Pedestal = 2, Decoy = 3 }
+	table.sort(peds, function(a, b)
+		local oa, ob = order[Config.Decor[a.Id].Function], order[Config.Decor[b.Id].Function]
+		if oa ~= ob then
+			return oa < ob
+		end
+		return a.Uid < b.Uid
+	end)
+	local level = houseLevel(data)
+	local bounds = DecorModel.Bounds(Config, level)
+	local opts = validateOpts(player, data)
+	local spacing = 6
+	local width = bounds.MaxX - bounds.MinX
+	local columns = math.max(1, math.floor(width / spacing))
+	local startX = bounds.MinX + (width - (columns - 1) * spacing) / 2
+	local saved = {}
+	for _, item in peds do
+		saved[item] = { item.X, item.Z, item.R }
+	end
+	local placed = table.clone(others)
+	local index = 1
+	local z = bounds.MaxZ - 3
+	while index <= #peds and z - 2 >= bounds.MinZ do
+		for column = 0, columns - 1 do
+			local item = peds[index]
+			if not item then
+				break
+			end
+			local x, sz = DecorModel.Snap(Config, item.Id, startX + column * spacing, z, 0)
+			if DecorModel.Validate(Config, placed, item.Id, x, sz, 0, item.Uid, opts) then
+				item.X, item.Z, item.R = x, sz, 0
+				table.insert(placed, item)
+				index += 1
+			end
+		end
+		z -= spacing
+	end
+	if index <= #peds then
+		for item, transform in saved do
+			item.X, item.Z, item.R = transform[1], transform[2], transform[3]
+		end
+		return false, "Not enough free room - move some decorations first!"
+	end
+	for _, item in peds do
+		renderItem(plot, item)
+	end
+	self:RenderDisplays(player)
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+-- 🎨 roof + flag colour (0 = the style's colour)
+function Base:SetRoof(player: Player, color): (boolean, string?)
+	local data = Data:Get(player)
+	local plot = plotOf[player]
+	if not data or not plot or not finite(color) then
+		return false, "Can't paint that"
+	end
+	color = math.floor(color)
+	if color < 0 or color > #Config.Paint then
+		return false, "Can't paint that"
+	end
+	data.Base.Roof = color
+	applyStyle(plot, data)
 	Data:MarkDirty(player)
 	return true, nil
 end
@@ -6003,6 +6475,7 @@ local function assign(player: Player, data)
 	plot.Owner = player
 	plotOf[player] = plot
 	plot.Model:SetAttribute("OwnerId", player.UserId)
+	plot.Avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(player.UserId) .. "&w=150&h=150"
 	player:SetAttribute("BaseIndex", plot.Index)
 	-- nobody can rob you the moment you arrive
 	lockFor(plot, SETTINGS.JoinLockSeconds)
@@ -6150,10 +6623,79 @@ function Base:Start()
 		onPlayer(player)
 	end
 
+	-- 👑 the most liked house in the server wears a crown
+	local bestPlot = nil
+	local function updateCrown()
+		local best, bestLikes = nil, 0
+		for owner, plot in plotOf do
+			local data = Data:Get(owner)
+			local likes = data and data.Base.Likes or 0
+			if likes > bestLikes then
+				best, bestLikes = plot, likes
+			end
+		end
+		if best == bestPlot then
+			return
+		end
+		bestPlot = best
+		for _, plot in plots do
+			local isBest = plot == best
+			plot.Model:SetAttribute("BestHouse", isBest)
+			for _, crownPart in plot.Crown:GetChildren() do
+				if crownPart:IsA("BasePart") then
+					crownPart.Transparency = if isBest then 0 else 1
+				end
+			end
+		end
+	end
+
+	-- someone walks onto your land: you get a heads-up (once a minute per visitor)
+	local visiting = {} -- [visitor] = plot index they're standing in
+	local visitNotified = {} -- ["visitor:owner"] = os.clock()
+	local function checkVisitors()
+		for _, visitor in Players:GetPlayers() do
+			local root = visitor.Character and visitor.Character:FindFirstChild("HumanoidRootPart")
+			local inside = nil
+			if root and root:IsA("BasePart") then
+				for _, plot in plots do
+					local owner = plot.Owner
+					if owner and owner ~= visitor then
+						local p = plot.CFrame:PointToObjectSpace(root.Position)
+						if math.abs(p.X) <= PLOT_HALF and math.abs(p.Z) <= PLOT_HALF then
+							inside = plot
+						end
+					end
+				end
+			end
+			local index = inside and inside.Index or nil
+			if index ~= visiting[visitor] then
+				visiting[visitor] = index
+				if inside and inside.Owner then
+					local key = visitor.UserId .. ":" .. inside.Owner.UserId
+					if os.clock() - (visitNotified[key] or -999) > 60 then
+						visitNotified[key] = os.clock()
+						Net:Notify(inside.Owner, "👀 %s walked onto your land!", Color3.fromRGB(150, 220, 255), visitor.DisplayName)
+					end
+				end
+			end
+		end
+		for visitor in visiting do
+			if not visitor.Parent then
+				visiting[visitor] = nil
+			end
+		end
+	end
+
 	-- income tick
 	task.spawn(function()
+		local ticks = 0
 		while true do
 			task.wait(1)
+			ticks += 1
+			pcall(checkVisitors)
+			if ticks % 5 == 0 then
+				pcall(updateCrown)
+			end
 			for player, plot in plotOf do
 				local data = Data:Get(player)
 				if data and player.Parent then
@@ -6224,6 +6766,12 @@ function Base:Start()
 	end)
 	Net:OnRequest("BasePaint", 0.1, function(player, uid, color)
 		return reply(player, self:Paint(player, uid, color))
+	end)
+	Net:OnRequest("BaseArrange", 1, function(player)
+		return reply(player, self:ArrangePedestals(player))
+	end)
+	Net:OnRequest("HouseRoof", 0.2, function(player, color)
+		return reply(player, self:SetRoof(player, color))
 	end)
 	Net:OnRequest("HouseUpgrade", 0.5, function(player)
 		return reply(player, self:Upgrade(player))
@@ -6785,6 +7333,7 @@ local TEMPLATE = {
 		LayoutV = 0, -- 2 = territory layout (older saves get migrated)
 		Name = "", -- custom house name (raw text, filtered whenever shown)
 		Skin = "Auto",
+		Roof = 0, -- roof / flag colour (Config.Paint index, 0 = style colour)
 		Skins = {}, -- [skinId] = true
 		LikeGemsDay = 0,
 		LikeGemsToday = 0,
@@ -6813,6 +7362,9 @@ local TEMPLATE = {
 		ShardsStolen = 0,
 		ThievesCaught = 0,
 		HugesFound = 0,
+		TitanicsFound = 0,
+		Pranks = 0,
+		LuckyBlocks = 0,
 		Fevers = 0,
 	},
 	Daily = { Day = 0, Quests = {}, Streak = 0, LastClaimDay = 0, VipChestDay = 0, ClubDay = 0 },
@@ -7262,6 +7814,14 @@ function Dev:Start()
 			-- free house level up (test the land / wall styles)
 			data.Coins += (Config.Base.Levels[Util.HouseLevel(Config, data) + 1] or { Cost = 0 }).Cost
 			Services.BaseService:Upgrade(player)
+		elseif command == "Lucky" then
+			Services.LuckyService:Rain(6)
+		elseif command == "Party" then
+			-- "admin event": a 10 minute party in EVERY server
+			Services.EventService:GlobalParty(10)
+		elseif command == "Titanic" then
+			local zoneEgg = Config.Shards.ZoneEggs[math.clamp(data.ZoneLevel, 1, #Config.Shards.ZoneEggs)] or "Meadow"
+			Services.PetService:GrantPet(player, Util.WeightedPick(Config.Eggs[zoneEgg].Pets), "Titanic")
 		elseif command == "Reset" then
 			local fresh = Util.DeepCopy(Data.Template)
 			fresh.FirstJoin = os.time()
@@ -7436,10 +7996,19 @@ return Economy
             <string name="Name">EventService</string>
             <string name="Source"><![CDATA[--[[
 	EventService: short random server events between meteors
-	(Ore Frenzy, Lucky Rush, Gem Storm, Double Ore). Every few minutes there
-	is something new happening -> players stay longer and talk about it.
+	(Ore Frenzy, Lucky Rush, Gem Storm, Double Ore, Lucky Block Rain, Thief
+	Night ...). Every few minutes there is something new happening -> players
+	stay longer and talk about it.
 	Other services read multipliers with Events:Get(key, default).
+
+	Also:
+	  * 🎉 weekly PARTY (Config.WeeklyParty): lucky block rain + starfall +
+	    2x luck in every server at the same time, like the big games' weekly
+	    admin events. The owner can start one everywhere from the DEV panel.
+	  * global announcements (MessagingService): a TITANIC hatch is shouted
+	    in every server.
 ]]
+local MessagingService = game:GetService("MessagingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -7447,8 +8016,15 @@ local Config = require(Shared.Config)
 local Net = require(script.Parent.Net)
 
 local Events = {}
+local Services
 
+local TOPIC = "MeteorMiners_Global"
 local settings = Config.Events
+local PARTY = Config.WeeklyParty
+local listeners = {}
+local partyEnds = 0
+local lastPartyDay = -1
+local warnedDay = -1
 local current = nil
 local endsAt = 0
 local nextAt = os.time() + 90 -- first event shortly after the server starts
@@ -7496,6 +8072,94 @@ function Events:Trigger(id: string?)
 	setAttributes()
 	Net:Announce("%s! %s (%ds)", def.Color, def.Name, def.Description, settings.DurationSeconds)
 	Net:Broadcast("EventStarted", def.Id)
+	for _, listener in listeners do
+		task.spawn(listener, def)
+	end
+end
+
+-- other services react to events (LuckyService: lucky block rain)
+function Events:OnStart(callback)
+	table.insert(listeners, callback)
+end
+
+---------------------------------------------------------------------------
+-- every server at once (MessagingService)
+---------------------------------------------------------------------------
+local function publish(message)
+	message.Job = game.JobId
+	pcall(MessagingService.PublishAsync, MessagingService, TOPIC, message)
+end
+
+-- shout in this server + every other server (each player in their language)
+function Events:GlobalAnnounce(fmt: string, color: Color3, ...)
+	Net:Announce(fmt, color, ...)
+	local args = { ... }
+	for i, value in args do
+		args[i] = tostring(value)
+	end
+	publish({ Kind = "Announce", Fmt = fmt, Args = args, Color = { color.R, color.G, color.B } })
+end
+
+function Events:PartyActive(): boolean
+	return partyEnds > os.time()
+end
+
+-- 🎉 party: lucky block rain every few minutes, a starfall and 2x luck
+function Events:StartParty(minutes: number)
+	if self:PartyActive() then
+		return
+	end
+	minutes = math.clamp(minutes, 1, 60)
+	partyEnds = os.time() + minutes * 60
+	workspace:SetAttribute("PartyEnd", partyEnds)
+	Net:Announce("🎉 PARTY TIME! Lucky blocks, a starfall and 2x luck for everyone!", Color3.fromRGB(255, 200, 80))
+	Net:Broadcast("Party", partyEnds)
+	if Services and Services.BoostService then
+		Services.BoostService:AddServer("ServerLuck", minutes * 60)
+	end
+	self:Trigger("Starfall")
+	task.spawn(function()
+		while os.time() < partyEnds do
+			local lucky = Services and Services.LuckyService
+			if lucky then
+				pcall(lucky.Rain, lucky, 8)
+			end
+			task.wait(PARTY.RainEvery)
+		end
+		workspace:SetAttribute("PartyEnd", 0)
+	end)
+end
+
+-- the owner's "admin event": a party in EVERY server
+function Events:GlobalParty(minutes: number)
+	self:StartParty(minutes)
+	publish({ Kind = "Party", Minutes = minutes })
+end
+
+local function onMessage(message)
+	local data = message and message.Data
+	if type(data) ~= "table" or data.Job == game.JobId then
+		return
+	end
+	if data.Kind == "Announce" and type(data.Fmt) == "string" and type(data.Args) == "table" then
+		local c = type(data.Color) == "table" and data.Color or { 1, 1, 1 }
+		Net:Announce(data.Fmt, Color3.new(tonumber(c[1]) or 1, tonumber(c[2]) or 1, tonumber(c[3]) or 1), table.unpack(data.Args))
+	elseif data.Kind == "Party" then
+		Events:StartParty(tonumber(data.Minutes) or 10)
+	end
+end
+
+-- the weekly party starts by itself (same UTC time in every server)
+local function checkWeekly()
+	local t = os.date("!*t")
+	local day = math.floor(os.time() / 86400)
+	if t.wday == PARTY.WeekDay and t.hour == PARTY.HourUTC and t.min < PARTY.Minutes and lastPartyDay ~= day then
+		lastPartyDay = day
+		Events:StartParty(PARTY.Minutes - t.min)
+	elseif t.wday == PARTY.WeekDay and t.hour == PARTY.HourUTC - 1 and t.min >= 50 and warnedDay ~= day then
+		warnedDay = day
+		Net:Announce("🎉 The weekly PARTY starts in 10 minutes! Lucky blocks + 2x luck!", Color3.fromRGB(255, 200, 80))
+	end
 end
 
 local function stop()
@@ -7508,13 +8172,27 @@ local function stop()
 	setAttributes()
 end
 
+function Events:Init(services)
+	Services = services
+end
+
 function Events:Start()
 	setAttributes()
+	workspace:SetAttribute("PartyEnd", 0)
+	task.spawn(function()
+		local ok, err = pcall(function()
+			MessagingService:SubscribeAsync(TOPIC, onMessage)
+		end)
+		if not ok then
+			warn("[Events] global messages unavailable: " .. tostring(err))
+		end
+	end)
 	task.spawn(function()
 		while true do
 			task.wait(1)
 			local ok, err = pcall(function()
 				local now = os.time()
+				checkWeekly()
 				if current and now >= endsAt then
 					stop()
 				elseif not current and now >= nextAt then
@@ -8004,6 +8682,290 @@ return Leaderboards
         </Item>
         <Item class="ModuleScript" referent="23">
           <Properties>
+            <string name="Name">LuckyService</string>
+            <string name="Source"><![CDATA[--[[
+	LuckyService: 🍀 lucky blocks.
+	A few drop in the hub and on the base avenue every few minutes (lots
+	during 🍀 LUCKY BLOCK RAIN and the weekly party). Hold to open one for a
+	random surprise: coins, gems, boosts, a pet, a star egg to run home with,
+	a HUGE pet, a gem jackpot... or a prank (launched into the sky, zapped).
+	Great for "I opened 100 lucky blocks" moments.
+]]
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Util = require(Shared.Util)
+local Net = require(script.Parent.Net)
+
+local Lucky = {}
+local Services
+local Data
+
+local SETTINGS = Config.LuckyBlocks
+local MAX_BLOCKS = 24
+local rng = Random.new()
+local blocks = {} -- [model] = true
+local folder = nil
+
+local GOOD = Color3.fromRGB(120, 255, 140)
+local BAD = Color3.fromRGB(255, 150, 90)
+
+local function count(): number
+	local n = 0
+	for model in blocks do
+		if model.Parent then
+			n += 1
+		else
+			blocks[model] = nil
+		end
+	end
+	return n
+end
+
+-- somewhere open in the hub, or on the avenue between the houses
+local function randomSpot(): Vector3
+	for _ = 1, 30 do
+		local spot
+		if rng:NextNumber() < 0.6 then
+			spot = Vector3.new(rng:NextNumber(-44, 44), 0, rng:NextNumber(-70, 66))
+			local nearCrater = (spot - Config.Meteor.Position).Magnitude < 26
+			local nearSpawn = (spot - Vector3.new(0, 0, -60)).Magnitude < 10
+			local fame = spot.X < -12 and spot.Z > -14 and spot.Z < -2
+			if not nearCrater and not nearSpawn and not fame then
+				return spot
+			end
+		else
+			local half = Config.World.Bases.HalfX - 20
+			return Vector3.new(rng:NextNumber(-half, half), 0, Util.AvenueZ(Config) + rng:NextNumber(-8, 8))
+		end
+	end
+	return Vector3.new(rng:NextNumber(-30, 30), 0, rng:NextNumber(0, 20))
+end
+
+local function buildBlock(): Model
+	local model = Instance.new("Model")
+	model.Name = "LuckyBlock"
+	local box = Instance.new("Part")
+	box.Name = "Block"
+	box.Anchored = true
+	box.CanCollide = false
+	box.Size = Vector3.one * 3.6
+	box.Color = Color3.fromRGB(255, 205, 50)
+	box.Material = Enum.Material.SmoothPlastic
+	box.TopSurface = Enum.SurfaceType.Smooth
+	box.BottomSurface = Enum.SurfaceType.Smooth
+	box.Parent = model
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back, Enum.NormalId.Left, Enum.NormalId.Right, Enum.NormalId.Top } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.LightInfluence = 0
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(1, 1)
+		label.Text = "?"
+		label.Font = Enum.Font.FredokaOne
+		label.TextScaled = true
+		label.TextColor3 = Color3.new(1, 1, 1)
+		local stroke = Instance.new("UIStroke")
+		stroke.Thickness = 6
+		stroke.Color = Color3.fromRGB(170, 110, 0)
+		stroke.Parent = label
+		label.Parent = gui
+		gui.Parent = box
+	end
+	local glow = Instance.new("PointLight")
+	glow.Color = Color3.fromRGB(255, 220, 110)
+	glow.Range = 12
+	glow.Brightness = 1.5
+	glow.Parent = box
+	local sparkle = Instance.new("ParticleEmitter")
+	sparkle.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	sparkle.Color = ColorSequence.new(Color3.fromRGB(255, 240, 150))
+	sparkle.LightEmission = 1
+	sparkle.Size = NumberSequence.new(0.4)
+	sparkle.Lifetime = NumberRange.new(0.6, 1.2)
+	sparkle.Rate = 6
+	sparkle.Speed = NumberRange.new(1, 2)
+	sparkle.Parent = box
+	model.PrimaryPart = box
+	model:SetAttribute("Spin", true)
+	return model
+end
+
+-- the best coin egg the player has unlocked (pets from lucky blocks come from it)
+local function zoneEgg(data): string
+	local eggs = Config.Shards.ZoneEggs
+	return eggs[math.clamp(data.ZoneLevel or 1, 1, #eggs)] or "Meadow"
+end
+
+-- open a block: roll a surprise and apply it
+function Lucky:Open(player: Player, position: Vector3?)
+	local data = Data:Get(player)
+	if not data then
+		return nil
+	end
+	data.Stats.LuckyBlocks = (data.Stats.LuckyBlocks or 0) + 1
+	local entries = {}
+	for index, outcome in SETTINGS.Outcomes do
+		table.insert(entries, { index, outcome.Weight })
+	end
+	local outcome = SETTINGS.Outcomes[Util.WeightedPick(entries)]
+	local kind = outcome.Kind
+	local good = true
+	if kind == "Coins" then
+		local rate = Services.BaseService:IncomeRate(player, data)
+		local amount = math.max(outcome.Min or 0, math.floor(rate * outcome.Seconds))
+		data.Coins += amount
+		data.Stats.LifetimeCoins += amount
+		Services.Analytics:Economy(player, "Source", "Coins", amount, data.Coins, "Gameplay", "LuckyBlock")
+		Net:Send(player, "Sold", amount)
+		Net:Notify(player, "🍀 Lucky block: +💰%s!", GOOD, Util.Format(amount))
+	elseif kind == "Gems" then
+		local amount = rng:NextInteger(outcome.Min, outcome.Max)
+		data.Gems += amount
+		Net:Notify(player, "🍀 Lucky block: +💎%d!", GOOD, amount)
+	elseif kind == "Boost" then
+		Services.BoostService:Add(player, outcome.Boost, outcome.Seconds)
+	elseif kind == "Pet" then
+		Services.PetService:HatchStarEgg(player, zoneEgg(data), outcome.Luck or 1)
+		Net:Notify(player, "🍀 Lucky block: a pet popped out!", GOOD)
+	elseif kind == "StarEgg" then
+		local shards = Services.ShardService
+		if shards:IsCarrying(player) then
+			data.Gems += 40
+			Net:Notify(player, "🍀 Lucky block: +💎%d!", GOOD, 40)
+		else
+			shards:StartCarry(player, { Kind = "Egg", Rarity = outcome.Rarity, Egg = zoneEgg(data) }, nil)
+			Net:Notify(player, "🍀 A star egg! Run it home before someone bonks you!", GOOD)
+		end
+	elseif kind == "Launch" then
+		good = false
+		Net:Send(player, "Launch", Vector3.new(0, 140, 0))
+		Net:Notify(player, "💥 BOOM! It was a prank block!", BAD)
+	elseif kind == "Zap" then
+		good = false
+		Services.CharacterService:Stun(player, outcome.Seconds)
+		Net:Send(player, "Stunned", outcome.Seconds)
+		Net:Notify(player, "⚡ ZAP! A prank block froze you!", BAD)
+	elseif kind == "Huge" then
+		local pick = Util.WeightedPick(Config.Eggs[zoneEgg(data)].Pets)
+		Services.PetService:GrantPet(player, pick, "Huge")
+		Net:Announce("🍀 %s found a HUGE %s in a lucky block!", Color3.fromRGB(255, 200, 60), player.DisplayName, pick)
+	elseif kind == "Jackpot" then
+		data.Gems += outcome.Gems
+		Net:Announce("🍀 JACKPOT! %s won 💎%d from a lucky block!", Color3.fromRGB(255, 220, 90), player.DisplayName, outcome.Gems)
+	end
+	if position then
+		Net:Broadcast(if good then "Confetti" else "Boom", position)
+	end
+	Services.ProgressionService:AddXP(player, 20)
+	Services.Analytics:Custom(player, "LuckyBlock", 1)
+	Data:MarkDirty(player)
+	return kind
+end
+
+function Lucky:Spawn(position: Vector3?)
+	if count() >= MAX_BLOCKS or not folder then
+		return nil
+	end
+	local spot = position or randomSpot()
+	local model = buildBlock()
+	local ground = CFrame.new(spot + Vector3.new(0, 2.6, 0))
+	model:PivotTo(ground + Vector3.new(0, 45, 0))
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Open"
+	prompt.ObjectText = "Lucky Block"
+	prompt.HoldDuration = SETTINGS.OpenHold
+	prompt.MaxActivationDistance = 11
+	prompt.RequiresLineOfSight = false
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt.Parent = model.PrimaryPart
+	prompt.Triggered:Connect(function(player)
+		if not blocks[model] then
+			return
+		end
+		blocks[model] = nil
+		local where = model:GetPivot().Position
+		model:Destroy()
+		local ok, err = pcall(self.Open, self, player, where)
+		if not ok then
+			warn("[Lucky] open failed: " .. tostring(err))
+		end
+	end)
+	blocks[model] = true
+	model.Parent = folder
+	-- drop from the sky
+	task.spawn(function()
+		for step = 1, 20 do
+			if not model.Parent then
+				return
+			end
+			local t = step / 20
+			model:PivotTo(ground + Vector3.new(0, 45 * (1 - t * t), 0))
+			task.wait(0.03)
+		end
+		if model.Parent then
+			model:PivotTo(ground)
+		end
+	end)
+	task.delay(SETTINGS.Lifetime, function()
+		if blocks[model] then
+			blocks[model] = nil
+			model:Destroy()
+		end
+	end)
+	return model
+end
+
+function Lucky:Rain(amount: number)
+	for _ = 1, amount do
+		self:Spawn(nil)
+		task.wait(0.15)
+	end
+end
+
+function Lucky:Init(services)
+	Services = services
+	Data = services.DataService
+end
+
+function Lucky:Start()
+	local map = workspace:FindFirstChild("Map")
+	folder = Instance.new("Folder")
+	folder.Name = "LuckyBlocks"
+	folder.Parent = map or workspace
+
+	-- 🍀 LUCKY BLOCK RAIN event
+	Services.EventService:OnStart(function(def)
+		if def.LuckyBlocks then
+			task.spawn(self.Rain, self, def.LuckyBlocks)
+		end
+	end)
+
+	task.spawn(function()
+		task.wait(40)
+		while true do
+			if #Players:GetPlayers() > 0 then
+				local ok, err = pcall(self.Rain, self, SETTINGS.Count)
+				if not ok then
+					warn("[Lucky] spawn failed: " .. tostring(err))
+				else
+					Net:Announce("🍀 Lucky blocks just dropped! Find them!", GOOD)
+				end
+			end
+			task.wait(rng:NextNumber(SETTINGS.MinInterval, SETTINGS.MaxInterval))
+		end
+	end)
+end
+
+return Lucky
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="24">
+          <Properties>
             <string name="Name">MeteorService</string>
             <string name="Source"><![CDATA[--[[
 	MeteorService: the server-wide competitive event.
@@ -8451,7 +9413,7 @@ return Meteor
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="24">
+        <Item class="ModuleScript" referent="25">
           <Properties>
             <string name="Name">MiningService</string>
             <string name="Source"><![CDATA[--[[
@@ -9095,7 +10057,7 @@ return Mining
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="25">
+        <Item class="ModuleScript" referent="26">
           <Properties>
             <string name="Name">MonetizationService</string>
             <string name="Source"><![CDATA[--[[
@@ -9515,7 +10477,7 @@ return Monetization
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="26">
+        <Item class="ModuleScript" referent="27">
           <Properties>
             <string name="Name">Net</string>
             <string name="Source"><![CDATA[--[[
@@ -9647,7 +10609,7 @@ return Net
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="27">
+        <Item class="ModuleScript" referent="28">
           <Properties>
             <string name="Name">PetService</string>
             <string name="Source"><![CDATA[--[[
@@ -9873,7 +10835,21 @@ local function announceIfRare(player: Player, name: string, variant: string?, eg
 		return
 	end
 	local eggName = eggId and Config.Eggs[eggId] and Config.Eggs[eggId].Name or ""
-	if variant == "Huge" then
+	-- big moments: a beam of light on the player for everyone in the server
+	if variant == "Huge" or variant == "Titanic" or rarity.Order >= 7 then
+		Net:Broadcast("BigHatch", player.UserId, variant or info.Rarity)
+	end
+	if variant == "Titanic" then
+		-- shouted in EVERY server
+		Services.EventService:GlobalAnnounce(
+			"🗿 %s hatched a TITANIC %s%s!%s",
+			Color3.fromRGB(255, 120, 60),
+			player.DisplayName,
+			name,
+			if serial then " #" .. serial else "",
+			oddsText(eggId, name, variant)
+		)
+	elseif variant == "Huge" then
 		Net:Announce(
 			"🐘 %s hatched a HUGE %s%s!%s",
 			Color3.fromRGB(255, 200, 60),
@@ -9910,6 +10886,8 @@ local function roll(player: Player, data, eggId: string, count: number, extraLuc
 		table.insert(results, { Name = name, Variant = variant })
 		if variant == "Huge" then
 			data.Stats.HugesFound = (data.Stats.HugesFound or 0) + 1
+		elseif variant == "Titanic" then
+			data.Stats.TitanicsFound = (data.Stats.TitanicsFound or 0) + 1
 		end
 		if pet and Util.WantsSerial(Config, name, variant) then
 			giveSerial(player, data, pet, function(serial)
@@ -10164,7 +11142,7 @@ return PetService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="28">
+        <Item class="ModuleScript" referent="29">
           <Properties>
             <string name="Name">ProgressionService</string>
             <string name="Source"><![CDATA[--[[
@@ -10740,7 +11718,7 @@ return Progression
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="29">
+        <Item class="ModuleScript" referent="30">
           <Properties>
             <string name="Name">ShardService</string>
             <string name="Source"><![CDATA[--[[
@@ -11305,6 +12283,17 @@ local function deliver(player: Player)
 		task.spawn(Data.Save, Data, player)
 		-- theft shield for the victim, revenge window, bounty on serial thieves
 		Services.BaseService:StealDelivered(owner, player, meta, taken)
+		-- 🌙 Thief Night: delivered steals pay a bonus
+		local bonusSeconds = Services.EventService:Get("StealBonus", 0)
+		if bonusSeconds > 0 and data then
+			local bonus = math.floor(Util.PetIncome(Config, taken.Name, taken.Variant) * bonusSeconds)
+			if bonus > 0 then
+				data.Coins += bonus
+				data.Stats.LifetimeCoins += bonus
+				Net:Send(player, "Sold", bonus)
+				Net:Notify(player, "🌙 Thief Night bonus: +💰%s!", Color3.fromRGB(170, 140, 255), Util.Format(bonus))
+			end
+		end
 		local display = taken.Name
 		Net:Notify(owner, "💔 %s stole your %s!", Color3.fromRGB(255, 90, 90), player.DisplayName, display)
 		if data then
@@ -11628,7 +12617,7 @@ return Shards
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="30">
+        <Item class="ModuleScript" referent="31">
           <Properties>
             <string name="Name">StatsService</string>
             <string name="Source"><![CDATA[--[[
@@ -11881,7 +12870,7 @@ return Stats
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="31">
+        <Item class="ModuleScript" referent="32">
           <Properties>
             <string name="Name">TradeService</string>
             <string name="Source"><![CDATA[--[[
@@ -12164,7 +13153,7 @@ return Trade
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="32">
+        <Item class="ModuleScript" referent="33">
           <Properties>
             <string name="Name">WorldService</string>
             <string name="Source"><![CDATA[--[[
@@ -13271,23 +14260,23 @@ return World
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="33">
+  <Item class="StarterPlayer" referent="34">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="34">
+    <Item class="StarterPlayerScripts" referent="35">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="35">
+      <Item class="Folder" referent="36">
         <Properties>
           <string name="Name">Client</string>
         </Properties>
-        <Item class="Folder" referent="36">
+        <Item class="Folder" referent="37">
           <Properties>
             <string name="Name">Controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="37">
+          <Item class="ModuleScript" referent="38">
             <Properties>
               <string name="Name">Ambience</string>
               <string name="Source"><![CDATA[--[[
@@ -13411,7 +14400,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="38">
+          <Item class="ModuleScript" referent="39">
             <Properties>
               <string name="Name">Build</string>
               <string name="Source"><![CDATA[--[[
@@ -13558,12 +14547,12 @@ selectHighlight.Parent = workspace
 -- UI
 ---------------------------------------------------------------------------
 -- the "DECORATE" button shows up while you stand in your own base
-local entry = Root.Cluster("BuildEntry", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -76), UDim2.fromOffset(230, 56))
+local entry = Root.Cluster("BuildEntry", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -70), UDim2.fromOffset(170, 44))
 local entryButton = Lib.Button({
 	Text = "🔨 DECORATE",
 	Color = Color3.fromRGB(255, 150, 60),
 	Size = UDim2.fromScale(1, 1),
-	TextSize = 24,
+	TextSize = 19,
 	Parent = entry,
 	OnClick = function()
 		Build.Enter()
@@ -14045,6 +15034,13 @@ local function refreshHouse()
 		elseif kind == "Name" then
 			card.Price.Text = if base.Name ~= "" then base.Name else T("tap to name")
 			card.Price.TextColor3 = C.Sub
+		elseif kind == "Roof" then
+			local color = Config.Paint[tonumber(base.Roof) or 0]
+			card.Price.Text = if color then "■■■" else T("Auto")
+			card.Price.TextColor3 = color or C.Sub
+		elseif kind == "Tidy" then
+			card.Price.Text = T("one tap")
+			card.Price.TextColor3 = C.Sub
 		elseif kind == "Skin" then
 			local owned = def.Id == "Auto" or base.Skins[def.Id] == true
 			local active = (base.Skin or "Auto") == def.Id
@@ -14104,6 +15100,36 @@ local function buildHouseCards()
 					end)
 				elseif type(message) == "string" and hud then
 					hud.Toast(message, C.Red)
+				end
+			end)
+		end)
+	)
+	order += 1
+	add(
+		"Tidy",
+		makeCard(order, "🐾", "Tidy Pets", function()
+			task.spawn(function()
+				local ok, message = Net.Invoke("BaseArrange")
+				if ok then
+					Lib.PlaySound("Reward")
+					if Build.HUD then
+						Build.HUD.Toast(T("🐾 Pedestals lined up neatly!"), C.Green)
+					end
+				elseif type(message) == "string" and Build.HUD then
+					Build.HUD.Toast(message, C.Red)
+				end
+			end)
+		end)
+	)
+	order += 1
+	add(
+		"Roof",
+		makeCard(order, "🎨", "Roof Color", function()
+			local data = State.Data
+			local current = data and tonumber(data.Base.Roof) or 0
+			task.spawn(function()
+				if Net.Invoke("HouseRoof", (current + 1) % (#Config.Paint + 1)) then
+					Lib.PlaySound("UI", 0.7, 0.2)
 				end
 			end)
 		end)
@@ -14404,7 +15430,7 @@ return Build
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="39">
+          <Item class="ModuleScript" referent="40">
             <Properties>
               <string name="Name">DevTools</string>
               <string name="Source"><![CDATA[--[[
@@ -14432,7 +15458,21 @@ local function build()
 		Lib.List(Enum.FillDirection.Vertical, 4, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Bottom),
 	})
 	for order, command in
-		{ "Coins", "Gems", "Level", "Points", "Star", "Shard", "Huge", "House", "Event", "Rainbow", "Spin", "Meteor", "Reset" }
+		{
+			"Coins",
+			"Gems",
+			"Level",
+			"Star",
+			"Shard",
+			"Huge",
+			"Titanic",
+			"House",
+			"Lucky",
+			"Party",
+			"Event",
+			"Meteor",
+			"Reset",
+		}
 	do
 		Lib.Button({
 			Text = command,
@@ -14470,7 +15510,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="40">
+          <Item class="ModuleScript" referent="41">
             <Properties>
               <string name="Name">Guide</string>
               <string name="Source"><![CDATA[--[[
@@ -14715,12 +15755,13 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="41">
+          <Item class="ModuleScript" referent="42">
             <Properties>
               <string name="Name">HUD</string>
               <string name="Source"><![CDATA[--[[
 	Main HUD - designed for phones first and to reveal things gradually:
-	  * top center: ONE objective (tutorial step or next goal) + guide beam
+	  * objective: top center during the tutorial, then a small card in the
+	    right column (nothing big in the middle of the screen)
 	  * top left: money, level, and a menu that grows with progress
 	  * right: server event, boosts, your rank in this server
 	  * bottom: auto mine / starter pack (after tutorial)
@@ -14753,7 +15794,7 @@ local DARK = Color3.fromRGB(20, 22, 34)
 ---------------------------------------------------------------------------
 -- toasts & announcements
 ---------------------------------------------------------------------------
-local toastCluster = Root.Cluster("Toasts", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 168), UDim2.fromOffset(520, 220), Root.Overlay)
+local toastCluster = Root.Cluster("Toasts", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 110), UDim2.fromOffset(480, 130), Root.Overlay)
 toastCluster.ZIndex = 40
 Lib.List(Enum.FillDirection.Vertical, 6).Parent = toastCluster
 
@@ -14763,7 +15804,7 @@ function HUD.Toast(text: string, color: Color3?)
 	local toast = New("Frame", {
 		BackgroundColor3 = DARK,
 		BackgroundTransparency = 0.15,
-		Size = UDim2.fromOffset(500, 40),
+		Size = UDim2.fromOffset(470, 36),
 		LayoutOrder = toastOrder,
 		ZIndex = 40,
 		Parent = toastCluster,
@@ -14773,7 +15814,7 @@ function HUD.Toast(text: string, color: Color3?)
 		TextColor3 = color or C.Text,
 		Size = UDim2.new(1, -16, 1, -8),
 		Position = UDim2.fromOffset(8, 4),
-		MaxTextSize = 20,
+		MaxTextSize = 18,
 		ZIndex = 41,
 		Parent = toast,
 	})
@@ -14784,13 +15825,13 @@ function HUD.Toast(text: string, color: Color3?)
 			table.insert(toasts, child)
 		end
 	end
-	if #toasts > 3 then
+	if #toasts > 2 then
 		table.sort(toasts, function(a, b)
 			return a.LayoutOrder < b.LayoutOrder
 		end)
 		toasts[1]:Destroy()
 	end
-	task.delay(3.5, function()
+	task.delay(3, function()
 		if toast.Parent then
 			TweenService:Create(toast, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
 			task.wait(0.3)
@@ -14799,7 +15840,7 @@ function HUD.Toast(text: string, color: Color3?)
 	end)
 end
 
-local bannerCluster = Root.Cluster("Banner", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 112), UDim2.fromOffset(760, 50))
+local bannerCluster = Root.Cluster("Banner", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 56), UDim2.fromOffset(680, 44))
 bannerCluster.ZIndex = 45
 local banner = New("Frame", {
 	BackgroundColor3 = Color3.fromRGB(15, 15, 25),
@@ -14813,7 +15854,7 @@ local bannerText = Lib.Text({
 	Text = "",
 	Size = UDim2.new(1, -20, 1, -10),
 	Position = UDim2.fromOffset(10, 5),
-	MaxTextSize = 26,
+	MaxTextSize = 22,
 	ZIndex = 46,
 	Parent = banner,
 })
@@ -14834,7 +15875,7 @@ function HUD.Announce(text: string, color: Color3?)
 			banner:FindFirstChildOfClass("UIStroke").Color = item.Color
 			banner.Visible = true
 			Lib.Pop(banner)
-			task.wait(if #bannerQueue > 2 then 2.5 else 4)
+			task.wait(if #bannerQueue > 2 then 2 else 3.2)
 		end
 		banner.Visible = false
 		bannerBusy = false
@@ -14844,7 +15885,7 @@ end
 ---------------------------------------------------------------------------
 -- objective card (top center, under the meteor timer)
 ---------------------------------------------------------------------------
-local objectiveCluster = Root.Cluster("Objective", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 60), UDim2.fromOffset(470, 46))
+local objectiveCluster = Root.Cluster("Objective", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 56), UDim2.fromOffset(430, 42))
 local objective = New("Frame", {
 	BackgroundColor3 = DARK,
 	BackgroundTransparency = 0.1,
@@ -14852,13 +15893,34 @@ local objective = New("Frame", {
 	Parent = objectiveCluster,
 }, { Lib.Corner(14), Lib.Stroke(C.Gold, 2.5, 0) })
 local objectiveText =
-	Lib.Text({ Text = "", Size = UDim2.new(1, -20, 1, -14), Position = UDim2.fromOffset(10, 3), MaxTextSize = 20, Parent = objective })
+	Lib.Text({ Text = "", Size = UDim2.new(1, -16, 1, -12), Position = UDim2.fromOffset(8, 3), MaxTextSize = 18, Parent = objective })
 local objectiveFill = New("Frame", {
 	BackgroundColor3 = C.Gold,
 	Size = UDim2.new(0, 0, 0, 5),
 	Position = UDim2.new(0, 12, 1, -9),
 	Parent = objective,
 }, { Lib.Corner(3) })
+
+-- top center stack: meteor timer -> (tutorial objective) -> announcement -> toasts.
+-- Offsets don't shrink with the UI scale, so they are recomputed for phones.
+local objectiveOnTop = true
+local function layoutTop()
+	local s = Root.Scale()
+	local y = 8 + 48 * s
+	objectiveCluster.Position = UDim2.new(0.5, 0, 0, y)
+	if objectiveOnTop then
+		y += 46 * s
+	end
+	bannerCluster.Position = UDim2.new(0.5, 0, 0, y)
+	toastCluster.Position = UDim2.new(0.5, 0, 0, y + 48 * s)
+end
+layoutTop()
+task.defer(function()
+	local camera = workspace.CurrentCamera
+	if camera then
+		camera:GetPropertyChangedSignal("ViewportSize"):Connect(layoutTop)
+	end
+end)
 
 ---------------------------------------------------------------------------
 -- top left: money, level, menu
@@ -14903,12 +15965,27 @@ local levelBadge = Lib.Text({ Text = "Lv.1", TextColor3 = C.Gold, Size = UDim2.f
 local _, setLevel =
 	Lib.Bar({ Size = UDim2.fromOffset(152, 18), Position = UDim2.fromOffset(56, 3), Color = C.Gold, TextSize = 12, Parent = levelRow })
 
--- menu that grows as the player progresses (no wall of buttons on day one)
+-- menu that grows as the player progresses (no wall of buttons on day one).
+-- Only the main buttons stay on screen; the rest live behind ⋯ MORE.
 local menu =
-	New("Frame", { Name = "Menu", BackgroundTransparency = 1, Size = UDim2.fromOffset(222, 300), LayoutOrder = 6, Parent = topLeft })
-local menuGrid = Lib.Grid(UDim2.fromOffset(68, 68), 6)
+	New("Frame", { Name = "Menu", BackgroundTransparency = 1, Size = UDim2.fromOffset(268, 64), LayoutOrder = 6, Parent = topLeft })
+local menuGrid = Lib.Grid(UDim2.fromOffset(62, 62), 6)
 menuGrid.HorizontalAlignment = Enum.HorizontalAlignment.Left
 menuGrid.Parent = menu
+local moreMenu = New("Frame", {
+	Name = "MoreMenu",
+	BackgroundColor3 = DARK,
+	BackgroundTransparency = 0.2,
+	Size = UDim2.fromOffset(268, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
+	LayoutOrder = 7,
+	Visible = false,
+	Parent = topLeft,
+}, { Lib.Corner(14), Lib.Padding(5) })
+local moreGrid = Lib.Grid(UDim2.fromOffset(60, 60), 6)
+moreGrid.HorizontalAlignment = Enum.HorizontalAlignment.Left
+moreGrid.Parent = moreMenu
+local PRIMARY = { Shop = true, Pets = true, Rewards = true }
 
 local function tutorialAt(data, step: number): boolean
 	return data.Tutorial == nil or data.Tutorial.Done or data.Tutorial.Step >= step
@@ -14994,14 +16071,23 @@ local MENU = {
 }
 local menuButtons = {}
 local badges = {}
+table.insert(MENU, {
+	"More",
+	"⋯",
+	"More",
+	Color3.fromRGB(90, 95, 120),
+	function(d)
+		return tutorialAt(d, 2)
+	end,
+})
 for order, item in MENU do
 	local button = New("TextButton", {
 		Text = "",
 		AutoButtonColor = false,
 		BackgroundColor3 = item[4],
-		LayoutOrder = order,
+		LayoutOrder = if item[1] == "More" then 99 else order,
 		Visible = false,
-		Parent = menu,
+		Parent = if PRIMARY[item[1]] or item[1] == "More" then menu else moreMenu,
 	}, { Lib.Corner(14), Lib.Stroke(Color3.new(0, 0, 0), 2.5, 0.25), Lib.Gradient(Color3.new(1, 1, 1), Color3.fromRGB(170, 170, 170)) })
 	Lib.Text({
 		Text = item[2],
@@ -15028,6 +16114,11 @@ for order, item in MENU do
 		scale.Scale = 0.9
 		TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 		Lib.PlaySound("UI")
+		if item[1] == "More" then
+			moreMenu.Visible = not moreMenu.Visible
+			return
+		end
+		moreMenu.Visible = false
 		Panels.Toggle(item[1])
 	end)
 end
@@ -15038,6 +16129,42 @@ end
 local right = Root.Cluster("RightColumn", Vector2.new(1, 0), UDim2.new(1, -12, 0, 60), UDim2.fromOffset(250, 520))
 HUD.RightColumn = right -- MeteorUI adds its live ranking here
 Lib.List(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Right).Parent = right
+-- 🎉 party countdown (weekly party / admin event)
+local partyChip = New("Frame", {
+	BackgroundColor3 = DARK,
+	BackgroundTransparency = 0.12,
+	Size = UDim2.fromOffset(240, 30),
+	LayoutOrder = -2,
+	Visible = false,
+	Parent = right,
+}, { Lib.Corner(12), Lib.Stroke(Color3.fromRGB(255, 200, 80), 2.5, 0) })
+local partyText = Lib.Text({
+	Text = "",
+	TextColor3 = Color3.fromRGB(255, 210, 100),
+	Size = UDim2.new(1, -12, 1, -4),
+	Position = UDim2.fromOffset(6, 2),
+	MaxTextSize = 16,
+	Parent = partyChip,
+})
+task.spawn(function()
+	while true do
+		task.wait(1)
+		local left = (workspace:GetAttribute("PartyEnd") or 0) - State.Now()
+		partyChip.Visible = left > 0
+		if left > 0 then
+			partyText.Text = T("🎉 PARTY %s  •  🍀 + 2x luck", Util.FormatTime(left))
+		end
+	end
+end)
+
+-- after the tutorial the objective is a small card here (not in the middle)
+local objectiveSlot = New("Frame", {
+	Name = "ObjectiveSlot",
+	BackgroundTransparency = 1,
+	Size = UDim2.fromOffset(240, 46),
+	LayoutOrder = -1,
+	Parent = right,
+})
 
 local function chip(order: number, height: number, strokeColor: Color3)
 	return New("Frame", {
@@ -15453,6 +16580,9 @@ function HUD.Refresh()
 
 	-- objective
 	local text, progress = currentObjective(data, derived)
+	if objectiveText.Text ~= text and not firstRefresh then
+		Lib.Pop(objective)
+	end
 	objectiveText.Text = text
 	objectiveFill.Visible = progress ~= nil
 	if progress then
@@ -15481,6 +16611,21 @@ function HUD.Refresh()
 	badges.Rewards.Visible = ready.Quests or ready.Gifts or ready.Spin
 	badges.Pass.Visible = anyTierClaimable(data)
 	badges.Rebirth.Visible = data.Coins >= (derived.RebirthCost or math.huge)
+	local hiddenBadge = false
+	for id, badge in badges do
+		if not PRIMARY[id] and id ~= "More" and badge.Visible and menuButtons[id].Visible then
+			hiddenBadge = true
+		end
+	end
+	badges.More.Visible = hiddenBadge and not moreMenu.Visible
+	-- the objective moves out of the way once the tutorial is done
+	local onTop = not tutorialDone(data)
+	if onTop ~= objectiveOnTop then
+		objectiveOnTop = onTop
+		objective.Parent = if onTop then objectiveCluster else objectiveSlot
+		layoutTop()
+	end
+	objectiveSlot.Visible = not onTop
 
 	-- server event chip
 	local eventId = workspace:GetAttribute("EventId")
@@ -15719,7 +16864,7 @@ return HUD
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="42">
+          <Item class="ModuleScript" referent="43">
             <Properties>
               <string name="Name">HowTo</string>
               <string name="Source"><![CDATA[--[[
@@ -15892,7 +17037,7 @@ return HowTo
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="43">
+          <Item class="ModuleScript" referent="44">
             <Properties>
               <string name="Name">MeteorUI</string>
               <string name="Source"><![CDATA[--[[
@@ -16179,7 +17324,7 @@ return MeteorUI
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="44">
+          <Item class="ModuleScript" referent="45">
             <Properties>
               <string name="Name">Mining</string>
               <string name="Source"><![CDATA[--[[
@@ -17129,7 +18274,7 @@ return Mining
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="45">
+          <Item class="ModuleScript" referent="46">
             <Properties>
               <string name="Name">PetFollow</string>
               <string name="Source"><![CDATA[--[[
@@ -17234,7 +18379,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="46">
+          <Item class="ModuleScript" referent="47">
             <Properties>
               <string name="Name">Shards</string>
               <string name="Source"><![CDATA[--[[
@@ -17674,7 +18819,148 @@ return Shards
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="47">
+          <Item class="ModuleScript" referent="48">
+            <Properties>
+              <string name="Name">Spectacle</string>
+              <string name="Source"><![CDATA[--[[
+	Spectacle: the "clip it!" moments.
+	  * 🎉 confetti (lucky block prizes, prank pets) and 💥 booms (prank blocks)
+	  * a pillar of light where someone hatched a HUGE / TITANIC / secret pet
+	  * 🌙 Thief Night turns the sky dark for everyone
+	  * 🎉 party: a little fireworks show now and then
+]]
+local Debris = game:GetService("Debris")
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local Client = script.Parent.Parent
+local Net = require(Client.Net)
+local Lib = require(Client.UI.Lib)
+
+local Spectacle = {}
+
+local SPARKLE = "rbxasset://textures/particles/sparkles_main.dds"
+local RAINBOW = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 90, 90)),
+	ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 220, 80)),
+	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(90, 230, 120)),
+	ColorSequenceKeypoint.new(0.75, Color3.fromRGB(80, 170, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 110, 255)),
+})
+
+local function anchorAt(position: Vector3): Part
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Transparency = 1
+	p.Size = Vector3.one
+	p.CFrame = CFrame.new(position)
+	p.Parent = workspace
+	return p
+end
+
+local function burst(position: Vector3, colors: ColorSequence, amount: number, speed: number, size: number)
+	local holder = anchorAt(position + Vector3.new(0, 3, 0))
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Texture = SPARKLE
+	emitter.Color = colors
+	emitter.LightEmission = 0.6
+	emitter.Size = NumberSequence.new(size, 0)
+	emitter.Lifetime = NumberRange.new(1.2, 2.2)
+	emitter.Speed = NumberRange.new(speed * 0.6, speed)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Acceleration = Vector3.new(0, -30, 0)
+	emitter.Rotation = NumberRange.new(0, 360)
+	emitter.RotSpeed = NumberRange.new(-200, 200)
+	emitter.Rate = 0
+	emitter.Parent = holder
+	emitter:Emit(amount)
+	Debris:AddItem(holder, 3)
+end
+
+Net.On("Confetti", function(position)
+	if typeof(position) ~= "Vector3" then
+		return
+	end
+	burst(position, RAINBOW, 60, 30, 0.8)
+	Lib.PlaySound("Reward", 0.7, 0.2)
+end)
+
+Net.On("Boom", function(position)
+	if typeof(position) ~= "Vector3" then
+		return
+	end
+	burst(position, ColorSequence.new(Color3.fromRGB(255, 140, 40), Color3.fromRGB(60, 50, 50)), 45, 40, 1.4)
+	Lib.PlaySound("Impact", 0.6)
+end)
+
+-- a pillar of light on a lucky player (everyone sees it)
+Net.On("BigHatch", function(userId, kind)
+	local other = type(userId) == "number" and Players:GetPlayerByUserId(userId)
+	local root = other and other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return
+	end
+	local color = if kind == "Titanic"
+		then Color3.fromRGB(255, 120, 60)
+		elseif kind == "Huge" then Color3.fromRGB(255, 210, 80)
+		else Color3.fromRGB(200, 120, 255)
+	local pillar = Instance.new("Part")
+	pillar.Anchored = true
+	pillar.CanCollide = false
+	pillar.CanQuery = false
+	pillar.CanTouch = false
+	pillar.Shape = Enum.PartType.Cylinder
+	pillar.Material = Enum.Material.Neon
+	pillar.Color = color
+	pillar.Transparency = 0.35
+	pillar.Size = Vector3.new(400, 5, 5)
+	pillar.CFrame = CFrame.new(root.Position + Vector3.new(0, 200, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	pillar.Parent = workspace
+	burst(root.Position, RAINBOW, if kind == "Titanic" then 160 else 80, 45, 1)
+	Lib.PlaySound("Legendary")
+	TweenService:Create(pillar, TweenInfo.new(8, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+		Transparency = 1,
+		Size = Vector3.new(400, 0.5, 0.5),
+	}):Play()
+	Debris:AddItem(pillar, 8.5)
+end)
+
+-- 🌙 Thief Night: the sky goes dark while it lasts
+local normalClock = nil
+local function refreshNight()
+	local night = workspace:GetAttribute("EventId") == "ThiefNight"
+	if night and normalClock == nil then
+		normalClock = Lighting.ClockTime
+		TweenService:Create(Lighting, TweenInfo.new(3), { ClockTime = 0.3 }):Play()
+	elseif not night and normalClock ~= nil then
+		TweenService:Create(Lighting, TweenInfo.new(3), { ClockTime = normalClock }):Play()
+		normalClock = nil
+	end
+end
+workspace:GetAttributeChangedSignal("EventId"):Connect(refreshNight)
+refreshNight()
+
+-- 🎉 party: fireworks over the hub every few seconds
+task.spawn(function()
+	while true do
+		task.wait(4)
+		local partyEnd = workspace:GetAttribute("PartyEnd") or 0
+		if partyEnd > workspace:GetServerTimeNow() then
+			local spot = Vector3.new(math.random(-60, 60), 40 + math.random(0, 20), math.random(-60, 60))
+			burst(spot, RAINBOW, 70, 35, 1.2)
+		end
+	end
+end)
+
+return Spectacle
+]]></string>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="49">
             <Properties>
               <string name="Name">TradeUI</string>
               <string name="Source"><![CDATA[--[[
@@ -17790,7 +19076,7 @@ return TradeUI
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="48">
+          <Item class="ModuleScript" referent="50">
             <Properties>
               <string name="Name">WorldFX</string>
               <string name="Source"><![CDATA[--[[
@@ -17949,8 +19235,219 @@ return {}
 ]]></string>
             </Properties>
           </Item>
+          <Item class="ModuleScript" referent="51">
+            <Properties>
+              <string name="Name">YardPets</string>
+              <string name="Source"><![CDATA[--[[
+	YardPets: the pets waiting in storage don't vanish - they wander around
+	their owner's yard (the server publishes up to Config.Base.YardPets of
+	them per house as the plot attribute "Yard"). Only houses near the camera
+	get models, so phones stay smooth.
+
+	Also: a small "welcome" when you step onto your own land or someone
+	else's (house name, level, likes).
+]]
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local DecorModel = require(Shared.DecorModel)
+local PetModel = require(Shared.PetModel)
+
+local Client = script.Parent.Parent
+local Lib = require(Client.UI.Lib)
+
+local YardPets = {}
+local player = Players.LocalPlayer
+local T = Lib.T
+
+local VIEW_DISTANCE = 190
+local SPEED = 4
+local folder = Instance.new("Folder")
+folder.Name = "YardPets"
+folder.Parent = workspace
+
+local yards = {} -- [plot Model] = { Key, Pets = { { Model, Pos, Target, Wait, Lift } } }
+local rng = Random.new()
+
+local function plotFrame(plot: Model): CFrame?
+	local floor = plot:FindFirstChild("Floor")
+	return if floor and floor:IsA("BasePart") then floor.CFrame * CFrame.new(0, 0.2, 0) else nil
+end
+
+local function clear(plot: Model)
+	local yard = yards[plot]
+	if yard then
+		for _, pet in yard.Pets do
+			pet.Model:Destroy()
+		end
+	end
+	yards[plot] = nil
+end
+
+local function randomSpot(plot: Model): Vector3
+	local bounds = DecorModel.Bounds(Config, plot:GetAttribute("HouseLevel") or 1)
+	return Vector3.new(rng:NextNumber(bounds.MinX + 2, bounds.MaxX - 2), 0, rng:NextNumber(bounds.MinZ + 2, bounds.MaxZ - 2))
+end
+
+local function build(plot: Model, key: string)
+	clear(plot)
+	local ok, names = pcall(HttpService.JSONDecode, HttpService, key)
+	if not ok or type(names) ~= "table" then
+		return
+	end
+	local pets = {}
+	for i, entry in names do
+		if type(entry) == "string" then
+			local variant, name = string.match(entry, "^(.-)|(.+)$")
+			if name and Config.Pets[name] then
+				local model = PetModel.Build(name, if variant ~= "" then variant else nil)
+				model.Name = plot.Name .. "_yard_" .. i
+				model:PivotTo(CFrame.new())
+				local box, size = model:GetBoundingBox()
+				-- how far the pivot sits above the model's feet
+				local lift = model:GetPivot().Position.Y - (box.Position.Y - size.Y / 2)
+				for _, d in model:GetDescendants() do
+					if d:IsA("BasePart") then
+						d.CanCollide = false
+						d.CanQuery = false
+						d.CanTouch = false
+					end
+				end
+				model.Parent = folder
+				local start = randomSpot(plot)
+				table.insert(pets, { Model = model, Pos = start, Target = randomSpot(plot), Wait = rng:NextNumber(0, 2), Lift = lift })
+			end
+		end
+	end
+	yards[plot] = { Key = key, Pets = pets }
+end
+
+local function bases(): { Model }
+	local map = workspace:FindFirstChild("Map")
+	local folderBases = map and map:FindFirstChild("Bases")
+	return if folderBases then folderBases:GetChildren() :: any else {}
+end
+
+-- which houses get pets (near the camera only)
+local function refreshYards()
+	local camera = workspace.CurrentCamera
+	local eye = camera and camera.CFrame.Position or Vector3.zero
+	for _, plot in bases() do
+		local frame = plotFrame(plot)
+		local ownerId = plot:GetAttribute("OwnerId")
+		local key = plot:GetAttribute("Yard")
+		local near = frame ~= nil and (frame.Position - eye).Magnitude < VIEW_DISTANCE
+		if near and type(ownerId) == "number" and ownerId ~= 0 and type(key) == "string" then
+			local yard = yards[plot]
+			if not yard or yard.Key ~= key then
+				build(plot, key)
+			end
+		elseif yards[plot] then
+			clear(plot)
+		end
+	end
+end
+
+-- welcome banner when you step onto a piece of land
+local insidePlot: Model? = nil
+local lastHome = 0
+local function checkLand()
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return
+	end
+	local found = nil
+	local half = Config.Base.PlotSize / 2
+	for _, plot in bases() do
+		local frame = plotFrame(plot)
+		if frame and (plot:GetAttribute("OwnerId") or 0) ~= 0 then
+			local p = frame:PointToObjectSpace(root.Position)
+			if math.abs(p.X) <= half and math.abs(p.Z) <= half then
+				found = plot
+			end
+		end
+	end
+	if found == insidePlot then
+		return
+	end
+	insidePlot = found
+	local hud = YardPets.HUD
+	if not found or not hud then
+		return
+	end
+	if found:GetAttribute("OwnerId") == player.UserId then
+		if os.clock() - lastHome > 30 then
+			hud.Toast(T("🏡 Welcome home!"), Color3.fromRGB(140, 230, 160))
+		end
+		lastHome = os.clock()
+	else
+		local name = found:GetAttribute("HouseName")
+		local title = if type(name) == "string" and name ~= ""
+			then name
+			else T("%s's House", tostring(found:GetAttribute("OwnerName") or "?"))
+		local crown = if found:GetAttribute("BestHouse") then "👑 " else ""
+		hud.Toast(
+			crown
+				.. "🏘️ "
+				.. title
+				.. "  •  Lv."
+				.. tostring(found:GetAttribute("HouseLevel") or 1)
+				.. "  ❤️ "
+				.. tostring(found:GetAttribute("Likes") or 0),
+			Color3.fromRGB(255, 170, 200)
+		)
+	end
+end
+
+task.spawn(function()
+	while true do
+		pcall(refreshYards)
+		pcall(checkLand)
+		task.wait(0.5)
+	end
+end)
+
+RunService.Heartbeat:Connect(function(dt)
+	local t = os.clock()
+	for plot, yard in yards do
+		local frame = plotFrame(plot)
+		if not frame or not plot.Parent then
+			clear(plot)
+			continue
+		end
+		for i, pet in yard.Pets do
+			if pet.Wait > 0 then
+				pet.Wait -= dt
+			else
+				local offset = pet.Target - pet.Pos
+				local distance = offset.Magnitude
+				if distance < 0.5 then
+					pet.Target = randomSpot(plot)
+					pet.Wait = rng:NextNumber(1, 4) -- sit for a moment
+				else
+					pet.Pos += offset.Unit * math.min(distance, SPEED * dt)
+				end
+			end
+			local moving = pet.Wait <= 0
+			local hop = if moving then math.abs(math.sin(t * 9 + i)) * 0.5 else 0
+			local look = pet.Target - pet.Pos
+			local world = frame * CFrame.new(pet.Pos + Vector3.new(0, pet.Lift + hop, 0))
+			local facing = if look.Magnitude > 0.1 then frame:VectorToWorldSpace(look.Unit) else world.LookVector
+			pet.Model:PivotTo(CFrame.lookAt(world.Position, world.Position + Vector3.new(facing.X, 0, facing.Z) + Vector3.new(0, 0.001, 0)))
+		end
+	end
+end)
+
+return YardPets
+]]></string>
+            </Properties>
+          </Item>
         </Item>
-        <Item class="LocalScript" referent="49">
+        <Item class="LocalScript" referent="52">
           <Properties>
             <string name="Name">Main</string>
             <string name="Source"><![CDATA[--[[
@@ -18010,6 +19507,8 @@ require(Controllers:WaitForChild("Shards")).HUD = HUD
 require(Controllers:WaitForChild("Build")).HUD = HUD
 Panels.Provide("HowTo", require(Controllers:WaitForChild("HowTo")))
 require(Controllers:WaitForChild("TradeUI")).HUD = HUD
+require(Controllers:WaitForChild("YardPets")).HUD = HUD
+require(Controllers:WaitForChild("Spectacle"))
 
 -- ask for a fresh snapshot in case the first one arrived before we listened
 Net.Fire("Sync")
@@ -18021,7 +19520,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="50">
+        <Item class="ModuleScript" referent="53">
           <Properties>
             <string name="Name">Net</string>
             <string name="Source"><![CDATA[local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18065,7 +19564,7 @@ return Net
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="51">
+        <Item class="ModuleScript" referent="54">
           <Properties>
             <string name="Name">State</string>
             <string name="Source"><![CDATA[--[[
@@ -18128,11 +19627,11 @@ return State
 ]]></string>
           </Properties>
         </Item>
-        <Item class="Folder" referent="52">
+        <Item class="Folder" referent="55">
           <Properties>
             <string name="Name">UI</string>
           </Properties>
-          <Item class="ModuleScript" referent="53">
+          <Item class="ModuleScript" referent="56">
             <Properties>
               <string name="Name">Hatch</string>
               <string name="Source"><![CDATA[--[[
@@ -18357,7 +19856,7 @@ return Hatch
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="54">
+          <Item class="ModuleScript" referent="57">
             <Properties>
               <string name="Name">Lib</string>
               <string name="Source"><![CDATA[--[[
@@ -18684,7 +20183,7 @@ return Lib
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="55">
+          <Item class="ModuleScript" referent="58">
             <Properties>
               <string name="Name">Panels</string>
               <string name="Source"><![CDATA[--[[
@@ -18914,7 +20413,7 @@ end
 return Panels
 ]]></string>
             </Properties>
-            <Item class="ModuleScript" referent="56">
+            <Item class="ModuleScript" referent="59">
               <Properties>
                 <string name="Name">Codes</string>
                 <string name="Source"><![CDATA[-- Promo codes: free rewards for players who find codes on YouTube / TikTok /
@@ -19015,7 +20514,7 @@ return Codes
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="57">
+            <Item class="ModuleScript" referent="60">
               <Properties>
                 <string name="Name">Egg</string>
                 <string name="Source"><![CDATA[-- Egg shop: shows exact odds (incl. your luck) and what each pet earns
@@ -19278,7 +20777,7 @@ return Egg
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="58">
+            <Item class="ModuleScript" referent="61">
               <Properties>
                 <string name="Name">Gifts</string>
                 <string name="Source"><![CDATA[-- Playtime gifts: claimable after N minutes in this session (session length)
@@ -19360,7 +20859,7 @@ return Gifts
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="59">
+            <Item class="ModuleScript" referent="62">
               <Properties>
                 <string name="Name">Houses</string>
                 <string name="Source"><![CDATA[--[[
@@ -19407,6 +20906,7 @@ function Houses.Build(content, ctx)
 					Likes = plot:GetAttribute("Likes") or 0,
 					Rate = plot:GetAttribute("Rate") or 0,
 					Protection = plot:GetAttribute("Protection") or "",
+					Best = plot:GetAttribute("BestHouse") == true,
 				})
 			end
 		end
@@ -19427,7 +20927,7 @@ function Houses.Build(content, ctx)
 		local entries = houses()
 		local parts = {}
 		for _, h in entries do
-			table.insert(parts, table.concat({ h.OwnerId, h.Name, h.Level, h.Likes, h.Rate, h.Protection }, ":"))
+			table.insert(parts, table.concat({ h.OwnerId, h.Name, h.Level, h.Likes, h.Rate, h.Protection, tostring(h.Best) }, ":"))
 		end
 		local sig = table.concat(parts, ",")
 		if sig == signature then
@@ -19443,7 +20943,7 @@ function Houses.Build(content, ctx)
 				LayoutOrder = order,
 				Parent = list,
 			}, { Lib.Corner(12), Lib.Stroke(if order == 1 then C.Gold else Color3.new(0, 0, 0), 2, if order == 1 then 0 else 0.5) })
-			local medal = if order == 1 then "🥇 " elseif order == 2 then "🥈 " elseif order == 3 then "🥉 " else ""
+			local medal = if h.Best then "👑 " elseif order == 2 then "🥈 " elseif order == 3 then "🥉 " else ""
 			local title = if h.Name ~= "" then h.Name else T("%s's House", h.Owner)
 			Lib.Text({
 				Text = medal .. (LEVEL_ICONS[h.Level] or "🏠") .. " " .. title,
@@ -19506,7 +21006,7 @@ return Houses
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="60">
+            <Item class="ModuleScript" referent="63">
               <Properties>
                 <string name="Name">Pass</string>
                 <string name="Source"><![CDATA[-- Season pass: free + premium tracks, XP bar, premium / skip upsells
@@ -19688,7 +21188,7 @@ return Pass
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="61">
+            <Item class="ModuleScript" referent="64">
               <Properties>
                 <string name="Name">Pets</string>
                 <string name="Source"><![CDATA[--[[
@@ -20033,7 +21533,7 @@ return Pets
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="62">
+            <Item class="ModuleScript" referent="65">
               <Properties>
                 <string name="Name">Quests</string>
                 <string name="Source"><![CDATA[-- Daily login streak, daily quests, weekly ranked ladder, VIP chest, group reward
@@ -20341,7 +21841,7 @@ return Quests
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="63">
+            <Item class="ModuleScript" referent="66">
               <Properties>
                 <string name="Name">Rebirth</string>
                 <string name="Source"><![CDATA[-- Rebirth: reset coins/upgrades for a permanent coin multiplier + gems
@@ -20431,7 +21931,7 @@ return Rebirth
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="64">
+            <Item class="ModuleScript" referent="67">
               <Properties>
                 <string name="Name">Rewards</string>
                 <string name="Source"><![CDATA[-- One place for every free reward (instead of 4 separate menu buttons)
@@ -20516,7 +22016,7 @@ return Rewards
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="65">
+            <Item class="ModuleScript" referent="68">
               <Properties>
                 <string name="Name">Settings</string>
                 <string name="Source"><![CDATA[-- Settings: language (auto / 한국어 / English), sound, how to play
@@ -20618,7 +22118,7 @@ return Settings
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="66">
+            <Item class="ModuleScript" referent="69">
               <Properties>
                 <string name="Name">Shop</string>
                 <string name="Source"><![CDATA[-- Pickaxe + running-speed upgrades (coins sink, sequential tiers)
@@ -20755,7 +22255,7 @@ return Shop
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="67">
+            <Item class="ModuleScript" referent="70">
               <Properties>
                 <string name="Name">Spin</string>
                 <string name="Source"><![CDATA[-- Free prize wheel: one spin every few hours (VIP: faster). The server picks
@@ -20980,7 +22480,7 @@ return Spin
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="68">
+            <Item class="ModuleScript" referent="71">
               <Properties>
                 <string name="Name">Store</string>
                 <string name="Source"><![CDATA[-- Robux store: game passes, consumables (gems/boosts/server luck/meteor),
@@ -21245,7 +22745,7 @@ return Store
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="69">
+            <Item class="ModuleScript" referent="72">
               <Properties>
                 <string name="Name">Teleport</string>
                 <string name="Source"><![CDATA[-- Zone list: teleport to unlocked zones, unlock the next one
@@ -21327,7 +22827,7 @@ return Teleport
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="70">
+            <Item class="ModuleScript" referent="73">
               <Properties>
                 <string name="Name">Titles</string>
                 <string name="Source"><![CDATA[--[[
@@ -21387,6 +22887,15 @@ function Titles.Build(content, ctx)
 			return T("Find a HUGE pet"), string.format("%d/%d", math.min(stats.HugesFound or 0, need.Huge), need.Huge)
 		elseif need.LifetimeCoins then
 			return T("Earn %s coins in total", Util.Format(need.LifetimeCoins)), ""
+		elseif need.Titanic then
+			return T("Find a TITANIC pet"), string.format("%d/%d", math.min(stats.TitanicsFound or 0, need.Titanic), need.Titanic)
+		elseif need.Pranks then
+			local have = stats.Pranks or 0
+			return T("Prank %d thieves with a 🎭 Prank Pet", need.Pranks),
+				string.format("%d/%d", math.min(have, need.Pranks), need.Pranks)
+		elseif need.Lucky then
+			local have = stats.LuckyBlocks or 0
+			return T("Open %d lucky blocks", need.Lucky), string.format("%d/%d", math.min(have, need.Lucky), need.Lucky)
 		elseif need.Pass then
 			return T("Own the VIP pass"), ""
 		end
@@ -21505,7 +23014,7 @@ return Titles
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="71">
+            <Item class="ModuleScript" referent="74">
               <Properties>
                 <string name="Name">Trade</string>
                 <string name="Source"><![CDATA[--[[
@@ -21791,7 +23300,7 @@ return Trade
               </Properties>
             </Item>
           </Item>
-          <Item class="ModuleScript" referent="72">
+          <Item class="ModuleScript" referent="75">
             <Properties>
               <string name="Name">Root</string>
               <string name="Source"><![CDATA[--[[
@@ -21877,7 +23386,7 @@ return Root
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="73">
+          <Item class="ModuleScript" referent="76">
             <Properties>
               <string name="Name">Upsell</string>
               <string name="Source"><![CDATA[--[[
@@ -22011,13 +23520,13 @@ return Upsell
       </Item>
     </Item>
   </Item>
-  <Item class="TextChatService" referent="74">
+  <Item class="TextChatService" referent="77">
     <Properties>
       <string name="Name">TextChatService</string>
       <token name="ChatVersion">1</token>
     </Properties>
   </Item>
-  <Item class="Workspace" referent="75">
+  <Item class="Workspace" referent="78">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>

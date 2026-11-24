@@ -59,6 +59,7 @@ local TEMPLATE = {
 		LayoutV = 0, -- 2 = territory layout (older saves get migrated)
 		Name = "", -- custom house name (raw text, filtered whenever shown)
 		Skin = "Auto",
+		Roof = 0, -- roof / flag colour (Config.Paint index, 0 = style colour)
 		Skins = {}, -- [skinId] = true
 		LikeGemsDay = 0,
 		LikeGemsToday = 0,
@@ -87,6 +88,9 @@ local TEMPLATE = {
 		ShardsStolen = 0,
 		ThievesCaught = 0,
 		HugesFound = 0,
+		TitanicsFound = 0,
+		Pranks = 0,
+		LuckyBlocks = 0,
 		Fevers = 0,
 	},
 	Daily = { Day = 0, Quests = {}, Streak = 0, LastClaimDay = 0, VipChestDay = 0, ClubDay = 0 },

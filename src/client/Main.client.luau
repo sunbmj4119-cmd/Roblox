@@ -55,6 +55,8 @@ require(Controllers:WaitForChild("Shards")).HUD = HUD
 require(Controllers:WaitForChild("Build")).HUD = HUD
 Panels.Provide("HowTo", require(Controllers:WaitForChild("HowTo")))
 require(Controllers:WaitForChild("TradeUI")).HUD = HUD
+require(Controllers:WaitForChild("YardPets")).HUD = HUD
+require(Controllers:WaitForChild("Spectacle"))
 
 -- ask for a fresh snapshot in case the first one arrived before we listened
 Net.Fire("Sync")

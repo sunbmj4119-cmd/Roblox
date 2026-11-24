@@ -1,6 +1,7 @@
 --[[
 	Main HUD - designed for phones first and to reveal things gradually:
-	  * top center: ONE objective (tutorial step or next goal) + guide beam
+	  * objective: top center during the tutorial, then a small card in the
+	    right column (nothing big in the middle of the screen)
 	  * top left: money, level, and a menu that grows with progress
 	  * right: server event, boosts, your rank in this server
 	  * bottom: auto mine / starter pack (after tutorial)
@@ -33,7 +34,7 @@ local DARK = Color3.fromRGB(20, 22, 34)
 ---------------------------------------------------------------------------
 -- toasts & announcements
 ---------------------------------------------------------------------------
-local toastCluster = Root.Cluster("Toasts", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 168), UDim2.fromOffset(520, 220), Root.Overlay)
+local toastCluster = Root.Cluster("Toasts", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 110), UDim2.fromOffset(480, 130), Root.Overlay)
 toastCluster.ZIndex = 40
 Lib.List(Enum.FillDirection.Vertical, 6).Parent = toastCluster
 
@@ -43,7 +44,7 @@ function HUD.Toast(text: string, color: Color3?)
 	local toast = New("Frame", {
 		BackgroundColor3 = DARK,
 		BackgroundTransparency = 0.15,
-		Size = UDim2.fromOffset(500, 40),
+		Size = UDim2.fromOffset(470, 36),
 		LayoutOrder = toastOrder,
 		ZIndex = 40,
 		Parent = toastCluster,
@@ -53,7 +54,7 @@ function HUD.Toast(text: string, color: Color3?)
 		TextColor3 = color or C.Text,
 		Size = UDim2.new(1, -16, 1, -8),
 		Position = UDim2.fromOffset(8, 4),
-		MaxTextSize = 20,
+		MaxTextSize = 18,
 		ZIndex = 41,
 		Parent = toast,
 	})
@@ -64,13 +65,13 @@ function HUD.Toast(text: string, color: Color3?)
 			table.insert(toasts, child)
 		end
 	end
-	if #toasts > 3 then
+	if #toasts > 2 then
 		table.sort(toasts, function(a, b)
 			return a.LayoutOrder < b.LayoutOrder
 		end)
 		toasts[1]:Destroy()
 	end
-	task.delay(3.5, function()
+	task.delay(3, function()
 		if toast.Parent then
 			TweenService:Create(toast, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
 			task.wait(0.3)
@@ -79,7 +80,7 @@ function HUD.Toast(text: string, color: Color3?)
 	end)
 end
 
-local bannerCluster = Root.Cluster("Banner", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 112), UDim2.fromOffset(760, 50))
+local bannerCluster = Root.Cluster("Banner", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 56), UDim2.fromOffset(680, 44))
 bannerCluster.ZIndex = 45
 local banner = New("Frame", {
 	BackgroundColor3 = Color3.fromRGB(15, 15, 25),
@@ -93,7 +94,7 @@ local bannerText = Lib.Text({
 	Text = "",
 	Size = UDim2.new(1, -20, 1, -10),
 	Position = UDim2.fromOffset(10, 5),
-	MaxTextSize = 26,
+	MaxTextSize = 22,
 	ZIndex = 46,
 	Parent = banner,
 })
@@ -114,7 +115,7 @@ function HUD.Announce(text: string, color: Color3?)
 			banner:FindFirstChildOfClass("UIStroke").Color = item.Color
 			banner.Visible = true
 			Lib.Pop(banner)
-			task.wait(if #bannerQueue > 2 then 2.5 else 4)
+			task.wait(if #bannerQueue > 2 then 2 else 3.2)
 		end
 		banner.Visible = false
 		bannerBusy = false
@@ -124,7 +125,7 @@ end
 ---------------------------------------------------------------------------
 -- objective card (top center, under the meteor timer)
 ---------------------------------------------------------------------------
-local objectiveCluster = Root.Cluster("Objective", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 60), UDim2.fromOffset(470, 46))
+local objectiveCluster = Root.Cluster("Objective", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 56), UDim2.fromOffset(430, 42))
 local objective = New("Frame", {
 	BackgroundColor3 = DARK,
 	BackgroundTransparency = 0.1,
@@ -132,13 +133,34 @@ local objective = New("Frame", {
 	Parent = objectiveCluster,
 }, { Lib.Corner(14), Lib.Stroke(C.Gold, 2.5, 0) })
 local objectiveText =
-	Lib.Text({ Text = "", Size = UDim2.new(1, -20, 1, -14), Position = UDim2.fromOffset(10, 3), MaxTextSize = 20, Parent = objective })
+	Lib.Text({ Text = "", Size = UDim2.new(1, -16, 1, -12), Position = UDim2.fromOffset(8, 3), MaxTextSize = 18, Parent = objective })
 local objectiveFill = New("Frame", {
 	BackgroundColor3 = C.Gold,
 	Size = UDim2.new(0, 0, 0, 5),
 	Position = UDim2.new(0, 12, 1, -9),
 	Parent = objective,
 }, { Lib.Corner(3) })
+
+-- top center stack: meteor timer -> (tutorial objective) -> announcement -> toasts.
+-- Offsets don't shrink with the UI scale, so they are recomputed for phones.
+local objectiveOnTop = true
+local function layoutTop()
+	local s = Root.Scale()
+	local y = 8 + 48 * s
+	objectiveCluster.Position = UDim2.new(0.5, 0, 0, y)
+	if objectiveOnTop then
+		y += 46 * s
+	end
+	bannerCluster.Position = UDim2.new(0.5, 0, 0, y)
+	toastCluster.Position = UDim2.new(0.5, 0, 0, y + 48 * s)
+end
+layoutTop()
+task.defer(function()
+	local camera = workspace.CurrentCamera
+	if camera then
+		camera:GetPropertyChangedSignal("ViewportSize"):Connect(layoutTop)
+	end
+end)
 
 ---------------------------------------------------------------------------
 -- top left: money, level, menu
@@ -183,12 +205,27 @@ local levelBadge = Lib.Text({ Text = "Lv.1", TextColor3 = C.Gold, Size = UDim2.f
 local _, setLevel =
 	Lib.Bar({ Size = UDim2.fromOffset(152, 18), Position = UDim2.fromOffset(56, 3), Color = C.Gold, TextSize = 12, Parent = levelRow })
 
--- menu that grows as the player progresses (no wall of buttons on day one)
+-- menu that grows as the player progresses (no wall of buttons on day one).
+-- Only the main buttons stay on screen; the rest live behind ⋯ MORE.
 local menu =
-	New("Frame", { Name = "Menu", BackgroundTransparency = 1, Size = UDim2.fromOffset(222, 300), LayoutOrder = 6, Parent = topLeft })
-local menuGrid = Lib.Grid(UDim2.fromOffset(68, 68), 6)
+	New("Frame", { Name = "Menu", BackgroundTransparency = 1, Size = UDim2.fromOffset(268, 64), LayoutOrder = 6, Parent = topLeft })
+local menuGrid = Lib.Grid(UDim2.fromOffset(62, 62), 6)
 menuGrid.HorizontalAlignment = Enum.HorizontalAlignment.Left
 menuGrid.Parent = menu
+local moreMenu = New("Frame", {
+	Name = "MoreMenu",
+	BackgroundColor3 = DARK,
+	BackgroundTransparency = 0.2,
+	Size = UDim2.fromOffset(268, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
+	LayoutOrder = 7,
+	Visible = false,
+	Parent = topLeft,
+}, { Lib.Corner(14), Lib.Padding(5) })
+local moreGrid = Lib.Grid(UDim2.fromOffset(60, 60), 6)
+moreGrid.HorizontalAlignment = Enum.HorizontalAlignment.Left
+moreGrid.Parent = moreMenu
+local PRIMARY = { Shop = true, Pets = true, Rewards = true }
 
 local function tutorialAt(data, step: number): boolean
 	return data.Tutorial == nil or data.Tutorial.Done or data.Tutorial.Step >= step
@@ -274,14 +311,23 @@ local MENU = {
 }
 local menuButtons = {}
 local badges = {}
+table.insert(MENU, {
+	"More",
+	"⋯",
+	"More",
+	Color3.fromRGB(90, 95, 120),
+	function(d)
+		return tutorialAt(d, 2)
+	end,
+})
 for order, item in MENU do
 	local button = New("TextButton", {
 		Text = "",
 		AutoButtonColor = false,
 		BackgroundColor3 = item[4],
-		LayoutOrder = order,
+		LayoutOrder = if item[1] == "More" then 99 else order,
 		Visible = false,
-		Parent = menu,
+		Parent = if PRIMARY[item[1]] or item[1] == "More" then menu else moreMenu,
 	}, { Lib.Corner(14), Lib.Stroke(Color3.new(0, 0, 0), 2.5, 0.25), Lib.Gradient(Color3.new(1, 1, 1), Color3.fromRGB(170, 170, 170)) })
 	Lib.Text({
 		Text = item[2],
@@ -308,6 +354,11 @@ for order, item in MENU do
 		scale.Scale = 0.9
 		TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 		Lib.PlaySound("UI")
+		if item[1] == "More" then
+			moreMenu.Visible = not moreMenu.Visible
+			return
+		end
+		moreMenu.Visible = false
 		Panels.Toggle(item[1])
 	end)
 end
@@ -318,6 +369,42 @@ end
 local right = Root.Cluster("RightColumn", Vector2.new(1, 0), UDim2.new(1, -12, 0, 60), UDim2.fromOffset(250, 520))
 HUD.RightColumn = right -- MeteorUI adds its live ranking here
 Lib.List(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Right).Parent = right
+-- 🎉 party countdown (weekly party / admin event)
+local partyChip = New("Frame", {
+	BackgroundColor3 = DARK,
+	BackgroundTransparency = 0.12,
+	Size = UDim2.fromOffset(240, 30),
+	LayoutOrder = -2,
+	Visible = false,
+	Parent = right,
+}, { Lib.Corner(12), Lib.Stroke(Color3.fromRGB(255, 200, 80), 2.5, 0) })
+local partyText = Lib.Text({
+	Text = "",
+	TextColor3 = Color3.fromRGB(255, 210, 100),
+	Size = UDim2.new(1, -12, 1, -4),
+	Position = UDim2.fromOffset(6, 2),
+	MaxTextSize = 16,
+	Parent = partyChip,
+})
+task.spawn(function()
+	while true do
+		task.wait(1)
+		local left = (workspace:GetAttribute("PartyEnd") or 0) - State.Now()
+		partyChip.Visible = left > 0
+		if left > 0 then
+			partyText.Text = T("🎉 PARTY %s  •  🍀 + 2x luck", Util.FormatTime(left))
+		end
+	end
+end)
+
+-- after the tutorial the objective is a small card here (not in the middle)
+local objectiveSlot = New("Frame", {
+	Name = "ObjectiveSlot",
+	BackgroundTransparency = 1,
+	Size = UDim2.fromOffset(240, 46),
+	LayoutOrder = -1,
+	Parent = right,
+})
 
 local function chip(order: number, height: number, strokeColor: Color3)
 	return New("Frame", {
@@ -733,6 +820,9 @@ function HUD.Refresh()
 
 	-- objective
 	local text, progress = currentObjective(data, derived)
+	if objectiveText.Text ~= text and not firstRefresh then
+		Lib.Pop(objective)
+	end
 	objectiveText.Text = text
 	objectiveFill.Visible = progress ~= nil
 	if progress then
@@ -761,6 +851,21 @@ function HUD.Refresh()
 	badges.Rewards.Visible = ready.Quests or ready.Gifts or ready.Spin
 	badges.Pass.Visible = anyTierClaimable(data)
 	badges.Rebirth.Visible = data.Coins >= (derived.RebirthCost or math.huge)
+	local hiddenBadge = false
+	for id, badge in badges do
+		if not PRIMARY[id] and id ~= "More" and badge.Visible and menuButtons[id].Visible then
+			hiddenBadge = true
+		end
+	end
+	badges.More.Visible = hiddenBadge and not moreMenu.Visible
+	-- the objective moves out of the way once the tutorial is done
+	local onTop = not tutorialDone(data)
+	if onTop ~= objectiveOnTop then
+		objectiveOnTop = onTop
+		objective.Parent = if onTop then objectiveCluster else objectiveSlot
+		layoutTop()
+	end
+	objectiveSlot.Visible = not onTop
 
 	-- server event chip
 	local eventId = workspace:GetAttribute("EventId")

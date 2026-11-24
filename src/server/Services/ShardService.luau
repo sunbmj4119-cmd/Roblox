@@ -560,6 +560,17 @@ local function deliver(player: Player)
 		task.spawn(Data.Save, Data, player)
 		-- theft shield for the victim, revenge window, bounty on serial thieves
 		Services.BaseService:StealDelivered(owner, player, meta, taken)
+		-- 🌙 Thief Night: delivered steals pay a bonus
+		local bonusSeconds = Services.EventService:Get("StealBonus", 0)
+		if bonusSeconds > 0 and data then
+			local bonus = math.floor(Util.PetIncome(Config, taken.Name, taken.Variant) * bonusSeconds)
+			if bonus > 0 then
+				data.Coins += bonus
+				data.Stats.LifetimeCoins += bonus
+				Net:Send(player, "Sold", bonus)
+				Net:Notify(player, "🌙 Thief Night bonus: +💰%s!", Color3.fromRGB(170, 140, 255), Util.Format(bonus))
+			end
+		end
 		local display = taken.Name
 		Net:Notify(owner, "💔 %s stole your %s!", Color3.fromRGB(255, 90, 90), player.DisplayName, display)
 		if data then

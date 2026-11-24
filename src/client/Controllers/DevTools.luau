@@ -23,7 +23,21 @@ local function build()
 		Lib.List(Enum.FillDirection.Vertical, 4, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Bottom),
 	})
 	for order, command in
-		{ "Coins", "Gems", "Level", "Points", "Star", "Shard", "Huge", "House", "Event", "Rainbow", "Spin", "Meteor", "Reset" }
+		{
+			"Coins",
+			"Gems",
+			"Level",
+			"Star",
+			"Shard",
+			"Huge",
+			"Titanic",
+			"House",
+			"Lucky",
+			"Party",
+			"Event",
+			"Meteor",
+			"Reset",
+		}
 	do
 		Lib.Button({
 			Text = command,

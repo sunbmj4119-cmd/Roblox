@@ -65,6 +65,14 @@ function Dev:Start()
 			-- free house level up (test the land / wall styles)
 			data.Coins += (Config.Base.Levels[Util.HouseLevel(Config, data) + 1] or { Cost = 0 }).Cost
 			Services.BaseService:Upgrade(player)
+		elseif command == "Lucky" then
+			Services.LuckyService:Rain(6)
+		elseif command == "Party" then
+			-- "admin event": a 10 minute party in EVERY server
+			Services.EventService:GlobalParty(10)
+		elseif command == "Titanic" then
+			local zoneEgg = Config.Shards.ZoneEggs[math.clamp(data.ZoneLevel, 1, #Config.Shards.ZoneEggs)] or "Meadow"
+			Services.PetService:GrantPet(player, Util.WeightedPick(Config.Eggs[zoneEgg].Pets), "Titanic")
 		elseif command == "Reset" then
 			local fresh = Util.DeepCopy(Data.Template)
 			fresh.FirstJoin = os.time()

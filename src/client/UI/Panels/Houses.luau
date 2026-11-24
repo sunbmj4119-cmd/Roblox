@@ -42,6 +42,7 @@ function Houses.Build(content, ctx)
 					Likes = plot:GetAttribute("Likes") or 0,
 					Rate = plot:GetAttribute("Rate") or 0,
 					Protection = plot:GetAttribute("Protection") or "",
+					Best = plot:GetAttribute("BestHouse") == true,
 				})
 			end
 		end
@@ -62,7 +63,7 @@ function Houses.Build(content, ctx)
 		local entries = houses()
 		local parts = {}
 		for _, h in entries do
-			table.insert(parts, table.concat({ h.OwnerId, h.Name, h.Level, h.Likes, h.Rate, h.Protection }, ":"))
+			table.insert(parts, table.concat({ h.OwnerId, h.Name, h.Level, h.Likes, h.Rate, h.Protection, tostring(h.Best) }, ":"))
 		end
 		local sig = table.concat(parts, ",")
 		if sig == signature then
@@ -78,7 +79,7 @@ function Houses.Build(content, ctx)
 				LayoutOrder = order,
 				Parent = list,
 			}, { Lib.Corner(12), Lib.Stroke(if order == 1 then C.Gold else Color3.new(0, 0, 0), 2, if order == 1 then 0 else 0.5) })
-			local medal = if order == 1 then "🥇 " elseif order == 2 then "🥈 " elseif order == 3 then "🥉 " else ""
+			local medal = if h.Best then "👑 " elseif order == 2 then "🥈 " elseif order == 3 then "🥉 " else ""
 			local title = if h.Name ~= "" then h.Name else T("%s's House", h.Owner)
 			Lib.Text({
 				Text = medal .. (LEVEL_ICONS[h.Level] or "🏠") .. " " .. title,
