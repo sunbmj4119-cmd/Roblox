@@ -11,8 +11,10 @@
 	* Star eggs from falling stars / meteors hatch when carried home.
 	* Selling a pet pays one minute of its income.
 ]]
+local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
@@ -24,6 +26,14 @@ local Services
 local Data
 
 local CURRENCY_NAMES = { Coins = "coins", Gems = "gems", Stardust = "stardust" }
+
+-- serial numbers (#1, #2, ...) for huge and exclusive pets: one global counter
+-- per pet. Cloud tests (not a live server) count in a separate store.
+local serialStore = nil
+pcall(function()
+	local name = "MeteorMiners_Serials_v1" .. (if RunService:IsRunning() then "" else "_Test")
+	serialStore = DataStoreService:GetDataStore(name)
+end)
 
 local function luckFn(luck: number)
 	return function(name: string, weight: number): number
@@ -118,12 +128,43 @@ local function findPet(data, petId)
 end
 PetService.FindPet = findPet
 
-local function addPet(data, name: string, variant: string?)
-	local pet = { Id = data.NextPetUid, Name = name, Variant = variant }
+local function addPet(data, name: string, variant: string?, serial: number?)
+	local pet = { Id = data.NextPetUid, Name = name, Variant = variant, Serial = serial }
 	data.NextPetUid += 1
 	table.insert(data.Pets, pet)
 	data.PetIndex[name] = true
 	return pet
+end
+
+local function nextSerial(key: string): number?
+	if not serialStore then
+		return nil
+	end
+	local value = nil
+	local ok = pcall(function()
+		value = serialStore:UpdateAsync(key, function(old)
+			return (tonumber(old) or 0) + 1
+		end)
+	end)
+	return if ok then tonumber(value) else nil
+end
+
+-- number a new huge / exclusive pet (async); then(serial?) runs afterwards
+local function giveSerial(player: Player, data, pet, andThen)
+	task.spawn(function()
+		local key = (if pet.Variant == "Huge" then "Huge|" else "") .. pet.Name
+		local serial = nextSerial(key)
+		if serial and table.find(data.Pets, pet) and not pet.Serial then
+			pet.Serial = serial
+			Data:MarkDirty(player)
+			if player.Parent then
+				PetService:Changed(player)
+			end
+		end
+		if andThen then
+			andThen(serial)
+		end
+	end)
 end
 
 -- inventory full: keep the better of (new pet, weakest pet) and sell the other.
@@ -135,7 +176,8 @@ local function makeRoom(player: Player, data, name: string, variant: string?): (
 	end
 	local weakest, weakestIndex = nil, nil
 	for index, pet in data.Pets do
-		if not pet.Away and (not weakest or income(pet) < income(weakest)) then
+		local precious = pet.Serial ~= nil or Util.IsExclusive(Config, pet)
+		if not pet.Away and not precious and (not weakest or income(pet) < income(weakest)) then
 			weakest, weakestIndex = pet, index
 		end
 	end
@@ -160,21 +202,41 @@ local function makeRoom(player: Player, data, name: string, variant: string?): (
 	return false, coins
 end
 
-local function announceIfRare(player: Player, name: string, variant: string?, eggName: string)
+-- "1 in 12.5K" for the announcement (base odds, no luck)
+local function oddsText(eggId: string?, name: string, variant: string?): string
+	local chance = eggId and Util.HatchChance(Config, eggId, name, variant)
+	if not chance or chance <= 0 then
+		return ""
+	end
+	return " (1/" .. Util.Format(math.max(1, math.floor(1 / chance + 0.5))) .. ")"
+end
+
+local function announceIfRare(player: Player, name: string, variant: string?, eggId: string?, serial: number?)
 	local info = Config.Pets[name]
 	local rarity = info and Config.Rarities[info.Rarity]
 	if not rarity then
 		return
 	end
-	if rarity.Order >= Config.AnnounceRarity or variant == "Rainbow" or variant == "Galaxy" then
+	local eggName = eggId and Config.Eggs[eggId] and Config.Eggs[eggId].Name or ""
+	if variant == "Huge" then
 		Net:Announce(
-			"🥚 %s hatched a %s %s %s from the %s!",
+			"🐘 %s hatched a HUGE %s%s!%s",
+			Color3.fromRGB(255, 200, 60),
+			player.DisplayName,
+			name,
+			if serial then " #" .. serial else "",
+			oddsText(eggId, name, variant)
+		)
+	elseif rarity.Order >= Config.AnnounceRarity or variant == "Rainbow" or variant == "Galaxy" then
+		Net:Announce(
+			"🥚 %s hatched a %s %s %s from the %s!%s",
 			if variant == "Rainbow" then Color3.fromRGB(255, 120, 230) else rarity.Color,
 			player.DisplayName,
 			variant or "",
 			info.Rarity,
 			name,
-			eggName
+			eggName,
+			oddsText(eggId, name, variant)
 		)
 	end
 end
@@ -189,11 +251,18 @@ local function roll(player: Player, data, eggId: string, count: number, extraLuc
 		local name = Util.WeightedPick(egg.Pets, fn)
 		local variant = rollVariant(luck)
 		local ok = makeRoom(player, data, name, variant)
-		if ok then
-			addPet(data, name, variant)
-		end
+		local pet = if ok then addPet(data, name, variant) else nil
 		table.insert(results, { Name = name, Variant = variant })
-		announceIfRare(player, name, variant, egg.Name)
+		if variant == "Huge" then
+			data.Stats.HugesFound = (data.Stats.HugesFound or 0) + 1
+		end
+		if pet and Util.WantsSerial(Config, name, variant) then
+			giveSerial(player, data, pet, function(serial)
+				announceIfRare(player, name, variant, eggId, serial)
+			end)
+		else
+			announceIfRare(player, name, variant, eggId, nil)
+		end
 	end
 	data.Stats.EggsHatched += count
 	Services.ProgressionService:TutorialEvent(player, "Hatch", count)
@@ -209,7 +278,10 @@ function PetService:GrantPet(player: Player, name: string, variant: string?)
 		return
 	end
 	if makeRoom(player, data, name, variant) then
-		addPet(data, name, variant)
+		local pet = addPet(data, name, variant)
+		if Util.WantsSerial(Config, name, variant) then
+			giveSerial(player, data, pet, nil)
+		end
 	end
 	self:Changed(player)
 	Net:Send(player, "HatchResult", { { Name = name, Variant = variant } }, nil)
@@ -247,16 +319,17 @@ function PetService:TakePet(player: Player, petId: number)
 	end
 	table.remove(data.Pets, index)
 	self:Changed(player)
-	return { Name = pet.Name, Variant = pet.Variant }
+	return { Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial }
 end
 
-function PetService:GivePet(player: Player, name: string, variant: string?)
+-- numbered pets keep their number when they change owners
+function PetService:GivePet(player: Player, name: string, variant: string?, serial: number?)
 	local data = Data:Get(player)
 	if not data or not Config.Pets[name] then
 		return
 	end
 	if makeRoom(player, data, name, variant) then
-		addPet(data, name, variant)
+		addPet(data, name, variant, serial)
 	end
 	self:Changed(player)
 end

@@ -105,25 +105,52 @@ for _ in decorParts do
 	results.decorBuilt += 1
 end
 
--- plots: inside the district, not overlapping each other or a street
-local layout = Services.BaseService.PlotLayout()
+-- territories: inside the district, apart from each other, not on the avenue
+local Util = require(ReplicatedStorage.Shared.Util)
+local layout = Util.PlotLayout(Config)
 local half = Config.Base.PlotSize / 2
 local bases = Config.World.Bases
+local avenueZ = Util.AvenueZ(Config)
 for i, a in layout do
 	local c = a.Center
 	if math.abs(c.X) + half > bases.HalfX or c.Z + half > bases.ZStart or c.Z - half < bases.ZEnd then
 		fail("plot " .. i .. " outside district")
 	end
-	for _, x in Config.Base.Streets do
-		if math.abs(c.X - x) < half + 10 then
-			fail("plot " .. i .. " overlaps street at x=" .. x)
-		end
+	if math.abs(c.Z - avenueZ) < half + Config.Base.Layout.Avenue / 2 - 0.01 then
+		fail("plot " .. i .. " overlaps the avenue")
 	end
 	for j, b in layout do
-		if j > i and math.abs(a.Center.X - b.Center.X) < half * 2 and math.abs(a.Center.Z - b.Center.Z) < half * 2 then
-			fail(string.format("plots %d and %d overlap", i, j))
+		if j > i and math.abs(a.Center.X - b.Center.X) < half * 2 + 10 and math.abs(a.Center.Z - b.Center.Z) < half * 2 + 10 then
+			fail(string.format("plots %d and %d are too close", i, j))
 		end
 	end
+end
+local plotModels = map and map:FindFirstChild("Bases") and map.Bases:GetChildren() or {}
+results.plots = #plotModels
+if #plotModels ~= Config.Base.Plots then
+	fail("expected " .. Config.Base.Plots .. " plots, got " .. #plotModels)
+end
+-- every house style builds (walls, gate, border) without errors
+results.styles = 0
+for styleId in Config.HouseStyles do
+	local okStyle, errStyle = pcall(function()
+		local fake = { Base = { Level = 3, Skin = styleId } }
+		local _, style = Util.HouseStyle(Config, fake)
+		assert(style.Wall and style.Trim and style.Ground and style.Pillar, "style fields")
+	end)
+	if okStyle then
+		results.styles += 1
+	else
+		fail("style " .. styleId .. ": " .. tostring(errStyle))
+	end
+end
+-- hall of fame plinths exist
+if not (Services.WorldService.StatueSpots and #Services.WorldService.StatueSpots == 3) then
+	fail("hall of fame statue spots missing")
+end
+local okStatue, errStatue = pcall(Services.LeaderboardService.UpdateStatues)
+if not okStatue then
+	fail("statues: " .. tostring(errStatue))
 end
 
 -- shards + guardian: spawn an Epic star with a guardian in the hub

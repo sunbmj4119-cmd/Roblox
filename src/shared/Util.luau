@@ -359,4 +359,259 @@ function Util.ZoneAt(config, position: Vector3): number?
 	return nil
 end
 
+---------------------------------------------------------------------------
+-- houses (shared by the server, the build mode and the panels)
+---------------------------------------------------------------------------
+-- territory centers: two rows facing a central avenue (local -Z faces the avenue)
+function Util.PlotLayout(config): { { Center: Vector3, Facing: Vector3 } }
+	local base = config.Base
+	local layout = base.Layout
+	local half = base.PlotSize / 2
+	local bases = config.World.Bases
+	local rows = { -- north row (next to the hub gate) faces south, the far row faces north
+		{ Z = bases.ZStart - layout.Margin - half, Facing = Vector3.new(0, 0, -1) },
+		{ Z = bases.ZStart - layout.Margin - half * 2 - layout.Avenue - half, Facing = Vector3.new(0, 0, 1) },
+	}
+	local columns = {}
+	local x = layout.EntranceGap / 2 + half
+	for _ = 1, layout.Columns / 2 do
+		table.insert(columns, -x)
+		table.insert(columns, x)
+		x += half * 2 + layout.Gap
+	end
+	table.sort(columns, function(a, b)
+		-- nearest to the entrance first
+		if math.abs(a) == math.abs(b) then
+			return a < b
+		end
+		return math.abs(a) < math.abs(b)
+	end)
+	local list = {}
+	for _, row in rows do
+		for _, cx in columns do
+			if #list < base.Plots then
+				table.insert(list, { Center = Vector3.new(cx, 0, row.Z), Facing = row.Facing })
+			end
+		end
+	end
+	return list
+end
+
+-- z of the avenue center line
+function Util.AvenueZ(config): number
+	local layout = config.Base.Layout
+	return config.World.Bases.ZStart - layout.Margin - config.Base.PlotSize - layout.Avenue / 2
+end
+
+function Util.HouseLevel(config, data): number
+	local level = data and data.Base and tonumber(data.Base.Level) or 1
+	return math.clamp(math.floor(level), 1, #config.Base.Levels)
+end
+
+function Util.HouseDef(config, level: number)
+	return config.Base.Levels[math.clamp(level, 1, #config.Base.Levels)]
+end
+
+-- how many vault pedestals this player may own
+function Util.VaultLimit(config, data, hasVip: boolean?): number
+	return Util.HouseDef(config, Util.HouseLevel(config, data)).Vaults + (if hasVip then config.Base.VipVaults else 0)
+end
+
+-- the wall style of a house: its skin, or the style of its level
+function Util.HouseStyle(config, data): (string, any)
+	local skin = data and data.Base and data.Base.Skin
+	if type(skin) == "string" and skin ~= "Auto" and config.HouseStyles[skin] then
+		return skin, config.HouseStyles[skin]
+	end
+	local style = Util.HouseDef(config, Util.HouseLevel(config, data)).Style
+	return style, config.HouseStyles[style]
+end
+
+function Util.IsExclusive(config, pet): boolean
+	local info = pet and config.Pets[pet.Name]
+	return info ~= nil and info.Exclusive == true
+end
+
+-- pets carry a serial number when they're huge or exclusive
+function Util.WantsSerial(config, name: string, variant: string?): boolean
+	local info = config.Pets[name]
+	local def = Util.VariantDef(config, variant)
+	return (info ~= nil and info.Exclusive == true) or (def ~= nil and def.Serial == true)
+end
+
+-- total income of every pet you own (used by the fair-stealing rule)
+function Util.PetWorth(config, data): number
+	local total = 0
+	for _, pet in data.Pets do
+		total += Util.PetIncome(config, pet.Name, pet.Variant)
+	end
+	return total
+end
+
+-- pedestal + vault items, oldest first (stable order)
+function Util.Pedestals(config, items)
+	local display, vault = {}, {}
+	for _, item in items do
+		local def = config.Decor[item.Id]
+		if def and def.Function == "Pedestal" then
+			table.insert(display, item)
+		elseif def and def.Function == "Vault" then
+			table.insert(vault, item)
+		end
+	end
+	local function byUid(a, b)
+		return a.Uid < b.Uid
+	end
+	table.sort(display, byUid)
+	table.sort(vault, byUid)
+	return display, vault
+end
+
+-- who stands where. Vaults get your BEST pets (safe by default) unless you
+-- marked a pet "show off" (pet.Show = true). Exclusive pets can't be stolen
+-- anyway, so they skip the vault and earn full income on display.
+-- returns vaultPets, displayPets (same order as the pedestal items)
+function Util.ArrangePets(config, data)
+	local displayItems, vaultItems = Util.Pedestals(config, data.Base.Items)
+	local list = {}
+	for _, pet in data.Pets do
+		if not pet.Away and config.Pets[pet.Name] then
+			table.insert(list, pet)
+		end
+	end
+	table.sort(list, function(a, b)
+		local ia = Util.PetIncome(config, a.Name, a.Variant)
+		local ib = Util.PetIncome(config, b.Name, b.Variant)
+		if ia == ib then
+			return a.Id < b.Id
+		end
+		return ia > ib
+	end)
+	local vault, display, used = {}, {}, {}
+	for _, pet in list do
+		if #vault >= #vaultItems then
+			break
+		end
+		if not pet.Show and not Util.IsExclusive(config, pet) then
+			table.insert(vault, pet)
+			used[pet] = true
+		end
+	end
+	for _, pet in list do
+		if #display >= #displayItems then
+			break
+		end
+		if not used[pet] then
+			table.insert(display, pet)
+		end
+	end
+	return vault, display
+end
+
+-- decoration sets: total income bonus + which sets are complete
+function Util.SetBonus(config, items): (number, { [string]: boolean })
+	local have = {}
+	for _, item in items do
+		have[item.Id] = true
+	end
+	local total, done = 0, {}
+	for _, set in config.DecorSets do
+		local complete = true
+		for _, id in set.Items do
+			if not have[id] then
+				complete = false
+				break
+			end
+		end
+		if complete then
+			total += set.Bonus
+			done[set.Id] = true
+		end
+	end
+	return total, done
+end
+
+-- probability of hatching this exact pet (+ mutation) from an egg, base luck
+function Util.HatchChance(config, eggId: string, petName: string, variant: string?): number?
+	local egg = config.Eggs[eggId]
+	if not egg then
+		return nil
+	end
+	local total, weight = 0, 0
+	for _, entry in egg.Pets do
+		total += entry[2]
+		if entry[1] == petName then
+			weight = entry[2]
+		end
+	end
+	if total <= 0 or weight <= 0 then
+		return nil
+	end
+	local chance = weight / total
+	local def = Util.VariantDef(config, variant)
+	if def and (def.Chance or 0) > 0 then
+		chance *= def.Chance
+	end
+	return chance
+end
+
+-- titles: which ones a player has unlocked
+function Util.TitleUnlocked(config, title, data, hasPass): boolean
+	local need = title.Need or {}
+	local stats = data.Stats or {}
+	local function count(t)
+		local n = 0
+		for _ in t or {} do
+			n += 1
+		end
+		return n
+	end
+	if need.Level and (data.Level or 1) < need.Level then
+		return false
+	end
+	if need.Index and count(data.PetIndex) < need.Index then
+		return false
+	end
+	if need.Steals and (stats.ShardsStolen or 0) < need.Steals then
+		return false
+	end
+	if need.Catches and (stats.ThievesCaught or 0) < need.Catches then
+		return false
+	end
+	if need.HouseLevel and Util.HouseLevel(config, data) < need.HouseLevel then
+		return false
+	end
+	if need.Likes and (data.Base and data.Base.Likes or 0) < need.Likes then
+		return false
+	end
+	if need.Rebirths and (data.Rebirths or 0) < need.Rebirths then
+		return false
+	end
+	if need.Huge and (stats.HugesFound or 0) < need.Huge then
+		return false
+	end
+	if need.LifetimeCoins and (stats.LifetimeCoins or 0) < need.LifetimeCoins then
+		return false
+	end
+	if need.Pass and not (hasPass and hasPass(need.Pass)) then
+		return false
+	end
+	return true
+end
+
+-- the title a player wears: their pick if unlocked, else the best unlocked one
+function Util.CurrentTitle(config, data, hasPass)
+	local best = config.Titles[1]
+	for _, title in config.Titles do
+		if Util.TitleUnlocked(config, title, data, hasPass) then
+			best = title
+			if data.Title == title.Id then
+				return title
+			end
+		end
+	end
+	-- nothing picked (or the pick isn't unlocked any more): the best one
+	return best
+end
+
 return Util

@@ -55,10 +55,18 @@ local TEMPLATE = {
 		WeeklyLikes = 0,
 		LikeWeek = 0,
 		LikedBy = {}, -- ["userId"] = day number
+		Level = 1, -- house level (land size, vaults, wall style)
+		LayoutV = 0, -- 2 = territory layout (older saves get migrated)
+		Name = "", -- custom house name (raw text, filtered whenever shown)
+		Skin = "Auto",
+		Skins = {}, -- [skinId] = true
+		LikeGemsDay = 0,
+		LikeGemsToday = 0,
 	},
 	SpeedTier = 1,
 	Shop = { Slot = 0, Bought = {} }, -- egg restock purchases (per 5-min restock)
-	Pets = {}, -- { { Id = 1, Name = "Bunny", Variant = "Golden"? }, ... }
+	-- { { Id = 1, Name = "Bunny", Variant = "Golden"?, Serial = 12?, Show = true? }, ... }
+	Pets = {},
 	Equipped = {}, -- { petId, ... }
 	NextPetUid = 1,
 	PetIndex = {}, -- [petName] = true
@@ -77,12 +85,15 @@ local TEMPLATE = {
 		BestCombo = 0,
 		ShardsDelivered = 0,
 		ShardsStolen = 0,
+		ThievesCaught = 0,
+		HugesFound = 0,
 		Fevers = 0,
 	},
 	Daily = { Day = 0, Quests = {}, Streak = 0, LastClaimDay = 0, VipChestDay = 0, ClubDay = 0 },
 	Season = { Id = 0, XP = 0, Premium = false, ClaimedFree = {}, ClaimedPremium = {} },
 	Weekly = { Week = 0, Points = 0 },
-	Flags = { StarterPack = false, GroupReward = false, HowToSeen = false },
+	Flags = { StarterPack = false, GroupReward = false, HowToSeen = false, NewbieOff = false },
+	Title = "", -- chosen title id ("" = best unlocked)
 	Receipts = {},
 	FirstJoin = 0,
 	LastAdTime = 0,

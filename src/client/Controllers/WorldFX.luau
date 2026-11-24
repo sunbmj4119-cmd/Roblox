@@ -92,6 +92,25 @@ local function hook(inst: Instance)
 	end
 end
 
+-- overhead tags (titles) live on characters, not in the map
+local Players = game:GetService("Players")
+local function hookCharacter(character: Model)
+	for _, d in character:GetDescendants() do
+		hook(d)
+	end
+	character.DescendantAdded:Connect(hook)
+end
+local function hookPlayer(other: Player)
+	other.CharacterAdded:Connect(hookCharacter)
+	if other.Character then
+		hookCharacter(other.Character)
+	end
+end
+Players.PlayerAdded:Connect(hookPlayer)
+for _, other in Players:GetPlayers() do
+	hookPlayer(other)
+end
+
 task.spawn(function()
 	local map = workspace:WaitForChild("Map", 60)
 	if not map then

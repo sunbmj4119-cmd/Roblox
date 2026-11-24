@@ -96,7 +96,9 @@ function Trade.Build(content, ctx)
 			Parent = parent,
 		}, { Lib.Corner(10), Lib.Stroke(rarity.Color, 2.5, 0) })
 		Lib.Text({
-			Text = (if pet.Variant then T(pet.Variant) .. " " else "") .. T(pet.Name),
+			Text = (if pet.Variant then T(pet.Variant) .. " " else "") .. T(pet.Name) .. (if pet.Serial
+				then " #" .. tostring(pet.Serial)
+				else ""),
 			Size = UDim2.new(1, -8, 0, 22),
 			Position = UDim2.fromOffset(4, 2),
 			MaxTextSize = 14,

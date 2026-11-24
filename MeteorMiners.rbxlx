@@ -179,7 +179,7 @@ Config.World = {
 	Reach = 13, -- studs from character to the target
 	WalkSpeed = 22,
 	-- base district south of the hub (see BaseService)
-	Bases = { ZStart = -88, ZEnd = -304, HalfX = 124 },
+	Bases = { ZStart = -88, ZEnd = -278, HalfX = 200 },
 	SpawnSafeRadius = 24, -- nobody can be bonked near the spawn
 }
 
@@ -324,8 +324,17 @@ Config.Pets = {
 		Horns = true,
 	},
 	-- Golden egg (Robux)
-	["Golden Pup"] = { Rarity = "Epic", Power = 50, Income = 1500, Color = Color3.fromRGB(255, 210, 60), Shape = "Block", Ears = true },
+	["Golden Pup"] = {
+		Exclusive = true,
+		Rarity = "Epic",
+		Power = 50,
+		Income = 1500,
+		Color = Color3.fromRGB(255, 210, 60),
+		Shape = "Block",
+		Ears = true,
+	},
 	["Golden Cat"] = {
+		Exclusive = true,
 		Rarity = "Legendary",
 		Power = 150,
 		Income = 4500,
@@ -334,6 +343,7 @@ Config.Pets = {
 		Ears = true,
 	},
 	["Golden Dragon"] = {
+		Exclusive = true,
 		Rarity = "Mythic",
 		Power = 600,
 		Income = 18000,
@@ -343,6 +353,7 @@ Config.Pets = {
 		Horns = true,
 	},
 	["Midas King"] = {
+		Exclusive = true,
 		Rarity = "Secret",
 		Power = 2500,
 		Income = 75000,
@@ -497,7 +508,7 @@ Config.GamePasses = {
 		Name = "VIP",
 		Price = 299,
 		Icon = "👑",
-		Description = "+25% coins, +1 pet slot, [VIP] chat tag, daily VIP chest (100 gems)",
+		Description = "+25% coins, +1 pet slot, +1 vault, +10s base lock, Royal house skin, gold [VIP] tag, daily chest (100 gems)",
 	},
 	DoubleCoins = { Id = 0, Name = "2x Coins", Price = 249, Icon = "💰", Description = "Permanently double all coins" },
 	MegaPower = { Id = 0, Name = "2x Mining Power", Price = 199, Icon = "💥", Description = "Permanently double your mining damage" },
@@ -560,6 +571,16 @@ Config.Products = {
 	},
 	GoldenEgg1 = { Id = 0, Name = "Golden Egg x1", Price = 79, Icon = "🥚", Kind = "PaidEgg", Egg = "Golden", Count = 1 },
 	GoldenEgg3 = { Id = 0, Name = "Golden Egg x3", Price = 199, Icon = "🥚", Kind = "PaidEgg", Egg = "Golden", Count = 3 },
+	HouseSkinNeon = {
+		Id = 0,
+		Name = "Neon City House",
+		Price = 149,
+		Icon = "🌃",
+		Kind = "HouseSkin",
+		Skin = "Neon",
+		OneTime = true,
+		Description = "Glowing neon walls for your house (looks only)",
+	},
 	-- Rewarded video ad reward (Robux price is irrelevant; Roblox grants it via ProcessReceipt)
 	AdReward = { Id = 0, Name = "Free 2x Coins (10m)", Price = 0, Icon = "📺", Kind = "Boost", Boost = "Coins2x", Seconds = 600 },
 }
@@ -673,6 +694,29 @@ Config.Leaderboards = {
 	WeeklyTopReward = { 5000, 3000, 2000, 1000, 1000, 500, 500, 500, 500, 500 }, -- gems for global top 10
 }
 
+-- titles: earned by playing, shown above your head (choose one in 👑 Titles).
+-- Need: Level / Index (pets discovered) / Steals / Catches (thieves bonked) /
+-- HouseLevel / Likes / Rebirths / Huge (huge pets found) / LifetimeCoins / Pass
+Config.Titles = {
+	{ Id = "Newcomer", Name = "🌱 Newcomer", Color = Color3.fromRGB(170, 230, 150), Need = {} },
+	{ Id = "Miner", Name = "⛏️ Miner", Color = Color3.fromRGB(255, 200, 120), Need = { Level = 10 } },
+	{ Id = "Collector", Name = "📖 Collector", Color = Color3.fromRGB(140, 220, 255), Need = { Index = 15 } },
+	{ Id = "Thief", Name = "🦹 Sneaky Thief", Color = Color3.fromRGB(255, 150, 90), Need = { Steals = 10 } },
+	{ Id = "Guard", Name = "🛡️ Guardian", Color = Color3.fromRGB(120, 230, 255), Need = { Catches = 10 } },
+	{ Id = "Architect", Name = "🏗️ Architect", Color = Color3.fromRGB(255, 220, 120), Need = { HouseLevel = 3 } },
+	{ Id = "Popular", Name = "❤️ Popular", Color = Color3.fromRGB(255, 120, 170), Need = { Likes = 50 } },
+	{ Id = "Reborn", Name = "♻️ Reborn", Color = Color3.fromRGB(200, 130, 255), Need = { Rebirths = 3 } },
+	{ Id = "HugeHunter", Name = "🐘 Huge Hunter", Color = Color3.fromRGB(255, 180, 60), Need = { Huge = 1 } },
+	{ Id = "MasterThief", Name = "🦹 Master Thief", Color = Color3.fromRGB(255, 90, 60), Need = { Steals = 50 } },
+	{ Id = "LegendCollector", Name = "🌟 Legend Collector", Color = Color3.fromRGB(255, 230, 90), Need = { Index = 35 } },
+	{ Id = "Palace", Name = "🏰 Palace Owner", Color = Color3.fromRGB(210, 140, 255), Need = { HouseLevel = 5 } },
+	{ Id = "Tycoon", Name = "💰 Tycoon", Color = Color3.fromRGB(255, 215, 60), Need = { LifetimeCoins = 1000000000 } },
+	{ Id = "VIP", Name = "👑 VIP", Color = Color3.fromRGB(255, 200, 60), Need = { Pass = "VIP" } },
+}
+
+-- statues of the all-time richest players stand in the hub (global leaderboard)
+Config.Statues = { Board = "LifetimeCoins", Count = 3, Scale = 1.6 }
+
 ---------------------------------------------------------------------------
 -- RETENTION
 ---------------------------------------------------------------------------
@@ -722,7 +766,7 @@ Config.Quests = {
 	},
 	{ Id = "Bonk5", Type = "Bonk", Target = 5, Text = "Bonk 5 players", Reward = { Gems = 60 }, XP = 250, Points = 200 },
 	{ Id = "Shard3", Type = "Shard", Target = 3, Text = "Bring 3 shards to your base", Reward = { Gems = 60 }, XP = 250, Points = 200 },
-	{ Id = "Steal1", Type = "Steal", Target = 1, Text = "Steal a shard from another base", Reward = { Gems = 80 }, XP = 300, Points = 250 },
+	{ Id = "Steal1", Type = "Steal", Target = 1, Text = "Steal a pet from another base", Reward = { Gems = 80 }, XP = 300, Points = 250 },
 	{
 		Id = "Decorate5",
 		Type = "Decorate",
@@ -803,6 +847,8 @@ Config.LuckyOres = {
 -- that weather event to be active (see Config.Events).
 Config.PetVariants = {
 	{ Id = "Galaxy", Chance = 1 / 1000, Event = "Starfall", EventChance = 1 / 60, PowerMult = 8, IncomeMult = 12 },
+	-- HUGE: twice the size, numbered (#1, #2, ...) and announced to the whole server
+	{ Id = "Huge", Chance = 1 / 500, PowerMult = 5, IncomeMult = 6, Scale = 2, Serial = true },
 	{ Id = "Rainbow", Chance = 1 / 300, PowerMult = 6, IncomeMult = 8 },
 	{ Id = "Molten", Chance = 0, Event = "HeatWave", EventChance = 1 / 5, PowerMult = 2.5, IncomeMult = 3 },
 	{ Id = "Frozen", Chance = 0, Event = "Blizzard", EventChance = 1 / 5, PowerMult = 2, IncomeMult = 2.5 },
@@ -916,28 +962,212 @@ Config.Shards = {
 }
 
 Config.Base = {
-	-- one base per player: set the place's server size to the same number
-	-- (Creator Dashboard -> Places -> Server size). Extra players wait for a free base.
-	Plots = 16,
-	PlotSize = 44, -- studs; room to decorate
-	Streets = { -64, 64 }, -- x of the district streets; plots line both sides
+	-- one base per player: the place's server size is set to the same number
+	-- (8 like the big steal games: everyone gets a roomy territory, phones stay smooth)
+	Plots = 8,
+	PlotSize = 72, -- studs: the whole territory (fence to fence)
+	-- territories: two rows facing a central avenue, wide gardens in between
+	Layout = { Columns = 4, Gap = 26, EntranceGap = 44, Avenue = 30, Margin = 8 },
 	StartPedestals = 3, -- placed for free in every new base
 	MaxPedestals = 12,
 	-- price of the Nth pedestal (first 3 are free)
 	PedestalCosts = { 0, 0, 0, 500, 3000, 15000, 75000, 400000, 2000000, 10000000, 50000000, 250000000 },
-	StorageMax = 10, -- shards that don't fit on a pedestal wait here (earning nothing)
-	MaxItems = 70, -- decorations per base (keeps phones smooth)
+	-- vault pedestals: pets on them can NEVER be stolen, but earn less
+	VaultIncome = 0.5,
+	VaultCosts = { 0, 2500, 40000, 600000, 8000000, 90000000 },
+	VipVaults = 1, -- VIP: +1 vault pedestal
+	StorageMax = 10, -- (legacy)
 	Cell = 2, -- placement grid in studs
-	-- buildable area in plot space (the entrance strip stays clear)
-	Build = { MinX = -20, MaxX = 20, MinZ = -12, MaxZ = 20 },
+	-- house levels: bigger land, more decorations, more vaults, fancier walls.
+	-- Build = buildable area in plot space (the entrance strip stays clear)
+	Levels = {
+		{
+			Name = "Cozy Cottage",
+			Cost = 0,
+			Build = { MinX = -16, MaxX = 16, MinZ = -20, MaxZ = 16 },
+			MaxItems = 45,
+			Vaults = 1,
+			Style = "Wood",
+		},
+		{
+			Name = "Stone Villa",
+			Cost = 2500,
+			Build = { MinX = -20, MaxX = 20, MinZ = -22, MaxZ = 20 },
+			MaxItems = 60,
+			Vaults = 2,
+			Style = "Stone",
+		},
+		{
+			Name = "Golden Manor",
+			Cost = 60000,
+			Build = { MinX = -24, MaxX = 24, MinZ = -24, MaxZ = 24 },
+			MaxItems = 80,
+			Vaults = 2,
+			Style = "Gold",
+		},
+		{
+			Name = "Crystal Palace",
+			Cost = 1500000,
+			Build = { MinX = -28, MaxX = 28, MinZ = -26, MaxZ = 28 },
+			MaxItems = 100,
+			Vaults = 3,
+			Style = "Crystal",
+		},
+		{
+			Name = "Galaxy Castle",
+			Cost = 40000000,
+			Build = { MinX = -32, MaxX = 32, MinZ = -26, MaxZ = 32 },
+			MaxItems = 120,
+			Vaults = 4,
+			Style = "Galaxy",
+		},
+	},
+	NameMax = 20, -- custom house name length (filtered by Roblox)
 	OfflineRate = 0.5, -- offline earnings = 50% of the normal rate
 	OfflineMaxSeconds = 7200, -- ... for up to 2 hours
+	-- protection: nobody can rob you while you're offline, and while online
+	-- you can never lose everything
 	LockSeconds = 60,
-	LockCooldown = 180,
+	LockPerRebirth = 10, -- +10s lock per rebirth ...
+	LockMaxBonus = 120, -- ... up to +2 minutes
+	LockVipBonus = 10,
+	LockCooldown = 150,
+	JoinLockSeconds = 60, -- your base starts locked when you join
+	NewbieShieldSeconds = 1200, -- first 20 minutes of play: can't be robbed (stealing ends it)
+	TheftShieldSeconds = 180, -- after a theft your base is protected for 3 minutes
+	StealGap = 3, -- you can't rob someone whose pets are worth less than 1/3 of yours
+	StealGapMinWorth = 60, -- (tiny bases don't count toward the gap rule)
+	RevengeSeconds = 300, -- the victim may raid the thief's base for 5 min (locks don't stop them)
+	-- serial thieves get a bounty: rob 2+ different players within 15 min
+	Bounty = { MinVictims = 2, WindowSeconds = 900, IncomeSeconds = 60 },
 	StealHold = 1.2,
 	TrapStun = 2.5, -- seconds a trap freezes a thief
 	TrapCooldown = 6,
 	LikePoints = 15, -- weekly ranked points per like received
+	LikeGems = 2, -- the owner gets a few gems per like (max per day below)
+	LikeGemsDaily = 40,
+}
+
+-- house wall styles: the level decides the default look, skins override it
+Config.HouseStyles = {
+	Wood = {
+		Wall = Color3.fromRGB(170, 120, 75),
+		WallMaterial = "WoodPlanks",
+		Trim = Color3.fromRGB(255, 210, 140),
+		Ground = Color3.fromRGB(105, 160, 80),
+		GroundMaterial = "Grass",
+		Pillar = Color3.fromRGB(120, 85, 55),
+	},
+	Stone = {
+		Wall = Color3.fromRGB(165, 165, 175),
+		WallMaterial = "Cobblestone",
+		Trim = Color3.fromRGB(140, 220, 255),
+		Ground = Color3.fromRGB(95, 155, 85),
+		GroundMaterial = "Grass",
+		Pillar = Color3.fromRGB(120, 120, 135),
+	},
+	Gold = {
+		Wall = Color3.fromRGB(235, 225, 205),
+		WallMaterial = "Marble",
+		Trim = Color3.fromRGB(255, 205, 60),
+		Ground = Color3.fromRGB(90, 165, 95),
+		GroundMaterial = "Grass",
+		Pillar = Color3.fromRGB(255, 200, 60),
+		Aura = Color3.fromRGB(255, 220, 120),
+	},
+	Crystal = {
+		Wall = Color3.fromRGB(170, 230, 255),
+		WallMaterial = "Glass",
+		WallTransparency = 0.35,
+		Trim = Color3.fromRGB(120, 240, 255),
+		Ground = Color3.fromRGB(200, 235, 255),
+		GroundMaterial = "Ice",
+		Pillar = Color3.fromRGB(140, 220, 255),
+		Aura = Color3.fromRGB(150, 230, 255),
+	},
+	Galaxy = {
+		Wall = Color3.fromRGB(40, 25, 80),
+		WallMaterial = "Glass",
+		WallTransparency = 0.2,
+		Trim = Color3.fromRGB(200, 110, 255),
+		Ground = Color3.fromRGB(35, 30, 70),
+		GroundMaterial = "Slate",
+		Pillar = Color3.fromRGB(150, 80, 255),
+		Aura = Color3.fromRGB(210, 140, 255),
+	},
+	-- skins
+	Sakura = {
+		Wall = Color3.fromRGB(255, 205, 220),
+		WallMaterial = "WoodPlanks",
+		Trim = Color3.fromRGB(255, 120, 170),
+		Ground = Color3.fromRGB(255, 225, 235),
+		GroundMaterial = "Grass",
+		Pillar = Color3.fromRGB(200, 90, 120),
+		Aura = Color3.fromRGB(255, 170, 200),
+	},
+	Candy = {
+		Wall = Color3.fromRGB(255, 240, 245),
+		WallMaterial = "SmoothPlastic",
+		Trim = Color3.fromRGB(255, 90, 120),
+		Ground = Color3.fromRGB(150, 230, 200),
+		GroundMaterial = "SmoothPlastic",
+		Pillar = Color3.fromRGB(255, 120, 200),
+		Stripes = Color3.fromRGB(255, 90, 120),
+	},
+	Royal = {
+		Wall = Color3.fromRGB(90, 40, 140),
+		WallMaterial = "Fabric",
+		Trim = Color3.fromRGB(255, 200, 60),
+		Ground = Color3.fromRGB(70, 35, 110),
+		GroundMaterial = "Carpet",
+		Pillar = Color3.fromRGB(255, 200, 60),
+		Aura = Color3.fromRGB(255, 210, 90),
+	},
+	Neon = {
+		Wall = Color3.fromRGB(20, 20, 30),
+		WallMaterial = "Metal",
+		Trim = Color3.fromRGB(60, 255, 230),
+		Ground = Color3.fromRGB(25, 25, 40),
+		GroundMaterial = "Metal",
+		Pillar = Color3.fromRGB(60, 255, 230),
+		Aura = Color3.fromRGB(60, 255, 230),
+	},
+}
+-- skins: "Auto" follows your house level. Need: Gems price, VIP pass,
+-- a house level, or a Robux product (Products.HouseSkinNeon)
+Config.HouseSkins = {
+	{ Id = "Auto", Name = "Level Style", Icon = "🏠" },
+	{ Id = "Sakura", Name = "Sakura", Icon = "🌸", Gems = 600 },
+	{ Id = "Candy", Name = "Candy", Icon = "🍬", Gems = 900 },
+	{ Id = "Royal", Name = "Royal", Icon = "👑", Pass = "VIP" },
+	{ Id = "Neon", Name = "Neon City", Icon = "🌃", Product = "HouseSkinNeon" },
+	{ Id = "Galaxy", Name = "Galaxy", Icon = "🌌", Level = 5 },
+}
+
+-- paint: tap a decoration in build mode -> 🎨 cycles these colors (free)
+Config.Paint = {
+	Color3.fromRGB(255, 90, 90),
+	Color3.fromRGB(255, 160, 60),
+	Color3.fromRGB(255, 225, 80),
+	Color3.fromRGB(120, 220, 90),
+	Color3.fromRGB(60, 200, 170),
+	Color3.fromRGB(80, 170, 255),
+	Color3.fromRGB(120, 110, 255),
+	Color3.fromRGB(200, 110, 255),
+	Color3.fromRGB(255, 130, 200),
+	Color3.fromRGB(250, 250, 250),
+	Color3.fromRGB(70, 70, 80),
+	Color3.fromRGB(150, 100, 60),
+}
+
+-- decoration sets: own at least one of every item -> bonus base income
+Config.DecorSets = {
+	{ Id = "Garden", Name = "Garden Set", Icon = "🌷", Items = { "Tree", "Flowers", "Bush", "Pond" }, Bonus = 0.05 },
+	{ Id = "Cozy", Name = "Cozy Set", Icon = "🛋️", Items = { "Sofa", "Table", "Chair", "Lantern" }, Bonus = 0.05 },
+	{ Id = "Camp", Name = "Camping Set", Icon = "🏕️", Items = { "Campfire", "Pine", "Mushroom", "Rock" }, Bonus = 0.05 },
+	{ Id = "Party", Name = "Party Set", Icon = "🎉", Items = { "Swing", "Gnome", "Flag", "Fountain" }, Bonus = 0.08 },
+	{ Id = "Royal", Name = "Royal Set", Icon = "👑", Items = { "Throne", "Trophy", "Statue", "Carpet" }, Bonus = 0.1 },
+	{ Id = "Neon", Name = "Neon Set", Icon = "🌀", Items = { "NeonArch", "Crystal", "LampPost", "Windmill" }, Bonus = 0.1 },
 }
 
 -- Decorations: buy & place anything in your base. All refundable (100%),
@@ -954,7 +1184,8 @@ Config.DecorCategories = {
 }
 Config.Decor = {
 	-- base (functional)
-	Pedestal = { Name = "Shard Pedestal", Category = "Base", Icon = "🌠", Size = { 2, 2 }, Price = 0, Function = "Pedestal" },
+	Pedestal = { Name = "Pet Pedestal", Category = "Base", Icon = "🌠", Size = { 2, 2 }, Price = 0, Function = "Pedestal" },
+	Vault = { Name = "Vault Pedestal", Category = "Base", Icon = "🔒", Size = { 2, 2 }, Price = 0, Function = "Vault" },
 	Trap = { Name = "Stun Trap", Category = "Base", Icon = "⚡", Size = { 2, 2 }, Price = 2500, Limit = 4, Function = "Trap" },
 	JumpPad = { Name = "Jump Pad", Category = "Base", Icon = "🦘", Size = { 2, 2 }, Price = 800, Limit = 4, Function = "Jump" },
 	-- nature
@@ -963,6 +1194,9 @@ Config.Decor = {
 	Bush = { Name = "Bush", Category = "Nature", Icon = "🌿", Size = { 1, 1 }, Price = 40 },
 	Flowers = { Name = "Flower Bed", Category = "Nature", Icon = "🌷", Size = { 2, 1 }, Price = 60 },
 	Rock = { Name = "Rock", Category = "Nature", Icon = "🪨", Size = { 1, 1 }, Price = 30 },
+	Hedge = { Name = "Hedge", Category = "Nature", Icon = "🟩", Size = { 2, 1 }, Price = 50 },
+	Mushroom = { Name = "Mushroom", Category = "Nature", Icon = "🍄", Size = { 1, 1 }, Price = 90 },
+	Pond = { Name = "Pond", Category = "Nature", Icon = "🐟", Size = { 3, 2 }, Price = 600 },
 	-- furniture
 	Bench = { Name = "Bench", Category = "Furniture", Icon = "🪑", Size = { 2, 1 }, Price = 100 },
 	Table = { Name = "Table", Category = "Furniture", Icon = "🍽️", Size = { 2, 2 }, Price = 150 },
@@ -978,6 +1212,10 @@ Config.Decor = {
 	Fountain = { Name = "Fountain", Category = "Fun", Icon = "⛲", Size = { 3, 3 }, Price = 2500 },
 	Trophy = { Name = "Trophy", Category = "Fun", Icon = "🏆", Size = { 1, 1 }, Price = 5000 },
 	Flag = { Name = "Flag", Category = "Fun", Icon = "🚩", Size = { 1, 1 }, Price = 200 },
+	Gnome = { Name = "Garden Gnome", Category = "Fun", Icon = "🧙", Size = { 1, 1 }, Price = 350 },
+	Campfire = { Name = "Campfire", Category = "Fun", Icon = "🔥", Size = { 2, 2 }, Price = 450 },
+	Swing = { Name = "Swing", Category = "Fun", Icon = "🎠", Size = { 3, 2 }, Price = 1200, MinLevel = 2 },
+	Windmill = { Name = "Windmill", Category = "Fun", Icon = "🌬️", Size = { 3, 3 }, Price = 8000, MinLevel = 3 },
 	-- floors (4x4 tiles)
 	WoodFloor = { Name = "Wood Floor", Category = "Floor", Icon = "🟫", Size = { 2, 2 }, Price = 20, Layer = "Floor" },
 	StoneFloor = { Name = "Stone Floor", Category = "Floor", Icon = "⬜", Size = { 2, 2 }, Price = 20, Layer = "Floor" },
@@ -991,6 +1229,7 @@ Config.Decor = {
 -- display order inside each category
 Config.DecorOrder = {
 	"Pedestal",
+	"Vault",
 	"Trap",
 	"JumpPad",
 	"Tree",
@@ -998,6 +1237,9 @@ Config.DecorOrder = {
 	"Bush",
 	"Flowers",
 	"Rock",
+	"Hedge",
+	"Mushroom",
+	"Pond",
 	"Bench",
 	"Table",
 	"Chair",
@@ -1010,6 +1252,10 @@ Config.DecorOrder = {
 	"Fountain",
 	"Trophy",
 	"Flag",
+	"Gnome",
+	"Campfire",
+	"Swing",
+	"Windmill",
 	"WoodFloor",
 	"StoneFloor",
 	"GrassFloor",
@@ -1023,8 +1269,9 @@ Config.StarterBase = {
 	{ Id = "Pedestal", X = -6, Z = 2, R = 0 },
 	{ Id = "Pedestal", X = 0, Z = 2, R = 0 },
 	{ Id = "Pedestal", X = 6, Z = 2, R = 0 },
-	{ Id = "Tree", X = -16, Z = 16, R = 0 },
-	{ Id = "Tree", X = 16, Z = 16, R = 0 },
+	{ Id = "Vault", X = 0, Z = 10, R = 0 },
+	{ Id = "Tree", X = -12, Z = 12, R = 0 },
+	{ Id = "Tree", X = 12, Z = 12, R = 0 },
 	{ Id = "Lantern", X = -9, Z = -9, R = 0 },
 	{ Id = "Lantern", X = 9, Z = -9, R = 0 },
 }
@@ -1212,6 +1459,19 @@ BUILDERS.Pedestal = function(m)
 	top:SetAttribute("IsTop", true)
 end
 
+BUILDERS.Vault = function(m)
+	cylinder(m, "Base", 2.4, 3.8, 1.2, Color3.fromRGB(60, 62, 80), Enum.Material.DiamondPlate)
+	cylinder(m, "Ring", 0.3, 4.1, 2.45, Color3.fromRGB(255, 200, 60), Enum.Material.Neon)
+	part(m, "Dome", Vector3.one * 4.4, CFrame.new(0, 3.9, 0), Color3.fromRGB(150, 220, 255), Enum.Material.Glass, {
+		Shape = Enum.PartType.Ball,
+		Transparency = 0.65,
+	})
+	local lock = part(m, "Lock", Vector3.new(0.9, 0.8, 0.3), CFrame.new(0, 1.4, -1.95), Color3.fromRGB(255, 200, 60), Enum.Material.Neon)
+	light(lock, Color3.fromRGB(255, 210, 90), 7, 0.8)
+	local top = part(m, "Top", Vector3.one * 0.2, CFrame.new(0, 2.6, 0), Color3.new(), Enum.Material.SmoothPlastic, { Transparency = 1 })
+	top:SetAttribute("IsTop", true)
+end
+
 BUILDERS.Trap = function(m)
 	part(m, "Plate", Vector3.new(3.6, 0.3, 3.6), CFrame.new(0, 0.15, 0), Color3.fromRGB(60, 60, 75), Enum.Material.Metal)
 	local trigger = part(
@@ -1284,6 +1544,54 @@ end
 
 BUILDERS.Rock = function(m)
 	part(m, "Rock", Vector3.new(1.8, 1.2, 1.6), CFrame.new(0, 0.6, 0) * CFrame.Angles(0.2, 0.7, 0.1), STONE, Enum.Material.Rock)
+end
+
+BUILDERS.Hedge = function(m)
+	part(m, "Hedge", Vector3.new(3.8, 2.4, 1.7), CFrame.new(0, 1.2, 0), Color3.fromRGB(60, 140, 65), Enum.Material.LeafyGrass)
+end
+
+BUILDERS.Mushroom = function(m)
+	part(m, "Stem", Vector3.new(0.6, 1.4, 0.6), CFrame.new(0, 0.7, 0), Color3.fromRGB(245, 240, 225), Enum.Material.SmoothPlastic)
+	part(m, "Cap", Vector3.new(1.8, 0.9, 1.8), CFrame.new(0, 1.6, 0), Color3.fromRGB(230, 60, 60), Enum.Material.SmoothPlastic, {
+		Shape = Enum.PartType.Ball,
+	})
+	for i = 1, 4 do
+		local angle = i * math.pi / 2
+		part(
+			m,
+			"Dot",
+			Vector3.one * 0.3,
+			CFrame.new(math.cos(angle) * 0.55, 1.85, math.sin(angle) * 0.55),
+			Color3.new(1, 1, 1),
+			Enum.Material.SmoothPlastic,
+			{ Shape = Enum.PartType.Ball }
+		)
+	end
+end
+
+BUILDERS.Pond = function(m)
+	part(m, "Rim", Vector3.new(5.8, 0.5, 3.8), CFrame.new(0, 0.25, 0), Color3.fromRGB(150, 150, 160), Enum.Material.Cobblestone)
+	part(
+		m,
+		"Water",
+		Vector3.new(5, 0.2, 3),
+		CFrame.new(0, 0.52, 0),
+		Color3.fromRGB(70, 170, 255),
+		Enum.Material.Glass,
+		{ Transparency = 0.2 }
+	)
+	for _, spot in { { -1.6, -0.6 }, { 1.4, 0.7 } } do
+		part(
+			m,
+			"Lily",
+			Vector3.new(0.12, 0.9, 0.9),
+			CFrame.new(spot[1], 0.66, spot[2]) * CFrame.Angles(0, 0, math.rad(90)),
+			Color3.fromRGB(90, 200, 90),
+			Enum.Material.SmoothPlastic,
+			{ Shape = Enum.PartType.Cylinder }
+		)
+	end
+	part(m, "Fish", Vector3.new(0.7, 0.25, 0.3), CFrame.new(0.2, 0.6, -0.4), Color3.fromRGB(255, 140, 40), Enum.Material.SmoothPlastic)
 end
 
 BUILDERS.Bench = function(m)
@@ -1392,6 +1700,117 @@ BUILDERS.Flag = function(m)
 	part(m, "Cloth", Vector3.new(2.2, 1.4, 0.1), CFrame.new(1.2, 5.2, 0), Color3.fromRGB(255, 70, 90), Enum.Material.Fabric)
 end
 
+BUILDERS.Gnome = function(m)
+	cylinder(m, "Body", 1.2, 1.1, 0.6, Color3.fromRGB(60, 110, 220), Enum.Material.SmoothPlastic)
+	part(m, "Beard", Vector3.new(0.9, 0.8, 0.6), CFrame.new(0, 1.3, -0.25), Color3.new(1, 1, 1), Enum.Material.SmoothPlastic, {
+		Shape = Enum.PartType.Ball,
+	})
+	part(m, "Head", Vector3.one * 0.8, CFrame.new(0, 1.55, 0), Color3.fromRGB(255, 205, 170), Enum.Material.SmoothPlastic, {
+		Shape = Enum.PartType.Ball,
+	})
+	part(
+		m,
+		"Hat",
+		Vector3.new(0.75, 1.1, 0.75),
+		CFrame.new(0, 2.25, 0) * CFrame.Angles(0, math.rad(45), 0),
+		Color3.fromRGB(230, 50, 60),
+		Enum.Material.SmoothPlastic
+	)
+	part(
+		m,
+		"HatTip",
+		Vector3.new(0.4, 0.5, 0.4),
+		CFrame.new(0, 2.95, 0) * CFrame.Angles(0, math.rad(45), 0),
+		Color3.fromRGB(230, 50, 60),
+		Enum.Material.SmoothPlastic
+	)
+end
+
+BUILDERS.Campfire = function(m)
+	for i = 1, 6 do
+		local angle = i * math.pi / 3
+		part(
+			m,
+			"Stone",
+			Vector3.new(0.8, 0.5, 0.8),
+			CFrame.new(math.cos(angle) * 1.4, 0.25, math.sin(angle) * 1.4),
+			Color3.fromRGB(120, 120, 130),
+			Enum.Material.Rock
+		)
+	end
+	for _, yaw in { 30, -30 } do
+		part(
+			m,
+			"Log",
+			Vector3.new(2.4, 0.45, 0.45),
+			CFrame.new(0, 0.35, 0) * CFrame.Angles(0, math.rad(yaw), 0),
+			DARK_WOOD,
+			Enum.Material.Wood
+		)
+	end
+	local flame = part(
+		m,
+		"Flame",
+		Vector3.new(0.9, 1.3, 0.9),
+		CFrame.new(0, 1.1, 0) * CFrame.Angles(0, math.rad(45), 0),
+		Color3.fromRGB(255, 150, 40),
+		Enum.Material.Neon,
+		{
+			Transparency = 0.2,
+		}
+	)
+	local fire = Instance.new("Fire")
+	fire.Size = 3
+	fire.Heat = 6
+	fire.Parent = flame
+	light(flame, Color3.fromRGB(255, 160, 70), 14, 1.6)
+end
+
+BUILDERS.Swing = function(m)
+	for _, x in { -2.6, 2.6 } do
+		for _, z in { -0.9, 0.9 } do
+			part(
+				m,
+				"Leg",
+				Vector3.new(0.35, 5.2, 0.35),
+				CFrame.new(x, 2.5, z) * CFrame.Angles(if z > 0 then 0.18 else -0.18, 0, 0),
+				WOOD,
+				Enum.Material.Wood
+			)
+		end
+	end
+	part(m, "Bar", Vector3.new(5.6, 0.4, 0.4), CFrame.new(0, 5, 0), DARK_WOOD, Enum.Material.Wood)
+	for _, x in { -0.8, 0.8 } do
+		part(m, "Rope", Vector3.new(0.1, 3, 0.1), CFrame.new(x, 3.5, 0), Color3.fromRGB(230, 220, 190), Enum.Material.Fabric)
+	end
+	part(m, "Seat", Vector3.new(2, 0.25, 0.8), CFrame.new(0, 2, 0), Color3.fromRGB(255, 120, 90), Enum.Material.WoodPlanks)
+end
+
+BUILDERS.Windmill = function(m)
+	part(m, "Tower", Vector3.new(3.6, 5, 3.6), CFrame.new(0, 2.5, 0), Color3.fromRGB(240, 235, 225), Enum.Material.Brick)
+	part(m, "Upper", Vector3.new(2.6, 3, 2.6), CFrame.new(0, 6.5, 0), Color3.fromRGB(240, 235, 225), Enum.Material.Brick)
+	part(
+		m,
+		"Roof",
+		Vector3.new(3, 1.4, 3),
+		CFrame.new(0, 8.7, 0) * CFrame.Angles(0, math.rad(45), 0),
+		Color3.fromRGB(190, 70, 60),
+		Enum.Material.Slate
+	)
+	part(m, "Hub", Vector3.one * 0.8, CFrame.new(0, 6.8, -1.6), DARK_WOOD, Enum.Material.Wood, { Shape = Enum.PartType.Ball })
+	for i = 0, 3 do
+		part(
+			m,
+			"Blade",
+			Vector3.new(0.7, 4.4, 0.15),
+			CFrame.new(0, 6.8, -1.75) * CFrame.Angles(0, 0, math.rad(45 + i * 90)) * CFrame.new(0, 2.3, 0),
+			Color3.fromRGB(250, 250, 245),
+			Enum.Material.Fabric
+		)
+	end
+	part(m, "Door", Vector3.new(1.2, 2, 0.2), CFrame.new(0, 1, -1.85), DARK_WOOD, Enum.Material.WoodPlanks)
+end
+
 local function floorTile(m, color: Color3, material: Enum.Material)
 	part(m, "Tile", Vector3.new(4, 0.2, 4), CFrame.new(0, 0.1, 0), color, material)
 end
@@ -1459,6 +1878,46 @@ BUILDERS.NeonArch = function(m)
 	light(top, color, 14, 1.5)
 end
 
+-- parts recolored by 🎨 paint (by part name)
+local PAINT = {
+	Pedestal = { "Ring" },
+	Vault = { "Ring", "Lock" },
+	Tree = { "Leaves", "Leaves2" },
+	Pine = { "Needles" },
+	Bush = { "Bush" },
+	Hedge = { "Hedge" },
+	Flowers = { "Flower" },
+	Rock = { "Rock" },
+	Mushroom = { "Cap" },
+	Pond = { "Water" },
+	Bench = { "Seat", "Back" },
+	Table = { "Top" },
+	Chair = { "Seat", "Back" },
+	Sofa = { "Seat", "Back", "Arm" },
+	Fence = { "Post", "Rail" },
+	Lantern = { "Lamp" },
+	LampPost = { "Bulb" },
+	Crystal = { "Crystal" },
+	Statue = { "Star", "Star2" },
+	Fountain = { "Water", "Spout" },
+	Trophy = { "Cup", "Stem" },
+	Flag = { "Cloth" },
+	Gnome = { "Hat", "HatTip", "Body" },
+	Campfire = { "Flame" },
+	Swing = { "Seat" },
+	Windmill = { "Blade", "Roof" },
+	WoodFloor = { "Tile" },
+	StoneFloor = { "Tile" },
+	GrassFloor = { "Tile" },
+	Carpet = { "Tile" },
+	Throne = { "Seat", "Back" },
+	NeonArch = { "Pillar", "Top" },
+}
+
+function DecorModel.CanPaint(id: string): boolean
+	return PAINT[id] ~= nil
+end
+
 function DecorModel.Has(id: string): boolean
 	return BUILDERS[id] ~= nil
 end
@@ -1514,23 +1973,45 @@ function DecorModel.Price(config, id: string, items): (string, number)
 		local costs = config.Base.PedestalCosts
 		return "Coins", costs[DecorModel.Count(items, id) + 1] or math.huge
 	end
+	if def.Function == "Vault" then
+		local costs = config.Base.VaultCosts
+		return "Coins", costs[DecorModel.Count(items, id) + 1] or math.huge
+	end
 	if def.Gems then
 		return "Gems", def.Gems
 	end
 	return "Coins", def.Price or 0
 end
 
--- ok, reason (English text key) - ignoreUid lets an item be moved onto itself
-function DecorModel.Validate(config, items, id: string, x: number, z: number, rotation: number, ignoreUid: number?): (boolean, string?)
+-- the buildable area of a house level (plot space)
+function DecorModel.Bounds(config, level: number?)
+	local levels = config.Base.Levels
+	return levels[math.clamp(level or 1, 1, #levels)].Build
+end
+
+-- ok, reason (English text key) - ignoreUid lets an item be moved onto itself.
+-- opts = { Level = house level, Vaults = vault pedestals allowed }
+function DecorModel.Validate(
+	config,
+	items,
+	id: string,
+	x: number,
+	z: number,
+	rotation: number,
+	ignoreUid: number?,
+	opts: { Level: number?, Vaults: number? }?
+): (boolean, string?)
 	local def = config.Decor[id]
 	if not def then
 		return false, "Unknown item"
 	end
-	local bounds = config.Base.Build
+	local level = opts and opts.Level or 1
+	local house = config.Base.Levels[math.clamp(level, 1, #config.Base.Levels)]
+	local bounds = house.Build
 	local minX, maxX, minZ, maxZ = rect(config, id, x, z, rotation)
 	local eps = 0.01
 	if minX < bounds.MinX - eps or maxX > bounds.MaxX + eps or minZ < bounds.MinZ - eps or maxZ > bounds.MaxZ + eps then
-		return false, "Out of bounds"
+		return false, "Out of bounds - expand your house for more room!"
 	end
 	local layer = layerOf(config, id)
 	for _, other in items do
@@ -1542,11 +2023,19 @@ function DecorModel.Validate(config, items, id: string, x: number, z: number, ro
 		end
 	end
 	if not ignoreUid then
-		if #items >= config.Base.MaxItems then
-			return false, "Your base is full of decorations!"
+		if def.MinLevel and level < def.MinLevel then
+			return false, "Upgrade your house to unlock this item!"
+		end
+		if #items >= house.MaxItems then
+			return false, "Your base is full - expand your house for more!"
 		end
 		local count = DecorModel.Count(items, id)
-		local limit = if def.Function == "Pedestal" then config.Base.MaxPedestals else def.Limit
+		local limit = def.Limit
+		if def.Function == "Pedestal" then
+			limit = config.Base.MaxPedestals
+		elseif def.Function == "Vault" then
+			limit = math.min(opts and opts.Vaults or house.Vaults, #config.Base.VaultCosts)
+		end
 		if limit and count >= limit then
 			return false, "Limit reached for this item"
 		end
@@ -1554,7 +2043,7 @@ function DecorModel.Validate(config, items, id: string, x: number, z: number, ro
 	return true, nil
 end
 
-function DecorModel.Build(config, id: string): Model
+function DecorModel.Build(config, id: string, paint: number?): Model
 	local model = Instance.new("Model")
 	model.Name = id
 	local cell = config.Base.Cell
@@ -1572,6 +2061,19 @@ function DecorModel.Build(config, id: string): Model
 	local builder = BUILDERS[id]
 	if builder then
 		builder(model)
+	end
+	local color = paint and config.Paint[paint]
+	local names = PAINT[id]
+	if color and names then
+		for _, child in model:GetChildren() do
+			if child:IsA("BasePart") and table.find(names, child.Name) then
+				child.Color = color
+				local glow = child:FindFirstChildOfClass("PointLight")
+				if glow then
+					glow.Color = color
+				end
+			end
+		end
 	end
 	return model
 end
@@ -2479,6 +2981,147 @@ return {
 	["Trade cancelled - not enough pet storage."] = "거래 취소 - 펫 보관함이 부족해요.",
 	["The other player left."] = "상대가 나갔어요.",
 	["Pet storage full - sold your weakest %s for 💰%s"] = "펫 보관함이 가득 차서 가장 약한 %s을(를) 💰%s에 팔았어요",
+	-- v14: houses, protection, titles, bounty
+	["%s left - locks can't stop you • tap to go"] = "%s 남음 - 잠금도 못 막아요 • 눌러서 이동",
+	["%s's House"] = "%s의 집",
+	["%s: place %s for +%d%% base income"] = "%s: %s 을(를) 놓으면 기지 수입 +%d%%",
+	["+25% coins, +1 pet slot, +1 vault, +10s base lock, Royal house skin, gold [VIP] tag, daily chest (100 gems)"] = "코인 +25%, 펫 슬롯 +1, 금고 +1, 기지 잠금 +10초, 로열 집 스킨, 황금 [VIP] 태그, 매일 상자 (보석 100)",
+	["Auto: always wear my best title"] = "자동: 항상 가장 좋은 칭호 달기",
+	["Buy this skin in the store!"] = "이 스킨은 상점에서 살 수 있어요!",
+	["Campfire"] = "모닥불",
+	["Camping Set"] = "캠핑 세트",
+	["Can't paint that"] = "칠할 수 없어요",
+	["Candy"] = "캔디",
+	["Couldn't check that name - try again later."] = "이름을 확인하지 못했어요 - 잠시 후 다시 해 주세요.",
+	["Cozy Cottage"] = "아늑한 오두막",
+	["Cozy Set"] = "아늑한 세트",
+	["Crystal Palace"] = "크리스탈 궁전",
+	["Discover %d different pets"] = "서로 다른 펫 %d종 발견하기",
+	["Earn %s coins in total"] = "총 %s 코인 벌기",
+	["Everyone starts here"] = "모두 여기서 시작해요",
+	["Expand"] = "확장",
+	["Find a HUGE pet"] = "거대 펫 찾기",
+	["Galaxy Castle"] = "은하 성",
+	["Garden Gnome"] = "정원 난쟁이",
+	["Garden Set"] = "정원 세트",
+	["Get %d likes on your house"] = "집 좋아요 %d개 받기",
+	["Glowing neon walls for your house (looks only)"] = "빛나는 네온 벽 (외형만 바뀌어요)",
+	["Golden Manor"] = "황금 저택",
+	["Grow your house to level %d"] = "집을 %d레벨까지 키우기",
+	["Hedge"] = "울타리 나무",
+	["Houses"] = "집 구경",
+	["Invalid name"] = "잘못된 이름이에요",
+	["Level Style"] = "레벨 스타일",
+	["Mushroom"] = "버섯",
+	["Neon City"] = "네온 시티",
+	["Neon City House"] = "네온 시티 하우스",
+	["Neon Set"] = "네온 세트",
+	["No houses yet"] = "아직 집이 없어요",
+	["Own the VIP pass"] = "VIP 패스 보유",
+	["Party Set"] = "파티 세트",
+	["Pet Pedestal"] = "펫 받침대",
+	["Pond"] = "연못",
+	["Reach house level %d first!"] = "먼저 집을 %d레벨로 키워 주세요!",
+	["Reach level %d"] = "%d레벨 달성",
+	["Rebirth %d times"] = "환생 %d번",
+	["Royal"] = "로열",
+	["Royal Set"] = "로열 세트",
+	["Sakura"] = "벚꽃",
+	["Steal %d pets"] = "펫 %d마리 훔치기",
+	["Steal a pet from another base"] = "다른 기지에서 펫 훔치기",
+	["Steal pets from open houses.\n🔒 Your vault pets are always safe!"] = "열린 집에서 펫을 훔쳐요.\n🔒 금고 속 내 펫은 항상 안전해요!",
+	["Stone Villa"] = "돌 별장",
+	["Stop %d thieves (bonk or trap)"] = "도둑 %d명 막기 (때리기·함정)",
+	["Swing"] = "그네",
+	["That name is too long!"] = "이름이 너무 길어요!",
+	["This base is too small for you - pick on someone your size!"] = "너무 작은 집이에요 - 비슷한 급의 집을 노려 보세요!",
+	["Titles"] = "칭호",
+	["Unknown skin"] = "알 수 없는 스킨",
+	["Upgrade your house to unlock this item!"] = "집을 업그레이드하면 열려요!",
+	["Use"] = "사용",
+	["VIP only! 👑"] = "VIP 전용! 👑",
+	["Vault Pedestal"] = "금고 받침대",
+	["Visit houses in this server • tap ❤️ at their gate to like them"] = "이 서버의 집들을 구경해요 • 대문 앞 ❤️ 를 눌러 좋아요",
+	["Wear"] = "달기",
+	["Windmill"] = "풍차",
+	["You already own this skin!"] = "이미 가진 스킨이에요!",
+	["You need a base first!"] = "먼저 기지가 필요해요!",
+	["Your house is already max level!"] = "집이 이미 최고 레벨이에요!",
+	["by %s  •  Lv.%d  •  ❤️ %s  •  💰%s/s"] = "주인 %s  •  Lv.%d  •  ❤️ %s  •  💰%s/초",
+	["e.g. Sunny Garden"] = "예: 햇살 정원",
+	["tap to name"] = "눌러서 이름 짓기",
+	["♻️ Reborn"] = "♻️ 환생자",
+	["⚠️ Open - 🔒 vault pets are always safe"] = "⚠️ 열림 - 🔒 금고 펫은 항상 안전",
+	["⚡ Your trap caught %s - pet saved!"] = "⚡ 함정이 %s님을 잡았어요 - 펫을 지켰어요!",
+	["⛏️ Miner"] = "⛏️ 광부",
+	["✅ ON"] = "✅ 사용 중",
+	["✅ Save"] = "✅ 저장",
+	["✏️ Name your house"] = "✏️ 집 이름 짓기",
+	["❤️ %s liked your house! +💎%d"] = "❤️ %s님이 집에 좋아요를 눌렀어요! +💎%d",
+	["❤️ Popular"] = "❤️ 인기 스타",
+	["🌟 Legend Collector"] = "🌟 전설의 수집가",
+	["🌱 Newcomer"] = "🌱 새내기",
+	["🎨 New house skin: %s!"] = "🎨 새 집 스킨: %s!",
+	["🎯 REVENGE on %s"] = "🎯 %s님에게 복수!",
+	["🎯 REVENGE! For 5 minutes you can raid %s's base - locks can't stop you!"] = "🎯 복수 찬스! 5분 동안 %s님의 집을 털 수 있어요 - 잠금도 못 막아요!",
+	["🎯 Revenge complete!"] = "🎯 복수 성공!",
+	["🏅 New title unlocked: %s! (👑 Titles)"] = "🏅 새 칭호 획득: %s! (👑 칭호)",
+	["🏆 HALL OF FAME"] = "🏆 명예의 전당",
+	["🏗️ Architect"] = "🏗️ 건축가",
+	["🏗️ EXPAND\nLv.%s 💰%s"] = "🏗️ 집 확장\nLv.%s 💰%s",
+	["🏗️ Your house grew into a %s!"] = "🏗️ 집이 %s(으)로 커졌어요!",
+	["🏘️ HOUSES"] = "🏘️ 집 구경",
+	["🏘️ Welcome to %s's house! Tap ❤️ if you like it."] = "🏘️ %s님의 집에 왔어요! 마음에 들면 ❤️ 를 눌러요.",
+	["🏠 %s/s  •  Bank 💰%s"] = "🏠 %s/초  •  저금 💰%s",
+	["🏠 FREE LAND"] = "🏠 빈 땅",
+	["🏠 Go home"] = "🏠 집으로",
+	["🏠 House name saved!"] = "🏠 집 이름을 저장했어요!",
+	["🏠 This pet stays on display: full income, but it can be stolen!"] = "🏠 이 펫은 전시대에 둬요: 수입 100%, 대신 도둑맞을 수 있어요!",
+	["🏠 on display"] = "🏠 전시 중",
+	["🏰 %s upgraded their house to a %s!"] = "🏰 %s님이 집을 %s(으)로 업그레이드했어요!",
+	["🏰 MAX LEVEL"] = "🏰 최고 레벨",
+	["🏰 Palace Owner"] = "🏰 궁전 주인",
+	["🐘 %s hatched a HUGE %s%s!%s"] = "🐘 %s님이 거대 %s%s 부화!%s",
+	["🐘 Huge Hunter"] = "🐘 거대 사냥꾼",
+	["👑 %d/%d titles unlocked  •  everyone sees the one you wear"] = "👑 칭호 %d/%d 획득  •  단 칭호는 모두에게 보여요",
+	["👑 TITLES"] = "👑 칭호",
+	["👑 VIP"] = "👑 VIP",
+	["💎 Exclusive pets can't be stolen!"] = "💎 한정 펫은 훔칠 수 없어요!",
+	["💎 Exclusive pets can't be traded in your region."] = "💎 이 지역에서는 한정 펫을 거래할 수 없어요.",
+	["💎 safe"] = "💎 안전",
+	["💰 %s caught %s and won the 💰%s bounty!"] = "💰 %s님이 %s님을 잡고 현상금 💰%s 획득!",
+	["💰 BOUNTY! %s robbed too many houses - bonk them while they carry a pet to win 💰%s!"] = "💰 현상금! %s님이 집을 너무 많이 털었어요 - 펫을 들고 있을 때 때리면 💰%s!",
+	["💰 Bounty on you: %s - don't get bonked!"] = "💰 내 현상금: %s - 맞지 않게 조심!",
+	["💰 Tycoon"] = "💰 갑부",
+	["📖 Collector"] = "📖 수집가",
+	["🔒 Locked %s"] = "🔒 잠김 %s",
+	["🔒 Lv.%d"] = "🔒 Lv.%d",
+	["🔒 Pets in a vault can't be stolen!"] = "🔒 금고 속 펫은 훔칠 수 없어요!",
+	["🔒 This pet may go into a vault again (safe, half income)"] = "🔒 이 펫은 다시 금고에 들어갈 수 있어요 (안전, 수입 절반)",
+	["🔒 safe"] = "🔒 금고 (안전)",
+	["🚨 Being robbed! Bonk the thief!"] = "🚨 도둑 침입! 도둑을 때려요!",
+	["🚪 Visit"] = "🚪 방문",
+	["🛡️ Guardian"] = "🛡️ 수호자",
+	["🛡️ Newbie shield %s"] = "🛡️ 초보 보호 %s",
+	["🛡️ Protected %s"] = "🛡️ 보호 중 %s",
+	["🛡️ You stole - your newbie shield is now off."] = "🛡️ 도둑질을 해서 초보 보호가 꺼졌어요.",
+	["🥚 %s hatched a %s %s %s from the %s!%s"] = "🥚 %s님이 %s %s %s 부화! (%s)%s",
+	["🦹 Master Thief"] = "🦹 대도둑",
+	["🦹 Sneaky Thief"] = "🦹 날쌘 도둑",
+	["Huge"] = "거대",
+	["Out of bounds - expand your house for more room!"] = "범위 밖이에요 - 집을 확장하면 더 넓어져요!",
+	["Someone is already stealing from this base!"] = "이미 누군가 이 집을 털고 있어요!",
+	["You can't steal here."] = "여기서는 훔칠 수 없어요.",
+	["Your base is full - expand your house for more!"] = "꾸미기 한도가 찼어요 - 집을 확장하면 더 놓을 수 있어요!",
+	["🏠 %s\n💰 %s/s  ❤️ %s  ⭐ Lv.%s\n%s"] = "🏠 %s\n💰 %s/초  ❤️ %s  ⭐ Lv.%s\n%s",
+	["🏠 %s's HOUSE\n💰 %s/s  ❤️ %s  ⭐ Lv.%s\n%s"] = "🏠 %s의 집\n💰 %s/초  ❤️ %s  ⭐ Lv.%s\n%s",
+	["🔒 LOCKED"] = "🔒 잠김",
+	["🚨 BEING ROBBED!"] = "🚨 도둑 침입!",
+	["🛡️ NEWBIE SHIELD"] = "🛡️ 초보 보호 중",
+	["🛡️ THEFT SHIELD"] = "🛡️ 도난 보호 중",
+	["🛡️ This base was just robbed - it's protected for a few minutes."] = "🛡️ 방금 털린 집이라 몇 분 동안 보호 중이에요.",
+	["🛡️ This player is new - their base is protected for now."] = "🛡️ 초보 플레이어의 집이라 지금은 보호 중이에요.",
+	["🔓 OPEN"] = "🔓 열림",
 }
 ]]></string>
         </Properties>
@@ -2502,6 +3145,7 @@ return {
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(script.Parent.Config)
+local Util = require(script.Parent.Util)
 
 local PetModel = {}
 
@@ -2877,6 +3521,22 @@ function PetModel.Build(petName: string, variant: string?): Model
 				fire.Speed = NumberRange.new(1, 3)
 				fire.LightEmission = 1
 				fire.Parent = body
+			end
+		end
+		-- HUGE: same colours, twice the size, a golden shimmer
+		local def = Util.VariantDef(Config, variant)
+		if def and def.Scale and def.Scale ~= 1 then
+			sparkles(body, Color3.fromRGB(255, 225, 120), 10, 0.5)
+			local ok = pcall(function()
+				model:ScaleTo(def.Scale)
+			end)
+			if not ok then
+				for _, d in model:GetDescendants() do
+					if d:IsA("BasePart") then
+						d.Size *= def.Scale
+						d.CFrame = CFrame.new(d.Position * def.Scale) * (d.CFrame - d.Position)
+					end
+				end
 			end
 		end
 	end
@@ -3369,6 +4029,261 @@ function Util.ZoneAt(config, position: Vector3): number?
 	return nil
 end
 
+---------------------------------------------------------------------------
+-- houses (shared by the server, the build mode and the panels)
+---------------------------------------------------------------------------
+-- territory centers: two rows facing a central avenue (local -Z faces the avenue)
+function Util.PlotLayout(config): { { Center: Vector3, Facing: Vector3 } }
+	local base = config.Base
+	local layout = base.Layout
+	local half = base.PlotSize / 2
+	local bases = config.World.Bases
+	local rows = { -- north row (next to the hub gate) faces south, the far row faces north
+		{ Z = bases.ZStart - layout.Margin - half, Facing = Vector3.new(0, 0, -1) },
+		{ Z = bases.ZStart - layout.Margin - half * 2 - layout.Avenue - half, Facing = Vector3.new(0, 0, 1) },
+	}
+	local columns = {}
+	local x = layout.EntranceGap / 2 + half
+	for _ = 1, layout.Columns / 2 do
+		table.insert(columns, -x)
+		table.insert(columns, x)
+		x += half * 2 + layout.Gap
+	end
+	table.sort(columns, function(a, b)
+		-- nearest to the entrance first
+		if math.abs(a) == math.abs(b) then
+			return a < b
+		end
+		return math.abs(a) < math.abs(b)
+	end)
+	local list = {}
+	for _, row in rows do
+		for _, cx in columns do
+			if #list < base.Plots then
+				table.insert(list, { Center = Vector3.new(cx, 0, row.Z), Facing = row.Facing })
+			end
+		end
+	end
+	return list
+end
+
+-- z of the avenue center line
+function Util.AvenueZ(config): number
+	local layout = config.Base.Layout
+	return config.World.Bases.ZStart - layout.Margin - config.Base.PlotSize - layout.Avenue / 2
+end
+
+function Util.HouseLevel(config, data): number
+	local level = data and data.Base and tonumber(data.Base.Level) or 1
+	return math.clamp(math.floor(level), 1, #config.Base.Levels)
+end
+
+function Util.HouseDef(config, level: number)
+	return config.Base.Levels[math.clamp(level, 1, #config.Base.Levels)]
+end
+
+-- how many vault pedestals this player may own
+function Util.VaultLimit(config, data, hasVip: boolean?): number
+	return Util.HouseDef(config, Util.HouseLevel(config, data)).Vaults + (if hasVip then config.Base.VipVaults else 0)
+end
+
+-- the wall style of a house: its skin, or the style of its level
+function Util.HouseStyle(config, data): (string, any)
+	local skin = data and data.Base and data.Base.Skin
+	if type(skin) == "string" and skin ~= "Auto" and config.HouseStyles[skin] then
+		return skin, config.HouseStyles[skin]
+	end
+	local style = Util.HouseDef(config, Util.HouseLevel(config, data)).Style
+	return style, config.HouseStyles[style]
+end
+
+function Util.IsExclusive(config, pet): boolean
+	local info = pet and config.Pets[pet.Name]
+	return info ~= nil and info.Exclusive == true
+end
+
+-- pets carry a serial number when they're huge or exclusive
+function Util.WantsSerial(config, name: string, variant: string?): boolean
+	local info = config.Pets[name]
+	local def = Util.VariantDef(config, variant)
+	return (info ~= nil and info.Exclusive == true) or (def ~= nil and def.Serial == true)
+end
+
+-- total income of every pet you own (used by the fair-stealing rule)
+function Util.PetWorth(config, data): number
+	local total = 0
+	for _, pet in data.Pets do
+		total += Util.PetIncome(config, pet.Name, pet.Variant)
+	end
+	return total
+end
+
+-- pedestal + vault items, oldest first (stable order)
+function Util.Pedestals(config, items)
+	local display, vault = {}, {}
+	for _, item in items do
+		local def = config.Decor[item.Id]
+		if def and def.Function == "Pedestal" then
+			table.insert(display, item)
+		elseif def and def.Function == "Vault" then
+			table.insert(vault, item)
+		end
+	end
+	local function byUid(a, b)
+		return a.Uid < b.Uid
+	end
+	table.sort(display, byUid)
+	table.sort(vault, byUid)
+	return display, vault
+end
+
+-- who stands where. Vaults get your BEST pets (safe by default) unless you
+-- marked a pet "show off" (pet.Show = true). Exclusive pets can't be stolen
+-- anyway, so they skip the vault and earn full income on display.
+-- returns vaultPets, displayPets (same order as the pedestal items)
+function Util.ArrangePets(config, data)
+	local displayItems, vaultItems = Util.Pedestals(config, data.Base.Items)
+	local list = {}
+	for _, pet in data.Pets do
+		if not pet.Away and config.Pets[pet.Name] then
+			table.insert(list, pet)
+		end
+	end
+	table.sort(list, function(a, b)
+		local ia = Util.PetIncome(config, a.Name, a.Variant)
+		local ib = Util.PetIncome(config, b.Name, b.Variant)
+		if ia == ib then
+			return a.Id < b.Id
+		end
+		return ia > ib
+	end)
+	local vault, display, used = {}, {}, {}
+	for _, pet in list do
+		if #vault >= #vaultItems then
+			break
+		end
+		if not pet.Show and not Util.IsExclusive(config, pet) then
+			table.insert(vault, pet)
+			used[pet] = true
+		end
+	end
+	for _, pet in list do
+		if #display >= #displayItems then
+			break
+		end
+		if not used[pet] then
+			table.insert(display, pet)
+		end
+	end
+	return vault, display
+end
+
+-- decoration sets: total income bonus + which sets are complete
+function Util.SetBonus(config, items): (number, { [string]: boolean })
+	local have = {}
+	for _, item in items do
+		have[item.Id] = true
+	end
+	local total, done = 0, {}
+	for _, set in config.DecorSets do
+		local complete = true
+		for _, id in set.Items do
+			if not have[id] then
+				complete = false
+				break
+			end
+		end
+		if complete then
+			total += set.Bonus
+			done[set.Id] = true
+		end
+	end
+	return total, done
+end
+
+-- probability of hatching this exact pet (+ mutation) from an egg, base luck
+function Util.HatchChance(config, eggId: string, petName: string, variant: string?): number?
+	local egg = config.Eggs[eggId]
+	if not egg then
+		return nil
+	end
+	local total, weight = 0, 0
+	for _, entry in egg.Pets do
+		total += entry[2]
+		if entry[1] == petName then
+			weight = entry[2]
+		end
+	end
+	if total <= 0 or weight <= 0 then
+		return nil
+	end
+	local chance = weight / total
+	local def = Util.VariantDef(config, variant)
+	if def and (def.Chance or 0) > 0 then
+		chance *= def.Chance
+	end
+	return chance
+end
+
+-- titles: which ones a player has unlocked
+function Util.TitleUnlocked(config, title, data, hasPass): boolean
+	local need = title.Need or {}
+	local stats = data.Stats or {}
+	local function count(t)
+		local n = 0
+		for _ in t or {} do
+			n += 1
+		end
+		return n
+	end
+	if need.Level and (data.Level or 1) < need.Level then
+		return false
+	end
+	if need.Index and count(data.PetIndex) < need.Index then
+		return false
+	end
+	if need.Steals and (stats.ShardsStolen or 0) < need.Steals then
+		return false
+	end
+	if need.Catches and (stats.ThievesCaught or 0) < need.Catches then
+		return false
+	end
+	if need.HouseLevel and Util.HouseLevel(config, data) < need.HouseLevel then
+		return false
+	end
+	if need.Likes and (data.Base and data.Base.Likes or 0) < need.Likes then
+		return false
+	end
+	if need.Rebirths and (data.Rebirths or 0) < need.Rebirths then
+		return false
+	end
+	if need.Huge and (stats.HugesFound or 0) < need.Huge then
+		return false
+	end
+	if need.LifetimeCoins and (stats.LifetimeCoins or 0) < need.LifetimeCoins then
+		return false
+	end
+	if need.Pass and not (hasPass and hasPass(need.Pass)) then
+		return false
+	end
+	return true
+end
+
+-- the title a player wears: their pick if unlocked, else the best unlocked one
+function Util.CurrentTitle(config, data, hasPass)
+	local best = config.Titles[1]
+	for _, title in config.Titles do
+		if Util.TitleUnlocked(config, title, data, hasPass) then
+			best = title
+			if data.Title == title.Id then
+				return title
+			end
+		end
+	end
+	-- nothing picked (or the pick isn't unlocked any more): the best one
+	return best
+end
+
 return Util
 ]]></string>
         </Properties>
@@ -3508,25 +4423,38 @@ return Analytics
           <Properties>
             <string name="Name">BaseService</string>
             <string name="Source"><![CDATA[--[[
-	BaseService: every player owns a 44x44 home in the base district.
+	BaseService: every player owns a walled territory in the base district.
 
-	* DECORATE: buy any decoration from the build menu and place it anywhere
-	  on the grid (move / rotate / remove at any time - removing refunds
-	  100%, so redecorating is free). Saved with your data, seen by everyone.
-	* PEDESTALS are decorations too: your best pets stand on them and earn
-	  coins every second into the base bank (green pad), even offline (50%,
-	  2h). The rest of your pets wait in storage.
-	* DEFEND: stun traps freeze thieves (and send a stolen shard straight
-	  home), the red pad locks the entrance for a minute.
-	* SHOW OFF: visitors can ❤️ like your base once a day -> weekly ranked
-	  points + the "Best Bases" leaderboard.
-	* STEAL: hold the prompt on someone else's pet, then run it home.
+	* YOUR HOUSE: a 72x72 lot with its own fence, gate and name sign. The
+	  house LEVEL (🏗️ expand) grows the buildable land, the decoration limit
+	  and the number of vaults, and upgrades the walls (wood -> stone -> gold
+	  -> crystal -> galaxy). Skins (Sakura, Candy, Royal VIP, Neon, Galaxy)
+	  change the look. Name your house (filtered by Roblox).
+	* DECORATE: buy anything from the build menu and place it on the grid;
+	  🎨 paint it in 12 colours. Removing refunds 100%. Complete a decor SET
+	  for bonus income.
+	* PEDESTALS: your pets stand on them and earn coins every second into the
+	  bank (green pad), even offline (50%, 2h).
+	  - 🔒 VAULT pedestals hold your best pets: they can NEVER be stolen but
+	    earn 50%. Mark a pet "show off" to keep it out of the vault.
+	  - display pedestals earn 100% and can be robbed.
+	  - 💎 exclusive pets can never be stolen.
+	* FAIR STEALING (you never lose everything):
+	  - nobody can rob you while you're offline; your base starts locked
+	  - newbie shield for the first 20 minutes (stealing yourself ends it)
+	  - one theft at a time, then a 3 minute shield
+	  - you can't rob a base worth less than 1/3 of yours
+	  - the victim gets 5 minutes of REVENGE (locks don't stop them)
+	  - serial thieves get a 💰 bounty: bonk them to claim it
+	* SHOW OFF: visitors ❤️ like your house (gems + ranked points), every
+	  house is in the 🏘️ Houses list with a visit button.
 
-	data.Base.Items = { { Uid, Id, X, Z, R, Paid, Cur }, ... } (plot space)
+	data.Base.Items = { { Uid, Id, X, Z, R, Paid, Cur, Paint? }, ... } (plot space)
 	data.Pets entries get Away = true while a thief carries them
 ]]
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextService = game:GetService("TextService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
@@ -3544,12 +4472,16 @@ local SETTINGS = Config.Base
 local PLOT_HALF = SETTINGS.PlotSize / 2
 local WALL_HEIGHT = 9
 local FLOOR_Y = 0.42 -- top of the plot floor
+local GATE_HALF = 6 -- the entrance is 12 studs wide
 
 local plots = {} -- [index] = plot record
 local plotOf = {} -- [player] = plot record
 local waiting = {} -- players without a plot yet (server fuller than Plots)
 local touchDebounce = {} -- ["userId:what"] = os.clock()
 local trapReady = {} -- [trap model] = os.clock() when it can fire again
+local revenge = {} -- [victim] = { Target = thief, Until = server time }
+local thefts = {} -- [thief] = { { Victim = userId, Time, Value }, ... } (bounty)
+local houseNames = {} -- [player] = filtered custom house name
 
 ---------------------------------------------------------------------------
 -- helpers
@@ -3628,73 +4560,74 @@ local function setPrompt(parent: BasePart, action: string, object: string, role:
 	return prompt
 end
 
-local function plotColor(index: number): Color3
-	return Color3.fromHSV(((index - 1) * 0.618) % 1, 0.62, 1)
+local function material(name: string?): Enum.Material
+	local ok, value = pcall(function()
+		return (Enum.Material :: any)[name or "SmoothPlastic"]
+	end)
+	return if ok and value then value else Enum.Material.SmoothPlastic
+end
+
+local function hasVip(player: Player): boolean
+	return Services.MonetizationService:HasPass(player, "VIP")
+end
+
+local function houseLevel(data): number
+	return Util.HouseLevel(Config, data)
+end
+
+local function validateOpts(player: Player, data)
+	return { Level = houseLevel(data), Vaults = Util.VaultLimit(Config, data, hasVip(player)) }
 end
 
 ---------------------------------------------------------------------------
--- building the plots (static shells, built once)
+-- building the plots (static parts once, styled walls per owner)
 ---------------------------------------------------------------------------
 local tryLike -- forward declaration
 
 local function buildPlot(index: number, center: Vector3, facing: Vector3): any
-	-- local -Z (LookVector) faces the street
+	-- local -Z (LookVector) faces the avenue
 	local cf = CFrame.lookAt(center, center + facing)
-	local color = plotColor(index)
 	local model = Instance.new("Model")
 	model.Name = "Plot_" .. index
 	model:SetAttribute("OwnerId", 0)
 	model:SetAttribute("LockedUntil", 0)
+	model:SetAttribute("ShieldUntil", 0)
+	model:SetAttribute("Protection", "")
+	model:SetAttribute("HouseName", "")
+	model:SetAttribute("OwnerName", "")
+	model:SetAttribute("HouseLevel", 1)
+	model:SetAttribute("Likes", 0)
+	model:SetAttribute("Rate", 0)
 
 	local function at(x: number, y: number, z: number): CFrame
 		return cf * CFrame.new(x, y, z)
 	end
 
-	part({
+	local floor = part({
 		Name = "Floor",
 		Size = Vector3.new(PLOT_HALF * 2, 0.4, PLOT_HALF * 2),
 		CFrame = at(0, 0.2, 0),
-		Color = Color3.fromRGB(44, 46, 64),
-		Material = Enum.Material.Slate,
+		Color = Color3.fromRGB(90, 150, 80),
+		Material = Enum.Material.Grass,
 	}, model)
-	part({
-		Name = "Trim",
-		Size = Vector3.new(PLOT_HALF * 2 - 2, 0.42, PLOT_HALF * 2 - 2),
+	-- the land you can build on (grows with the house level)
+	local buildArea = part({
+		Name = "BuildArea",
+		Size = Vector3.new(32, 0.42, 36),
 		CFrame = at(0, 0.21, 0),
-		Color = color:Lerp(Color3.new(0, 0, 0), 0.6),
-		Material = Enum.Material.SmoothPlastic,
+		Color = Color3.fromRGB(110, 170, 95),
+		Material = Enum.Material.Grass,
+		CanCollide = false,
 	}, model)
 
-	-- glass walls with neon top trim; the front has an entrance gap
-	local function wallSegment(x: number, z: number, sizeX: number, sizeZ: number)
-		part({
-			Name = "Wall",
-			Size = Vector3.new(sizeX, WALL_HEIGHT, sizeZ),
-			CFrame = at(x, WALL_HEIGHT / 2, z),
-			Color = color:Lerp(Color3.new(1, 1, 1), 0.6),
-			Material = Enum.Material.Glass,
-			Transparency = 0.6,
-		}, model)
-		part({
-			Name = "WallTrim",
-			Size = Vector3.new(sizeX + 0.2, 0.5, sizeZ + 0.2),
-			CFrame = at(x, WALL_HEIGHT + 0.25, z),
-			Color = color,
-			Material = Enum.Material.Neon,
-			CanCollide = false,
-		}, model)
-	end
-	local sideLength = PLOT_HALF - 5
-	wallSegment(0, PLOT_HALF, PLOT_HALF * 2, 1) -- back
-	wallSegment(-PLOT_HALF, 0, 1, PLOT_HALF * 2) -- sides
-	wallSegment(PLOT_HALF, 0, 1, PLOT_HALF * 2)
-	wallSegment(-(5 + sideLength / 2), -PLOT_HALF, sideLength, 1) -- front, gap in the middle
-	wallSegment(5 + sideLength / 2, -PLOT_HALF, sideLength, 1)
+	local shell = Instance.new("Folder")
+	shell.Name = "Shell"
+	shell.Parent = model
 
 	-- lock forcefield in the entrance (only blocks while locked)
 	local shield = part({
 		Name = "Shield",
-		Size = Vector3.new(10, WALL_HEIGHT, 0.6),
+		Size = Vector3.new(GATE_HALF * 2, WALL_HEIGHT, 0.6),
 		CFrame = at(0, WALL_HEIGHT / 2, -PLOT_HALF),
 		Color = Color3.fromRGB(255, 80, 90),
 		Material = Enum.Material.ForceField,
@@ -3702,24 +4635,24 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		CanCollide = false,
 	}, model)
 
-	-- sign above the entrance
+	-- name sign above the gate
 	local signAnchor = part({
 		Name = "SignAnchor",
 		Size = Vector3.one,
-		CFrame = at(0, 15, -PLOT_HALF),
+		CFrame = at(0, 17, -PLOT_HALF),
 		Transparency = 1,
 		CanCollide = false,
 		CanQuery = false,
 		CanTouch = false,
 	}, model)
-	local sign = billboard(signAnchor, 22, 5.5, 0, color)
+	local sign = billboard(signAnchor, 26, 7.5, 0, Color3.new(1, 1, 1), 180)
 
-	-- like post on the street side of the entrance
+	-- like post on the avenue side of the gate
 	local heart = part({
 		Name = "LikeHeart",
 		Shape = Enum.PartType.Ball,
 		Size = Vector3.one * 2.2,
-		CFrame = at(-8, 4.4, -PLOT_HALF - 1.2),
+		CFrame = at(-GATE_HALF - 4, 4.4, -PLOT_HALF - 1.6),
 		Color = Color3.fromRGB(255, 80, 120),
 		Material = Enum.Material.Neon,
 		CanCollide = false,
@@ -3727,16 +4660,16 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 	part({
 		Name = "LikePost",
 		Size = Vector3.new(0.4, 3.4, 0.4),
-		CFrame = at(-8, 1.7, -PLOT_HALF - 1.2),
+		CFrame = at(-GATE_HALF - 4, 1.7, -PLOT_HALF - 1.6),
 		Color = Color3.fromRGB(240, 240, 245),
 		Material = Enum.Material.Metal,
 		CanCollide = false,
 	}, model)
-	setPrompt(heart, "❤️ Like", "Base", "Visitor", 0, function(visitor)
+	setPrompt(heart, "❤️ Like", "House", "Visitor", 0, function(visitor)
 		tryLike(visitor, index)
 	end, 12)
 
-	-- pads: collect (green) and lock (red), just inside the entrance
+	-- pads: collect (green) and lock (red), just inside the gate
 	local collect = part({
 		Name = "CollectPad",
 		Size = Vector3.new(7, 0.4, 7),
@@ -3756,6 +4689,23 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 	}, model)
 	local lockLabel = billboard(lockPad, 9, 2.4, 3.2, Color3.fromRGB(255, 150, 150), 50)
 
+	-- expand board (owner only): grow the house
+	local board = part({
+		Name = "ExpandBoard",
+		Size = Vector3.new(5, 3.4, 0.4),
+		CFrame = at(26, 3.2, -PLOT_HALF + 3),
+		Color = Color3.fromRGB(120, 85, 55),
+		Material = Enum.Material.WoodPlanks,
+	}, model)
+	part({
+		Name = "ExpandPost",
+		Size = Vector3.new(0.4, 1.6, 0.4),
+		CFrame = at(26, 0.8, -PLOT_HALF + 3),
+		Color = Color3.fromRGB(100, 70, 45),
+		Material = Enum.Material.Wood,
+	}, model)
+	local expandLabel = billboard(board, 8, 3, 3.4, Color3.fromRGB(255, 220, 120), 60)
+
 	model.Parent = World:Folder("Bases")
 	local items = Instance.new("Folder")
 	items.Name = "Items"
@@ -3768,11 +4718,15 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		Index = index,
 		Model = model,
 		CFrame = cf,
-		Color = color,
 		Owner = nil,
+		Floor = floor,
+		BuildArea = buildArea,
+		Shell = shell,
 		Sign = sign,
 		BankLabel = bankLabel,
 		LockLabel = lockLabel,
+		ExpandBoard = board,
+		ExpandLabel = expandLabel,
 		Shield = shield,
 		CollectPad = collect,
 		LockPad = lockPad,
@@ -3781,89 +4735,201 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		ItemModels = {}, -- [uid] = Model
 		LockedUntil = 0,
 		LockReadyAt = 0,
+		ShieldUntil = 0,
 		LastLabel = "",
+		StyleKey = "",
 	}
 end
 
--- plots line both sides of every street, nearest rows first
-local function plotLayout(): { { Center: Vector3, Facing: Vector3 } }
-	local bases = Config.World.Bases
-	local layout = {}
-	local row = 0
-	local offset = 10 + 2 + PLOT_HALF -- half street + walkway + half plot
-	while #layout < SETTINGS.Plots do
-		local z = bases.ZStart - 18 - PLOT_HALF - row * (SETTINGS.PlotSize + 4)
-		for _, streetX in SETTINGS.Streets do
-			for _, side in { -1, 1 } do
-				if #layout < SETTINGS.Plots then
-					table.insert(layout, {
-						Center = Vector3.new(streetX + side * offset, 0, z),
-						Facing = Vector3.new(-side, 0, 0), -- toward the street
-					})
-				end
-			end
-		end
-		row += 1
+-- walls, gate, border and aura in the owner's style
+local function applyStyle(plot, data)
+	local styleId, style = Util.HouseStyle(Config, data)
+	local level = houseLevel(data)
+	local key = styleId .. ":" .. level
+	if plot.StyleKey == key then
+		return
 	end
-	return layout
+	plot.StyleKey = key
+	local shell = plot.Shell
+	shell:ClearAllChildren()
+	local cf = plot.CFrame
+	local function at(x: number, y: number, z: number): CFrame
+		return cf * CFrame.new(x, y, z)
+	end
+
+	plot.Floor.Color = style.Ground
+	plot.Floor.Material = material(style.GroundMaterial)
+	local bounds = DecorModel.Bounds(Config, level)
+	local w, d = bounds.MaxX - bounds.MinX, bounds.MaxZ - bounds.MinZ
+	plot.BuildArea.Size = Vector3.new(w, 0.42, d)
+	plot.BuildArea.CFrame = at((bounds.MinX + bounds.MaxX) / 2, 0.21, (bounds.MinZ + bounds.MaxZ) / 2)
+	plot.BuildArea.Color = style.Ground:Lerp(Color3.new(1, 1, 1), 0.12)
+	plot.BuildArea.Material = material(style.GroundMaterial)
+
+	-- walls with a gap for the gate
+	local wallMaterial = material(style.WallMaterial)
+	local function wallSegment(x: number, z: number, sizeX: number, sizeZ: number)
+		part({
+			Name = "Wall",
+			Size = Vector3.new(sizeX, WALL_HEIGHT, sizeZ),
+			CFrame = at(x, WALL_HEIGHT / 2, z),
+			Color = style.Wall,
+			Material = wallMaterial,
+			Transparency = style.WallTransparency or 0,
+		}, shell)
+		part({
+			Name = "WallTrim",
+			Size = Vector3.new(sizeX + 0.3, 0.6, sizeZ + 0.3),
+			CFrame = at(x, WALL_HEIGHT + 0.3, z),
+			Color = style.Trim,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+		}, shell)
+		if style.Stripes then
+			part({
+				Name = "Stripe",
+				Size = Vector3.new(sizeX + 0.1, 1.2, sizeZ + 0.1),
+				CFrame = at(x, WALL_HEIGHT * 0.55, z),
+				Color = style.Stripes,
+				Material = Enum.Material.SmoothPlastic,
+				CanCollide = false,
+			}, shell)
+		end
+	end
+	local side = PLOT_HALF - GATE_HALF
+	wallSegment(0, PLOT_HALF, PLOT_HALF * 2, 1) -- back
+	wallSegment(-PLOT_HALF, 0, 1, PLOT_HALF * 2) -- sides
+	wallSegment(PLOT_HALF, 0, 1, PLOT_HALF * 2)
+	wallSegment(-(GATE_HALF + side / 2), -PLOT_HALF, side, 1) -- front, gate in the middle
+	wallSegment(GATE_HALF + side / 2, -PLOT_HALF, side, 1)
+
+	-- corner towers + gate pillars and arch (taller with every level)
+	local towerHeight = WALL_HEIGHT + 1.5 + level * 0.8
+	for _, corner in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
+		part({
+			Name = "Tower",
+			Size = Vector3.new(2.6, towerHeight, 2.6),
+			CFrame = at(corner[1] * PLOT_HALF, towerHeight / 2, corner[2] * PLOT_HALF),
+			Color = style.Pillar,
+			Material = wallMaterial,
+		}, shell)
+		part({
+			Name = "TowerCap",
+			Size = Vector3.new(3, 0.8, 3),
+			CFrame = at(corner[1] * PLOT_HALF, towerHeight + 0.4, corner[2] * PLOT_HALF),
+			Color = style.Trim,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+		}, shell)
+	end
+	local gateHeight = WALL_HEIGHT + 4 + level
+	for _, x in { -GATE_HALF - 0.9, GATE_HALF + 0.9 } do
+		part({
+			Name = "GatePillar",
+			Size = Vector3.new(1.8, gateHeight, 1.8),
+			CFrame = at(x, gateHeight / 2, -PLOT_HALF),
+			Color = style.Pillar,
+			Material = wallMaterial,
+		}, shell)
+	end
+	part({
+		Name = "GateArch",
+		Size = Vector3.new(GATE_HALF * 2 + 3.6, 1.2, 1.4),
+		CFrame = at(0, gateHeight - 0.6, -PLOT_HALF),
+		Color = style.Trim,
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, shell)
+
+	-- border of the buildable land
+	local edge = Color3.new(1, 1, 1):Lerp(style.Trim, 0.5)
+	for _, strip in
+		{
+			{ (bounds.MinX + bounds.MaxX) / 2, bounds.MinZ, w, 0.3 },
+			{ (bounds.MinX + bounds.MaxX) / 2, bounds.MaxZ, w, 0.3 },
+			{ bounds.MinX, (bounds.MinZ + bounds.MaxZ) / 2, 0.3, d },
+			{ bounds.MaxX, (bounds.MinZ + bounds.MaxZ) / 2, 0.3, d },
+		}
+	do
+		part({
+			Name = "Border",
+			Size = Vector3.new(strip[3], 0.1, strip[4]),
+			CFrame = at(strip[1], FLOOR_Y + 0.02, strip[2]),
+			Color = edge,
+			Material = Enum.Material.Neon,
+			Transparency = 0.35,
+			CanCollide = false,
+			CanQuery = false,
+		}, shell)
+	end
+
+	-- aura: fancy houses sparkle
+	if style.Aura then
+		local auraPart = part({
+			Name = "Aura",
+			Size = Vector3.new(PLOT_HALF * 2, 1, PLOT_HALF * 2),
+			CFrame = at(0, WALL_HEIGHT + 3, 0),
+			Transparency = 1,
+			CanCollide = false,
+			CanQuery = false,
+			CanTouch = false,
+		}, shell)
+		local emitter = Instance.new("ParticleEmitter")
+		emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		emitter.Color = ColorSequence.new(style.Aura)
+		emitter.LightEmission = 1
+		emitter.Size = NumberSequence.new(0.45)
+		emitter.Lifetime = NumberRange.new(2, 4)
+		emitter.Rate = 4 + level * 3
+		emitter.Speed = NumberRange.new(0.5, 1.5)
+		emitter.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.3, 0.1),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		emitter.Parent = auraPart
+	end
 end
-Base.PlotLayout = plotLayout
 
 ---------------------------------------------------------------------------
--- shards: best ones go on the pedestals, the rest wait in storage
+-- pets on pedestals
 ---------------------------------------------------------------------------
-local function pedestalItems(data)
-	local list = {}
-	for _, item in data.Base.Items do
-		local def = Config.Decor[item.Id]
-		if def and def.Function == "Pedestal" then
-			table.insert(list, item)
-		end
-	end
-	table.sort(list, function(a, b)
-		return a.Uid < b.Uid
-	end)
-	return list
+local function arrange(data)
+	return Util.ArrangePets(Config, data)
 end
 
--- the pets standing on pedestals: the best earners (not being stolen)
-local function displayedPets(data)
-	local slots = #pedestalItems(data)
-	local list = {}
-	for _, pet in data.Pets do
-		if not pet.Away and Config.Pets[pet.Name] then
-			table.insert(list, pet)
-		end
-	end
-	table.sort(list, function(a, b)
-		local ia = Util.PetIncome(Config, a.Name, a.Variant)
-		local ib = Util.PetIncome(Config, b.Name, b.Variant)
-		if ia == ib then
-			return a.Id < b.Id
-		end
-		return ia > ib
-	end)
-	local shown = {}
-	for i = 1, math.min(slots, #list) do
-		shown[i] = list[i]
-	end
-	return shown
+-- pets on display pedestals (the ones thieves can try to take)
+function Base.DisplayedPets(data)
+	local _, display = arrange(data)
+	return display
 end
-Base.DisplayedPets = displayedPets
+
+function Base.VaultPets(data)
+	local vault = arrange(data)
+	return vault
+end
 
 -- coins per second of one pet for its owner (boosts included)
-function Base:PetRate(player: Player, data, pet): number
+function Base:PetRate(player: Player, data, pet, inVault: boolean?): number
 	local rate = Util.PetIncome(Config, pet.Name, pet.Variant) * Services.StatsService:CoinMultiplier(player, data)
 	if Services.MonetizationService:HasPass(player, "DoubleBase") then
 		rate *= 2
+	end
+	rate *= 1 + Util.SetBonus(Config, data.Base.Items)
+	if inVault then
+		rate *= SETTINGS.VaultIncome
 	end
 	return rate
 end
 
 function Base:IncomeRate(player: Player, data): number
 	local total = 0
-	for _, pet in displayedPets(data) do
-		total += self:PetRate(player, data, pet)
+	local vault, display = arrange(data)
+	for _, pet in vault do
+		total += self:PetRate(player, data, pet, true)
+	end
+	for _, pet in display do
+		total += self:PetRate(player, data, pet, false)
 	end
 	return total
 end
@@ -3882,7 +4948,7 @@ local function renderItem(plot, item)
 	if existing then
 		existing:Destroy()
 	end
-	local model = DecorModel.Build(Config, item.Id)
+	local model = DecorModel.Build(Config, item.Id, item.Paint)
 	model:PivotTo(itemCFrame(plot, item))
 	model:SetAttribute("Uid", item.Uid)
 	model:SetAttribute("DecorId", item.Id)
@@ -3912,38 +4978,52 @@ function Base:RenderDisplays(player: Player)
 		return
 	end
 	plot.Displays:ClearAllChildren()
-	local shown = displayedPets(data)
-	for slot, pedestal in pedestalItems(data) do
+	local vault, display = arrange(data)
+	local displayItems, vaultItems = Util.Pedestals(Config, data.Base.Items)
+	local function put(pedestal, pet, inVault: boolean)
 		local model = plot.ItemModels[pedestal.Uid]
 		local top = model and model:FindFirstChild("Top")
-		local pet = shown[slot]
-		if top and top:IsA("BasePart") and pet then
-			local info = Config.Pets[pet.Name]
-			local rarity = Config.Rarities[info.Rarity] or Config.Rarities.Common
-			local display = PetModel.Build(pet.Name, pet.Variant)
-			display.Name = "Pet_" .. pet.Id
-			display:PivotTo(CFrame.new(top.Position + Vector3.new(0, 1.6, 0)) * (top.CFrame - top.Position))
-			display:SetAttribute("Spin", true)
-			display:SetAttribute("PetId", pet.Id)
-			display.Parent = plot.Displays
-			local anchor = display.PrimaryPart :: BasePart
-			local label = billboard(anchor, 8, 2.4, 3.4, rarity.Color, 60)
-			local rate = Util.Format(self:PetRate(player, data, pet))
-			if pet.Variant then
-				World.SetText(label, "%s %s\n💰 %s/s", pet.Variant, pet.Name, rate)
-			else
-				World.SetText(label, "%s\n💰 %s/s", pet.Name, rate)
-			end
-			local petId = pet.Id
+		if not top or not top:IsA("BasePart") or not pet then
+			return
+		end
+		local info = Config.Pets[pet.Name]
+		local rarity = Config.Rarities[info.Rarity] or Config.Rarities.Common
+		local exclusive = info.Exclusive == true
+		local petModel = PetModel.Build(pet.Name, pet.Variant)
+		petModel.Name = "Pet_" .. pet.Id
+		petModel:PivotTo(CFrame.new(top.Position + Vector3.new(0, 1.6, 0)) * (top.CFrame - top.Position))
+		petModel:SetAttribute("Spin", true)
+		petModel:SetAttribute("PetId", pet.Id)
+		petModel:SetAttribute("Vault", inVault)
+		petModel.Parent = plot.Displays
+		local anchor = petModel.PrimaryPart :: BasePart
+		local _, size = petModel:GetBoundingBox()
+		local label = billboard(anchor, 8, 2.4, size.Y + 1.4, rarity.Color, 60)
+		local rate = Util.Format(self:PetRate(player, data, pet, inVault))
+		local icon = if inVault then "🔒" elseif exclusive then "💎" else "🌠"
+		local serial = if pet.Serial then " #" .. tostring(pet.Serial) else ""
+		if pet.Variant then
+			World.SetText(label, "%s %s %s%s\n💰 %s/s", icon, pet.Variant, pet.Name, serial, rate)
+		else
+			World.SetText(label, "%s %s%s\n💰 %s/s", icon, pet.Name, serial, rate)
+		end
+		local petId = pet.Id
+		if not inVault and not exclusive then
 			setPrompt(anchor, "Steal", pet.Name, "Thief", SETTINGS.StealHold, function(thief)
 				Base:TrySteal(thief, player, petId)
 			end)
-			setPrompt(anchor, "Sell", pet.Name, "Owner", 0.6, function(who)
-				if who == player then
-					Base:SellPet(player, petId)
-				end
-			end)
 		end
+		setPrompt(anchor, "Sell", pet.Name, "Owner", 0.6, function(who)
+			if who == player then
+				Base:SellPet(player, petId)
+			end
+		end)
+	end
+	for slot, pedestal in vaultItems do
+		put(pedestal, vault[slot], true)
+	end
+	for slot, pedestal in displayItems do
+		put(pedestal, display[slot], false)
 	end
 	self:RefreshLabels(player, true)
 end
@@ -3954,6 +5034,7 @@ function Base:Render(player: Player)
 	if not plot or not data then
 		return
 	end
+	applyStyle(plot, data)
 	for _, model in plot.ItemModels do
 		model:Destroy()
 	end
@@ -3966,6 +5047,99 @@ function Base:Render(player: Player)
 	self:RenderDisplays(player)
 end
 
+---------------------------------------------------------------------------
+-- protection
+---------------------------------------------------------------------------
+-- seconds of newbie shield left (0 = none)
+function Base:NewbieShield(player: Player, data): number
+	data = data or Data:Get(player)
+	if not data or data.Flags.NewbieOff then
+		return 0
+	end
+	return math.max(0, SETTINGS.NewbieShieldSeconds - (data.Stats.PlaySeconds or 0))
+end
+
+local function beingRobbed(data): boolean
+	for _, pet in data.Pets do
+		if pet.Away then
+			return true
+		end
+	end
+	return false
+end
+
+-- why this base can't be robbed right now (nil = it can)
+function Base:Protection(owner: Player): string?
+	local plot = plotOf[owner]
+	local data = Data:Get(owner)
+	if not plot or not data then
+		return "none"
+	end
+	local t = now()
+	if plot.LockedUntil > t then
+		return "locked"
+	end
+	if self:NewbieShield(owner, data) > 0 then
+		return "newbie"
+	end
+	if plot.ShieldUntil > t then
+		return "shield"
+	end
+	if beingRobbed(data) then
+		return "robbing"
+	end
+	return nil
+end
+
+function Base:IsLocked(owner: Player): boolean
+	local plot = plotOf[owner]
+	return plot ~= nil and plot.LockedUntil > now()
+end
+
+function Base:LockSeconds(player: Player, data): number
+	local bonus = math.min((data.Rebirths or 0) * SETTINGS.LockPerRebirth, SETTINGS.LockMaxBonus)
+	if hasVip(player) then
+		bonus += SETTINGS.LockVipBonus
+	end
+	return SETTINGS.LockSeconds + bonus
+end
+
+-- active revenge of `victim` against `target`?
+function Base:HasRevenge(victim: Player, target: Player): boolean
+	local entry = revenge[victim]
+	return entry ~= nil and entry.Target == target and entry.Until > now()
+end
+
+-- current bounty on a thief (coins), pruning old thefts
+function Base:Bounty(thief: Player): number
+	local log = thefts[thief]
+	if not log then
+		return 0
+	end
+	local t = now()
+	local kept, victims, value = {}, {}, 0
+	for _, entry in log do
+		if t - entry.Time <= SETTINGS.Bounty.WindowSeconds then
+			table.insert(kept, entry)
+			victims[entry.Victim] = true
+			value += entry.Value
+		end
+	end
+	thefts[thief] = if #kept > 0 then kept else nil
+	local distinct = 0
+	for _ in victims do
+		distinct += 1
+	end
+	return if distinct >= SETTINGS.Bounty.MinVictims then math.floor(value) else 0
+end
+
+local STATUS_TEXT = {
+	locked = "🔒 LOCKED",
+	newbie = "🛡️ NEWBIE SHIELD",
+	shield = "🛡️ THEFT SHIELD",
+	robbing = "🚨 BEING ROBBED!",
+}
+
 function Base:RefreshLabels(player: Player, force: boolean?)
 	local plot = plotOf[player]
 	local data = Data:Get(player)
@@ -3973,28 +5147,50 @@ function Base:RefreshLabels(player: Player, force: boolean?)
 		return
 	end
 	local rate = self:IncomeRate(player, data)
-	local stored = math.max(0, #data.Pets - #displayedPets(data))
-	local signText = Util.Format(rate) .. "|" .. data.Base.Likes .. "|" .. stored
+	local vault, display = arrange(data)
+	local stored = math.max(0, #data.Pets - #vault - #display)
+	local level = houseLevel(data)
+	local protection = self:Protection(player)
+	local status = STATUS_TEXT[protection or ""] or "🔓 OPEN"
+	local customName = houseNames[player]
+	local signText = table.concat({ Util.Format(rate), data.Base.Likes, level, status, customName or "" }, "|")
 	if force or signText ~= plot.LastLabel then
 		plot.LastLabel = signText
-		if stored > 0 then
+		local _, style = Util.HouseStyle(Config, data)
+		plot.Sign.TextColor3 = Color3.new(1, 1, 1):Lerp(style.Trim, 0.35)
+		if customName and customName ~= "" then
 			World.SetText(
 				plot.Sign,
-				"🏠 %s's BASE\n💰 %s/s  ❤️ %s  📦 %s",
-				player.DisplayName,
+				"🏠 %s\n💰 %s/s  ❤️ %s  ⭐ Lv.%s\n%s",
+				customName,
 				Util.Format(rate),
 				tostring(data.Base.Likes),
-				tostring(stored)
+				tostring(level),
+				status
 			)
 		else
 			World.SetText(
 				plot.Sign,
-				"🏠 %s's BASE\n💰 %s/s  ❤️ %s",
+				"🏠 %s's HOUSE\n💰 %s/s  ❤️ %s  ⭐ Lv.%s\n%s",
 				player.DisplayName,
 				Util.Format(rate),
-				tostring(data.Base.Likes)
+				tostring(data.Base.Likes),
+				tostring(level),
+				status
 			)
 		end
+		local nextLevel = SETTINGS.Levels[level + 1]
+		if nextLevel then
+			World.SetText(plot.ExpandLabel, "🏗️ EXPAND\nLv.%s 💰%s", tostring(level + 1), Util.Format(nextLevel.Cost))
+		else
+			World.SetText(plot.ExpandLabel, "🏰 MAX LEVEL")
+		end
+		local model = plot.Model
+		model:SetAttribute("HouseName", customName or "")
+		model:SetAttribute("OwnerName", player.DisplayName)
+		model:SetAttribute("HouseLevel", level)
+		model:SetAttribute("Likes", data.Base.Likes)
+		model:SetAttribute("Rate", math.floor(rate))
 	end
 	World.SetText(plot.BankLabel, "💰 %s\nSTEP TO COLLECT", Util.Format(math.floor(data.Base.Bank)))
 	local t = now()
@@ -4005,9 +5201,31 @@ function Base:RefreshLabels(player: Player, force: boolean?)
 	else
 		World.SetText(plot.LockLabel, "🔒 LOCK BASE")
 	end
+	-- shield bubble: red = locked (blocks the gate), blue = protected
+	if protection == "locked" then
+		plot.Shield.Color = Color3.fromRGB(255, 80, 90)
+		plot.Shield.Transparency = 0.3
+		plot.Shield.CanCollide = true -- the owner's client turns this off locally
+	elseif protection == "newbie" or protection == "shield" then
+		plot.Shield.Color = Color3.fromRGB(90, 190, 255)
+		plot.Shield.Transparency = 0.55
+		plot.Shield.CanCollide = false
+	else
+		plot.Shield.Transparency = 1
+		plot.Shield.CanCollide = false
+	end
+	plot.Model:SetAttribute("Protection", protection or "")
 	player:SetAttribute("BaseRate", rate)
 	player:SetAttribute("BaseBank", math.floor(data.Base.Bank))
 	player:SetAttribute("BaseStored", stored)
+	player:SetAttribute("BaseProtection", protection or "")
+	player:SetAttribute("NewbieShield", self:NewbieShield(player, data))
+	player:SetAttribute("ShieldUntil", plot.ShieldUntil)
+	player:SetAttribute("LockedUntil", plot.LockedUntil)
+	local bounty = self:Bounty(player)
+	if player:GetAttribute("Bounty") ~= bounty then
+		player:SetAttribute("Bounty", if bounty > 0 then bounty else nil)
+	end
 end
 
 local function clearPlot(plot)
@@ -4017,16 +5235,29 @@ local function clearPlot(plot)
 	end
 	plot.ItemModels = {}
 	plot.Displays:ClearAllChildren()
-	plot.Model:SetAttribute("OwnerId", 0)
-	plot.Model:SetAttribute("LockedUntil", 0)
+	plot.Shell:ClearAllChildren()
+	plot.StyleKey = ""
+	local model = plot.Model
+	model:SetAttribute("OwnerId", 0)
+	model:SetAttribute("LockedUntil", 0)
+	model:SetAttribute("ShieldUntil", 0)
+	model:SetAttribute("Protection", "")
+	model:SetAttribute("HouseName", "")
+	model:SetAttribute("OwnerName", "")
+	model:SetAttribute("Likes", 0)
+	model:SetAttribute("Rate", 0)
 	plot.LockedUntil = 0
 	plot.LockReadyAt = 0
+	plot.ShieldUntil = 0
 	plot.Shield.Transparency = 1
 	plot.Shield.CanCollide = false
 	plot.LastLabel = ""
-	World.SetText(plot.Sign, "🏠 FREE BASE")
+	plot.Floor.Color = Color3.fromRGB(90, 150, 80)
+	plot.Floor.Material = Enum.Material.Grass
+	World.SetText(plot.Sign, "🏠 FREE LAND")
 	World.SetText(plot.BankLabel, "")
 	World.SetText(plot.LockLabel, "")
+	World.SetText(plot.ExpandLabel, "")
 end
 
 ---------------------------------------------------------------------------
@@ -4040,7 +5271,7 @@ function Base:HasBase(player: Player): boolean
 	return plotOf[player] ~= nil
 end
 
--- is this position inside the player's own plot?
+-- is this position inside the player's own territory?
 function Base:InOwnPlot(player: Player, position: Vector3): boolean
 	local plot = plotOf[player]
 	if not plot then
@@ -4055,9 +5286,14 @@ function Base:HomeCFrame(player: Player): CFrame?
 	return plot and (plot.CFrame * CFrame.new(0, 3, -PLOT_HALF + 5))
 end
 
-function Base:IsLocked(owner: Player): boolean
+-- just outside the gate, looking in (for visitors)
+function Base:GateCFrame(owner: Player): CFrame?
 	local plot = plotOf[owner]
-	return plot ~= nil and plot.LockedUntil > now()
+	if not plot then
+		return nil
+	end
+	local spot = plot.CFrame * CFrame.new(0, 3, -PLOT_HALF - 8)
+	return CFrame.lookAt(spot.Position, (plot.CFrame * CFrame.new(0, 3, 0)).Position)
 end
 
 -- a pet is being carried away by a thief (or came back)
@@ -4090,6 +5326,14 @@ function Base:SellPet(player: Player, petId: number)
 	Services.PetService:Changed(player)
 end
 
+local PROTECTION_MESSAGES = {
+	locked = "🔒 This base is locked!",
+	newbie = "🛡️ This player is new - their base is protected for now.",
+	shield = "🛡️ This base was just robbed - it's protected for a few minutes.",
+	robbing = "Someone is already stealing from this base!",
+	none = "You can't steal here.",
+}
+
 function Base:TrySteal(thief: Player, owner: Player, petId: number)
 	if thief == owner or not owner.Parent then
 		return
@@ -4103,25 +5347,136 @@ function Base:TrySteal(thief: Player, owner: Player, petId: number)
 		Net:Notify(thief, "You need a base to steal pets!")
 		return
 	end
-	if self:IsLocked(owner) then
-		Net:Notify(thief, "🔒 This base is locked!")
+	local data = Data:Get(owner)
+	local thiefData = Data:Get(thief)
+	local pet = data and Services.PetService.FindPet(data, petId)
+	if not pet or pet.Away or not thiefData then
 		return
 	end
-	local data = Data:Get(owner)
-	local pet = data and Services.PetService.FindPet(data, petId)
-	if not pet or pet.Away then
+	local isRevenge = self:HasRevenge(thief, owner)
+	local protection = self:Protection(owner)
+	-- revenge ignores locks and shields (but still one theft at a time)
+	if protection and not (isRevenge and protection ~= "robbing" and protection ~= "none") then
+		Net:Notify(thief, PROTECTION_MESSAGES[protection] or PROTECTION_MESSAGES.none)
 		return
+	end
+	if Util.IsExclusive(Config, pet) then
+		Net:Notify(thief, "💎 Exclusive pets can't be stolen!")
+		return
+	end
+	local onDisplay = false
+	for _, shown in self.DisplayedPets(data) do
+		if shown.Id == petId then
+			onDisplay = true
+		end
+	end
+	if not onDisplay then
+		Net:Notify(thief, "🔒 Pets in a vault can't be stolen!")
+		return
+	end
+	-- fair play: big players can't farm tiny bases
+	if not isRevenge then
+		local thiefWorth = Util.PetWorth(Config, thiefData)
+		local victimWorth = Util.PetWorth(Config, data)
+		if thiefWorth >= SETTINGS.StealGapMinWorth and thiefWorth > victimWorth * SETTINGS.StealGap then
+			Net:Notify(thief, "This base is too small for you - pick on someone your size!")
+			return
+		end
 	end
 	self:SetAway(owner, petId, true)
-	local item = { Kind = "Pet", Name = pet.Name, Variant = pet.Variant }
-	if not shards:StartCarry(thief, item, { From = owner, PetId = petId }) then
+	local item = { Kind = "Pet", Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial }
+	if not shards:StartCarry(thief, item, { From = owner, PetId = petId, Revenge = isRevenge }) then
 		self:SetAway(owner, petId, false)
 		return
+	end
+	-- stealing ends your own newbie shield
+	if self:NewbieShield(thief, thiefData) > 0 then
+		thiefData.Flags.NewbieOff = true
+		Net:Notify(thief, "🛡️ You stole - your newbie shield is now off.", Color3.fromRGB(150, 200, 255))
 	end
 	local display = pet.Name
 	Net:Send(owner, "BaseAlarm", thief.DisplayName, display)
 	Net:Notify(owner, "🚨 %s is stealing your %s! Bonk them!", Color3.fromRGB(255, 80, 80), thief.DisplayName, display)
 	Net:Notify(thief, "🏃 You stole a %s! Run to your base!", Color3.fromRGB(255, 170, 80), display)
+	self:RefreshLabels(owner, true)
+end
+
+-- a stolen pet reached the thief's base (called by ShardService)
+function Base:StealDelivered(owner: Player, thief: Player, meta, pet)
+	local plot = plotOf[owner]
+	if plot then
+		plot.ShieldUntil = now() + SETTINGS.TheftShieldSeconds
+		plot.Model:SetAttribute("ShieldUntil", plot.ShieldUntil)
+	end
+	if meta and meta.Revenge then
+		revenge[thief] = nil
+		thief:SetAttribute("RevengeTarget", nil)
+		thief:SetAttribute("RevengeUntil", nil)
+		Net:Notify(thief, "🎯 Revenge complete!", Color3.fromRGB(255, 210, 90))
+	else
+		-- the victim may strike back
+		if owner.Parent then
+			revenge[owner] = { Target = thief, Until = now() + SETTINGS.RevengeSeconds }
+			owner:SetAttribute("RevengeTarget", thief.UserId)
+			owner:SetAttribute("RevengeUntil", now() + SETTINGS.RevengeSeconds)
+			Net:Send(owner, "Revenge", thief.UserId, thief.DisplayName, now() + SETTINGS.RevengeSeconds)
+			Net:Notify(
+				owner,
+				"🎯 REVENGE! For 5 minutes you can raid %s's base - locks can't stop you!",
+				Color3.fromRGB(255, 210, 90),
+				thief.DisplayName
+			)
+		end
+		-- serial thieves get a bounty
+		local before = self:Bounty(thief)
+		thefts[thief] = thefts[thief] or {}
+		local value = Util.PetIncome(Config, pet.Name, pet.Variant) * SETTINGS.Bounty.IncomeSeconds
+		table.insert(thefts[thief], { Victim = owner.UserId, Time = now(), Value = value })
+		local after = self:Bounty(thief)
+		if after > 0 then
+			thief:SetAttribute("Bounty", after)
+			if before == 0 then
+				Net:Announce(
+					"💰 BOUNTY! %s robbed too many houses - bonk them while they carry a pet to win 💰%s!",
+					Color3.fromRGB(255, 200, 60),
+					thief.DisplayName,
+					Util.Format(after)
+				)
+			end
+		end
+	end
+	if owner.Parent then
+		self:RefreshLabels(owner, true)
+	end
+end
+
+-- someone stopped a thief (bonk or trap): count it + pay the bounty
+function Base:ThiefCaught(hunter: Player, thief: Player)
+	if hunter == thief then
+		return
+	end
+	local data = Data:Get(hunter)
+	if not data then
+		return
+	end
+	data.Stats.ThievesCaught = (data.Stats.ThievesCaught or 0) + 1
+	local bounty = self:Bounty(thief)
+	if bounty > 0 then
+		thefts[thief] = nil
+		thief:SetAttribute("Bounty", nil)
+		data.Coins += bounty
+		data.Stats.LifetimeCoins += bounty
+		Services.Analytics:Economy(hunter, "Source", "Coins", bounty, data.Coins, "Gameplay", "Bounty")
+		Net:Send(hunter, "Sold", bounty)
+		Net:Announce(
+			"💰 %s caught %s and won the 💰%s bounty!",
+			Color3.fromRGB(255, 200, 60),
+			hunter.DisplayName,
+			thief.DisplayName,
+			Util.Format(bounty)
+		)
+	end
+	Data:MarkDirty(hunter)
 end
 
 function Base:Collect(player: Player)
@@ -4143,22 +5498,27 @@ function Base:Collect(player: Player)
 	self:RefreshLabels(player)
 end
 
+local function lockFor(plot, seconds: number)
+	plot.LockedUntil = now() + seconds
+	plot.LockReadyAt = plot.LockedUntil
+	plot.Model:SetAttribute("LockedUntil", plot.LockedUntil)
+end
+
 function Base:Lock(player: Player)
 	local plot = plotOf[player]
-	if not plot then
+	local data = Data:Get(player)
+	if not plot or not data then
 		return
 	end
 	local t = now()
 	if plot.LockedUntil > t or plot.LockReadyAt > t then
 		return
 	end
-	plot.LockedUntil = t + SETTINGS.LockSeconds
+	local seconds = self:LockSeconds(player, data)
+	lockFor(plot, seconds)
 	plot.LockReadyAt = plot.LockedUntil + SETTINGS.LockCooldown
-	plot.Model:SetAttribute("LockedUntil", plot.LockedUntil)
-	plot.Shield.Transparency = 0.3
-	plot.Shield.CanCollide = true -- the owner's client turns this off locally
-	Net:Notify(player, "🔒 Base locked for %ds!", Color3.fromRGB(255, 150, 150), SETTINGS.LockSeconds)
-	self:RefreshLabels(player)
+	Net:Notify(player, "🔒 Base locked for %ds!", Color3.fromRGB(255, 150, 150), seconds)
+	self:RefreshLabels(player, true)
 end
 
 ---------------------------------------------------------------------------
@@ -4177,10 +5537,15 @@ local function cleanTransform(x, z, r): (number?, number?, number?)
 	if type(x) ~= "number" or type(z) ~= "number" or type(r) ~= "number" then
 		return nil, nil, nil
 	end
-	if x ~= x or z ~= z then -- NaN
+	if x ~= x or z ~= z or r ~= r then -- NaN
 		return nil, nil, nil
 	end
 	return x, z, math.floor(r) % 4
+end
+
+local function isPedestal(id: string): boolean
+	local def = Config.Decor[id]
+	return def ~= nil and (def.Function == "Pedestal" or def.Function == "Vault")
 end
 
 -- returns ok, message
@@ -4194,7 +5559,7 @@ function Base:Place(player: Player, id, x, z, r): (boolean, string?)
 	end
 	x, z = DecorModel.Snap(Config, id, x, z, r)
 	local items = data.Base.Items
-	local ok, reason = DecorModel.Validate(Config, items, id, x, z, r, nil)
+	local ok, reason = DecorModel.Validate(Config, items, id, x, z, r, nil, validateOpts(player, data))
 	if not ok then
 		return false, reason
 	end
@@ -4212,11 +5577,12 @@ function Base:Place(player: Player, id, x, z, r): (boolean, string?)
 	data.Base.NextUid += 1
 	table.insert(items, item)
 	renderItem(plot, item)
-	if def.Function == "Pedestal" then
+	if isPedestal(id) then
 		self:RenderDisplays(player)
 	end
 	Services.ProgressionService:AddQuest(player, "Decorate", 1)
 	Data:MarkDirty(player)
+	self:RefreshLabels(player, true)
 	return true, nil
 end
 
@@ -4229,13 +5595,13 @@ function Base:Move(player: Player, uid, x, z, r): (boolean, string?)
 		return false, "Can't move that"
 	end
 	x, z = DecorModel.Snap(Config, item.Id, x, z, r)
-	local ok, reason = DecorModel.Validate(Config, data.Base.Items, item.Id, x, z, r, item.Uid)
+	local ok, reason = DecorModel.Validate(Config, data.Base.Items, item.Id, x, z, r, item.Uid, validateOpts(player, data))
 	if not ok then
 		return false, reason
 	end
 	item.X, item.Z, item.R = x, z, r
 	renderItem(plot, item)
-	if Config.Decor[item.Id].Function == "Pedestal" then
+	if isPedestal(item.Id) then
 		self:RenderDisplays(player)
 	end
 	Data:MarkDirty(player)
@@ -4253,7 +5619,7 @@ function Base:Remove(player: Player, uid): (boolean, string?)
 		return false, "Can't remove that"
 	end
 	local def = Config.Decor[item.Id]
-	if def and def.Function == "Pedestal" and #pedestalItems(data) <= 1 then
+	if def and def.Function == "Pedestal" and DecorModel.Count(data.Base.Items, "Pedestal") <= 1 then
 		return false, "Keep at least one pedestal!"
 	end
 	table.remove(data.Base.Items, index)
@@ -4268,14 +5634,170 @@ function Base:Remove(player: Player, uid): (boolean, string?)
 	if model then
 		model:Destroy()
 	end
-	if def and def.Function == "Pedestal" then
+	if isPedestal(item.Id) then
+		self:RenderDisplays(player)
+	end
+	Data:MarkDirty(player)
+	self:RefreshLabels(player, true)
+	return true, nil
+end
+
+-- 🎨 paint: 0 = original colours, 1..#Config.Paint = palette colour (free)
+function Base:Paint(player: Player, uid, color): (boolean, string?)
+	local data = Data:Get(player)
+	local plot = plotOf[player]
+	local item = data and type(uid) == "number" and findItem(data, uid)
+	if not item or not plot or type(color) ~= "number" then
+		return false, "Can't paint that"
+	end
+	color = math.floor(color)
+	if color < 0 or color > #Config.Paint or not DecorModel.CanPaint(item.Id) then
+		return false, "Can't paint that"
+	end
+	item.Paint = if color == 0 then nil else color
+	renderItem(plot, item)
+	if isPedestal(item.Id) then
 		self:RenderDisplays(player)
 	end
 	Data:MarkDirty(player)
 	return true, nil
 end
 
--- traps: freeze intruders; a stolen shard from this base goes straight home
+---------------------------------------------------------------------------
+-- house: level, name, skin
+---------------------------------------------------------------------------
+function Base:Upgrade(player: Player): (boolean, string?)
+	local data = Data:Get(player)
+	local plot = plotOf[player]
+	if not data or not plot then
+		return false, "You need a base first!"
+	end
+	local level = houseLevel(data)
+	local nextDef = SETTINGS.Levels[level + 1]
+	if not nextDef then
+		return false, "Your house is already max level!"
+	end
+	if data.Coins < nextDef.Cost then
+		return false, "Not enough coins!"
+	end
+	data.Coins -= nextDef.Cost
+	data.Base.Level = level + 1
+	Services.Analytics:Economy(player, "Sink", "Coins", nextDef.Cost, data.Coins, "Upgrade", "House" .. (level + 1))
+	Services.Analytics:Custom(player, "HouseLevel", level + 1)
+	applyStyle(plot, data)
+	self:RefreshLabels(player, true)
+	Net:Notify(player, "🏗️ Your house grew into a %s!", Color3.fromRGB(255, 220, 120), nextDef.Name)
+	Net:Send(player, "HouseUpgraded", level + 1)
+	if level + 1 >= 4 then
+		Net:Announce("🏰 %s upgraded their house to a %s!", Color3.fromRGB(210, 150, 255), player.DisplayName, nextDef.Name)
+	end
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+local function filterName(player: Player, text: string): string?
+	local ok, result = pcall(function()
+		local filtered = TextService:FilterStringAsync(text, player.UserId)
+		return filtered:GetNonChatStringForBroadcastAsync()
+	end)
+	if ok and type(result) == "string" then
+		return result
+	end
+	return nil
+end
+
+function Base:SetName(player: Player, text): (boolean, string?)
+	local data = Data:Get(player)
+	if not data or type(text) ~= "string" then
+		return false, "Invalid name"
+	end
+	text = string.gsub(text, "[%c]", "")
+	text = string.match(text, "^%s*(.-)%s*$") or ""
+	local length = utf8.len(text)
+	if not length or length > SETTINGS.NameMax then
+		return false, "That name is too long!"
+	end
+	if length == 0 then
+		data.Base.Name = ""
+		houseNames[player] = nil
+		self:RefreshLabels(player, true)
+		Data:MarkDirty(player)
+		return true, nil
+	end
+	local filtered = filterName(player, text)
+	if not filtered then
+		return false, "Couldn't check that name - try again later."
+	end
+	data.Base.Name = text -- the raw text is re-filtered every time it's shown again
+	houseNames[player] = filtered
+	self:RefreshLabels(player, true)
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+local function skinDef(id)
+	for _, def in Config.HouseSkins do
+		if def.Id == id then
+			return def
+		end
+	end
+	return nil
+end
+
+function Base:GrantSkin(player: Player, id: string)
+	local data = Data:Get(player)
+	if not data or not skinDef(id) then
+		return
+	end
+	data.Base.Skins[id] = true
+	data.Base.Skin = id
+	local plot = plotOf[player]
+	if plot then
+		applyStyle(plot, data)
+		self:RefreshLabels(player, true)
+	end
+	Net:Notify(player, "🎨 New house skin: %s!", Color3.fromRGB(255, 200, 120), skinDef(id).Name)
+	Data:MarkDirty(player)
+end
+
+function Base:SetSkin(player: Player, id): (boolean, string?)
+	local data = Data:Get(player)
+	local def = type(id) == "string" and skinDef(id)
+	if not data or not def then
+		return false, "Unknown skin"
+	end
+	local base = data.Base
+	if def.Id ~= "Auto" and not base.Skins[def.Id] then
+		if def.Pass then
+			if not Services.MonetizationService:HasPass(player, def.Pass) then
+				return false, "VIP only! 👑"
+			end
+		elseif def.Level then
+			if houseLevel(data) < def.Level then
+				return false, Net:L(player, "Reach house level %d first!", def.Level)
+			end
+		elseif def.Gems then
+			if data.Gems < def.Gems then
+				return false, "Not enough gems!"
+			end
+			data.Gems -= def.Gems
+			base.Skins[def.Id] = true
+			Services.Analytics:Economy(player, "Sink", "Gems", def.Gems, data.Gems, "Cosmetic", "Skin" .. def.Id)
+		elseif def.Product then
+			return false, "Buy this skin in the store!"
+		end
+	end
+	base.Skin = def.Id
+	local plot = plotOf[player]
+	if plot then
+		applyStyle(plot, data)
+		self:RefreshLabels(player, true)
+	end
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+-- traps: freeze intruders; a stolen pet from this base goes straight home
 onTrap = function(plot, model: Model, player: Player)
 	local owner = plot.Owner
 	if not owner or owner == player then
@@ -4294,7 +5816,8 @@ onTrap = function(plot, model: Model, player: Player)
 	Net:Send(player, "Stunned", SETTINGS.TrapStun)
 	Net:Notify(player, "⚡ You stepped on a trap!", Color3.fromRGB(255, 230, 80))
 	if recovered then
-		Net:Notify(owner, "⚡ Your trap caught %s - shard saved!", Color3.fromRGB(255, 230, 80), player.DisplayName)
+		Net:Notify(owner, "⚡ Your trap caught %s - pet saved!", Color3.fromRGB(255, 230, 80), player.DisplayName)
+		Base:ThiefCaught(owner, player)
 	else
 		Net:Notify(owner, "⚡ Your trap stunned %s!", Color3.fromRGB(255, 230, 80), player.DisplayName)
 	end
@@ -4336,9 +5859,23 @@ tryLike = function(visitor: Player, plotIndex: number)
 		base.WeeklyLikes = 0
 	end
 	base.WeeklyLikes += 1
+	-- a few gems for the owner (capped per day): decorating pays off
+	if base.LikeGemsDay ~= today then
+		base.LikeGemsDay = today
+		base.LikeGemsToday = 0
+	end
+	local gems = math.min(SETTINGS.LikeGems, SETTINGS.LikeGemsDaily - base.LikeGemsToday)
+	if gems > 0 then
+		base.LikeGemsToday += gems
+		data.Gems += gems
+	end
 	Services.ProgressionService:AddPoints(owner, SETTINGS.LikePoints)
 	Services.ProgressionService:AddQuest(visitor, "Like", 1)
-	Net:Notify(owner, "❤️ %s liked your base!", Color3.fromRGB(255, 120, 160), visitor.DisplayName)
+	if gems > 0 then
+		Net:Notify(owner, "❤️ %s liked your house! +💎%d", Color3.fromRGB(255, 120, 160), visitor.DisplayName, gems)
+	else
+		Net:Notify(owner, "❤️ %s liked your base!", Color3.fromRGB(255, 120, 160), visitor.DisplayName)
+	end
 	Net:Notify(visitor, "❤️ You liked %s's base!", Color3.fromRGB(255, 120, 160), owner.DisplayName)
 	Net:Send(owner, "BaseLiked", visitor.DisplayName)
 	Data:MarkDirty(owner)
@@ -4348,27 +5885,52 @@ end
 ---------------------------------------------------------------------------
 -- plot assignment
 ---------------------------------------------------------------------------
--- first visit (or a save from before decorating existed): starter layout
+local function addItem(base, id: string, x: number, z: number, r: number, level: number): boolean
+	x, z = DecorModel.Snap(Config, id, x, z, r)
+	if DecorModel.Validate(Config, base.Items, id, x, z, r, nil, { Level = level, Vaults = 99 }) then
+		table.insert(base.Items, { Uid = base.NextUid, Id = id, X = x, Z = z, R = r, Paid = 0, Cur = "Coins" })
+		base.NextUid += 1
+		return true
+	end
+	return false
+end
+
+-- first visit: starter layout. Older saves move into the new territories.
 local function seed(data)
 	local base = data.Base
-	if base.Seeded then
+	if not base.Seeded then
+		base.Seeded = true
+		base.LayoutV = 2
+		for _, entry in Config.StarterBase do
+			addItem(base, entry.Id, entry.X, entry.Z, entry.R, 1)
+		end
+		-- pedestals bought before decorating existed are kept
+		local extra = math.max(0, (base.Pedestals or 0) - SETTINGS.StartPedestals)
+		for i = 1, extra do
+			addItem(base, "Pedestal", -12 + ((i - 1) % 5) * 6, -6 - math.floor((i - 1) / 5) * 6, 0, 1)
+		end
 		return
 	end
-	base.Seeded = true
-	local function add(id, x, z, r)
-		x, z = DecorModel.Snap(Config, id, x, z, r)
-		if DecorModel.Validate(Config, base.Items, id, x, z, r, nil) then
-			table.insert(base.Items, { Uid = base.NextUid, Id = id, X = x, Z = z, R = r, Paid = 0, Cur = "Coins" })
-			base.NextUid += 1
+	if (base.LayoutV or 0) < 2 then
+		-- saves from the 44x44 bases: their layout fits house level 2
+		base.LayoutV = 2
+		base.Level = math.max(houseLevel(data), 2)
+		if DecorModel.Count(base.Items, "Vault") == 0 then
+			for _, spot in { { 0, 14 }, { -10, 14 }, { 10, 14 }, { 0, -16 }, { -16, -16 }, { 16, -16 } } do
+				if addItem(base, "Vault", spot[1], spot[2], 0, base.Level) then
+					break
+				end
+			end
 		end
 	end
-	for _, entry in Config.StarterBase do
-		add(entry.Id, entry.X, entry.Z, entry.R)
-	end
-	-- pedestals bought before decorating existed are kept
-	local extra = math.max(0, (base.Pedestals or 0) - SETTINGS.StartPedestals)
-	for i = 1, extra do
-		add("Pedestal", -12 + ((i - 1) % 5) * 6, 9 + math.floor((i - 1) / 5) * 6, 0)
+end
+
+local function sendHome(player: Player)
+	local home = Base:HomeCFrame(player)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if home and root and not Services.ShardService:IsCarrying(player) then
+		character:PivotTo(home)
 	end
 end
 
@@ -4394,6 +5956,8 @@ local function assign(player: Player, data)
 	plotOf[player] = plot
 	plot.Model:SetAttribute("OwnerId", player.UserId)
 	player:SetAttribute("BaseIndex", plot.Index)
+	-- nobody can rob you the moment you arrive
+	lockFor(plot, SETTINGS.JoinLockSeconds)
 
 	-- offline earnings (lower rate, capped)
 	local base = data.Base
@@ -4411,11 +5975,37 @@ local function assign(player: Player, data)
 	end
 	base.LastOnline = os.time()
 	Base:Render(player)
+	-- your custom house name (filtered again every session)
+	if type(base.Name) == "string" and base.Name ~= "" then
+		task.spawn(function()
+			local filtered = filterName(player, base.Name)
+			if filtered and plotOf[player] == plot then
+				houseNames[player] = filtered
+				Base:RefreshLabels(player, true)
+			end
+		end)
+	end
+	-- returning players start at home (like Adopt Me / Steal a Brainrot)
+	if data.Tutorial.Done then
+		task.delay(1.5, function()
+			if plotOf[player] == plot and player.Parent then
+				sendHome(player)
+			end
+		end)
+	end
 end
 
 local function release(player: Player)
 	local plot = plotOf[player]
 	plotOf[player] = nil
+	houseNames[player] = nil
+	revenge[player] = nil
+	thefts[player] = nil
+	for victim, entry in revenge do
+		if entry.Target == player then
+			revenge[victim] = nil
+		end
+	end
 	local index = table.find(waiting, player)
 	if index then
 		table.remove(waiting, index)
@@ -4443,7 +6033,7 @@ function Base:Init(services)
 end
 
 function Base:Start()
-	for index, spot in plotLayout() do
+	for index, spot in Util.PlotLayout(Config) do
 		local plot = buildPlot(index, spot.Center, spot.Facing)
 		plots[index] = plot
 		clearPlot(plot)
@@ -4459,6 +6049,14 @@ function Base:Start()
 				Base:Lock(player)
 			end
 		end)
+		setPrompt(plot.ExpandBoard, "Expand", "House", "Owner", 0.4, function(player)
+			if plot.Owner == player then
+				local ok, message = Base:Upgrade(player)
+				if not ok and message then
+					Net:Notify(player, message, Color3.fromRGB(255, 120, 120))
+				end
+			end
+		end, 12)
 	end
 
 	Data:OnLoaded(function(player, data)
@@ -4487,6 +6085,20 @@ function Base:Start()
 			end
 		end
 	end)
+	-- respawning puts you back home (only real players have characters that respawn)
+	local function onPlayer(player: Player)
+		player.CharacterAdded:Connect(function()
+			local data = Data:Get(player)
+			if data and data.Tutorial.Done and plotOf[player] then
+				task.wait(0.5)
+				sendHome(player)
+			end
+		end)
+	end
+	Players.PlayerAdded:Connect(onPlayer)
+	for _, player in Players:GetPlayers() do
+		onPlayer(player)
+	end
 
 	-- income tick
 	task.spawn(function()
@@ -4497,15 +6109,19 @@ function Base:Start()
 				if data and player.Parent then
 					data.Base.Bank += self:IncomeRate(player, data)
 					data.Base.LastOnline = os.time()
-					local ok, err = pcall(self.RefreshLabels, self, player)
-					if not ok then
-						warn("[Base] label refresh failed: " .. tostring(err))
-					end
 					if plot.LockedUntil > 0 and plot.LockedUntil <= now() then
 						plot.LockedUntil = 0
 						plot.Model:SetAttribute("LockedUntil", 0)
-						plot.Shield.Transparency = 1
-						plot.Shield.CanCollide = false
+					end
+					local entry = revenge[player]
+					if entry and entry.Until <= now() then
+						revenge[player] = nil
+						player:SetAttribute("RevengeTarget", nil)
+						player:SetAttribute("RevengeUntil", nil)
+					end
+					local ok, err = pcall(self.RefreshLabels, self, player)
+					if not ok then
+						warn("[Base] label refresh failed: " .. tostring(err))
 					end
 				end
 			end
@@ -4517,11 +6133,29 @@ function Base:Start()
 			Net:Notify(player, "Run! You can't teleport while carrying a shard.")
 			return
 		end
-		local home = self:HomeCFrame(player)
+		sendHome(player)
+	end)
+
+	-- visit someone's house (you arrive outside their gate)
+	Net:On("VisitBase", 1, function(player, userId)
+		local target = type(userId) == "number" and Players:GetPlayerByUserId(userId)
+		if not target or target == player then
+			return
+		end
+		if Services.ShardService:IsCarrying(player) then
+			Net:Notify(player, "Run! You can't teleport while carrying a shard.")
+			return
+		end
+		local gate = self:GateCFrame(target)
 		local character = player.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart
-		if home and root then
-			character:PivotTo(home)
+		if gate and character and character:FindFirstChild("HumanoidRootPart") then
+			character:PivotTo(gate)
+			Net:Notify(
+				player,
+				"🏘️ Welcome to %s's house! Tap ❤️ if you like it.",
+				Color3.fromRGB(255, 160, 200),
+				target.DisplayName
+			)
 		end
 	end)
 
@@ -4537,6 +6171,28 @@ function Base:Start()
 	end)
 	Net:OnRequest("BaseRemove", 0.15, function(player, uid)
 		return reply(player, self:Remove(player, uid))
+	end)
+	Net:OnRequest("BasePaint", 0.1, function(player, uid, color)
+		return reply(player, self:Paint(player, uid, color))
+	end)
+	Net:OnRequest("HouseUpgrade", 0.5, function(player)
+		return reply(player, self:Upgrade(player))
+	end)
+	Net:OnRequest("HouseName", 5, function(player, text)
+		return reply(player, self:SetName(player, text))
+	end)
+	Net:OnRequest("HouseSkin", 0.5, function(player, id)
+		return reply(player, self:SetSkin(player, id))
+	end)
+	-- choose which pets may go into the vault ("show off" keeps a pet on display)
+	Net:On("PetShow", 0.15, function(player, petId, show)
+		local data = Data:Get(player)
+		local pet = data and type(petId) == "number" and Services.PetService.FindPet(data, petId)
+		if not pet then
+			return
+		end
+		pet.Show = if show == true then true else nil
+		Services.PetService:Changed(player)
 	end)
 end
 
@@ -4658,6 +6314,7 @@ return Boosts
 	overhead tag (weekly rank, VIP / Club / leaderboard titles) that shows off
 	status to everyone - a key driver of competition and pass sales.
 ]]
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -4665,9 +6322,12 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Util = require(Shared.Util)
 
+local Net = require(script.Parent.Net)
+
 local CharacterService = {}
 local Services
 local Data
+local unlockedTitles = {} -- [player] = number of titles unlocked (for "new title!" toasts)
 
 local function buildPickaxe(tier: number): Tool
 	local info = Config.Pickaxes[tier] or Config.Pickaxes[1]
@@ -4818,6 +6478,7 @@ function CharacterService:SpeedPad(player: Player)
 	end)
 end
 
+-- overhead tag: title, name (gold for VIP), level/rank/rebirths, bounty
 function CharacterService:RefreshOverhead(player: Player)
 	local character = player.Character
 	local head = character and character:FindFirstChild("Head")
@@ -4829,8 +6490,8 @@ function CharacterService:RefreshOverhead(player: Player)
 	if not gui then
 		gui = Instance.new("BillboardGui")
 		gui.Name = "Overhead"
-		gui.Size = UDim2.new(6, 0, 1.5, 0) -- studs: small up close, readable nearby
-		gui.StudsOffset = Vector3.new(0, 2.8, 0)
+		gui.Size = UDim2.new(7, 0, 2.6, 0) -- studs: small up close, readable nearby
+		gui.StudsOffset = Vector3.new(0, 3.4, 0)
 		gui.MaxDistance = 90
 		gui.LightInfluence = 0
 
@@ -4841,12 +6502,12 @@ function CharacterService:RefreshOverhead(player: Player)
 		layout.SortOrder = Enum.SortOrder.LayoutOrder
 		layout.Parent = gui
 
-		for i, name in { "Tags", "Rank" } do
+		for i, name in { "Bounty", "Title", "Tags", "Name", "Rank" } do
 			local label = Instance.new("TextLabel")
 			label.Name = name
 			label.LayoutOrder = i
 			label.BackgroundTransparency = 1
-			label.Size = UDim2.new(1, 0, if name == "Rank" then 0.55 else 0.45, 0)
+			label.Size = UDim2.new(1, 0, if name == "Name" then 0.26 else 0.18, 0)
 			label.Font = Enum.Font.FredokaOne
 			label.TextScaled = true
 			label.RichText = true
@@ -4857,7 +6518,14 @@ function CharacterService:RefreshOverhead(player: Player)
 			label.Parent = gui
 		end
 		gui.Parent = head
+		-- our tag shows the name (so VIPs can have a gold one)
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		end
 	end
+	local monetization = Services.MonetizationService
+	local vip = monetization:HasPass(player, "VIP")
 
 	local rank = Util.RankFor(Config, data.Weekly.Points)
 	local rankLabel = gui:FindFirstChild("Rank") :: TextLabel
@@ -4866,20 +6534,46 @@ function CharacterService:RefreshOverhead(player: Player)
 		else string.format("Lv.%d %s", data.Level, rank.Icon or "")
 	rankLabel.TextColor3 = rank.Color
 
-	local tags = {}
-	local title = player:GetAttribute("Title")
-	if type(title) == "string" and title ~= "" then
-		table.insert(tags, "<font color='#FFD84A'>" .. title .. "</font>")
+	local nameLabel = gui:FindFirstChild("Name") :: TextLabel
+	nameLabel.Text = (if vip then "👑 " else "") .. player.DisplayName
+	nameLabel.TextColor3 = if vip then Color3.fromRGB(255, 210, 70) else Color3.new(1, 1, 1)
+
+	-- earned title (each viewer reads it in their own language, see WorldFX)
+	local title = Util.CurrentTitle(Config, data, function(key)
+		return monetization:HasPass(player, key)
+	end)
+	local titleLabel = gui:FindFirstChild("Title") :: TextLabel
+	titleLabel.Visible = title ~= nil and title.Id ~= "Newcomer"
+	if title then
+		titleLabel.Text = title.Name
+		titleLabel.TextColor3 = title.Color
+		titleLabel:SetAttribute("LangFmt", "%s")
+		titleLabel:SetAttribute("LangArgs", HttpService:JSONEncode({ title.Name }))
 	end
-	if Services.MonetizationService:HasPass(player, "VIP") then
+	-- leaderboard place + VIP / CLUB tags
+	local tags = {}
+	local place = player:GetAttribute("Title")
+	if type(place) == "string" and place ~= "" then
+		table.insert(tags, "<font color='#FFD84A'>" .. place .. "</font>")
+	end
+	if vip then
 		table.insert(tags, "<font color='#FFC93C'>[VIP]</font>")
 	end
-	if Services.MonetizationService:IsSubscribed(player) then
+	if monetization:IsSubscribed(player) then
 		table.insert(tags, "<font color='#5CF2FF'>[CLUB]</font>")
 	end
 	local tagLabel = gui:FindFirstChild("Tags") :: TextLabel
 	tagLabel.Text = table.concat(tags, " ")
 	tagLabel.Visible = #tags > 0
+	player:SetAttribute("TitleName", if title then title.Name else "")
+
+	local bountyLabel = gui:FindFirstChild("Bounty") :: TextLabel
+	local bounty = player:GetAttribute("Bounty")
+	bountyLabel.Visible = type(bounty) == "number" and bounty > 0
+	if bountyLabel.Visible then
+		bountyLabel.Text = "💰 BOUNTY " .. Util.Format(bounty)
+		bountyLabel.TextColor3 = Color3.fromRGB(255, 90, 70)
+	end
 end
 
 local function onCharacter(player: Player, character: Model)
@@ -4906,9 +6600,11 @@ local function onPlayer(player: Player)
 	if player.Character then
 		task.spawn(onCharacter, player, player.Character)
 	end
-	player:GetAttributeChangedSignal("Title"):Connect(function()
-		CharacterService:RefreshOverhead(player)
-	end)
+	for _, attribute in { "Title", "Bounty" } do
+		player:GetAttributeChangedSignal(attribute):Connect(function()
+			CharacterService:RefreshOverhead(player)
+		end)
+	end
 end
 
 function CharacterService:Init(services)
@@ -4924,10 +6620,41 @@ function CharacterService:Start()
 	Players.PlayerRemoving:Connect(function(player)
 		padUntil[player] = nil
 		stunnedUntil[player] = nil
+		unlockedTitles[player] = nil
+	end)
+
+	-- new titles: tell the player + update the tag
+	task.spawn(function()
+		while true do
+			task.wait(15)
+			for _, player in Data:LoadedPlayers() do
+				local data = Data:Get(player)
+				if data then
+					local hasPass = function(key)
+						return Services.MonetizationService:HasPass(player, key)
+					end
+					local count, newest = 0, nil
+					for _, title in Config.Titles do
+						if Util.TitleUnlocked(Config, title, data, hasPass) then
+							count += 1
+							newest = title
+						end
+					end
+					local before = unlockedTitles[player]
+					unlockedTitles[player] = count
+					if before and count > before and newest then
+						Net:Notify(player, "🏅 New title unlocked: %s! (👑 Titles)", newest.Color, newest.Name)
+						self:RefreshOverhead(player)
+					elseif player:GetAttribute("TitleName") ~= Util.CurrentTitle(Config, data, hasPass).Name then
+						self:RefreshOverhead(player)
+					end
+				end
+			end
+		end
 	end)
 
 	-- dash pads
-	local net = require(script.Parent.Net)
+	local net = Net
 	for _, pad in Services.WorldService.SpeedPads do
 		pad.Touched:Connect(function(hit)
 			local model = hit:FindFirstAncestorOfClass("Model")
@@ -5004,10 +6731,18 @@ local TEMPLATE = {
 		WeeklyLikes = 0,
 		LikeWeek = 0,
 		LikedBy = {}, -- ["userId"] = day number
+		Level = 1, -- house level (land size, vaults, wall style)
+		LayoutV = 0, -- 2 = territory layout (older saves get migrated)
+		Name = "", -- custom house name (raw text, filtered whenever shown)
+		Skin = "Auto",
+		Skins = {}, -- [skinId] = true
+		LikeGemsDay = 0,
+		LikeGemsToday = 0,
 	},
 	SpeedTier = 1,
 	Shop = { Slot = 0, Bought = {} }, -- egg restock purchases (per 5-min restock)
-	Pets = {}, -- { { Id = 1, Name = "Bunny", Variant = "Golden"? }, ... }
+	-- { { Id = 1, Name = "Bunny", Variant = "Golden"?, Serial = 12?, Show = true? }, ... }
+	Pets = {},
 	Equipped = {}, -- { petId, ... }
 	NextPetUid = 1,
 	PetIndex = {}, -- [petName] = true
@@ -5026,12 +6761,15 @@ local TEMPLATE = {
 		BestCombo = 0,
 		ShardsDelivered = 0,
 		ShardsStolen = 0,
+		ThievesCaught = 0,
+		HugesFound = 0,
 		Fevers = 0,
 	},
 	Daily = { Day = 0, Quests = {}, Streak = 0, LastClaimDay = 0, VipChestDay = 0, ClubDay = 0 },
 	Season = { Id = 0, XP = 0, Premium = false, ClaimedFree = {}, ClaimedPremium = {} },
 	Weekly = { Week = 0, Points = 0 },
-	Flags = { StarterPack = false, GroupReward = false, HowToSeen = false },
+	Flags = { StarterPack = false, GroupReward = false, HowToSeen = false, NewbieOff = false },
+	Title = "", -- chosen title id ("" = best unlocked)
 	Receipts = {},
 	FirstJoin = 0,
 	LastAdTime = 0,
@@ -5980,6 +7718,148 @@ local function updateTitles()
 	end
 end
 
+---------------------------------------------------------------------------
+-- hall of fame: avatar statues of the all-time top players in the hub
+---------------------------------------------------------------------------
+local statueShown = {} -- [rank] = userId
+
+local function statueFolder(): Folder?
+	local map = workspace:FindFirstChild("Map")
+	if not map then
+		return nil
+	end
+	local folder = map:FindFirstChild("Statues")
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = "Statues"
+		folder.Parent = map
+	end
+	return folder :: Folder
+end
+
+local function plainStatue(): Model
+	-- fallback when the avatar can't be loaded: a golden figure
+	local model = Instance.new("Model")
+	local gold = Color3.fromRGB(255, 205, 60)
+	local function block(name, size, y)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = size
+		p.CFrame = CFrame.new(0, y, 0)
+		p.Color = gold
+		p.Material = Enum.Material.Foil
+		p.Parent = model
+		return p
+	end
+	block("Legs", Vector3.new(2, 2, 1), 1)
+	local torso = block("Torso", Vector3.new(2, 2, 1), 3)
+	block("Head", Vector3.new(1.2, 1.2, 1.2), 4.6)
+	model.PrimaryPart = torso
+	return model
+end
+
+local function placeStatue(rank: number, entry)
+	local folder = statueFolder()
+	local spots = Services.WorldService.StatueSpots
+	local spot = spots and spots[rank]
+	if not folder or not spot then
+		return
+	end
+	local old = folder:FindFirstChild("Statue" .. rank)
+	if old then
+		old:Destroy()
+	end
+	if not entry then
+		return
+	end
+	local model = nil
+	local ok = pcall(function()
+		model = Players:CreateHumanoidModelFromUserId(entry.UserId)
+	end)
+	if not ok or not model then
+		model = plainStatue()
+	end
+	model.Name = "Statue" .. rank
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+			d.CanCollide = false
+			d.CanTouch = false
+		elseif d:IsA("BaseScript") then
+			d:Destroy()
+		end
+	end
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	end
+	pcall(function()
+		model:ScaleTo(Config.Statues.Scale)
+	end)
+	local _, size = model:GetBoundingBox()
+	model:PivotTo(spot * CFrame.new(0, size.Y / 2, 0))
+	local anchor = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+	if anchor then
+		local gui = Instance.new("BillboardGui")
+		gui.Name = "Fame"
+		gui.Size = UDim2.new(10, 0, 3, 0)
+		gui.StudsOffsetWorldSpace = Vector3.new(0, size.Y / 2 + 2.4, 0)
+		gui.LightInfluence = 0
+		gui.MaxDistance = 140
+		local label = Instance.new("TextLabel")
+		label.Name = "Text"
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(1, 1)
+		label.Font = Enum.Font.FredokaOne
+		label.TextScaled = true
+		label.TextColor3 = ({ Color3.fromRGB(255, 215, 70), Color3.fromRGB(220, 225, 235), Color3.fromRGB(230, 150, 90) })[rank]
+			or Color3.new(1, 1, 1)
+		label.Text = ({ "👑", "🥈", "🥉" })[rank]
+			.. " #"
+			.. rank
+			.. " "
+			.. nameFor(entry.UserId)
+			.. "\n💰 "
+			.. Util.Format(entry.Value)
+		local stroke = Instance.new("UIStroke")
+		stroke.Thickness = 2.5
+		stroke.Parent = label
+		label.Parent = gui
+		gui.Parent = anchor
+	end
+	model.Parent = folder
+end
+
+local function updateStatues()
+	local entries = currentTop[Config.Statues.Board] or {}
+	for rank = 1, Config.Statues.Count do
+		local entry = entries[rank]
+		local id = entry and entry.UserId or 0
+		if statueShown[rank] ~= id then
+			statueShown[rank] = id
+			local ok, err = pcall(placeStatue, rank, entry)
+			if not ok then
+				warn("[Leaderboards] statue failed: " .. tostring(err))
+			end
+		else
+			-- same person: just refresh the number
+			local folder = statueFolder()
+			local model = folder and folder:FindFirstChild("Statue" .. rank)
+			local label = model and model:FindFirstChild("Text", true)
+			if label and label:IsA("TextLabel") and entry then
+				label.Text = ({ "👑", "🥈", "🥉" })[rank]
+					.. " #"
+					.. rank
+					.. " "
+					.. nameFor(entry.UserId)
+					.. "\n💰 "
+					.. Util.Format(entry.Value)
+			end
+		end
+	end
+end
+Leaderboards.UpdateStatues = updateStatues
+
 local function refresh()
 	-- push scores of everyone in this server
 	for _, player in Data:LoadedPlayers() do
@@ -6012,6 +7892,7 @@ local function refresh()
 		render(board, entries)
 	end
 	updateTitles()
+	task.spawn(updateStatues)
 end
 
 -- Returns the final placement (1-10) of a user in a past week, or nil.
@@ -6986,7 +8867,12 @@ local function tryBonk(attacker: Player, victim: Player)
 	end
 	immunity[victim] = clock + Config.PvP.ImmunitySeconds
 
+	local wasThief = victim:GetAttribute("CarryStolen") == true
 	shards:Drop(victim, attacker)
+	if wasThief then
+		-- stopped a thief: counts for the 🛡️ Guardian title + claims any bounty
+		Services.BaseService:ThiefCaught(attacker, victim)
+	end
 	aData.Stats.Bonks += 1
 	local progression = Services.ProgressionService
 	progression:AddQuest(attacker, "Bonk", 1)
@@ -7261,6 +9147,7 @@ local function checkPolicy(player: Player)
 		local ok, policy = pcall(PolicyService.GetPolicyInfoForPlayerAsync, PolicyService, player)
 		if ok and type(policy) == "table" then
 			player:SetAttribute("PaidRandomRestricted", policy.ArePaidRandomItemsRestricted == true)
+			player:SetAttribute("PaidTradeAllowed", policy.IsPaidItemTradingAllowed == true)
 			Data:MarkDirty(player)
 			return
 		end
@@ -7268,6 +9155,7 @@ local function checkPolicy(player: Player)
 	end
 	-- unknown policy: be safe and treat paid random items as restricted
 	player:SetAttribute("PaidRandomRestricted", true)
+	player:SetAttribute("PaidTradeAllowed", false)
 	Data:MarkDirty(player)
 end
 
@@ -7297,6 +9185,15 @@ local function canBuy(player: Player, key: string, data): (boolean, string?)
 	end
 	if product.Kind == "SeasonPremium" and data.Season.Premium then
 		return false, "You already own the Premium Pass!"
+	end
+	-- where paid random items are restricted, Robux can't buy the currencies
+	-- that hatch random eggs either (gems / coins), nor the Robux egg itself
+	local currency = product.Kind == "Gems" or product.Kind == "CoinPack" or product.Kind == "StarterPack"
+	if currency and player:GetAttribute("PaidRandomRestricted") ~= false then
+		return false, "This item isn't available in your region."
+	end
+	if product.Kind == "HouseSkin" and data.Base.Skins[product.Skin] then
+		return false, "You already own this skin!"
 	end
 	if product.Kind == "PaidEgg" then
 		if player:GetAttribute("PaidRandomRestricted") ~= false then
@@ -7343,6 +9240,8 @@ local function grantProduct(player: Player, key: string, data)
 		Services.ProgressionService:GrantReward(player, Config.StarterPack.Reward, "Starter Pack")
 	elseif kind == "PaidEgg" then
 		Services.PetService:PaidHatch(player, product.Egg, product.Count)
+	elseif kind == "HouseSkin" then
+		Services.BaseService:GrantSkin(player, product.Skin)
 	else
 		error("Unknown product kind " .. tostring(kind))
 	end
@@ -7700,8 +9599,10 @@ return Net
 	* Star eggs from falling stars / meteors hatch when carried home.
 	* Selling a pet pays one minute of its income.
 ]]
+local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
@@ -7713,6 +9614,14 @@ local Services
 local Data
 
 local CURRENCY_NAMES = { Coins = "coins", Gems = "gems", Stardust = "stardust" }
+
+-- serial numbers (#1, #2, ...) for huge and exclusive pets: one global counter
+-- per pet. Cloud tests (not a live server) count in a separate store.
+local serialStore = nil
+pcall(function()
+	local name = "MeteorMiners_Serials_v1" .. (if RunService:IsRunning() then "" else "_Test")
+	serialStore = DataStoreService:GetDataStore(name)
+end)
 
 local function luckFn(luck: number)
 	return function(name: string, weight: number): number
@@ -7807,12 +9716,43 @@ local function findPet(data, petId)
 end
 PetService.FindPet = findPet
 
-local function addPet(data, name: string, variant: string?)
-	local pet = { Id = data.NextPetUid, Name = name, Variant = variant }
+local function addPet(data, name: string, variant: string?, serial: number?)
+	local pet = { Id = data.NextPetUid, Name = name, Variant = variant, Serial = serial }
 	data.NextPetUid += 1
 	table.insert(data.Pets, pet)
 	data.PetIndex[name] = true
 	return pet
+end
+
+local function nextSerial(key: string): number?
+	if not serialStore then
+		return nil
+	end
+	local value = nil
+	local ok = pcall(function()
+		value = serialStore:UpdateAsync(key, function(old)
+			return (tonumber(old) or 0) + 1
+		end)
+	end)
+	return if ok then tonumber(value) else nil
+end
+
+-- number a new huge / exclusive pet (async); then(serial?) runs afterwards
+local function giveSerial(player: Player, data, pet, andThen)
+	task.spawn(function()
+		local key = (if pet.Variant == "Huge" then "Huge|" else "") .. pet.Name
+		local serial = nextSerial(key)
+		if serial and table.find(data.Pets, pet) and not pet.Serial then
+			pet.Serial = serial
+			Data:MarkDirty(player)
+			if player.Parent then
+				PetService:Changed(player)
+			end
+		end
+		if andThen then
+			andThen(serial)
+		end
+	end)
 end
 
 -- inventory full: keep the better of (new pet, weakest pet) and sell the other.
@@ -7824,7 +9764,8 @@ local function makeRoom(player: Player, data, name: string, variant: string?): (
 	end
 	local weakest, weakestIndex = nil, nil
 	for index, pet in data.Pets do
-		if not pet.Away and (not weakest or income(pet) < income(weakest)) then
+		local precious = pet.Serial ~= nil or Util.IsExclusive(Config, pet)
+		if not pet.Away and not precious and (not weakest or income(pet) < income(weakest)) then
 			weakest, weakestIndex = pet, index
 		end
 	end
@@ -7849,21 +9790,41 @@ local function makeRoom(player: Player, data, name: string, variant: string?): (
 	return false, coins
 end
 
-local function announceIfRare(player: Player, name: string, variant: string?, eggName: string)
+-- "1 in 12.5K" for the announcement (base odds, no luck)
+local function oddsText(eggId: string?, name: string, variant: string?): string
+	local chance = eggId and Util.HatchChance(Config, eggId, name, variant)
+	if not chance or chance <= 0 then
+		return ""
+	end
+	return " (1/" .. Util.Format(math.max(1, math.floor(1 / chance + 0.5))) .. ")"
+end
+
+local function announceIfRare(player: Player, name: string, variant: string?, eggId: string?, serial: number?)
 	local info = Config.Pets[name]
 	local rarity = info and Config.Rarities[info.Rarity]
 	if not rarity then
 		return
 	end
-	if rarity.Order >= Config.AnnounceRarity or variant == "Rainbow" or variant == "Galaxy" then
+	local eggName = eggId and Config.Eggs[eggId] and Config.Eggs[eggId].Name or ""
+	if variant == "Huge" then
 		Net:Announce(
-			"🥚 %s hatched a %s %s %s from the %s!",
+			"🐘 %s hatched a HUGE %s%s!%s",
+			Color3.fromRGB(255, 200, 60),
+			player.DisplayName,
+			name,
+			if serial then " #" .. serial else "",
+			oddsText(eggId, name, variant)
+		)
+	elseif rarity.Order >= Config.AnnounceRarity or variant == "Rainbow" or variant == "Galaxy" then
+		Net:Announce(
+			"🥚 %s hatched a %s %s %s from the %s!%s",
 			if variant == "Rainbow" then Color3.fromRGB(255, 120, 230) else rarity.Color,
 			player.DisplayName,
 			variant or "",
 			info.Rarity,
 			name,
-			eggName
+			eggName,
+			oddsText(eggId, name, variant)
 		)
 	end
 end
@@ -7878,11 +9839,18 @@ local function roll(player: Player, data, eggId: string, count: number, extraLuc
 		local name = Util.WeightedPick(egg.Pets, fn)
 		local variant = rollVariant(luck)
 		local ok = makeRoom(player, data, name, variant)
-		if ok then
-			addPet(data, name, variant)
-		end
+		local pet = if ok then addPet(data, name, variant) else nil
 		table.insert(results, { Name = name, Variant = variant })
-		announceIfRare(player, name, variant, egg.Name)
+		if variant == "Huge" then
+			data.Stats.HugesFound = (data.Stats.HugesFound or 0) + 1
+		end
+		if pet and Util.WantsSerial(Config, name, variant) then
+			giveSerial(player, data, pet, function(serial)
+				announceIfRare(player, name, variant, eggId, serial)
+			end)
+		else
+			announceIfRare(player, name, variant, eggId, nil)
+		end
 	end
 	data.Stats.EggsHatched += count
 	Services.ProgressionService:TutorialEvent(player, "Hatch", count)
@@ -7898,7 +9866,10 @@ function PetService:GrantPet(player: Player, name: string, variant: string?)
 		return
 	end
 	if makeRoom(player, data, name, variant) then
-		addPet(data, name, variant)
+		local pet = addPet(data, name, variant)
+		if Util.WantsSerial(Config, name, variant) then
+			giveSerial(player, data, pet, nil)
+		end
 	end
 	self:Changed(player)
 	Net:Send(player, "HatchResult", { { Name = name, Variant = variant } }, nil)
@@ -7936,16 +9907,17 @@ function PetService:TakePet(player: Player, petId: number)
 	end
 	table.remove(data.Pets, index)
 	self:Changed(player)
-	return { Name = pet.Name, Variant = pet.Variant }
+	return { Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial }
 end
 
-function PetService:GivePet(player: Player, name: string, variant: string?)
+-- numbered pets keep their number when they change owners
+function PetService:GivePet(player: Player, name: string, variant: string?, serial: number?)
 	local data = Data:Get(player)
 	if not data or not Config.Pets[name] then
 		return
 	end
 	if makeRoom(player, data, name, variant) then
-		addPet(data, name, variant)
+		addPet(data, name, variant, serial)
 	end
 	self:Changed(player)
 end
@@ -8629,6 +10601,31 @@ function Progression:Start()
 		return { Index = index, Text = self:RewardText(player, entry.Reward) }
 	end)
 
+	-- 👑 Titles panel: wear an unlocked title ("" = the best one automatically)
+	Net:On("SetTitle", 0.5, function(player, id)
+		local data = Data:Get(player)
+		if not data or type(id) ~= "string" then
+			return
+		end
+		if id ~= "" then
+			local found = nil
+			for _, title in Config.Titles do
+				if title.Id == id then
+					found = title
+				end
+			end
+			local hasPass = function(key)
+				return Services.MonetizationService:HasPass(player, key)
+			end
+			if not found or not Util.TitleUnlocked(Config, found, data, hasPass) then
+				return
+			end
+		end
+		data.Title = id
+		Data:MarkDirty(player)
+		Services.CharacterService:RefreshOverhead(player)
+	end)
+
 	Net:On("SeenHowTo", 5, function(player)
 		local data = Data:Get(player)
 		if data and not data.Flags.HowToSeen then
@@ -9216,10 +11213,12 @@ local function deliver(player: Player)
 			Net:Notify(player, "The owner left - the pet vanished!")
 			return
 		end
-		pets:GivePet(player, taken.Name, taken.Variant)
+		pets:GivePet(player, taken.Name, taken.Variant, taken.Serial)
 		-- save both right away so a crash can't leave the pet in two places
 		task.spawn(Data.Save, Data, owner)
 		task.spawn(Data.Save, Data, player)
+		-- theft shield for the victim, revenge window, bounty on serial thieves
+		Services.BaseService:StealDelivered(owner, player, meta, taken)
 		local display = taken.Name
 		Net:Notify(owner, "💔 %s stole your %s!", Color3.fromRGB(255, 90, 90), player.DisplayName, display)
 		if data then
@@ -9807,6 +11806,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Util = require(Shared.Util)
 local Net = require(script.Parent.Net)
 
 local Trade = {}
@@ -9842,7 +11842,7 @@ local function sendState(session)
 			for _, petId in session.Offers[who] do
 				local pet = data and petInfo(data, petId)
 				if pet then
-					table.insert(list, { Id = pet.Id, Name = pet.Name, Variant = pet.Variant })
+					table.insert(list, { Id = pet.Id, Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial })
 				end
 			end
 			return list
@@ -9895,6 +11895,13 @@ local function complete(session)
 			if not pet or pet.Away then
 				return nil
 			end
+			-- both sides must be allowed to trade paid items
+			if
+				Util.IsExclusive(Config, pet)
+				and not (a:GetAttribute("PaidTradeAllowed") == true and b:GetAttribute("PaidTradeAllowed") == true)
+			then
+				return nil
+			end
 			table.insert(list, pet)
 		end
 		return list
@@ -9920,7 +11927,7 @@ local function complete(session)
 	end
 	local function add(data, pets)
 		for _, pet in pets do
-			local copy = { Id = data.NextPetUid, Name = pet.Name, Variant = pet.Variant }
+			local copy = { Id = data.NextPetUid, Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial }
 			data.NextPetUid += 1
 			table.insert(data.Pets, copy)
 			data.PetIndex[pet.Name] = true
@@ -10008,9 +12015,13 @@ function Trade:Start()
 			local petId = petIds[i]
 			if type(petId) == "number" and not seen[petId] and #clean < SETTINGS.MaxPets then
 				local pet = petInfo(data, petId)
-				if pet and not pet.Away then
+				-- exclusive (Robux) pets can't be traded where Roblox restricts paid item trading
+				local blocked = Util.IsExclusive(Config, pet) and player:GetAttribute("PaidTradeAllowed") ~= true
+				if pet and not pet.Away and not blocked then
 					seen[petId] = true
 					table.insert(clean, petId)
+				elseif pet and blocked then
+					Net:Notify(player, "💎 Exclusive pets can't be traded in your region.")
 				end
 			end
 		end
@@ -10677,6 +12688,22 @@ local function buildHub()
 		leaderboard(CFrame.new(50, 11, HUB_HALF - 2), Vector3.new(24, 18, 1), defs[3].Key, defs[3].Title, boards)
 	end
 
+	-- hall of fame: statues of the all-time richest players (LeaderboardService)
+	local fame = folder("HallOfFame", hub)
+	World.StatueSpots = {}
+	for rank, spot in { { -30, 4 }, { -42, 3 }, { -18, 2.2 } } do
+		local position = Vector3.new(spot[1], spot[2] / 2, -8)
+		local plinth = newPart({
+			Name = "Plinth" .. rank,
+			Size = Vector3.new(7, spot[2], 7),
+			CFrame = CFrame.lookAt(position, Vector3.new(0, position.Y, -60)),
+			Color = ({ Color3.fromRGB(255, 205, 60), Color3.fromRGB(210, 215, 225), Color3.fromRGB(215, 140, 80) })[rank],
+			Material = Enum.Material.Marble,
+		}, fame)
+		World.StatueSpots[rank] = plinth.CFrame * CFrame.new(0, spot[2] / 2, 0)
+	end
+	billboard(fame:FindFirstChild("Plinth1") :: BasePart, "🏆 HALL OF FAME", Color3.fromRGB(255, 220, 90), 13, 16, 3)
+
 	-- gates: mines to the north, bases to the south
 	arch(Vector3.new(0, 0, HUB_HALF - 2), "⛏️ MINES", Color3.fromRGB(255, 200, 80), hub)
 	arch(Vector3.new(0, 0, -HUB_HALF + 2), "🏠 BASES", Color3.fromRGB(120, 230, 255), hub)
@@ -10706,7 +12733,8 @@ local function buildHub()
 end
 
 ---------------------------------------------------------------------------
--- base district (south): floor, walls, road; plots come from BaseService
+-- base district (south): gardens, avenue, walls; the territories themselves
+-- come from BaseService (Util.PlotLayout: two rows facing the avenue)
 ---------------------------------------------------------------------------
 local function buildBaseDistrict()
 	local district = folder("District", map)
@@ -10715,8 +12743,12 @@ local function buildBaseDistrict()
 	local length = bases.ZStart - bases.ZEnd
 	local centerZ = (bases.ZStart + bases.ZEnd) / 2
 	local wallColor = Color3.fromRGB(70, 72, 92)
-	local streets = Config.Base.Streets
-	local plazaDepth = 14 -- east-west plaza right behind the gate
+	local base = Config.Base
+	local half = base.PlotSize / 2
+	local layout = base.Layout
+	local avenueZ = Util.AvenueZ(Config)
+	local northZ = bases.ZStart - layout.Margin - half
+	local southZ = avenueZ - layout.Avenue / 2 - half
 
 	-- corridor from the hub's south gate
 	newPart({
@@ -10735,67 +12767,109 @@ local function buildBaseDistrict()
 		)
 	end
 
+	-- soft grass everywhere between the houses
 	newPart({
 		Name = "Floor",
 		Size = Vector3.new(halfX * 2, 4, length),
 		CFrame = CFrame.new(0, -2, centerZ),
-		Color = Color3.fromRGB(58, 62, 84),
-		Material = Enum.Material.Slate,
+		Color = Color3.fromRGB(85, 145, 80),
+		Material = Enum.Material.Grass,
 	}, district)
 
-	-- entrance plaza linking the gate to every street
-	local lastStreet = math.max(math.abs(streets[1]), math.abs(streets[#streets]))
+	-- entrance lane: gate -> avenue (between the two inner houses)
+	local laneLength = bases.ZStart - (avenueZ + layout.Avenue / 2)
 	newPart({
-		Name = "Plaza",
-		Size = Vector3.new(lastStreet * 2 + 22, 0.2, plazaDepth),
-		CFrame = CFrame.new(0, 0.05, bases.ZStart - plazaDepth / 2),
-		Color = Color3.fromRGB(200, 190, 170),
+		Name = "Lane",
+		Size = Vector3.new(layout.EntranceGap - 6, 0.2, laneLength),
+		CFrame = CFrame.new(0, 0.05, bases.ZStart - laneLength / 2),
+		Color = Color3.fromRGB(205, 195, 175),
 		Material = Enum.Material.Cobblestone,
 	}, district)
+	speedPad(Vector3.new(0, 0, bases.ZStart - 14), math.pi, district)
 
-	local streetLength = length - plazaDepth
-	local streetZ = bases.ZStart - plazaDepth - streetLength / 2
-	for _, x in streets do
+	-- the avenue every house faces
+	newPart({
+		Name = "Avenue",
+		Size = Vector3.new(halfX * 2 - 6, 0.2, layout.Avenue),
+		CFrame = CFrame.new(0, 0.06, avenueZ),
+		Color = Color3.fromRGB(205, 195, 175),
+		Material = Enum.Material.Cobblestone,
+	}, district)
+	for _, side in { -1, 1 } do
 		newPart({
-			Name = "Street",
-			Size = Vector3.new(20, 0.2, streetLength),
-			CFrame = CFrame.new(x, 0.05, streetZ),
-			Color = Color3.fromRGB(200, 190, 170),
-			Material = Enum.Material.Cobblestone,
+			Name = "AvenueLine",
+			Size = Vector3.new(halfX * 2 - 6, 0.25, 0.6),
+			CFrame = CFrame.new(0, 0.09, avenueZ + side * (layout.Avenue / 2 - 0.5)),
+			Color = Color3.fromRGB(120, 230, 255),
+			Material = Enum.Material.Neon,
+			CanCollide = false,
 		}, district)
-		for _, side in { -1, 1 } do
-			newPart({
-				Name = "StreetLine",
-				Size = Vector3.new(0.6, 0.25, streetLength),
-				CFrame = CFrame.new(x + side * 10.5, 0.08, streetZ),
-				Color = Color3.fromRGB(120, 230, 255),
-				Material = Enum.Material.Neon,
-				CanCollide = false,
-			}, district)
-		end
-		-- plot rows (see BaseService): first row center and row pitch
-		local plotSize = Config.Base.PlotSize
-		local pitch = plotSize + 4
-		local firstRow = bases.ZStart - 18 - plotSize / 2
-		for z = firstRow, bases.ZEnd + plotSize / 2, -pitch do
-			speedPad(Vector3.new(x, 0, z), math.pi, district) -- in front of each row
-		end
-		for z = firstRow + plotSize / 2 + 2, bases.ZEnd + 4, -pitch do -- between plot rows
-			lamp(Vector3.new(x - 11, 0, z), Color3.fromRGB(140, 220, 255), district)
-			lamp(Vector3.new(x + 11, 0, z), Color3.fromRGB(140, 220, 255), district)
-		end
 	end
-	-- dash pads on the plaza, pointing to each street
-	for _, x in streets do
-		speedPad(Vector3.new(x * 0.5, 0, bases.ZStart - plazaDepth / 2), if x > 0 then -math.pi / 2 else math.pi / 2, district)
+	-- dash pads pointing to the outer houses, lamps along the avenue
+	for _, x in { 34, 120 } do
+		speedPad(Vector3.new(x, 0, avenueZ), -math.pi / 2, district)
+		speedPad(Vector3.new(-x, 0, avenueZ), math.pi / 2, district)
+	end
+	for x = -halfX + 20, halfX - 20, 40 do
+		lamp(Vector3.new(x, 0, avenueZ - layout.Avenue / 2 - 1.5), Color3.fromRGB(255, 220, 160), district)
+		lamp(Vector3.new(x, 0, avenueZ + layout.Avenue / 2 + 1.5), Color3.fromRGB(255, 220, 160), district)
 	end
 
-	-- park strip between the inner plots
-	for z = bases.ZStart - plazaDepth - 24, bases.ZEnd + 16, -30 do
-		tree(Vector3.new(0, 0, z), district)
+	-- gardens between neighbours: a row of trees in every gap
+	local gapX = layout.EntranceGap / 2 + half * 2 + layout.Gap / 2
+	for _, rowZ in { northZ, southZ } do
+		for _, x in { -gapX, gapX } do
+			for dz = -half + 6, half - 6, 12 do
+				tree(Vector3.new(x, 0, rowZ + dz), district)
+			end
+		end
 	end
 
-	-- walls
+	-- a little park between the far houses
+	newPart({
+		Name = "Park",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.2, layout.EntranceGap - 6, layout.EntranceGap - 6),
+		CFrame = CFrame.new(0, 0.07, southZ) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(215, 205, 180),
+		Material = Enum.Material.Cobblestone,
+	}, district)
+	newPart({
+		Name = "ParkFountain",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(1.6, 12, 12),
+		CFrame = CFrame.new(0, 0.8, southZ) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(235, 235, 245),
+		Material = Enum.Material.Marble,
+	}, district)
+	newPart({
+		Name = "ParkWater",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.3, 10.5, 10.5),
+		CFrame = CFrame.new(0, 1.65, southZ) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(90, 190, 255),
+		Material = Enum.Material.Glass,
+		Transparency = 0.25,
+		CanCollide = false,
+	}, district)
+	local parkStar = newPart({
+		Name = "ParkStar",
+		Size = Vector3.new(1.8, 3.6, 1.8),
+		CFrame = CFrame.new(0, 4.4, southZ) * CFrame.Angles(0, math.rad(45), math.rad(15)),
+		Color = Color3.fromRGB(255, 210, 110),
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, district)
+	local glow = Instance.new("PointLight")
+	glow.Color = parkStar.Color
+	glow.Range = 16
+	glow.Brightness = 1.5
+	glow.Parent = parkStar
+	for _, corner in { { -14, -14 }, { 14, -14 }, { -14, 14 }, { 14, 14 } } do
+		tree(Vector3.new(corner[1], 0, southZ + corner[2]), district)
+	end
+
+	-- walls around the district (gap for the corridor)
 	for _, side in { -1, 1 } do
 		wall(CFrame.new(side * (halfX + 1), WALL_H / 2, centerZ), Vector3.new(2, WALL_H, length + 2), wallColor, district)
 		local segment = halfX - CORRIDOR_W / 2
@@ -10808,7 +12882,7 @@ local function buildBaseDistrict()
 	end
 	wall(CFrame.new(0, WALL_H / 2, bases.ZEnd - 1), Vector3.new(halfX * 2 + 4, WALL_H, 2), wallColor, district)
 
-	-- twinkling stars above the district (it's where the shards live)
+	-- twinkling stars above the district (it's where the pets live)
 	local sky = newPart({
 		Name = "Ambience",
 		Size = Vector3.new(halfX * 2, 1, length),
@@ -11255,8 +13329,10 @@ return {}
 	  tap the floor to move the preview (green = OK, red = blocked),
 	  🔄 rotate, ✅ place. Placing again keeps the same item selected, so
 	  floors and fences are quick to lay out.
-	* Tap something you already placed to ✋ move, 🔄 rotate or 🗑 remove it
-	  (removing refunds everything, so redecorating is free).
+	* Tap something you already placed to ✋ move, 🔄 rotate, 🎨 paint or
+	  🗑 remove it (removing refunds everything, so redecorating is free).
+	* 🏠 House tab: expand the land (house level), name your house, pick a
+	  wall skin and see your decoration sets (complete one = bonus income).
 	The server re-validates every action (BaseService).
 ]]
 local Players = game:GetService("Players")
@@ -11275,6 +13351,7 @@ local Net = require(Client.Net)
 local State = require(Client.State)
 local Lib = require(Client.UI.Lib)
 local Root = require(Client.UI.Root)
+local Upsell = require(Client.UI.Upsell)
 
 local player = Players.LocalPlayer
 local C = Lib.Colors
@@ -11321,6 +13398,14 @@ end
 local function items()
 	local data = State.Data
 	return if data and data.Base then data.Base.Items else {}
+end
+
+local function houseLevel(): number
+	return Util.HouseLevel(Config, State.Data)
+end
+
+local function validateOpts()
+	return { Level = houseLevel(), Vaults = Util.VaultLimit(Config, State.Data, State.HasPass("VIP")) }
 end
 
 local function findItem(uid: number)
@@ -11472,7 +13557,7 @@ local cardScroll = New("ScrollingFrame", {
 }, { Lib.List(Enum.FillDirection.Horizontal, 8, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center) })
 
 -- action bar (above the catalog)
-local actions = cluster("BuildActions", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -196), UDim2.fromOffset(620, 58))
+local actions = cluster("BuildActions", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -196), UDim2.fromOffset(720, 58))
 local actionRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Parent = actions }, {
 	Lib.List(Enum.FillDirection.Horizontal, 10, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Center),
 })
@@ -11481,7 +13566,7 @@ local function actionButton(key: string, text: string, color: Color3, order: num
 	local button = Lib.Button({
 		Text = text,
 		Color = color,
-		Size = UDim2.fromOffset(140, 52),
+		Size = UDim2.fromOffset(128, 52),
 		LayoutOrder = order,
 		TextSize = 20,
 		Parent = actionRow,
@@ -11508,7 +13593,7 @@ local function ghostValid(): boolean
 	if not id then
 		return false
 	end
-	local ok = DecorModel.Validate(Config, items(), id, ghostX, ghostZ, ghostR, movingUid)
+	local ok = DecorModel.Validate(Config, items(), id, ghostX, ghostZ, ghostR, movingUid, validateOpts())
 	if not ok then
 		return false
 	end
@@ -11555,7 +13640,7 @@ local function snapGhost(x: number, z: number)
 	if not currentId then
 		return
 	end
-	local bounds = SETTINGS.Build
+	local bounds = DecorModel.Bounds(Config, houseLevel())
 	local w, d = DecorModel.Footprint(Config, currentId, ghostR)
 	x = math.clamp(x, bounds.MinX + w / 2, bounds.MaxX - w / 2)
 	z = math.clamp(z, bounds.MinZ + d / 2, bounds.MaxZ - d / 2)
@@ -11587,6 +13672,11 @@ local function refreshActions()
 		actionButtons.Cancel.Visible = true
 		local item = selectedUid and findItem(selectedUid)
 		local def = item and Config.Decor[item.Id]
+		actionButtons.Paint.Visible = item ~= nil and DecorModel.CanPaint(item.Id)
+		if item then
+			local color = item.Paint and Config.Paint[item.Paint]
+			Lib.SetButton(actionButtons.Paint, nil, color or C.Pink)
+		end
 		if item and def then
 			local refund = math.floor(item.Paid or 0)
 			local icon = if item.Cur == "Gems" then "💎" else "💰"
@@ -11689,14 +13779,28 @@ actionButton("Turn", "🔄 Rotate", C.Purple, 2, function()
 		end)
 	end
 end)
-actionButton("Remove", "🗑 Remove", C.Red, 3, function()
+actionButton("Paint", "🎨 Paint", C.Pink, 3, function()
+	local item = selectedUid and findItem(selectedUid)
+	if not item then
+		return
+	end
+	local nextColor = ((item.Paint or 0) + 1) % (#Config.Paint + 1)
+	if request("BasePaint", item.Uid, nextColor) then
+		Lib.PlaySound("UI", 0.7, 0.2)
+		task.delay(0.2, function()
+			selectItem(item.Uid)
+			refreshActions()
+		end)
+	end
+end)
+actionButton("Remove", "🗑 Remove", C.Red, 4, function()
 	local item = selectedUid and findItem(selectedUid)
 	if item and request("BaseRemove", item.Uid) then
 		Lib.PlaySound("Coin", 0.7, -0.1)
 		backToBrowse()
 	end
 end)
-actionButton("Cancel", "X", C.Gray, 4, function()
+actionButton("Cancel", "X", C.Gray, 5, function()
 	backToBrowse()
 end)
 actionButtons.Cancel.Size = UDim2.fromOffset(64, 52)
@@ -11704,86 +13808,335 @@ actionButtons.Cancel.Size = UDim2.fromOffset(64, 52)
 ---------------------------------------------------------------------------
 -- catalog
 ---------------------------------------------------------------------------
-local currentCategory = Config.DecorCategories[1].Id
+local HOUSE_TAB = "House"
+local currentCategory = HOUSE_TAB
 local tabButtons = {}
-local cards = {} -- [id] = { Button, Price }
+local cards = {} -- [id] = { Button, Price, Count }
+local houseCards = {} -- refreshed by refreshHouse()
+
+-- rename popup ---------------------------------------------------------------
+local renameCluster = Root.Cluster("HouseRename", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.42), UDim2.fromOffset(420, 170), screen)
+local renameCard = New("Frame", {
+	BackgroundColor3 = C.Panel,
+	Size = UDim2.fromScale(1, 1),
+	Visible = false,
+	ZIndex = 40,
+	Parent = renameCluster,
+}, { Lib.Corner(16), Lib.Stroke(Color3.fromRGB(255, 160, 70), 3, 0) })
+Lib.Text({
+	Text = "✏️ Name your house",
+	Size = UDim2.new(1, -20, 0, 32),
+	Position = UDim2.fromOffset(10, 8),
+	MaxTextSize = 24,
+	ZIndex = 41,
+	Parent = renameCard,
+})
+local renameBox = New("TextBox", {
+	Text = "",
+	PlaceholderText = T("e.g. Sunny Garden"),
+	ClearTextOnFocus = false,
+	Font = Lib.BodyFont,
+	TextScaled = true,
+	TextColor3 = Color3.new(1, 1, 1),
+	BackgroundColor3 = C.Card,
+	Size = UDim2.new(1, -40, 0, 46),
+	Position = UDim2.fromOffset(20, 48),
+	ZIndex = 41,
+	Parent = renameCard,
+}, { Lib.Corner(10), Lib.Padding(8) })
+Lib.Button({
+	Text = "✅ Save",
+	Color = C.Green,
+	Size = UDim2.fromOffset(170, 50),
+	Position = UDim2.new(0.5, -180, 1, -62),
+	TextSize = 20,
+	ZIndex = 41,
+	Parent = renameCard,
+	OnClick = function()
+		local text = string.sub(renameBox.Text, 1, 80)
+		renameCard.Visible = false
+		task.spawn(function()
+			local ok, message = Net.Invoke("HouseName", text)
+			local hud = Build.HUD
+			if hud then
+				if ok then
+					hud.Toast(T("🏠 House name saved!"), C.Green)
+				elseif type(message) == "string" then
+					hud.Toast(message, C.Red)
+				end
+			end
+		end)
+	end,
+})
+Lib.Button({
+	Text = "X Cancel",
+	Color = C.Gray,
+	Size = UDim2.fromOffset(170, 50),
+	Position = UDim2.new(0.5, 10, 1, -62),
+	TextSize = 20,
+	ZIndex = 41,
+	Parent = renameCard,
+	OnClick = function()
+		renameCard.Visible = false
+	end,
+})
+
+-- generic catalog card -----------------------------------------------------
+local function makeCard(order: number, icon: string, name: string, onClick)
+	local button = New("TextButton", {
+		AutoButtonColor = true,
+		BackgroundColor3 = C.Card,
+		Size = UDim2.fromOffset(112, 112),
+		LayoutOrder = order,
+		Text = "",
+		Parent = cardScroll,
+	}, { Lib.Corner(12), Lib.Stroke(Color3.new(0, 0, 0), 2, 0.4) })
+	Lib.Text({ Text = icon, Size = UDim2.new(1, 0, 0, 46), Position = UDim2.fromOffset(0, 6), MaxTextSize = 40, Parent = button })
+	local title =
+		Lib.Text({ Text = name, Size = UDim2.new(1, -8, 0, 26), Position = UDim2.fromOffset(4, 52), MaxTextSize = 15, Parent = button })
+	local price = Lib.Text({
+		Text = "",
+		TextColor3 = C.Coins,
+		Size = UDim2.new(1, -8, 0, 22),
+		Position = UDim2.fromOffset(4, 82),
+		MaxTextSize = 16,
+		Parent = button,
+	})
+	local count = Lib.Text({
+		Text = "",
+		Font = Lib.BodyFont,
+		TextColor3 = C.Sub,
+		Size = UDim2.fromOffset(48, 16),
+		Position = UDim2.new(1, -52, 0, 4),
+		MaxTextSize = 12,
+		Parent = button,
+	})
+	button.Activated:Connect(function()
+		Lib.PlaySound("UI")
+		onClick()
+	end)
+	return { Button = button, Price = price, Count = count, Title = title }
+end
+
+local function itemLimit(id: string): number?
+	local def = Config.Decor[id]
+	if def.Function == "Pedestal" then
+		return SETTINGS.MaxPedestals
+	elseif def.Function == "Vault" then
+		return validateOpts().Vaults
+	end
+	return def.Limit
+end
+
+local function refreshHouse()
+	local data = State.Data
+	if not data then
+		return
+	end
+	local level = houseLevel()
+	local base = data.Base
+	for _, entry in houseCards do
+		local kind, card, def = entry.Kind, entry.Card, entry.Def
+		if kind == "Expand" then
+			local nextDef = SETTINGS.Levels[level + 1]
+			card.Title.Text = if nextDef then T(nextDef.Name) else T(Util.HouseDef(Config, level).Name)
+			card.Count.Text = "Lv." .. level
+			if nextDef then
+				card.Price.Text = "💰 " .. Util.Format(nextDef.Cost)
+				card.Button.BackgroundColor3 = if data.Coins >= nextDef.Cost
+					then Color3.fromRGB(60, 110, 60)
+					else Color3.fromRGB(60, 40, 50)
+			else
+				card.Price.Text = T("MAX")
+				card.Button.BackgroundColor3 = C.Card
+			end
+		elseif kind == "Name" then
+			card.Price.Text = if base.Name ~= "" then base.Name else T("tap to name")
+			card.Price.TextColor3 = C.Sub
+		elseif kind == "Skin" then
+			local owned = def.Id == "Auto" or base.Skins[def.Id] == true
+			local active = (base.Skin or "Auto") == def.Id
+			local text
+			if active then
+				text = T("✅ ON")
+			elseif owned then
+				text = T("Use")
+			elseif def.Gems then
+				text = "💎 " .. Util.Format(def.Gems)
+			elseif def.Pass then
+				text = if State.HasPass(def.Pass) then T("Use") else "👑 VIP"
+			elseif def.Level then
+				text = if level >= def.Level then T("Use") else T("🔒 Lv.%d", def.Level)
+			elseif def.Product then
+				text = "R$ " .. tostring(Lib.Price("Product", def.Product))
+			end
+			card.Price.Text = text or ""
+			card.Price.TextColor3 = if active then C.Green else C.Coins
+			card.Button.BackgroundColor3 = if active then Color3.fromRGB(40, 90, 60) else C.Card
+		elseif kind == "Set" then
+			local have = {}
+			for _, item in base.Items do
+				have[item.Id] = true
+			end
+			local got = 0
+			for _, id in def.Items do
+				if have[id] then
+					got += 1
+				end
+			end
+			card.Count.Text = string.format("%d/%d", got, #def.Items)
+			card.Price.Text = "+" .. math.floor(def.Bonus * 100 + 0.5) .. "% 💰"
+			card.Price.TextColor3 = if got >= #def.Items then C.Green else C.Sub
+			card.Button.BackgroundColor3 = if got >= #def.Items then Color3.fromRGB(40, 90, 60) else C.Card
+		end
+	end
+end
+
+local function buildHouseCards()
+	houseCards = {}
+	local order = 0
+	local function add(kind: string, card, def)
+		table.insert(houseCards, { Kind = kind, Card = card, Def = def })
+	end
+	order += 1
+	add(
+		"Expand",
+		makeCard(order, "🏗️", "Expand", function()
+			task.spawn(function()
+				local ok, message = Net.Invoke("HouseUpgrade")
+				local hud = Build.HUD
+				if ok then
+					Lib.PlaySound("LevelUp")
+					task.delay(0.3, function()
+						Build.Refocus()
+					end)
+				elseif type(message) == "string" and hud then
+					hud.Toast(message, C.Red)
+				end
+			end)
+		end)
+	)
+	order += 1
+	add(
+		"Name",
+		makeCard(order, "✏️", "House Name", function()
+			local data = State.Data
+			renameBox.Text = data and data.Base.Name or ""
+			renameCard.Visible = true
+			renameBox:CaptureFocus()
+		end)
+	)
+	for _, def in Config.HouseSkins do
+		order += 1
+		add(
+			"Skin",
+			makeCard(order, def.Icon, def.Name, function()
+				local data = State.Data
+				if not data then
+					return
+				end
+				local owned = def.Id == "Auto" or data.Base.Skins[def.Id] == true
+				if not owned and def.Product then
+					Net.Fire("BuyProduct", def.Product)
+					return
+				end
+				if not owned and def.Pass and not State.HasPass(def.Pass) then
+					Upsell.Pass(def.Pass, true)
+					return
+				end
+				task.spawn(function()
+					local ok, message = Net.Invoke("HouseSkin", def.Id)
+					if ok then
+						Lib.PlaySound("Reward")
+					elseif type(message) == "string" and Build.HUD then
+						Build.HUD.Toast(message, C.Red)
+					end
+				end)
+			end),
+			def
+		)
+	end
+	for _, def in Config.DecorSets do
+		order += 1
+		local names = {}
+		for _, id in def.Items do
+			local item = Config.Decor[id]
+			table.insert(names, if item then item.Icon else "?")
+		end
+		local card = makeCard(order, def.Icon, def.Name, function()
+			if Build.HUD then
+				Build.HUD.Toast(
+					T("%s: place %s for +%d%% base income", T(def.Name), table.concat(names, " "), math.floor(def.Bonus * 100 + 0.5)),
+					C.Gold
+				)
+			end
+		end)
+		add("Set", card, def)
+	end
+	refreshHouse()
+end
 
 local function refreshCatalog()
+	local level = houseLevel()
 	for id, card in cards do
 		local def = Config.Decor[id]
-		card.Price.Text = priceText(id)
-		local limit = if def.Function == "Pedestal" then SETTINGS.MaxPedestals else def.Limit
+		local limit = itemLimit(id)
 		card.Count.Text = if limit then string.format("%d/%d", DecorModel.Count(items(), id), limit) else ""
-		card.Button.BackgroundColor3 = if canAfford(id) then C.Card else Color3.fromRGB(60, 40, 50)
+		if def.MinLevel and level < def.MinLevel then
+			card.Price.Text = T("🔒 Lv.%d", def.MinLevel)
+			card.Button.BackgroundColor3 = Color3.fromRGB(50, 50, 62)
+		else
+			card.Price.Text = priceText(id)
+			card.Button.BackgroundColor3 = if canAfford(id) then C.Card else Color3.fromRGB(60, 40, 50)
+		end
 	end
 	for id, button in tabButtons do
 		button.BackgroundColor3 = if id == currentCategory then Color3.fromRGB(255, 160, 70) else C.Gray
+	end
+	if currentCategory == HOUSE_TAB then
+		refreshHouse()
 	end
 end
 
 local function buildCards()
 	Lib.Clear(cardScroll)
 	cards = {}
+	houseCards = {}
+	if currentCategory == HOUSE_TAB then
+		buildHouseCards()
+		refreshCatalog()
+		return
+	end
 	for order, id in Config.DecorOrder do
 		local def = Config.Decor[id]
 		if def and def.Category == currentCategory then
-			local button = New("TextButton", {
-				Name = id,
-				AutoButtonColor = true,
-				BackgroundColor3 = C.Card,
-				Size = UDim2.fromOffset(112, 112),
-				LayoutOrder = order,
-				Text = "",
-				Parent = cardScroll,
-			}, { Lib.Corner(12), Lib.Stroke(Color3.new(0, 0, 0), 2, 0.4) })
-			Lib.Text({
-				Text = def.Icon,
-				Size = UDim2.new(1, 0, 0, 46),
-				Position = UDim2.fromOffset(0, 6),
-				MaxTextSize = 40,
-				Parent = button,
-			})
-			Lib.Text({
-				Text = def.Name,
-				Size = UDim2.new(1, -8, 0, 26),
-				Position = UDim2.fromOffset(4, 52),
-				MaxTextSize = 15,
-				Parent = button,
-			})
-			local price = Lib.Text({
-				Text = "",
-				TextColor3 = if def.Gems then C.Gems else C.Coins,
-				Size = UDim2.new(1, -8, 0, 22),
-				Position = UDim2.fromOffset(4, 82),
-				MaxTextSize = 16,
-				Parent = button,
-			})
-			local count = Lib.Text({
-				Text = "",
-				Font = Lib.BodyFont,
-				TextColor3 = C.Sub,
-				Size = UDim2.fromOffset(40, 16),
-				Position = UDim2.new(1, -44, 0, 4),
-				MaxTextSize = 12,
-				Parent = button,
-			})
-			button.Activated:Connect(function()
-				Lib.PlaySound("UI")
+			local card = makeCard(order, def.Icon, def.Name, function()
+				if def.MinLevel and houseLevel() < def.MinLevel then
+					if Build.HUD then
+						Build.HUD.Toast(T("Upgrade your house to unlock this item!"), C.Red)
+					end
+					return
+				end
 				startPlacing(id, nil)
 			end)
-			cards[id] = { Button = button, Price = price, Count = count }
+			card.Price.TextColor3 = if def.Gems then C.Gems else C.Coins
+			cards[id] = card
 		end
 	end
 	refreshCatalog()
 end
 
-for order, category in Config.DecorCategories do
+local tabs = { { Id = HOUSE_TAB, Name = "House", Icon = "🏠" } }
+for _, category in Config.DecorCategories do
+	table.insert(tabs, category)
+end
+for order, category in tabs do
 	local button = Lib.Button({
 		Text = category.Icon .. " " .. T(category.Name),
 		Color = C.Gray,
-		Size = UDim2.fromOffset(100, 36),
+		Size = UDim2.fromOffset(92, 36),
 		LayoutOrder = order,
-		TextSize = 15,
+		TextSize = 14,
 		Parent = tabRow,
 		OnClick = function()
 			currentCategory = category.Id
@@ -11866,6 +14219,27 @@ end)
 -- enter / exit (overview camera of the base)
 ---------------------------------------------------------------------------
 local savedCameraType = Enum.CameraType.Custom
+
+-- overview camera that fits the whole buildable land (it grows with the level)
+function Build.Refocus()
+	local plot = myPlot()
+	local frame = plot and plotFrame(plot)
+	local camera = workspace.CurrentCamera
+	if not frame or not camera or not State.BuildMode then
+		return
+	end
+	local bounds = DecorModel.Bounds(Config, houseLevel())
+	local depth = bounds.MaxZ - bounds.MinZ
+	local width = bounds.MaxX - bounds.MinX
+	local size = math.max(depth, width * 0.8)
+	local centerZ = (bounds.MinZ + bounds.MaxZ) / 2
+	local eye = frame * CFrame.new(0, 18 + size * 1.05, centerZ - 16 - size * 0.8)
+	local target = frame * CFrame.new(0, 0, centerZ + 2)
+	TweenService:Create(camera, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
+		CFrame = CFrame.lookAt(eye.Position, target.Position),
+	}):Play()
+end
+
 function Build.Enter()
 	if State.BuildMode or player:GetAttribute("Carrying") then
 		return
@@ -11882,12 +14256,8 @@ function Build.Enter()
 	if camera then
 		savedCameraType = camera.CameraType
 		camera.CameraType = Enum.CameraType.Scriptable
-		local eye = frame * CFrame.new(0, 54, -44)
-		local target = frame * CFrame.new(0, 0, 3)
-		TweenService:Create(camera, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
-			CFrame = CFrame.lookAt(eye.Position, target.Position),
-		}):Play()
 	end
+	Build.Refocus()
 	Lib.PlaySound("UI")
 	buildCards()
 	backToBrowse()
@@ -11899,6 +14269,7 @@ function Build.Exit()
 	end
 	State.BuildMode = false
 	backToBrowse()
+	renameCard.Visible = false
 	screen.Visible = false
 	local camera = workspace.CurrentCamera
 	if camera then
@@ -12499,6 +14870,23 @@ local MENU = {
 			return d.Rebirths > 0 or d.Coins >= (derived.RebirthCost or math.huge) * 0.5
 		end,
 	},
+	{ "Houses", "🏘️", "Houses", Color3.fromRGB(255, 130, 170), tutorialDone },
+	{
+		"Titles",
+		"👑",
+		"Titles",
+		Color3.fromRGB(230, 170, 40),
+		function(d)
+			-- only once there is something to choose
+			local unlocked = 0
+			for _, title in Config.Titles do
+				if Util.TitleUnlocked(Config, title, d, State.HasPass) then
+					unlocked += 1
+				end
+			end
+			return tutorialDone(d) and unlocked >= 2
+		end,
+	},
 	{ "Store", "🛒", "Store", Color3.fromRGB(60, 200, 110), tutorialDone },
 	{
 		"Settings",
@@ -12630,18 +15018,107 @@ baseButton.Activated:Connect(function()
 	Lib.PlaySound("UI")
 	Net.Fire("GoBase")
 end)
+-- is my house safe right now? (shown under the base chip)
+local function protectionText(): (string, Color3)
+	local protection = player:GetAttribute("BaseProtection") or ""
+	local t = State.Now()
+	if protection == "locked" then
+		return T("🔒 Locked %s", Util.FormatTime(math.max(0, (player:GetAttribute("LockedUntil") or 0) - t))),
+			Color3.fromRGB(255, 150, 150)
+	elseif protection == "newbie" then
+		return T("🛡️ Newbie shield %s", Util.FormatTime(player:GetAttribute("NewbieShield") or 0)), Color3.fromRGB(140, 200, 255)
+	elseif protection == "shield" then
+		return T("🛡️ Protected %s", Util.FormatTime(math.max(0, (player:GetAttribute("ShieldUntil") or 0) - t))),
+			Color3.fromRGB(140, 200, 255)
+	elseif protection == "robbing" then
+		return T("🚨 Being robbed! Bonk the thief!"), C.Red
+	end
+	return T("⚠️ Open - 🔒 vault pets are always safe"), C.Sub
+end
+
 local function refreshBaseChip()
 	local data = State.Data
 	local hasBase = player:GetAttribute("BaseIndex") ~= nil
 	baseChip.Visible = hasBase and data ~= nil and (data.Tutorial == nil or data.Tutorial.Done == true)
 	if baseChip.Visible then
-		baseTitle.Text = T("🏠 BASE  💰%s/s", Util.Format(player:GetAttribute("BaseRate") or 0))
-		baseSub.Text = T("Bank: 💰%s  •  tap to go", Util.Format(player:GetAttribute("BaseBank") or 0))
+		baseTitle.Text = T(
+			"🏠 %s/s  •  Bank 💰%s",
+			Util.Format(player:GetAttribute("BaseRate") or 0),
+			Util.Format(player:GetAttribute("BaseBank") or 0)
+		)
+		local text, color = protectionText()
+		baseSub.Text = text
+		baseSub.TextColor3 = color
 	end
 end
 player:GetAttributeChangedSignal("BaseBank"):Connect(refreshBaseChip)
 player:GetAttributeChangedSignal("BaseIndex"):Connect(refreshBaseChip)
+player:GetAttributeChangedSignal("BaseProtection"):Connect(refreshBaseChip)
 State.OnChanged(refreshBaseChip)
+
+-- revenge: 5 minutes to raid the thief's house (tap to go there)
+local revengeChip = chip(7, 48, Color3.fromRGB(255, 200, 60))
+local revengeTitle = Lib.Text({
+	Text = "",
+	TextColor3 = Color3.fromRGB(255, 210, 90),
+	Size = UDim2.new(1, -12, 0, 23),
+	Position = UDim2.fromOffset(6, 3),
+	MaxTextSize = 18,
+	Parent = revengeChip,
+})
+local revengeSub = Lib.Text({
+	Text = "",
+	Font = Lib.BodyFont,
+	TextColor3 = C.Sub,
+	Size = UDim2.new(1, -12, 0, 17),
+	Position = UDim2.fromOffset(6, 27),
+	MaxTextSize = 13,
+	Parent = revengeChip,
+})
+local revengeButton =
+	New("TextButton", { BackgroundTransparency = 1, Text = "", Size = UDim2.fromScale(1, 1), ZIndex = 5, Parent = revengeChip })
+revengeButton.Activated:Connect(function()
+	local target = player:GetAttribute("RevengeTarget")
+	if type(target) == "number" then
+		Lib.PlaySound("UI")
+		Net.Fire("VisitBase", target)
+	end
+end)
+-- a bounty on me: everyone can bonk me for coins
+local bountyChip = chip(8, 30, C.Red)
+local bountyText = Lib.Text({
+	Text = "",
+	TextColor3 = Color3.fromRGB(255, 140, 120),
+	Size = UDim2.new(1, -12, 1, -4),
+	Position = UDim2.fromOffset(6, 2),
+	MaxTextSize = 16,
+	Parent = bountyChip,
+})
+local revengeName = ""
+Net.On("Revenge", function(_userId, name)
+	revengeName = tostring(name)
+	Lib.PlaySound("Event")
+end)
+task.spawn(function()
+	while true do
+		task.wait(1)
+		local untilTime = player:GetAttribute("RevengeUntil")
+		local left = if type(untilTime) == "number" then untilTime - State.Now() else 0
+		revengeChip.Visible = left > 0
+		if left > 0 then
+			revengeTitle.Text = T("🎯 REVENGE on %s", revengeName)
+			revengeSub.Text = T("%s left - locks can't stop you • tap to go", Util.FormatTime(left))
+		end
+		local bounty = player:GetAttribute("Bounty")
+		bountyChip.Visible = type(bounty) == "number" and bounty > 0
+		if bountyChip.Visible then
+			bountyText.Text = T("💰 Bounty on you: %s - don't get bonked!", Util.Format(bounty))
+		end
+		if baseChip.Visible then
+			refreshBaseChip()
+		end
+	end
+end)
 
 local boostRows = {}
 local BOOSTS = {
@@ -12729,7 +15206,7 @@ local function nextGoal(data, derived): string
 	local pedestals = 0
 	for _, item in data.Base and data.Base.Items or {} do
 		local def = Config.Decor[item.Id]
-		if def and def.Function == "Pedestal" then
+		if def and (def.Function == "Pedestal" or def.Function == "Vault") then
 			pedestals += 1
 		end
 	end
@@ -13184,7 +15661,7 @@ local STEPS = {
 	{
 		Icon = "🌠",
 		Title = "STEAL & PROTECT",
-		Text = "Carry stars and other players'\npets home. Bonk thieves!",
+		Text = "Steal pets from open houses.\n🔒 Your vault pets are always safe!",
 		Color = Color3.fromRGB(170, 130, 255),
 	},
 }
@@ -15008,12 +17485,17 @@ local function refreshBases()
 		if type(ownerId) == "number" then
 			local mine = ownerId == player.UserId
 			local locked = (plot:GetAttribute("LockedUntil") or 0) > serverNow
+			-- shields (newbie / after a theft / being robbed) hide the steal prompts,
+			-- except for the victim's revenge (locks and shields don't stop it)
+			local protection = plot:GetAttribute("Protection") or ""
+			local revengeHere = player:GetAttribute("RevengeTarget") == ownerId and (player:GetAttribute("RevengeUntil") or 0) > serverNow
+			local open = (protection == "" and not locked) or (revengeHere and protection ~= "robbing")
 			for _, prompt in plot:GetDescendants() do
 				if prompt:IsA("ProximityPrompt") then
 					local role = prompt:GetAttribute("Role")
 					local enabled = if role == "Owner"
 						then mine
-						elseif role == "Thief" then not mine and not locked
+						elseif role == "Thief" then not mine and open
 						elseif role == "Visitor" then not mine
 						else true
 					if prompt.Enabled ~= enabled then
@@ -15022,8 +17504,8 @@ local function refreshBases()
 				end
 			end
 			local shield = plot:FindFirstChild("Shield")
-			if shield and shield:IsA("BasePart") and mine and shield.CanCollide then
-				shield.CanCollide = false -- your own lock never blocks you
+			if shield and shield:IsA("BasePart") and (mine or revengeHere) and shield.CanCollide then
+				shield.CanCollide = false -- your own lock never blocks you (nor does it stop revenge)
 			end
 		end
 	end
@@ -15308,6 +17790,25 @@ local function hook(inst: Instance)
 		inst.ActionText = Lang.T(inst.ActionText)
 		inst.ObjectText = Lang.T(inst.ObjectText)
 	end
+end
+
+-- overhead tags (titles) live on characters, not in the map
+local Players = game:GetService("Players")
+local function hookCharacter(character: Model)
+	for _, d in character:GetDescendants() do
+		hook(d)
+	end
+	character.DescendantAdded:Connect(hook)
+end
+local function hookPlayer(other: Player)
+	other.CharacterAdded:Connect(hookCharacter)
+	if other.Character then
+		hookCharacter(other.Character)
+	end
+end
+Players.PlayerAdded:Connect(hookPlayer)
+for _, other in Players:GetPlayers() do
+	hookPlayer(other)
 end
 
 task.spawn(function()
@@ -16765,6 +19266,152 @@ return Gifts
             </Item>
             <Item class="ModuleScript" referent="59">
               <Properties>
+                <string name="Name">Houses</string>
+                <string name="Source"><![CDATA[--[[
+	Houses: every house in this server, most liked first.
+	Visit one (you arrive at its gate), tap the ❤️ post there to like it -
+	the owner gets gems + ranked points. Your own house: "Go home".
+]]
+local Players = game:GetService("Players")
+
+local Houses = { Title = "🏘️ HOUSES", Color = Color3.fromRGB(255, 130, 170) }
+
+local LEVEL_ICONS = { "🏡", "🏘️", "🏛️", "🏰", "🌌" }
+
+function Houses.Build(content, ctx)
+	local Lib, Net, Util = ctx.Lib, ctx.Net, ctx.Util
+	local New, C, T = Lib.New, Lib.Colors, Lib.T
+	local player = Players.LocalPlayer
+
+	Lib.Text({
+		Text = "Visit houses in this server • tap ❤️ at their gate to like them",
+		Font = Lib.BodyFont,
+		TextColor3 = C.Sub,
+		Size = UDim2.new(1, 0, 0, 22),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		MaxTextSize = 15,
+		Parent = content,
+	})
+	local list = Lib.Scroll({ Position = UDim2.fromOffset(0, 30), Size = UDim2.new(1, 0, 1, -30), Parent = content })
+	Lib.List(Enum.FillDirection.Vertical, 8).Parent = list
+	Lib.Padding(4).Parent = list
+
+	local function houses()
+		local result = {}
+		local map = workspace:FindFirstChild("Map")
+		local bases = map and map:FindFirstChild("Bases")
+		for _, plot in (bases and bases:GetChildren() or {}) do
+			local ownerId = plot:GetAttribute("OwnerId")
+			if type(ownerId) == "number" and ownerId ~= 0 then
+				table.insert(result, {
+					OwnerId = ownerId,
+					Name = plot:GetAttribute("HouseName") or "",
+					Owner = plot:GetAttribute("OwnerName") or "?",
+					Level = plot:GetAttribute("HouseLevel") or 1,
+					Likes = plot:GetAttribute("Likes") or 0,
+					Rate = plot:GetAttribute("Rate") or 0,
+					Protection = plot:GetAttribute("Protection") or "",
+				})
+			end
+		end
+		table.sort(result, function(a, b)
+			if a.Likes ~= b.Likes then
+				return a.Likes > b.Likes
+			end
+			if a.Level ~= b.Level then
+				return a.Level > b.Level
+			end
+			return a.OwnerId < b.OwnerId
+		end)
+		return result
+	end
+
+	local signature = ""
+	local function refresh()
+		local entries = houses()
+		local parts = {}
+		for _, h in entries do
+			table.insert(parts, table.concat({ h.OwnerId, h.Name, h.Level, h.Likes, h.Rate, h.Protection }, ":"))
+		end
+		local sig = table.concat(parts, ",")
+		if sig == signature then
+			return
+		end
+		signature = sig
+		Lib.Clear(list)
+		for order, h in entries do
+			local mine = h.OwnerId == player.UserId
+			local row = New("Frame", {
+				BackgroundColor3 = if mine then Color3.fromRGB(45, 70, 60) else C.Card,
+				Size = UDim2.new(1, -12, 0, 64),
+				LayoutOrder = order,
+				Parent = list,
+			}, { Lib.Corner(12), Lib.Stroke(if order == 1 then C.Gold else Color3.new(0, 0, 0), 2, if order == 1 then 0 else 0.5) })
+			local medal = if order == 1 then "🥇 " elseif order == 2 then "🥈 " elseif order == 3 then "🥉 " else ""
+			local title = if h.Name ~= "" then h.Name else T("%s's House", h.Owner)
+			Lib.Text({
+				Text = medal .. (LEVEL_ICONS[h.Level] or "🏠") .. " " .. title,
+				Size = UDim2.new(1, -200, 0, 30),
+				Position = UDim2.fromOffset(12, 4),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				MaxTextSize = 21,
+				Parent = row,
+			})
+			local shield = if h.Protection == "locked"
+				then "🔒"
+				elseif h.Protection == "newbie" or h.Protection == "shield" then "🛡️"
+				else ""
+			Lib.Text({
+				Text = T("by %s  •  Lv.%d  •  ❤️ %s  •  💰%s/s", h.Owner, h.Level, Util.Comma(h.Likes), Util.Format(h.Rate))
+					.. " "
+					.. shield,
+				Font = Lib.BodyFont,
+				TextColor3 = C.Sub,
+				Size = UDim2.new(1, -200, 0, 20),
+				Position = UDim2.fromOffset(12, 36),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				MaxTextSize = 14,
+				Parent = row,
+			})
+			Lib.Button({
+				Text = if mine then "🏠 Go home" else "🚪 Visit",
+				Color = if mine then C.Green else C.Pink,
+				Size = UDim2.fromOffset(170, 46),
+				Position = UDim2.new(1, -180, 0.5, 0),
+				AnchorPoint = Vector2.new(0, 0.5),
+				TextSize = 19,
+				Parent = row,
+				OnClick = function()
+					if mine then
+						Net.Fire("GoBase")
+					else
+						Net.Fire("VisitBase", h.OwnerId)
+					end
+					ctx.Panels.Close()
+				end,
+			})
+		end
+		if #entries == 0 then
+			Lib.Text({ Text = T("No houses yet"), Size = UDim2.new(1, 0, 0, 40), Parent = list })
+		end
+	end
+
+	return {
+		Refresh = refresh,
+		Tick = refresh,
+		OnOpen = function()
+			signature = ""
+			refresh()
+		end,
+	}
+end
+
+return Houses
+]]></string>
+              </Properties>
+            </Item>
+            <Item class="ModuleScript" referent="60">
+              <Properties>
                 <string name="Name">Pass</string>
                 <string name="Source"><![CDATA[-- Season pass: free + premium tracks, XP bar, premium / skip upsells
 local Pass = { Title = "🎫 SEASON PASS", Color = Color3.fromRGB(255, 120, 60) }
@@ -16945,13 +19592,15 @@ return Pass
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="60">
+            <Item class="ModuleScript" referent="61">
               <Properties>
                 <string name="Name">Pets</string>
                 <string name="Source"><![CDATA[--[[
 	Pet collection: every pet you own, best earners first.
-	🏠 = standing on a pedestal in your base (earning coins every second)
-	⭐ = following you (adds mining power)   📦 = waiting in storage
+	🔒 = in a VAULT (can never be stolen, 50% income)
+	🏠 = on display (full income, thieves can try to take it)
+	💎 = exclusive (never stolen)   ⭐ = following you   📦 = storage
+	Tap 🔒/🏠 on a card to choose: keep it safe in a vault, or show it off.
 	Tap 💰 twice to sell a pet (pays one minute of its income).
 ]]
 local PetModel = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("PetModel"))
@@ -17069,15 +19718,9 @@ function Pets.Build(content, ctx)
 		return Util.PetIncome(Config, pet.Name, pet.Variant)
 	end
 
-	local function pedestalCount(data): number
-		local count = 0
-		for _, item in data.Base and data.Base.Items or {} do
-			local def = Config.Decor[item.Id]
-			if def and def.Function == "Pedestal" then
-				count += 1
-			end
-		end
-		return count
+	local function pedestalKey(data): string
+		local display, vault = Util.Pedestals(Config, data.Base and data.Base.Items or {})
+		return #display .. "/" .. #vault
 	end
 
 	local function rebuild(data, derived)
@@ -17099,19 +19742,27 @@ function Pets.Build(content, ctx)
 			end
 			return income(a) > income(b)
 		end)
-		local slots = pedestalCount(data)
-		local shown = 0
-		local mult = (derived.CoinMult or 1) * (if State.HasPass("DoubleBase") then 2 else 1)
+		-- same rules as the server (Util.ArrangePets)
+		local vaultPets, displayPets = Util.ArrangePets(Config, data)
+		local where = {}
+		for _, pet in vaultPets do
+			where[pet.Id] = "vault"
+		end
+		for _, pet in displayPets do
+			where[pet.Id] = "display"
+		end
+		local mult = (derived.CoinMult or 1) * (if State.HasPass("DoubleBase") then 2 else 1) * (1 + Util.SetBonus(Config, data.Base.Items))
 		for order, pet in pets do
 			local info = Config.Pets[pet.Name]
 			local rarity = Config.Rarities[info.Rarity]
-			local onDisplay = false
-			if not pet.Away and shown < slots then
-				shown += 1
-				onDisplay = true
-			end
+			local place = where[pet.Id]
+			local onDisplay = place ~= nil
+			local exclusive = info.Exclusive == true
 			local card = New("Frame", {
-				BackgroundColor3 = if onDisplay then Color3.fromRGB(40, 70, 60) else C.Card,
+				BackgroundColor3 = if place == "vault"
+					then Color3.fromRGB(45, 55, 85)
+					elseif onDisplay then Color3.fromRGB(40, 70, 60)
+					else C.Card,
 				LayoutOrder = order,
 				Parent = grid,
 			}, {
@@ -17133,6 +19784,9 @@ function Pets.Build(content, ctx)
 			if pet.Variant then
 				name = T(pet.Variant) .. " " .. name
 			end
+			if pet.Serial then
+				name ..= " #" .. tostring(pet.Serial)
+			end
 			Lib.Text({
 				Text = name,
 				Size = UDim2.new(1, -6, 0, 20),
@@ -17140,15 +19794,27 @@ function Pets.Build(content, ctx)
 				MaxTextSize = 14,
 				Parent = card,
 			})
+			local petMult = if place == "vault" then mult * Config.Base.VaultIncome else mult
 			Lib.Text({
-				Text = "💰" .. Util.Format(income(pet) * mult) .. "/s",
+				Text = "💰" .. Util.Format(income(pet) * petMult) .. "/s",
 				TextColor3 = C.Coins,
 				Size = UDim2.new(1, -6, 0, 18),
 				Position = UDim2.fromOffset(3, 84),
 				MaxTextSize = 15,
 				Parent = card,
 			})
-			local status = if pet.Away then T("🏃 being stolen!") elseif onDisplay then T("🏠 earning") else T("📦 storage")
+			local status
+			if pet.Away then
+				status = T("🏃 being stolen!")
+			elseif place == "vault" then
+				status = T("🔒 safe")
+			elseif onDisplay and exclusive then
+				status = T("💎 safe")
+			elseif onDisplay then
+				status = T("🏠 on display")
+			else
+				status = T("📦 storage")
+			end
 			if following[pet.Id] then
 				status = "⭐ " .. status
 			end
@@ -17162,6 +19828,27 @@ function Pets.Build(content, ctx)
 				MaxTextSize = 11,
 				Parent = card,
 			})
+			-- vault or show off? (exclusive pets are always safe)
+			if not pet.Away and not exclusive then
+				local toggle = New("TextButton", {
+					Text = if pet.Show then "🏠" else "🔒",
+					TextScaled = true,
+					BackgroundColor3 = if pet.Show then C.Green else C.Blue,
+					Size = UDim2.fromOffset(26, 26),
+					Position = UDim2.new(0, 4, 0, 4),
+					Parent = card,
+				}, { Lib.Corner(6) })
+				toggle.Activated:Connect(function()
+					Lib.PlaySound("UI")
+					Net.Fire("PetShow", pet.Id, not pet.Show)
+					ctx.Toast(
+						if pet.Show
+							then T("🔒 This pet may go into a vault again (safe, half income)")
+							else T("🏠 This pet stays on display: full income, but it can be stolen!"),
+						if pet.Show then C.Blue else C.Gold
+					)
+				end)
+			end
 			if not pet.Away then
 				local sell = New("TextButton", {
 					Text = "💰",
@@ -17214,7 +19901,10 @@ function Pets.Build(content, ctx)
 		slotsButton.Visible = not State.HasPass("ExtraPets")
 		local parts = {}
 		for _, pet in data.Pets do
-			table.insert(parts, pet.Id .. (pet.Variant or "") .. (if pet.Away then "!" else ""))
+			table.insert(
+				parts,
+				pet.Id .. (pet.Variant or "") .. (if pet.Away then "!" else "") .. (if pet.Show then "s" else "") .. (pet.Serial or "")
+			)
 		end
 		local sig = table.concat(parts, ",")
 			.. "|"
@@ -17222,7 +19912,9 @@ function Pets.Build(content, ctx)
 			.. "|"
 			.. tostring(derived.CoinMult)
 			.. "|"
-			.. pedestalCount(data)
+			.. pedestalKey(data)
+			.. "|"
+			.. tostring(Util.SetBonus(Config, data.Base.Items))
 			.. "|"
 			.. tostring(State.HasPass("DoubleBase"))
 		if sig ~= signature then
@@ -17238,7 +19930,7 @@ return Pets
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="61">
+            <Item class="ModuleScript" referent="62">
               <Properties>
                 <string name="Name">Quests</string>
                 <string name="Source"><![CDATA[-- Daily login streak, daily quests, weekly ranked ladder, VIP chest, group reward
@@ -17546,7 +20238,7 @@ return Quests
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="62">
+            <Item class="ModuleScript" referent="63">
               <Properties>
                 <string name="Name">Rebirth</string>
                 <string name="Source"><![CDATA[-- Rebirth: reset coins/upgrades for a permanent coin multiplier + gems
@@ -17636,7 +20328,7 @@ return Rebirth
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="63">
+            <Item class="ModuleScript" referent="64">
               <Properties>
                 <string name="Name">Rewards</string>
                 <string name="Source"><![CDATA[-- One place for every free reward (instead of 4 separate menu buttons)
@@ -17721,7 +20413,7 @@ return Rewards
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="64">
+            <Item class="ModuleScript" referent="65">
               <Properties>
                 <string name="Name">Settings</string>
                 <string name="Source"><![CDATA[-- Settings: language (auto / 한국어 / English), sound, how to play
@@ -17823,7 +20515,7 @@ return Settings
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="65">
+            <Item class="ModuleScript" referent="66">
               <Properties>
                 <string name="Name">Shop</string>
                 <string name="Source"><![CDATA[-- Pickaxe + running-speed upgrades (coins sink, sequential tiers)
@@ -17960,7 +20652,7 @@ return Shop
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="66">
+            <Item class="ModuleScript" referent="67">
               <Properties>
                 <string name="Name">Spin</string>
                 <string name="Source"><![CDATA[-- Free prize wheel: one spin every few hours (VIP: faster). The server picks
@@ -18185,7 +20877,7 @@ return Spin
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="67">
+            <Item class="ModuleScript" referent="68">
               <Properties>
                 <string name="Name">Store</string>
                 <string name="Source"><![CDATA[-- Robux store: game passes, consumables (gems/boosts/server luck/meteor),
@@ -18415,7 +21107,14 @@ function Store.Build(content, ctx)
 			Lib.SetButton(button, "R$ " .. Lib.Price("Product", key), C.Green)
 		end
 		local starterOpen = not data.Flags.StarterPack and State.Now() < data.FirstJoin + Config.StarterPack.OfferHours * 3600
-		itemCards.StarterPack.Visible = starterOpen
+		itemCards.StarterPack.Visible = starterOpen and not derived.PaidRandomRestricted
+		-- where paid random items are restricted, Robux can't buy egg currencies
+		for key, frame in itemCards do
+			local product = Config.Products[key]
+			if product and (product.Kind == "Gems" or product.Kind == "CoinPack") then
+				frame.Visible = not derived.PaidRandomRestricted
+			end
+		end
 		Lib.SetButton(
 			clubButton,
 			if derived.Subscribed then "✅ MEMBER" else T("Join %s", sub.PriceText),
@@ -18443,7 +21142,7 @@ return Store
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="68">
+            <Item class="ModuleScript" referent="69">
               <Properties>
                 <string name="Name">Teleport</string>
                 <string name="Source"><![CDATA[-- Zone list: teleport to unlocked zones, unlock the next one
@@ -18525,7 +21224,185 @@ return Teleport
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="69">
+            <Item class="ModuleScript" referent="70">
+              <Properties>
+                <string name="Name">Titles</string>
+                <string name="Source"><![CDATA[--[[
+	Titles: earned by playing, shown above your head for everyone to see.
+	Pick one to wear, or "Auto" to always wear your best one.
+]]
+local Titles = { Title = "👑 TITLES", Color = Color3.fromRGB(230, 170, 40) }
+
+function Titles.Build(content, ctx)
+	local Lib, State, Net, Config, Util = ctx.Lib, ctx.State, ctx.Net, ctx.Config, ctx.Util
+	local New, C, T = Lib.New, Lib.Colors, Lib.T
+
+	local header = Lib.Text({
+		Text = "",
+		Size = UDim2.new(1, 0, 0, 26),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		MaxTextSize = 20,
+		Parent = content,
+	})
+	local list = Lib.Scroll({ Position = UDim2.fromOffset(0, 32), Size = UDim2.new(1, 0, 1, -32), Parent = content })
+	Lib.List(Enum.FillDirection.Vertical, 8).Parent = list
+	Lib.Padding(4).Parent = list
+
+	local function countOf(t): number
+		local n = 0
+		for _ in t or {} do
+			n += 1
+		end
+		return n
+	end
+
+	-- requirement text + progress ("3/10")
+	local function requirement(title, data): (string, string)
+		local need = title.Need or {}
+		local stats = data.Stats or {}
+		if need.Level then
+			return T("Reach level %d", need.Level), string.format("%d/%d", math.min(data.Level, need.Level), need.Level)
+		elseif need.Index then
+			local have = countOf(data.PetIndex)
+			return T("Discover %d different pets", need.Index), string.format("%d/%d", math.min(have, need.Index), need.Index)
+		elseif need.Steals then
+			local have = stats.ShardsStolen or 0
+			return T("Steal %d pets", need.Steals), string.format("%d/%d", math.min(have, need.Steals), need.Steals)
+		elseif need.Catches then
+			local have = stats.ThievesCaught or 0
+			return T("Stop %d thieves (bonk or trap)", need.Catches), string.format("%d/%d", math.min(have, need.Catches), need.Catches)
+		elseif need.HouseLevel then
+			local have = Util.HouseLevel(Config, data)
+			return T("Grow your house to level %d", need.HouseLevel),
+				string.format("%d/%d", math.min(have, need.HouseLevel), need.HouseLevel)
+		elseif need.Likes then
+			local have = data.Base and data.Base.Likes or 0
+			return T("Get %d likes on your house", need.Likes), string.format("%d/%d", math.min(have, need.Likes), need.Likes)
+		elseif need.Rebirths then
+			return T("Rebirth %d times", need.Rebirths), string.format("%d/%d", math.min(data.Rebirths or 0, need.Rebirths), need.Rebirths)
+		elseif need.Huge then
+			return T("Find a HUGE pet"), string.format("%d/%d", math.min(stats.HugesFound or 0, need.Huge), need.Huge)
+		elseif need.LifetimeCoins then
+			return T("Earn %s coins in total", Util.Format(need.LifetimeCoins)), ""
+		elseif need.Pass then
+			return T("Own the VIP pass"), ""
+		end
+		return T("Everyone starts here"), ""
+	end
+
+	local signature = ""
+	local function refresh()
+		local data = State.Data
+		if not data then
+			return
+		end
+		local current = Util.CurrentTitle(Config, data, State.HasPass)
+		local unlocked = {}
+		local parts = { data.Title or "", current and current.Id or "" }
+		local count = 0
+		for _, title in Config.Titles do
+			local ok = Util.TitleUnlocked(Config, title, data, State.HasPass)
+			unlocked[title.Id] = ok
+			if ok then
+				count += 1
+			end
+			local _, progress = requirement(title, data)
+			table.insert(parts, title.Id .. tostring(ok) .. progress)
+		end
+		header.Text = T("👑 %d/%d titles unlocked  •  everyone sees the one you wear", count, #Config.Titles)
+		local sig = table.concat(parts, ",")
+		if sig == signature then
+			return
+		end
+		signature = sig
+		Lib.Clear(list)
+
+		-- auto: always wear the best one
+		local auto = New("Frame", { BackgroundColor3 = C.Card, Size = UDim2.new(1, -12, 0, 54), LayoutOrder = 0, Parent = list }, {
+			Lib.Corner(12),
+		})
+		Lib.Text({
+			Text = "✨ " .. T("Auto: always wear my best title"),
+			Size = UDim2.new(1, -190, 1, -10),
+			Position = UDim2.fromOffset(12, 5),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			MaxTextSize = 18,
+			Parent = auto,
+		})
+		Lib.Button({
+			Text = if (data.Title or "") == "" then "✅" else "Wear",
+			Color = if (data.Title or "") == "" then C.Green else C.Blue,
+			Size = UDim2.fromOffset(150, 42),
+			Position = UDim2.new(1, -160, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			TextSize = 18,
+			Parent = auto,
+			OnClick = function()
+				Net.Fire("SetTitle", "")
+			end,
+		})
+
+		for order, title in Config.Titles do
+			local ok = unlocked[title.Id]
+			local wearing = current and current.Id == title.Id and (data.Title or "") ~= ""
+			local row = New("Frame", {
+				BackgroundColor3 = if ok then C.Card else Color3.fromRGB(40, 40, 52),
+				Size = UDim2.new(1, -12, 0, 62),
+				LayoutOrder = order,
+				Parent = list,
+			}, { Lib.Corner(12), Lib.Stroke(if ok then title.Color else Color3.new(0, 0, 0), 2, if ok then 0.1 else 0.6) })
+			Lib.Text({
+				Text = (if ok then "" else "🔒 ") .. T(title.Name),
+				TextColor3 = if ok then title.Color else C.Sub,
+				Size = UDim2.new(1, -190, 0, 28),
+				Position = UDim2.fromOffset(12, 4),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				MaxTextSize = 21,
+				Parent = row,
+			})
+			local text, progress = requirement(title, data)
+			Lib.Text({
+				Text = text .. (if progress ~= "" and not ok then "  (" .. progress .. ")" else ""),
+				Font = Lib.BodyFont,
+				TextColor3 = C.Sub,
+				Size = UDim2.new(1, -190, 0, 20),
+				Position = UDim2.fromOffset(12, 36),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				MaxTextSize = 14,
+				Parent = row,
+			})
+			if ok then
+				Lib.Button({
+					Text = if wearing then "✅" else "Wear",
+					Color = if wearing then C.Green else C.Blue,
+					Size = UDim2.fromOffset(150, 42),
+					Position = UDim2.new(1, -160, 0.5, 0),
+					AnchorPoint = Vector2.new(0, 0.5),
+					TextSize = 18,
+					Parent = row,
+					OnClick = function()
+						Lib.PlaySound("UI")
+						Net.Fire("SetTitle", title.Id)
+					end,
+				})
+			end
+		end
+	end
+
+	return {
+		Refresh = refresh,
+		OnOpen = function()
+			signature = ""
+			refresh()
+		end,
+	}
+end
+
+return Titles
+]]></string>
+              </Properties>
+            </Item>
+            <Item class="ModuleScript" referent="71">
               <Properties>
                 <string name="Name">Trade</string>
                 <string name="Source"><![CDATA[--[[
@@ -18626,7 +21503,9 @@ function Trade.Build(content, ctx)
 			Parent = parent,
 		}, { Lib.Corner(10), Lib.Stroke(rarity.Color, 2.5, 0) })
 		Lib.Text({
-			Text = (if pet.Variant then T(pet.Variant) .. " " else "") .. T(pet.Name),
+			Text = (if pet.Variant then T(pet.Variant) .. " " else "") .. T(pet.Name) .. (if pet.Serial
+				then " #" .. tostring(pet.Serial)
+				else ""),
 			Size = UDim2.new(1, -8, 0, 22),
 			Position = UDim2.fromOffset(4, 2),
 			MaxTextSize = 14,
@@ -18809,7 +21688,7 @@ return Trade
               </Properties>
             </Item>
           </Item>
-          <Item class="ModuleScript" referent="70">
+          <Item class="ModuleScript" referent="72">
             <Properties>
               <string name="Name">Root</string>
               <string name="Source"><![CDATA[--[[
@@ -18895,7 +21774,7 @@ return Root
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="71">
+          <Item class="ModuleScript" referent="73">
             <Properties>
               <string name="Name">Upsell</string>
               <string name="Source"><![CDATA[--[[
@@ -19029,13 +21908,13 @@ return Upsell
       </Item>
     </Item>
   </Item>
-  <Item class="TextChatService" referent="72">
+  <Item class="TextChatService" referent="74">
     <Properties>
       <string name="Name">TextChatService</string>
       <token name="ChatVersion">1</token>
     </Properties>
   </Item>
-  <Item class="Workspace" referent="73">
+  <Item class="Workspace" referent="75">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>

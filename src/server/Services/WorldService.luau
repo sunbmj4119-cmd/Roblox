@@ -611,6 +611,22 @@ local function buildHub()
 		leaderboard(CFrame.new(50, 11, HUB_HALF - 2), Vector3.new(24, 18, 1), defs[3].Key, defs[3].Title, boards)
 	end
 
+	-- hall of fame: statues of the all-time richest players (LeaderboardService)
+	local fame = folder("HallOfFame", hub)
+	World.StatueSpots = {}
+	for rank, spot in { { -30, 4 }, { -42, 3 }, { -18, 2.2 } } do
+		local position = Vector3.new(spot[1], spot[2] / 2, -8)
+		local plinth = newPart({
+			Name = "Plinth" .. rank,
+			Size = Vector3.new(7, spot[2], 7),
+			CFrame = CFrame.lookAt(position, Vector3.new(0, position.Y, -60)),
+			Color = ({ Color3.fromRGB(255, 205, 60), Color3.fromRGB(210, 215, 225), Color3.fromRGB(215, 140, 80) })[rank],
+			Material = Enum.Material.Marble,
+		}, fame)
+		World.StatueSpots[rank] = plinth.CFrame * CFrame.new(0, spot[2] / 2, 0)
+	end
+	billboard(fame:FindFirstChild("Plinth1") :: BasePart, "🏆 HALL OF FAME", Color3.fromRGB(255, 220, 90), 13, 16, 3)
+
 	-- gates: mines to the north, bases to the south
 	arch(Vector3.new(0, 0, HUB_HALF - 2), "⛏️ MINES", Color3.fromRGB(255, 200, 80), hub)
 	arch(Vector3.new(0, 0, -HUB_HALF + 2), "🏠 BASES", Color3.fromRGB(120, 230, 255), hub)
@@ -640,7 +656,8 @@ local function buildHub()
 end
 
 ---------------------------------------------------------------------------
--- base district (south): floor, walls, road; plots come from BaseService
+-- base district (south): gardens, avenue, walls; the territories themselves
+-- come from BaseService (Util.PlotLayout: two rows facing the avenue)
 ---------------------------------------------------------------------------
 local function buildBaseDistrict()
 	local district = folder("District", map)
@@ -649,8 +666,12 @@ local function buildBaseDistrict()
 	local length = bases.ZStart - bases.ZEnd
 	local centerZ = (bases.ZStart + bases.ZEnd) / 2
 	local wallColor = Color3.fromRGB(70, 72, 92)
-	local streets = Config.Base.Streets
-	local plazaDepth = 14 -- east-west plaza right behind the gate
+	local base = Config.Base
+	local half = base.PlotSize / 2
+	local layout = base.Layout
+	local avenueZ = Util.AvenueZ(Config)
+	local northZ = bases.ZStart - layout.Margin - half
+	local southZ = avenueZ - layout.Avenue / 2 - half
 
 	-- corridor from the hub's south gate
 	newPart({
@@ -669,67 +690,109 @@ local function buildBaseDistrict()
 		)
 	end
 
+	-- soft grass everywhere between the houses
 	newPart({
 		Name = "Floor",
 		Size = Vector3.new(halfX * 2, 4, length),
 		CFrame = CFrame.new(0, -2, centerZ),
-		Color = Color3.fromRGB(58, 62, 84),
-		Material = Enum.Material.Slate,
+		Color = Color3.fromRGB(85, 145, 80),
+		Material = Enum.Material.Grass,
 	}, district)
 
-	-- entrance plaza linking the gate to every street
-	local lastStreet = math.max(math.abs(streets[1]), math.abs(streets[#streets]))
+	-- entrance lane: gate -> avenue (between the two inner houses)
+	local laneLength = bases.ZStart - (avenueZ + layout.Avenue / 2)
 	newPart({
-		Name = "Plaza",
-		Size = Vector3.new(lastStreet * 2 + 22, 0.2, plazaDepth),
-		CFrame = CFrame.new(0, 0.05, bases.ZStart - plazaDepth / 2),
-		Color = Color3.fromRGB(200, 190, 170),
+		Name = "Lane",
+		Size = Vector3.new(layout.EntranceGap - 6, 0.2, laneLength),
+		CFrame = CFrame.new(0, 0.05, bases.ZStart - laneLength / 2),
+		Color = Color3.fromRGB(205, 195, 175),
 		Material = Enum.Material.Cobblestone,
 	}, district)
+	speedPad(Vector3.new(0, 0, bases.ZStart - 14), math.pi, district)
 
-	local streetLength = length - plazaDepth
-	local streetZ = bases.ZStart - plazaDepth - streetLength / 2
-	for _, x in streets do
+	-- the avenue every house faces
+	newPart({
+		Name = "Avenue",
+		Size = Vector3.new(halfX * 2 - 6, 0.2, layout.Avenue),
+		CFrame = CFrame.new(0, 0.06, avenueZ),
+		Color = Color3.fromRGB(205, 195, 175),
+		Material = Enum.Material.Cobblestone,
+	}, district)
+	for _, side in { -1, 1 } do
 		newPart({
-			Name = "Street",
-			Size = Vector3.new(20, 0.2, streetLength),
-			CFrame = CFrame.new(x, 0.05, streetZ),
-			Color = Color3.fromRGB(200, 190, 170),
-			Material = Enum.Material.Cobblestone,
+			Name = "AvenueLine",
+			Size = Vector3.new(halfX * 2 - 6, 0.25, 0.6),
+			CFrame = CFrame.new(0, 0.09, avenueZ + side * (layout.Avenue / 2 - 0.5)),
+			Color = Color3.fromRGB(120, 230, 255),
+			Material = Enum.Material.Neon,
+			CanCollide = false,
 		}, district)
-		for _, side in { -1, 1 } do
-			newPart({
-				Name = "StreetLine",
-				Size = Vector3.new(0.6, 0.25, streetLength),
-				CFrame = CFrame.new(x + side * 10.5, 0.08, streetZ),
-				Color = Color3.fromRGB(120, 230, 255),
-				Material = Enum.Material.Neon,
-				CanCollide = false,
-			}, district)
-		end
-		-- plot rows (see BaseService): first row center and row pitch
-		local plotSize = Config.Base.PlotSize
-		local pitch = plotSize + 4
-		local firstRow = bases.ZStart - 18 - plotSize / 2
-		for z = firstRow, bases.ZEnd + plotSize / 2, -pitch do
-			speedPad(Vector3.new(x, 0, z), math.pi, district) -- in front of each row
-		end
-		for z = firstRow + plotSize / 2 + 2, bases.ZEnd + 4, -pitch do -- between plot rows
-			lamp(Vector3.new(x - 11, 0, z), Color3.fromRGB(140, 220, 255), district)
-			lamp(Vector3.new(x + 11, 0, z), Color3.fromRGB(140, 220, 255), district)
-		end
 	end
-	-- dash pads on the plaza, pointing to each street
-	for _, x in streets do
-		speedPad(Vector3.new(x * 0.5, 0, bases.ZStart - plazaDepth / 2), if x > 0 then -math.pi / 2 else math.pi / 2, district)
+	-- dash pads pointing to the outer houses, lamps along the avenue
+	for _, x in { 34, 120 } do
+		speedPad(Vector3.new(x, 0, avenueZ), -math.pi / 2, district)
+		speedPad(Vector3.new(-x, 0, avenueZ), math.pi / 2, district)
+	end
+	for x = -halfX + 20, halfX - 20, 40 do
+		lamp(Vector3.new(x, 0, avenueZ - layout.Avenue / 2 - 1.5), Color3.fromRGB(255, 220, 160), district)
+		lamp(Vector3.new(x, 0, avenueZ + layout.Avenue / 2 + 1.5), Color3.fromRGB(255, 220, 160), district)
 	end
 
-	-- park strip between the inner plots
-	for z = bases.ZStart - plazaDepth - 24, bases.ZEnd + 16, -30 do
-		tree(Vector3.new(0, 0, z), district)
+	-- gardens between neighbours: a row of trees in every gap
+	local gapX = layout.EntranceGap / 2 + half * 2 + layout.Gap / 2
+	for _, rowZ in { northZ, southZ } do
+		for _, x in { -gapX, gapX } do
+			for dz = -half + 6, half - 6, 12 do
+				tree(Vector3.new(x, 0, rowZ + dz), district)
+			end
+		end
 	end
 
-	-- walls
+	-- a little park between the far houses
+	newPart({
+		Name = "Park",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.2, layout.EntranceGap - 6, layout.EntranceGap - 6),
+		CFrame = CFrame.new(0, 0.07, southZ) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(215, 205, 180),
+		Material = Enum.Material.Cobblestone,
+	}, district)
+	newPart({
+		Name = "ParkFountain",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(1.6, 12, 12),
+		CFrame = CFrame.new(0, 0.8, southZ) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(235, 235, 245),
+		Material = Enum.Material.Marble,
+	}, district)
+	newPart({
+		Name = "ParkWater",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.3, 10.5, 10.5),
+		CFrame = CFrame.new(0, 1.65, southZ) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(90, 190, 255),
+		Material = Enum.Material.Glass,
+		Transparency = 0.25,
+		CanCollide = false,
+	}, district)
+	local parkStar = newPart({
+		Name = "ParkStar",
+		Size = Vector3.new(1.8, 3.6, 1.8),
+		CFrame = CFrame.new(0, 4.4, southZ) * CFrame.Angles(0, math.rad(45), math.rad(15)),
+		Color = Color3.fromRGB(255, 210, 110),
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, district)
+	local glow = Instance.new("PointLight")
+	glow.Color = parkStar.Color
+	glow.Range = 16
+	glow.Brightness = 1.5
+	glow.Parent = parkStar
+	for _, corner in { { -14, -14 }, { 14, -14 }, { -14, 14 }, { 14, 14 } } do
+		tree(Vector3.new(corner[1], 0, southZ + corner[2]), district)
+	end
+
+	-- walls around the district (gap for the corridor)
 	for _, side in { -1, 1 } do
 		wall(CFrame.new(side * (halfX + 1), WALL_H / 2, centerZ), Vector3.new(2, WALL_H, length + 2), wallColor, district)
 		local segment = halfX - CORRIDOR_W / 2
@@ -742,7 +805,7 @@ local function buildBaseDistrict()
 	end
 	wall(CFrame.new(0, WALL_H / 2, bases.ZEnd - 1), Vector3.new(halfX * 2 + 4, WALL_H, 2), wallColor, district)
 
-	-- twinkling stars above the district (it's where the shards live)
+	-- twinkling stars above the district (it's where the pets live)
 	local sky = newPart({
 		Name = "Ambience",
 		Size = Vector3.new(halfX * 2, 1, length),

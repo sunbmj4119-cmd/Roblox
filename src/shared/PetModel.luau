@@ -14,6 +14,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(script.Parent.Config)
+local Util = require(script.Parent.Util)
 
 local PetModel = {}
 
@@ -389,6 +390,22 @@ function PetModel.Build(petName: string, variant: string?): Model
 				fire.Speed = NumberRange.new(1, 3)
 				fire.LightEmission = 1
 				fire.Parent = body
+			end
+		end
+		-- HUGE: same colours, twice the size, a golden shimmer
+		local def = Util.VariantDef(Config, variant)
+		if def and def.Scale and def.Scale ~= 1 then
+			sparkles(body, Color3.fromRGB(255, 225, 120), 10, 0.5)
+			local ok = pcall(function()
+				model:ScaleTo(def.Scale)
+			end)
+			if not ok then
+				for _, d in model:GetDescendants() do
+					if d:IsA("BasePart") then
+						d.Size *= def.Scale
+						d.CFrame = CFrame.new(d.Position * def.Scale) * (d.CFrame - d.Position)
+					end
+				end
 			end
 		end
 	end

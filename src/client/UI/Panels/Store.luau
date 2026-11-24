@@ -225,7 +225,14 @@ function Store.Build(content, ctx)
 			Lib.SetButton(button, "R$ " .. Lib.Price("Product", key), C.Green)
 		end
 		local starterOpen = not data.Flags.StarterPack and State.Now() < data.FirstJoin + Config.StarterPack.OfferHours * 3600
-		itemCards.StarterPack.Visible = starterOpen
+		itemCards.StarterPack.Visible = starterOpen and not derived.PaidRandomRestricted
+		-- where paid random items are restricted, Robux can't buy egg currencies
+		for key, frame in itemCards do
+			local product = Config.Products[key]
+			if product and (product.Kind == "Gems" or product.Kind == "CoinPack") then
+				frame.Visible = not derived.PaidRandomRestricted
+			end
+		end
 		Lib.SetButton(
 			clubButton,
 			if derived.Subscribed then "✅ MEMBER" else T("Join %s", sub.PriceText),

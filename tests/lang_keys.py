@@ -58,7 +58,7 @@ for path in client + server:
         add(m.group(1))
     for m in re.finditer(r"GrantReward\([^\n]*?,\s*" + STR, src):
         add(m.group(1))
-    for m in re.finditer(r"SetText\([^,\n]+,\s*" + STR, src):
+    for m in re.finditer(r"SetText\(\s*[^,()]+,\s*" + STR, src):  # also multi-line calls
         add(m.group(1))
     for m in re.finditer(r"\bbillboard\([^,\n]+,\s*" + STR, src):
         add(m.group(1))
@@ -94,6 +94,9 @@ for path in client + server:
             add(m.group(1))
     # server-side returned messages
     if "/server/" in path:
+        for m in re.finditer(r"(?:STATUS_TEXT|PROTECTION_MESSAGES)\s*=\s*\{[^}]*\}", src):
+            for s in re.findall(STR, m.group(0)):
+                add(s)
         for m in re.finditer(r"return false,\s*" + STR, src):
             add(m.group(1))
         for m in re.finditer(r"CURRENCY_NAMES = \{[^}]*\}", src):
@@ -114,7 +117,11 @@ for m in re.finditer(r'^\t(\w+) = \{ Rarity', config, re.M):  # Bunny = { Rarity
     add(m.group(1))
 for m in re.finditer(r'^\t(Common|Uncommon|Rare|Epic|Legendary|Mythic|Secret) =', config, re.M):
     add(m.group(1))
-for m in re.finditer(r'Id = "(Golden|Rainbow)"', config):
+for m in re.finditer(r'Id = "(Golden|Rainbow|Galaxy|Huge|Molten|Frozen)"', config):
+    add(m.group(1))
+# placement rules (shared by server + build mode) return messages
+decor = read(ROOT + "/src/shared/DecorModel.luau")
+for m in re.finditer(r"return false,\s*" + STR, decor):
     add(m.group(1))
 for m in re.finditer(r'Pet = ' + STR, config):
     add(m.group(1))

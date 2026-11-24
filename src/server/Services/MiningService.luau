@@ -470,7 +470,12 @@ local function tryBonk(attacker: Player, victim: Player)
 	end
 	immunity[victim] = clock + Config.PvP.ImmunitySeconds
 
+	local wasThief = victim:GetAttribute("CarryStolen") == true
 	shards:Drop(victim, attacker)
+	if wasThief then
+		-- stopped a thief: counts for the 🛡️ Guardian title + claims any bounty
+		Services.BaseService:ThiefCaught(attacker, victim)
+	end
 	aData.Stats.Bonks += 1
 	local progression = Services.ProgressionService
 	progression:AddQuest(attacker, "Bonk", 1)

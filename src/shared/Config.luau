@@ -161,7 +161,7 @@ Config.World = {
 	Reach = 13, -- studs from character to the target
 	WalkSpeed = 22,
 	-- base district south of the hub (see BaseService)
-	Bases = { ZStart = -88, ZEnd = -304, HalfX = 124 },
+	Bases = { ZStart = -88, ZEnd = -278, HalfX = 200 },
 	SpawnSafeRadius = 24, -- nobody can be bonked near the spawn
 }
 
@@ -306,8 +306,17 @@ Config.Pets = {
 		Horns = true,
 	},
 	-- Golden egg (Robux)
-	["Golden Pup"] = { Rarity = "Epic", Power = 50, Income = 1500, Color = Color3.fromRGB(255, 210, 60), Shape = "Block", Ears = true },
+	["Golden Pup"] = {
+		Exclusive = true,
+		Rarity = "Epic",
+		Power = 50,
+		Income = 1500,
+		Color = Color3.fromRGB(255, 210, 60),
+		Shape = "Block",
+		Ears = true,
+	},
 	["Golden Cat"] = {
+		Exclusive = true,
 		Rarity = "Legendary",
 		Power = 150,
 		Income = 4500,
@@ -316,6 +325,7 @@ Config.Pets = {
 		Ears = true,
 	},
 	["Golden Dragon"] = {
+		Exclusive = true,
 		Rarity = "Mythic",
 		Power = 600,
 		Income = 18000,
@@ -325,6 +335,7 @@ Config.Pets = {
 		Horns = true,
 	},
 	["Midas King"] = {
+		Exclusive = true,
 		Rarity = "Secret",
 		Power = 2500,
 		Income = 75000,
@@ -479,7 +490,7 @@ Config.GamePasses = {
 		Name = "VIP",
 		Price = 299,
 		Icon = "👑",
-		Description = "+25% coins, +1 pet slot, [VIP] chat tag, daily VIP chest (100 gems)",
+		Description = "+25% coins, +1 pet slot, +1 vault, +10s base lock, Royal house skin, gold [VIP] tag, daily chest (100 gems)",
 	},
 	DoubleCoins = { Id = 0, Name = "2x Coins", Price = 249, Icon = "💰", Description = "Permanently double all coins" },
 	MegaPower = { Id = 0, Name = "2x Mining Power", Price = 199, Icon = "💥", Description = "Permanently double your mining damage" },
@@ -542,6 +553,16 @@ Config.Products = {
 	},
 	GoldenEgg1 = { Id = 0, Name = "Golden Egg x1", Price = 79, Icon = "🥚", Kind = "PaidEgg", Egg = "Golden", Count = 1 },
 	GoldenEgg3 = { Id = 0, Name = "Golden Egg x3", Price = 199, Icon = "🥚", Kind = "PaidEgg", Egg = "Golden", Count = 3 },
+	HouseSkinNeon = {
+		Id = 0,
+		Name = "Neon City House",
+		Price = 149,
+		Icon = "🌃",
+		Kind = "HouseSkin",
+		Skin = "Neon",
+		OneTime = true,
+		Description = "Glowing neon walls for your house (looks only)",
+	},
 	-- Rewarded video ad reward (Robux price is irrelevant; Roblox grants it via ProcessReceipt)
 	AdReward = { Id = 0, Name = "Free 2x Coins (10m)", Price = 0, Icon = "📺", Kind = "Boost", Boost = "Coins2x", Seconds = 600 },
 }
@@ -655,6 +676,29 @@ Config.Leaderboards = {
 	WeeklyTopReward = { 5000, 3000, 2000, 1000, 1000, 500, 500, 500, 500, 500 }, -- gems for global top 10
 }
 
+-- titles: earned by playing, shown above your head (choose one in 👑 Titles).
+-- Need: Level / Index (pets discovered) / Steals / Catches (thieves bonked) /
+-- HouseLevel / Likes / Rebirths / Huge (huge pets found) / LifetimeCoins / Pass
+Config.Titles = {
+	{ Id = "Newcomer", Name = "🌱 Newcomer", Color = Color3.fromRGB(170, 230, 150), Need = {} },
+	{ Id = "Miner", Name = "⛏️ Miner", Color = Color3.fromRGB(255, 200, 120), Need = { Level = 10 } },
+	{ Id = "Collector", Name = "📖 Collector", Color = Color3.fromRGB(140, 220, 255), Need = { Index = 15 } },
+	{ Id = "Thief", Name = "🦹 Sneaky Thief", Color = Color3.fromRGB(255, 150, 90), Need = { Steals = 10 } },
+	{ Id = "Guard", Name = "🛡️ Guardian", Color = Color3.fromRGB(120, 230, 255), Need = { Catches = 10 } },
+	{ Id = "Architect", Name = "🏗️ Architect", Color = Color3.fromRGB(255, 220, 120), Need = { HouseLevel = 3 } },
+	{ Id = "Popular", Name = "❤️ Popular", Color = Color3.fromRGB(255, 120, 170), Need = { Likes = 50 } },
+	{ Id = "Reborn", Name = "♻️ Reborn", Color = Color3.fromRGB(200, 130, 255), Need = { Rebirths = 3 } },
+	{ Id = "HugeHunter", Name = "🐘 Huge Hunter", Color = Color3.fromRGB(255, 180, 60), Need = { Huge = 1 } },
+	{ Id = "MasterThief", Name = "🦹 Master Thief", Color = Color3.fromRGB(255, 90, 60), Need = { Steals = 50 } },
+	{ Id = "LegendCollector", Name = "🌟 Legend Collector", Color = Color3.fromRGB(255, 230, 90), Need = { Index = 35 } },
+	{ Id = "Palace", Name = "🏰 Palace Owner", Color = Color3.fromRGB(210, 140, 255), Need = { HouseLevel = 5 } },
+	{ Id = "Tycoon", Name = "💰 Tycoon", Color = Color3.fromRGB(255, 215, 60), Need = { LifetimeCoins = 1000000000 } },
+	{ Id = "VIP", Name = "👑 VIP", Color = Color3.fromRGB(255, 200, 60), Need = { Pass = "VIP" } },
+}
+
+-- statues of the all-time richest players stand in the hub (global leaderboard)
+Config.Statues = { Board = "LifetimeCoins", Count = 3, Scale = 1.6 }
+
 ---------------------------------------------------------------------------
 -- RETENTION
 ---------------------------------------------------------------------------
@@ -704,7 +748,7 @@ Config.Quests = {
 	},
 	{ Id = "Bonk5", Type = "Bonk", Target = 5, Text = "Bonk 5 players", Reward = { Gems = 60 }, XP = 250, Points = 200 },
 	{ Id = "Shard3", Type = "Shard", Target = 3, Text = "Bring 3 shards to your base", Reward = { Gems = 60 }, XP = 250, Points = 200 },
-	{ Id = "Steal1", Type = "Steal", Target = 1, Text = "Steal a shard from another base", Reward = { Gems = 80 }, XP = 300, Points = 250 },
+	{ Id = "Steal1", Type = "Steal", Target = 1, Text = "Steal a pet from another base", Reward = { Gems = 80 }, XP = 300, Points = 250 },
 	{
 		Id = "Decorate5",
 		Type = "Decorate",
@@ -785,6 +829,8 @@ Config.LuckyOres = {
 -- that weather event to be active (see Config.Events).
 Config.PetVariants = {
 	{ Id = "Galaxy", Chance = 1 / 1000, Event = "Starfall", EventChance = 1 / 60, PowerMult = 8, IncomeMult = 12 },
+	-- HUGE: twice the size, numbered (#1, #2, ...) and announced to the whole server
+	{ Id = "Huge", Chance = 1 / 500, PowerMult = 5, IncomeMult = 6, Scale = 2, Serial = true },
 	{ Id = "Rainbow", Chance = 1 / 300, PowerMult = 6, IncomeMult = 8 },
 	{ Id = "Molten", Chance = 0, Event = "HeatWave", EventChance = 1 / 5, PowerMult = 2.5, IncomeMult = 3 },
 	{ Id = "Frozen", Chance = 0, Event = "Blizzard", EventChance = 1 / 5, PowerMult = 2, IncomeMult = 2.5 },
@@ -898,28 +944,212 @@ Config.Shards = {
 }
 
 Config.Base = {
-	-- one base per player: set the place's server size to the same number
-	-- (Creator Dashboard -> Places -> Server size). Extra players wait for a free base.
-	Plots = 16,
-	PlotSize = 44, -- studs; room to decorate
-	Streets = { -64, 64 }, -- x of the district streets; plots line both sides
+	-- one base per player: the place's server size is set to the same number
+	-- (8 like the big steal games: everyone gets a roomy territory, phones stay smooth)
+	Plots = 8,
+	PlotSize = 72, -- studs: the whole territory (fence to fence)
+	-- territories: two rows facing a central avenue, wide gardens in between
+	Layout = { Columns = 4, Gap = 26, EntranceGap = 44, Avenue = 30, Margin = 8 },
 	StartPedestals = 3, -- placed for free in every new base
 	MaxPedestals = 12,
 	-- price of the Nth pedestal (first 3 are free)
 	PedestalCosts = { 0, 0, 0, 500, 3000, 15000, 75000, 400000, 2000000, 10000000, 50000000, 250000000 },
-	StorageMax = 10, -- shards that don't fit on a pedestal wait here (earning nothing)
-	MaxItems = 70, -- decorations per base (keeps phones smooth)
+	-- vault pedestals: pets on them can NEVER be stolen, but earn less
+	VaultIncome = 0.5,
+	VaultCosts = { 0, 2500, 40000, 600000, 8000000, 90000000 },
+	VipVaults = 1, -- VIP: +1 vault pedestal
+	StorageMax = 10, -- (legacy)
 	Cell = 2, -- placement grid in studs
-	-- buildable area in plot space (the entrance strip stays clear)
-	Build = { MinX = -20, MaxX = 20, MinZ = -12, MaxZ = 20 },
+	-- house levels: bigger land, more decorations, more vaults, fancier walls.
+	-- Build = buildable area in plot space (the entrance strip stays clear)
+	Levels = {
+		{
+			Name = "Cozy Cottage",
+			Cost = 0,
+			Build = { MinX = -16, MaxX = 16, MinZ = -20, MaxZ = 16 },
+			MaxItems = 45,
+			Vaults = 1,
+			Style = "Wood",
+		},
+		{
+			Name = "Stone Villa",
+			Cost = 2500,
+			Build = { MinX = -20, MaxX = 20, MinZ = -22, MaxZ = 20 },
+			MaxItems = 60,
+			Vaults = 2,
+			Style = "Stone",
+		},
+		{
+			Name = "Golden Manor",
+			Cost = 60000,
+			Build = { MinX = -24, MaxX = 24, MinZ = -24, MaxZ = 24 },
+			MaxItems = 80,
+			Vaults = 2,
+			Style = "Gold",
+		},
+		{
+			Name = "Crystal Palace",
+			Cost = 1500000,
+			Build = { MinX = -28, MaxX = 28, MinZ = -26, MaxZ = 28 },
+			MaxItems = 100,
+			Vaults = 3,
+			Style = "Crystal",
+		},
+		{
+			Name = "Galaxy Castle",
+			Cost = 40000000,
+			Build = { MinX = -32, MaxX = 32, MinZ = -26, MaxZ = 32 },
+			MaxItems = 120,
+			Vaults = 4,
+			Style = "Galaxy",
+		},
+	},
+	NameMax = 20, -- custom house name length (filtered by Roblox)
 	OfflineRate = 0.5, -- offline earnings = 50% of the normal rate
 	OfflineMaxSeconds = 7200, -- ... for up to 2 hours
+	-- protection: nobody can rob you while you're offline, and while online
+	-- you can never lose everything
 	LockSeconds = 60,
-	LockCooldown = 180,
+	LockPerRebirth = 10, -- +10s lock per rebirth ...
+	LockMaxBonus = 120, -- ... up to +2 minutes
+	LockVipBonus = 10,
+	LockCooldown = 150,
+	JoinLockSeconds = 60, -- your base starts locked when you join
+	NewbieShieldSeconds = 1200, -- first 20 minutes of play: can't be robbed (stealing ends it)
+	TheftShieldSeconds = 180, -- after a theft your base is protected for 3 minutes
+	StealGap = 3, -- you can't rob someone whose pets are worth less than 1/3 of yours
+	StealGapMinWorth = 60, -- (tiny bases don't count toward the gap rule)
+	RevengeSeconds = 300, -- the victim may raid the thief's base for 5 min (locks don't stop them)
+	-- serial thieves get a bounty: rob 2+ different players within 15 min
+	Bounty = { MinVictims = 2, WindowSeconds = 900, IncomeSeconds = 60 },
 	StealHold = 1.2,
 	TrapStun = 2.5, -- seconds a trap freezes a thief
 	TrapCooldown = 6,
 	LikePoints = 15, -- weekly ranked points per like received
+	LikeGems = 2, -- the owner gets a few gems per like (max per day below)
+	LikeGemsDaily = 40,
+}
+
+-- house wall styles: the level decides the default look, skins override it
+Config.HouseStyles = {
+	Wood = {
+		Wall = Color3.fromRGB(170, 120, 75),
+		WallMaterial = "WoodPlanks",
+		Trim = Color3.fromRGB(255, 210, 140),
+		Ground = Color3.fromRGB(105, 160, 80),
+		GroundMaterial = "Grass",
+		Pillar = Color3.fromRGB(120, 85, 55),
+	},
+	Stone = {
+		Wall = Color3.fromRGB(165, 165, 175),
+		WallMaterial = "Cobblestone",
+		Trim = Color3.fromRGB(140, 220, 255),
+		Ground = Color3.fromRGB(95, 155, 85),
+		GroundMaterial = "Grass",
+		Pillar = Color3.fromRGB(120, 120, 135),
+	},
+	Gold = {
+		Wall = Color3.fromRGB(235, 225, 205),
+		WallMaterial = "Marble",
+		Trim = Color3.fromRGB(255, 205, 60),
+		Ground = Color3.fromRGB(90, 165, 95),
+		GroundMaterial = "Grass",
+		Pillar = Color3.fromRGB(255, 200, 60),
+		Aura = Color3.fromRGB(255, 220, 120),
+	},
+	Crystal = {
+		Wall = Color3.fromRGB(170, 230, 255),
+		WallMaterial = "Glass",
+		WallTransparency = 0.35,
+		Trim = Color3.fromRGB(120, 240, 255),
+		Ground = Color3.fromRGB(200, 235, 255),
+		GroundMaterial = "Ice",
+		Pillar = Color3.fromRGB(140, 220, 255),
+		Aura = Color3.fromRGB(150, 230, 255),
+	},
+	Galaxy = {
+		Wall = Color3.fromRGB(40, 25, 80),
+		WallMaterial = "Glass",
+		WallTransparency = 0.2,
+		Trim = Color3.fromRGB(200, 110, 255),
+		Ground = Color3.fromRGB(35, 30, 70),
+		GroundMaterial = "Slate",
+		Pillar = Color3.fromRGB(150, 80, 255),
+		Aura = Color3.fromRGB(210, 140, 255),
+	},
+	-- skins
+	Sakura = {
+		Wall = Color3.fromRGB(255, 205, 220),
+		WallMaterial = "WoodPlanks",
+		Trim = Color3.fromRGB(255, 120, 170),
+		Ground = Color3.fromRGB(255, 225, 235),
+		GroundMaterial = "Grass",
+		Pillar = Color3.fromRGB(200, 90, 120),
+		Aura = Color3.fromRGB(255, 170, 200),
+	},
+	Candy = {
+		Wall = Color3.fromRGB(255, 240, 245),
+		WallMaterial = "SmoothPlastic",
+		Trim = Color3.fromRGB(255, 90, 120),
+		Ground = Color3.fromRGB(150, 230, 200),
+		GroundMaterial = "SmoothPlastic",
+		Pillar = Color3.fromRGB(255, 120, 200),
+		Stripes = Color3.fromRGB(255, 90, 120),
+	},
+	Royal = {
+		Wall = Color3.fromRGB(90, 40, 140),
+		WallMaterial = "Fabric",
+		Trim = Color3.fromRGB(255, 200, 60),
+		Ground = Color3.fromRGB(70, 35, 110),
+		GroundMaterial = "Carpet",
+		Pillar = Color3.fromRGB(255, 200, 60),
+		Aura = Color3.fromRGB(255, 210, 90),
+	},
+	Neon = {
+		Wall = Color3.fromRGB(20, 20, 30),
+		WallMaterial = "Metal",
+		Trim = Color3.fromRGB(60, 255, 230),
+		Ground = Color3.fromRGB(25, 25, 40),
+		GroundMaterial = "Metal",
+		Pillar = Color3.fromRGB(60, 255, 230),
+		Aura = Color3.fromRGB(60, 255, 230),
+	},
+}
+-- skins: "Auto" follows your house level. Need: Gems price, VIP pass,
+-- a house level, or a Robux product (Products.HouseSkinNeon)
+Config.HouseSkins = {
+	{ Id = "Auto", Name = "Level Style", Icon = "🏠" },
+	{ Id = "Sakura", Name = "Sakura", Icon = "🌸", Gems = 600 },
+	{ Id = "Candy", Name = "Candy", Icon = "🍬", Gems = 900 },
+	{ Id = "Royal", Name = "Royal", Icon = "👑", Pass = "VIP" },
+	{ Id = "Neon", Name = "Neon City", Icon = "🌃", Product = "HouseSkinNeon" },
+	{ Id = "Galaxy", Name = "Galaxy", Icon = "🌌", Level = 5 },
+}
+
+-- paint: tap a decoration in build mode -> 🎨 cycles these colors (free)
+Config.Paint = {
+	Color3.fromRGB(255, 90, 90),
+	Color3.fromRGB(255, 160, 60),
+	Color3.fromRGB(255, 225, 80),
+	Color3.fromRGB(120, 220, 90),
+	Color3.fromRGB(60, 200, 170),
+	Color3.fromRGB(80, 170, 255),
+	Color3.fromRGB(120, 110, 255),
+	Color3.fromRGB(200, 110, 255),
+	Color3.fromRGB(255, 130, 200),
+	Color3.fromRGB(250, 250, 250),
+	Color3.fromRGB(70, 70, 80),
+	Color3.fromRGB(150, 100, 60),
+}
+
+-- decoration sets: own at least one of every item -> bonus base income
+Config.DecorSets = {
+	{ Id = "Garden", Name = "Garden Set", Icon = "🌷", Items = { "Tree", "Flowers", "Bush", "Pond" }, Bonus = 0.05 },
+	{ Id = "Cozy", Name = "Cozy Set", Icon = "🛋️", Items = { "Sofa", "Table", "Chair", "Lantern" }, Bonus = 0.05 },
+	{ Id = "Camp", Name = "Camping Set", Icon = "🏕️", Items = { "Campfire", "Pine", "Mushroom", "Rock" }, Bonus = 0.05 },
+	{ Id = "Party", Name = "Party Set", Icon = "🎉", Items = { "Swing", "Gnome", "Flag", "Fountain" }, Bonus = 0.08 },
+	{ Id = "Royal", Name = "Royal Set", Icon = "👑", Items = { "Throne", "Trophy", "Statue", "Carpet" }, Bonus = 0.1 },
+	{ Id = "Neon", Name = "Neon Set", Icon = "🌀", Items = { "NeonArch", "Crystal", "LampPost", "Windmill" }, Bonus = 0.1 },
 }
 
 -- Decorations: buy & place anything in your base. All refundable (100%),
@@ -936,7 +1166,8 @@ Config.DecorCategories = {
 }
 Config.Decor = {
 	-- base (functional)
-	Pedestal = { Name = "Shard Pedestal", Category = "Base", Icon = "🌠", Size = { 2, 2 }, Price = 0, Function = "Pedestal" },
+	Pedestal = { Name = "Pet Pedestal", Category = "Base", Icon = "🌠", Size = { 2, 2 }, Price = 0, Function = "Pedestal" },
+	Vault = { Name = "Vault Pedestal", Category = "Base", Icon = "🔒", Size = { 2, 2 }, Price = 0, Function = "Vault" },
 	Trap = { Name = "Stun Trap", Category = "Base", Icon = "⚡", Size = { 2, 2 }, Price = 2500, Limit = 4, Function = "Trap" },
 	JumpPad = { Name = "Jump Pad", Category = "Base", Icon = "🦘", Size = { 2, 2 }, Price = 800, Limit = 4, Function = "Jump" },
 	-- nature
@@ -945,6 +1176,9 @@ Config.Decor = {
 	Bush = { Name = "Bush", Category = "Nature", Icon = "🌿", Size = { 1, 1 }, Price = 40 },
 	Flowers = { Name = "Flower Bed", Category = "Nature", Icon = "🌷", Size = { 2, 1 }, Price = 60 },
 	Rock = { Name = "Rock", Category = "Nature", Icon = "🪨", Size = { 1, 1 }, Price = 30 },
+	Hedge = { Name = "Hedge", Category = "Nature", Icon = "🟩", Size = { 2, 1 }, Price = 50 },
+	Mushroom = { Name = "Mushroom", Category = "Nature", Icon = "🍄", Size = { 1, 1 }, Price = 90 },
+	Pond = { Name = "Pond", Category = "Nature", Icon = "🐟", Size = { 3, 2 }, Price = 600 },
 	-- furniture
 	Bench = { Name = "Bench", Category = "Furniture", Icon = "🪑", Size = { 2, 1 }, Price = 100 },
 	Table = { Name = "Table", Category = "Furniture", Icon = "🍽️", Size = { 2, 2 }, Price = 150 },
@@ -960,6 +1194,10 @@ Config.Decor = {
 	Fountain = { Name = "Fountain", Category = "Fun", Icon = "⛲", Size = { 3, 3 }, Price = 2500 },
 	Trophy = { Name = "Trophy", Category = "Fun", Icon = "🏆", Size = { 1, 1 }, Price = 5000 },
 	Flag = { Name = "Flag", Category = "Fun", Icon = "🚩", Size = { 1, 1 }, Price = 200 },
+	Gnome = { Name = "Garden Gnome", Category = "Fun", Icon = "🧙", Size = { 1, 1 }, Price = 350 },
+	Campfire = { Name = "Campfire", Category = "Fun", Icon = "🔥", Size = { 2, 2 }, Price = 450 },
+	Swing = { Name = "Swing", Category = "Fun", Icon = "🎠", Size = { 3, 2 }, Price = 1200, MinLevel = 2 },
+	Windmill = { Name = "Windmill", Category = "Fun", Icon = "🌬️", Size = { 3, 3 }, Price = 8000, MinLevel = 3 },
 	-- floors (4x4 tiles)
 	WoodFloor = { Name = "Wood Floor", Category = "Floor", Icon = "🟫", Size = { 2, 2 }, Price = 20, Layer = "Floor" },
 	StoneFloor = { Name = "Stone Floor", Category = "Floor", Icon = "⬜", Size = { 2, 2 }, Price = 20, Layer = "Floor" },
@@ -973,6 +1211,7 @@ Config.Decor = {
 -- display order inside each category
 Config.DecorOrder = {
 	"Pedestal",
+	"Vault",
 	"Trap",
 	"JumpPad",
 	"Tree",
@@ -980,6 +1219,9 @@ Config.DecorOrder = {
 	"Bush",
 	"Flowers",
 	"Rock",
+	"Hedge",
+	"Mushroom",
+	"Pond",
 	"Bench",
 	"Table",
 	"Chair",
@@ -992,6 +1234,10 @@ Config.DecorOrder = {
 	"Fountain",
 	"Trophy",
 	"Flag",
+	"Gnome",
+	"Campfire",
+	"Swing",
+	"Windmill",
 	"WoodFloor",
 	"StoneFloor",
 	"GrassFloor",
@@ -1005,8 +1251,9 @@ Config.StarterBase = {
 	{ Id = "Pedestal", X = -6, Z = 2, R = 0 },
 	{ Id = "Pedestal", X = 0, Z = 2, R = 0 },
 	{ Id = "Pedestal", X = 6, Z = 2, R = 0 },
-	{ Id = "Tree", X = -16, Z = 16, R = 0 },
-	{ Id = "Tree", X = 16, Z = 16, R = 0 },
+	{ Id = "Vault", X = 0, Z = 10, R = 0 },
+	{ Id = "Tree", X = -12, Z = 12, R = 0 },
+	{ Id = "Tree", X = 12, Z = 12, R = 0 },
 	{ Id = "Lantern", X = -9, Z = -9, R = 0 },
 	{ Id = "Lantern", X = 9, Z = -9, R = 0 },
 }

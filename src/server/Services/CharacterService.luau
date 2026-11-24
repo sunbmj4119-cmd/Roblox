@@ -3,6 +3,7 @@
 	overhead tag (weekly rank, VIP / Club / leaderboard titles) that shows off
 	status to everyone - a key driver of competition and pass sales.
 ]]
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -10,9 +11,12 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Util = require(Shared.Util)
 
+local Net = require(script.Parent.Net)
+
 local CharacterService = {}
 local Services
 local Data
+local unlockedTitles = {} -- [player] = number of titles unlocked (for "new title!" toasts)
 
 local function buildPickaxe(tier: number): Tool
 	local info = Config.Pickaxes[tier] or Config.Pickaxes[1]
@@ -163,6 +167,7 @@ function CharacterService:SpeedPad(player: Player)
 	end)
 end
 
+-- overhead tag: title, name (gold for VIP), level/rank/rebirths, bounty
 function CharacterService:RefreshOverhead(player: Player)
 	local character = player.Character
 	local head = character and character:FindFirstChild("Head")
@@ -174,8 +179,8 @@ function CharacterService:RefreshOverhead(player: Player)
 	if not gui then
 		gui = Instance.new("BillboardGui")
 		gui.Name = "Overhead"
-		gui.Size = UDim2.new(6, 0, 1.5, 0) -- studs: small up close, readable nearby
-		gui.StudsOffset = Vector3.new(0, 2.8, 0)
+		gui.Size = UDim2.new(7, 0, 2.6, 0) -- studs: small up close, readable nearby
+		gui.StudsOffset = Vector3.new(0, 3.4, 0)
 		gui.MaxDistance = 90
 		gui.LightInfluence = 0
 
@@ -186,12 +191,12 @@ function CharacterService:RefreshOverhead(player: Player)
 		layout.SortOrder = Enum.SortOrder.LayoutOrder
 		layout.Parent = gui
 
-		for i, name in { "Tags", "Rank" } do
+		for i, name in { "Bounty", "Title", "Tags", "Name", "Rank" } do
 			local label = Instance.new("TextLabel")
 			label.Name = name
 			label.LayoutOrder = i
 			label.BackgroundTransparency = 1
-			label.Size = UDim2.new(1, 0, if name == "Rank" then 0.55 else 0.45, 0)
+			label.Size = UDim2.new(1, 0, if name == "Name" then 0.26 else 0.18, 0)
 			label.Font = Enum.Font.FredokaOne
 			label.TextScaled = true
 			label.RichText = true
@@ -202,7 +207,14 @@ function CharacterService:RefreshOverhead(player: Player)
 			label.Parent = gui
 		end
 		gui.Parent = head
+		-- our tag shows the name (so VIPs can have a gold one)
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		end
 	end
+	local monetization = Services.MonetizationService
+	local vip = monetization:HasPass(player, "VIP")
 
 	local rank = Util.RankFor(Config, data.Weekly.Points)
 	local rankLabel = gui:FindFirstChild("Rank") :: TextLabel
@@ -211,20 +223,46 @@ function CharacterService:RefreshOverhead(player: Player)
 		else string.format("Lv.%d %s", data.Level, rank.Icon or "")
 	rankLabel.TextColor3 = rank.Color
 
-	local tags = {}
-	local title = player:GetAttribute("Title")
-	if type(title) == "string" and title ~= "" then
-		table.insert(tags, "<font color='#FFD84A'>" .. title .. "</font>")
+	local nameLabel = gui:FindFirstChild("Name") :: TextLabel
+	nameLabel.Text = (if vip then "👑 " else "") .. player.DisplayName
+	nameLabel.TextColor3 = if vip then Color3.fromRGB(255, 210, 70) else Color3.new(1, 1, 1)
+
+	-- earned title (each viewer reads it in their own language, see WorldFX)
+	local title = Util.CurrentTitle(Config, data, function(key)
+		return monetization:HasPass(player, key)
+	end)
+	local titleLabel = gui:FindFirstChild("Title") :: TextLabel
+	titleLabel.Visible = title ~= nil and title.Id ~= "Newcomer"
+	if title then
+		titleLabel.Text = title.Name
+		titleLabel.TextColor3 = title.Color
+		titleLabel:SetAttribute("LangFmt", "%s")
+		titleLabel:SetAttribute("LangArgs", HttpService:JSONEncode({ title.Name }))
 	end
-	if Services.MonetizationService:HasPass(player, "VIP") then
+	-- leaderboard place + VIP / CLUB tags
+	local tags = {}
+	local place = player:GetAttribute("Title")
+	if type(place) == "string" and place ~= "" then
+		table.insert(tags, "<font color='#FFD84A'>" .. place .. "</font>")
+	end
+	if vip then
 		table.insert(tags, "<font color='#FFC93C'>[VIP]</font>")
 	end
-	if Services.MonetizationService:IsSubscribed(player) then
+	if monetization:IsSubscribed(player) then
 		table.insert(tags, "<font color='#5CF2FF'>[CLUB]</font>")
 	end
 	local tagLabel = gui:FindFirstChild("Tags") :: TextLabel
 	tagLabel.Text = table.concat(tags, " ")
 	tagLabel.Visible = #tags > 0
+	player:SetAttribute("TitleName", if title then title.Name else "")
+
+	local bountyLabel = gui:FindFirstChild("Bounty") :: TextLabel
+	local bounty = player:GetAttribute("Bounty")
+	bountyLabel.Visible = type(bounty) == "number" and bounty > 0
+	if bountyLabel.Visible then
+		bountyLabel.Text = "💰 BOUNTY " .. Util.Format(bounty)
+		bountyLabel.TextColor3 = Color3.fromRGB(255, 90, 70)
+	end
 end
 
 local function onCharacter(player: Player, character: Model)
@@ -251,9 +289,11 @@ local function onPlayer(player: Player)
 	if player.Character then
 		task.spawn(onCharacter, player, player.Character)
 	end
-	player:GetAttributeChangedSignal("Title"):Connect(function()
-		CharacterService:RefreshOverhead(player)
-	end)
+	for _, attribute in { "Title", "Bounty" } do
+		player:GetAttributeChangedSignal(attribute):Connect(function()
+			CharacterService:RefreshOverhead(player)
+		end)
+	end
 end
 
 function CharacterService:Init(services)
@@ -269,10 +309,41 @@ function CharacterService:Start()
 	Players.PlayerRemoving:Connect(function(player)
 		padUntil[player] = nil
 		stunnedUntil[player] = nil
+		unlockedTitles[player] = nil
+	end)
+
+	-- new titles: tell the player + update the tag
+	task.spawn(function()
+		while true do
+			task.wait(15)
+			for _, player in Data:LoadedPlayers() do
+				local data = Data:Get(player)
+				if data then
+					local hasPass = function(key)
+						return Services.MonetizationService:HasPass(player, key)
+					end
+					local count, newest = 0, nil
+					for _, title in Config.Titles do
+						if Util.TitleUnlocked(Config, title, data, hasPass) then
+							count += 1
+							newest = title
+						end
+					end
+					local before = unlockedTitles[player]
+					unlockedTitles[player] = count
+					if before and count > before and newest then
+						Net:Notify(player, "🏅 New title unlocked: %s! (👑 Titles)", newest.Color, newest.Name)
+						self:RefreshOverhead(player)
+					elseif player:GetAttribute("TitleName") ~= Util.CurrentTitle(Config, data, hasPass).Name then
+						self:RefreshOverhead(player)
+					end
+				end
+			end
+		end
 	end)
 
 	-- dash pads
-	local net = require(script.Parent.Net)
+	local net = Net
 	for _, pad in Services.WorldService.SpeedPads do
 		pad.Touched:Connect(function(hit)
 			local model = hit:FindFirstAncestorOfClass("Model")

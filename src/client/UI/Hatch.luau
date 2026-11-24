@@ -46,6 +46,7 @@ local function slot(petName: string, variant: string?, eggColor: Color3)
 		elseif variant == "Galaxy" then Color3.fromRGB(190, 140, 255)
 		elseif variant == "Frozen" then Color3.fromRGB(170, 225, 255)
 		elseif variant == "Molten" then Color3.fromRGB(255, 130, 50)
+		elseif variant == "Huge" then Color3.fromRGB(255, 190, 60)
 		else nil
 	local rarity = Config.Rarities[info.Rarity]
 	local frame = New("Frame", {

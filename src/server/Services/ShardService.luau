@@ -544,10 +544,12 @@ local function deliver(player: Player)
 			Net:Notify(player, "The owner left - the pet vanished!")
 			return
 		end
-		pets:GivePet(player, taken.Name, taken.Variant)
+		pets:GivePet(player, taken.Name, taken.Variant, taken.Serial)
 		-- save both right away so a crash can't leave the pet in two places
 		task.spawn(Data.Save, Data, owner)
 		task.spawn(Data.Save, Data, player)
+		-- theft shield for the victim, revenge window, bounty on serial thieves
+		Services.BaseService:StealDelivered(owner, player, meta, taken)
 		local display = taken.Name
 		Net:Notify(owner, "💔 %s stole your %s!", Color3.fromRGB(255, 90, 90), player.DisplayName, display)
 		if data then

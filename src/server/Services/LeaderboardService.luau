@@ -237,6 +237,148 @@ local function updateTitles()
 	end
 end
 
+---------------------------------------------------------------------------
+-- hall of fame: avatar statues of the all-time top players in the hub
+---------------------------------------------------------------------------
+local statueShown = {} -- [rank] = userId
+
+local function statueFolder(): Folder?
+	local map = workspace:FindFirstChild("Map")
+	if not map then
+		return nil
+	end
+	local folder = map:FindFirstChild("Statues")
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = "Statues"
+		folder.Parent = map
+	end
+	return folder :: Folder
+end
+
+local function plainStatue(): Model
+	-- fallback when the avatar can't be loaded: a golden figure
+	local model = Instance.new("Model")
+	local gold = Color3.fromRGB(255, 205, 60)
+	local function block(name, size, y)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = size
+		p.CFrame = CFrame.new(0, y, 0)
+		p.Color = gold
+		p.Material = Enum.Material.Foil
+		p.Parent = model
+		return p
+	end
+	block("Legs", Vector3.new(2, 2, 1), 1)
+	local torso = block("Torso", Vector3.new(2, 2, 1), 3)
+	block("Head", Vector3.new(1.2, 1.2, 1.2), 4.6)
+	model.PrimaryPart = torso
+	return model
+end
+
+local function placeStatue(rank: number, entry)
+	local folder = statueFolder()
+	local spots = Services.WorldService.StatueSpots
+	local spot = spots and spots[rank]
+	if not folder or not spot then
+		return
+	end
+	local old = folder:FindFirstChild("Statue" .. rank)
+	if old then
+		old:Destroy()
+	end
+	if not entry then
+		return
+	end
+	local model = nil
+	local ok = pcall(function()
+		model = Players:CreateHumanoidModelFromUserId(entry.UserId)
+	end)
+	if not ok or not model then
+		model = plainStatue()
+	end
+	model.Name = "Statue" .. rank
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+			d.CanCollide = false
+			d.CanTouch = false
+		elseif d:IsA("BaseScript") then
+			d:Destroy()
+		end
+	end
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	end
+	pcall(function()
+		model:ScaleTo(Config.Statues.Scale)
+	end)
+	local _, size = model:GetBoundingBox()
+	model:PivotTo(spot * CFrame.new(0, size.Y / 2, 0))
+	local anchor = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+	if anchor then
+		local gui = Instance.new("BillboardGui")
+		gui.Name = "Fame"
+		gui.Size = UDim2.new(10, 0, 3, 0)
+		gui.StudsOffsetWorldSpace = Vector3.new(0, size.Y / 2 + 2.4, 0)
+		gui.LightInfluence = 0
+		gui.MaxDistance = 140
+		local label = Instance.new("TextLabel")
+		label.Name = "Text"
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(1, 1)
+		label.Font = Enum.Font.FredokaOne
+		label.TextScaled = true
+		label.TextColor3 = ({ Color3.fromRGB(255, 215, 70), Color3.fromRGB(220, 225, 235), Color3.fromRGB(230, 150, 90) })[rank]
+			or Color3.new(1, 1, 1)
+		label.Text = ({ "👑", "🥈", "🥉" })[rank]
+			.. " #"
+			.. rank
+			.. " "
+			.. nameFor(entry.UserId)
+			.. "\n💰 "
+			.. Util.Format(entry.Value)
+		local stroke = Instance.new("UIStroke")
+		stroke.Thickness = 2.5
+		stroke.Parent = label
+		label.Parent = gui
+		gui.Parent = anchor
+	end
+	model.Parent = folder
+end
+
+local function updateStatues()
+	local entries = currentTop[Config.Statues.Board] or {}
+	for rank = 1, Config.Statues.Count do
+		local entry = entries[rank]
+		local id = entry and entry.UserId or 0
+		if statueShown[rank] ~= id then
+			statueShown[rank] = id
+			local ok, err = pcall(placeStatue, rank, entry)
+			if not ok then
+				warn("[Leaderboards] statue failed: " .. tostring(err))
+			end
+		else
+			-- same person: just refresh the number
+			local folder = statueFolder()
+			local model = folder and folder:FindFirstChild("Statue" .. rank)
+			local label = model and model:FindFirstChild("Text", true)
+			if label and label:IsA("TextLabel") and entry then
+				label.Text = ({ "👑", "🥈", "🥉" })[rank]
+					.. " #"
+					.. rank
+					.. " "
+					.. nameFor(entry.UserId)
+					.. "\n💰 "
+					.. Util.Format(entry.Value)
+			end
+		end
+	end
+end
+Leaderboards.UpdateStatues = updateStatues
+
 local function refresh()
 	-- push scores of everyone in this server
 	for _, player in Data:LoadedPlayers() do
@@ -269,6 +411,7 @@ local function refresh()
 		render(board, entries)
 	end
 	updateTitles()
+	task.spawn(updateStatues)
 end
 
 -- Returns the final placement (1-10) of a user in a past week, or nil.

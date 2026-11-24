@@ -31,7 +31,7 @@ local STEPS = {
 	{
 		Icon = "🌠",
 		Title = "STEAL & PROTECT",
-		Text = "Carry stars and other players'\npets home. Bonk thieves!",
+		Text = "Steal pets from open houses.\n🔒 Your vault pets are always safe!",
 		Color = Color3.fromRGB(170, 130, 255),
 	},
 }

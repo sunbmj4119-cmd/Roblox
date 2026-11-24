@@ -1,7 +1,10 @@
 -- Cloud gameplay test: boots the real server services on a Roblox server and
--- plays the core loop with two stand-in players (no real clients needed):
--- hatch (cost + stock), pets on pedestals + income, collect, decorate,
--- steal a pet + carry it home, star egg hatches at home, trade, sold out.
+-- plays the core loop with stand-in players (no real clients needed):
+-- hatch (cost + stock), vault / display pedestals + income, collect,
+-- decorate + house level + paint + sets, every theft protection (lock,
+-- newbie shield, vault, fair-size rule, theft shield), a real steal, revenge,
+-- bounty, star egg, trade (serial kept), exclusive pets, huge pets, house
+-- name / skins and titles.
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -73,6 +76,7 @@ local Config = require(Shared.Config)
 local Util = require(Shared.Util)
 local Net = require(folder.Net)
 local Data = S.DataService
+local Base = S.BaseService
 
 -- stand-in players -----------------------------------------------------------------
 local function fakePlayer(id: number, name: string)
@@ -114,23 +118,38 @@ end
 
 local A, rootA = fakePlayer(1001, "Alice")
 local B, rootB = fakePlayer(1002, "Bob")
-for _, pair in { { A, 50000 }, { B, 50000 } } do
+local Cp = fakePlayer(1003, "Carol")
+for _, pair in { { A, 50000 }, { B, 50000 }, { Cp, 50000 } } do
 	local data = Util.DeepCopy(Data.Template)
 	data.Coins = pair[2]
 	data.Gems = 1000
 	data.Tutorial.Done = true
 	data.Flags.HowToSeen = true
+	data.Flags.NewbieOff = true -- veterans (the newbie shield is tested on its own)
+	data.Stats.PlaySeconds = 100000
 	local errors = Data:InjectForTest(pair[1], data)
 	for _, err in errors do
 		fail("OnLoaded for " .. pair[1].Name .. ": " .. err)
 	end
 end
 task.wait(0.5)
-local dataA, dataB = Data:Get(A), Data:Get(B)
+local dataA, dataB, dataC = Data:Get(A), Data:Get(B), Data:Get(Cp)
+local plotA, plotB = Base:PlotOf(A), Base:PlotOf(B)
+local function unprotect(plot)
+	plot.LockedUntil = 0
+	plot.LockReadyAt = 0
+	plot.ShieldUntil = 0
+end
 
--- 1) bases assigned, starter layout seeded
+-- 1) bases assigned (each starts locked), starter layout with a vault
 check(A:GetAttribute("BaseIndex") ~= nil and B:GetAttribute("BaseIndex") ~= nil, "players got no base")
-check(dataA and #dataA.Base.Items >= Config.Base.StartPedestals, "starter layout not seeded")
+check(plotA and plotA.LockedUntil > workspace:GetServerTimeNow(), "a base should start locked when you join")
+local displayItems, vaultItems = Util.Pedestals(Config, dataA.Base.Items)
+check(#displayItems >= Config.Base.StartPedestals, "starter pedestals not seeded")
+check(#vaultItems == 1, "starter vault not seeded")
+for _, plot in { plotA, plotB, Base:PlotOf(Cp) } do
+	unprotect(plot)
+end
 
 -- 2) hatch a Meadow egg through the real request handler
 local coinsBefore = dataA.Coins
@@ -141,65 +160,114 @@ check(#dataA.Pets == 1, "pet not added")
 check((dataA.Shop.Bought.Meadow or 0) == 1, "stock purchase not counted")
 results.firstPet = dataA.Pets[1] and dataA.Pets[1].Name
 
--- give A a few more pets so pedestals fill up
 for _ = 1, 3 do
 	S.PetService:GrantPet(A, "Fox", nil)
 end
 check(#dataA.Pets == 4, "GrantPet failed")
 
--- 3) the best pets stand on pedestals and earn
-local shown = S.BaseService.DisplayedPets(dataA)
-local pedestals = 0
-for _, item in dataA.Base.Items do
-	if Config.Decor[item.Id] and Config.Decor[item.Id].Function == "Pedestal" then
-		pedestals += 1
-	end
-end
-check(#shown == math.min(pedestals, #dataA.Pets), string.format("displayed %d pets for %d pedestals", #shown, pedestals))
-local rate = S.BaseService:IncomeRate(A, dataA)
+-- 3) the best pet is safe in the vault, the rest stand on display and earn
+local vault, shown = Util.ArrangePets(Config, dataA)
+check(#vault == 1, "best pet should be in the vault")
+check(#shown == math.min(#displayItems, #dataA.Pets - #vault), string.format("displayed %d pets", #shown))
+local rate = Base:IncomeRate(A, dataA)
 check(rate > 0, "base earns nothing")
+local fullRate = 0
+for _, pet in shown do
+	fullRate += Base:PetRate(A, dataA, pet, false)
+end
+local vaultRate = Base:PetRate(A, dataA, vault[1], true)
+check(math.abs(rate - fullRate - vaultRate) < 1e-6, "income should be display + vault")
+check(math.abs(vaultRate - Base:PetRate(A, dataA, vault[1], false) * Config.Base.VaultIncome) < 1e-6, "vault pets should earn VaultIncome")
 results.baseRate = rate
-local plotA = S.BaseService:PlotOf(A)
-local displays = plotA and plotA.Displays:GetChildren() or {}
-check(#displays == #shown, "pedestal pet models missing: " .. #displays)
+local displays = plotA.Displays:GetChildren()
+check(#displays == #shown + #vault, "pedestal pet models missing: " .. #displays)
 check(#dataA.Equipped >= 1, "no pet follows the player")
 
 -- 4) collect the bank
 dataA.Base.Bank = 1234
 local beforeCollect = dataA.Coins
-S.BaseService:Collect(A)
+Base:Collect(A)
 check(dataA.Coins == beforeCollect + 1234 and dataA.Base.Bank < 1, "collect failed")
 
--- 5) decorate: place + remove with refund
+-- 5) decorate: place + remove with refund, bounds by house level, paint, upgrade
 local ok, message = Net:CallForTest("BasePlace", A, "Tree", 0, 14, 0)
 check(ok == true, "place tree failed: " .. tostring(message))
 local placed = dataA.Base.Items[#dataA.Base.Items]
 local coinsAfterPlace = dataA.Coins
 local ok2 = Net:CallForTest("BaseRemove", A, placed.Uid)
 check(ok2 == true and dataA.Coins == coinsAfterPlace + Config.Decor.Tree.Price, "remove/refund failed")
-local okBad = Net:CallForTest("BasePlace", A, "Tree", 999, 999, 0)
-check(okBad ~= true, "out-of-bounds placement was accepted")
+check(Net:CallForTest("BasePlace", A, "Tree", 999, 999, 0) ~= true, "out-of-bounds placement was accepted")
+check(Net:CallForTest("BasePlace", A, "Tree", 18, 0, 0) ~= true, "level 1 house should not reach x=18")
+check(Net:CallForTest("BasePlace", A, "Windmill", -6, -14, 0) ~= true, "level-locked item was placed")
+local coinsBeforeUpgrade = dataA.Coins
+check(Net:CallForTest("HouseUpgrade", A) == true, "house upgrade failed")
+check(Util.HouseLevel(Config, dataA) == 2, "house level did not go up")
+check(dataA.Coins == coinsBeforeUpgrade - Config.Base.Levels[2].Cost, "house upgrade did not charge")
+check(Net:CallForTest("BasePlace", A, "Tree", 18, 0, 0) == true, "level 2 house should reach x=18")
+local tree = dataA.Base.Items[#dataA.Base.Items]
+check(Net:CallForTest("BasePaint", A, tree.Uid, 3) == true and tree.Paint == 3, "paint failed")
+local painted = plotA.ItemModels[tree.Uid]
+local leaves = painted and painted:FindFirstChild("Leaves")
+check(leaves and leaves.Color == Config.Paint[3], "painted model has the wrong colour")
+check(Net:CallForTest("BasePaint", A, tree.Uid, 0) == true and tree.Paint == nil, "unpaint failed")
+Net:CallForTest("BaseRemove", A, tree.Uid)
 
--- 6) Bob steals one of Alice's pets and runs home with it
+-- 6) protection --------------------------------------------------------------
 local victim = shown[1]
+local function tryTake(thief, owner, petId): boolean
+	Base:TrySteal(thief, owner, petId)
+	local carrying = S.ShardService:IsCarrying(thief)
+	if carrying then
+		-- undo: put it back
+		local info = S.ShardService
+		info:Confiscate(thief, owner)
+	end
+	return carrying
+end
+-- a) locked
+Base:Lock(A)
+check(Base:Protection(A) == "locked", "lock not active")
+check(not tryTake(B, A, victim.Id), "stole from a locked base")
+unprotect(plotA)
+-- b) newbie shield
+dataA.Flags.NewbieOff = false
+dataA.Stats.PlaySeconds = 0
+check(Base:Protection(A) == "newbie", "newbie shield not active")
+check(not tryTake(B, A, victim.Id), "stole from a newbie")
+dataA.Flags.NewbieOff = true
+dataA.Stats.PlaySeconds = 100000
+-- c) vault pets can never be stolen
+check(not tryTake(B, A, vault[1].Id), "stole a vault pet")
+-- d) fair-size rule: a much richer thief can't rob a small base
+S.PetService:GivePet(B, "Black Hole Kitty", nil)
+check(not tryTake(B, A, victim.Id), "a giant stole from a tiny base")
+for index, pet in dataB.Pets do
+	if pet.Name == "Black Hole Kitty" then
+		table.remove(dataB.Pets, index)
+		break
+	end
+end
+S.PetService:Changed(B)
+check(Base:Protection(A) == nil, "base should be open now: " .. tostring(Base:Protection(A)))
+
+-- e) a real steal: Bob runs Alice's pet home
 local victimName = victim.Name
 local bobPetsBefore = #dataB.Pets
-S.BaseService:TrySteal(B, A, victim.Id)
+Base:TrySteal(B, A, victim.Id)
 check(S.ShardService:IsCarrying(B), "steal did not start carrying")
 check(victim.Away == true, "stolen pet not marked away")
-check(#S.BaseService.DisplayedPets(dataA) <= #shown, "stolen pet still displayed")
--- walk Bob into his own base: the delivery loop hands the pet over
-rootB.CFrame = S.BaseService:HomeCFrame(B) * CFrame.new(0, 0, 6)
+check(Base:Protection(A) == "robbing", "a base being robbed should block other thieves")
+rootB.CFrame = Base:HomeCFrame(B) * CFrame.new(0, 0, 6)
 task.wait(0.6)
 check(not S.ShardService:IsCarrying(B), "stolen pet not delivered")
 check(#dataB.Pets == bobPetsBefore + 1, "Bob did not get the pet")
-local bobHasIt = false
+local stolen = nil
 for _, pet in dataB.Pets do
 	if pet.Name == victimName then
-		bobHasIt = true
+		stolen = pet
 	end
 end
-check(bobHasIt, "Bob got the wrong pet")
+check(stolen ~= nil, "Bob got the wrong pet")
 local aliceStillHas = false
 for _, pet in dataA.Pets do
 	if pet.Id == victim.Id then
@@ -207,35 +275,79 @@ for _, pet in dataA.Pets do
 	end
 end
 check(not aliceStillHas, "Alice still owns the stolen pet (duplicate!)")
+check(Base:Protection(A) == "shield", "theft shield not active after a theft")
+check(Base:HasRevenge(A, B), "victim did not get revenge")
+
+-- f) revenge: even a locked base can't stop it
+if stolen then
+	Net:CallForTest("PetShow", B, stolen.Id, true) -- Bob shows it off (otherwise it hides in his vault)
+end
+check(stolen ~= nil and stolen.Show == true, "PetShow did not mark the pet")
+plotB.LockReadyAt = 0
+Base:Lock(B)
+check(Base:Protection(B) == "locked", "Bob's base should be locked")
+rootA.CFrame = CFrame.new(0, 3, -60)
+Base:TrySteal(A, B, stolen and stolen.Id or -1)
+check(S.ShardService:IsCarrying(A), "revenge did not get through the lock")
+rootA.CFrame = Base:HomeCFrame(A) * CFrame.new(0, 0, 6)
+task.wait(0.6)
+check(not S.ShardService:IsCarrying(A), "revenge pet not delivered")
+local back = false
+for _, pet in dataA.Pets do
+	if pet.Name == victimName then
+		back = true
+	end
+end
+check(back, "Alice did not get a pet back with revenge")
+check(not Base:HasRevenge(A, B), "revenge should be used up")
+unprotect(plotA)
+unprotect(plotB)
+
+-- g) bounty: Bob robs two different players -> Alice bonks him and wins it
+Base:StealDelivered(A, B, {}, { Name = "Owl" })
+Base:StealDelivered(Cp, B, {}, { Name = "Owl" })
+local bounty = Base:Bounty(B)
+check(bounty > 0 and B:GetAttribute("Bounty") == bounty, "bounty not set: " .. tostring(bounty))
+local coinsBeforeBounty = dataA.Coins
+Base:ThiefCaught(A, B)
+check(dataA.Coins == coinsBeforeBounty + bounty, "bounty not paid")
+check(Base:Bounty(B) == 0, "bounty not cleared")
+check((dataA.Stats.ThievesCaught or 0) >= 1, "catch not counted")
+results.bounty = bounty
+for _, plot in { plotA, plotB, Base:PlotOf(Cp) } do
+	unprotect(plot)
+end
 
 -- 7) a star egg carried home hatches into a pet
 local alicePets = #dataA.Pets
 S.ShardService:StartCarry(A, { Kind = "Egg", Rarity = "Epic", Egg = "Meadow" }, nil)
 check(S.ShardService:IsCarrying(A), "star egg carry failed")
-rootA.CFrame = S.BaseService:HomeCFrame(A) * CFrame.new(0, 0, 6)
+rootA.CFrame = Base:HomeCFrame(A) * CFrame.new(0, 0, 6)
 task.wait(0.6)
 check(not S.ShardService:IsCarrying(A), "star egg not delivered")
 check(#dataA.Pets == alicePets + 1, "star egg did not hatch a pet")
 
--- 8) trade: Alice gives one pet, Bob gives one pet
+-- 8) trade: Alice gives one pet (numbered), Bob gives one pet
+S.PetService:GrantPet(B, "Puppy", nil) -- (Bob lost his pet to Alice's revenge)
 S.TradeService:BeginForTest(A, B)
 local giveA = dataA.Pets[1]
 local giveB = dataB.Pets[1]
+giveA.Serial = 77
 Net:CallForTest("TradeSetOffer", A, { giveA.Id })
 Net:CallForTest("TradeSetOffer", B, { giveB.Id })
 Net:CallForTest("TradeReady", A, true)
 Net:CallForTest("TradeReady", B, true)
 task.wait(S.TradeService.Settings.Countdown + 0.5)
-local function owns(data, name, variant)
+local function owns(data, name, variant, serial)
 	for _, pet in data.Pets do
-		if pet.Name == name and pet.Variant == variant then
+		if pet.Name == name and pet.Variant == variant and (serial == nil or pet.Serial == serial) then
 			return true
 		end
 	end
 	return false
 end
 check(owns(dataA, giveB.Name, giveB.Variant), "trade: Alice did not receive Bob's pet")
-check(owns(dataB, giveA.Name, giveA.Variant), "trade: Bob did not receive Alice's pet")
+check(owns(dataB, giveA.Name, giveA.Variant, 77), "trade: Bob did not receive Alice's pet (with its #77)")
 check(not S.TradeService:IsTrading(A) and not S.TradeService:IsTrading(B), "trade session not closed")
 
 -- 9) sold out: buy the whole Meadow stock, the next one must be refused
@@ -248,8 +360,81 @@ local soldOut = Net:CallForTest("Hatch", B, "Meadow", 1)
 check(type(soldOut) == "table" and soldOut.Error ~= nil, "sold-out egg was still sold")
 results.soldOutMessage = soldOut and soldOut.Error
 
+-- 10) exclusive (Robux) pets stand on display but can never be stolen
+unprotect(plotA)
+S.PetService:GrantPet(A, "Golden Pup", nil)
+local golden = nil
+for _, pet in dataA.Pets do
+	if pet.Name == "Golden Pup" then
+		golden = pet
+	end
+end
+local onDisplay = false
+for _, pet in Base.DisplayedPets(dataA) do
+	onDisplay = onDisplay or pet == golden
+end
+check(onDisplay, "exclusive pet should be on display")
+check(golden and not tryTake(B, A, golden.Id), "stole an exclusive pet")
+
+-- 11) huge pets: bigger, counted, numbered (the number needs DataStores)
+S.PetService:GrantPet(A, "Bunny", "Huge")
+local huge = nil
+for _, pet in dataA.Pets do
+	if pet.Variant == "Huge" then
+		huge = pet
+	end
+end
+check(huge ~= nil, "huge pet not granted")
+for _ = 1, 20 do
+	if huge and huge.Serial then
+		break
+	end
+	task.wait(0.25)
+end
+results.hugeSerial = huge and huge.Serial
+local hugeModel = require(Shared.PetModel).Build("Bunny", "Huge")
+local plainModel = require(Shared.PetModel).Build("Bunny", nil)
+local _, hugeSize = hugeModel:GetBoundingBox()
+local _, plainSize = plainModel:GetBoundingBox()
+check(hugeSize.Y > plainSize.Y * 1.6, "huge pet model is not bigger")
+
+-- 12) house name (filtered by Roblox; stand-ins may not be filterable)
+local nameOk, nameMessage = Base:SetName(A, "Sunny Garden")
+results.houseName = if nameOk then plotA.Model:GetAttribute("HouseName") else tostring(nameMessage)
+check(Base:SetName(A, string.rep("x", 40)) == false, "an overlong house name was accepted")
+
+-- 13) skins: gems skin, VIP-only skin, back to the level style
+local gemsBefore = dataA.Gems
+check(Base:SetSkin(A, "Sakura") == true, "gem skin purchase failed")
+check(dataA.Gems == gemsBefore - 600 and dataA.Base.Skins.Sakura == true and dataA.Base.Skin == "Sakura", "gem skin not charged/owned")
+check(Base:SetSkin(A, "Royal") == false, "VIP skin used without VIP")
+check(Base:SetSkin(A, "Galaxy") == false, "galaxy skin used below level 5")
+check(Base:SetSkin(A, "Auto") == true and dataA.Base.Skin == "Auto", "back to level style failed")
+check(Base:SetSkin(A, "Sakura") == true and dataA.Gems == gemsBefore - 600, "owned skin charged twice")
+
+-- 14) decoration sets: complete the garden set -> bonus income
+local rateBefore = Base:IncomeRate(A, dataA)
+for _, spot in { { "Flowers", -14, -16 }, { "Bush", -6, -16 }, { "Pond", 6, -16 } } do
+	local placedOk, why = Net:CallForTest("BasePlace", A, spot[1], spot[2], spot[3], 0)
+	check(placedOk == true, "set item " .. spot[1] .. " not placed: " .. tostring(why))
+end
+local bonus = Util.SetBonus(Config, dataA.Base.Items)
+check(math.abs(bonus - 0.05) < 1e-9, "garden set not complete: " .. bonus)
+check(Base:IncomeRate(A, dataA) > rateBefore * 1.04, "set bonus did not raise income")
+
+-- 15) titles: unlocked ones can be worn, locked ones can't
+dataA.Level = 12
+Net:CallForTest("SetTitle", A, "Miner")
+check(dataA.Title == "Miner", "could not wear an unlocked title")
+Net:CallForTest("SetTitle", A, "Palace")
+check(dataA.Title == "Miner", "wore a locked title")
+check(Util.CurrentTitle(Config, dataA, function()
+	return false
+end).Id == "Miner", "current title wrong")
+
 results.alicePets = #dataA.Pets
 results.bobPets = #dataB.Pets
+results.carolPets = dataC and #dataC.Pets
 if #results.errors > 0 then
 	error("GAMEPLAY TEST FAILED: " .. HttpService:JSONEncode(results))
 end

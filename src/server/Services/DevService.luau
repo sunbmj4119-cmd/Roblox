@@ -56,6 +56,15 @@ function Dev:Start()
 		elseif command == "Shard" then
 			local id = Util.RollShard(Config, 4)
 			Services.ShardService:StartCarry(player, { Kind = "Egg", Rarity = id, Egg = "Meadow" }, nil)
+		elseif command == "Huge" then
+			-- a random huge pet from your best unlocked coin egg
+			local zoneEgg = Config.Shards.ZoneEggs[math.clamp(data.ZoneLevel, 1, #Config.Shards.ZoneEggs)] or "Meadow"
+			local pick = Util.WeightedPick(Config.Eggs[zoneEgg].Pets)
+			Services.PetService:GrantPet(player, pick, "Huge")
+		elseif command == "House" then
+			-- free house level up (test the land / wall styles)
+			data.Coins += (Config.Base.Levels[Util.HouseLevel(Config, data) + 1] or { Cost = 0 }).Cost
+			Services.BaseService:Upgrade(player)
 		elseif command == "Reset" then
 			local fresh = Util.DeepCopy(Data.Template)
 			fresh.FirstJoin = os.time()

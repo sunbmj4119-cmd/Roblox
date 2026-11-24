@@ -508,6 +508,31 @@ function Progression:Start()
 		return { Index = index, Text = self:RewardText(player, entry.Reward) }
 	end)
 
+	-- 👑 Titles panel: wear an unlocked title ("" = the best one automatically)
+	Net:On("SetTitle", 0.5, function(player, id)
+		local data = Data:Get(player)
+		if not data or type(id) ~= "string" then
+			return
+		end
+		if id ~= "" then
+			local found = nil
+			for _, title in Config.Titles do
+				if title.Id == id then
+					found = title
+				end
+			end
+			local hasPass = function(key)
+				return Services.MonetizationService:HasPass(player, key)
+			end
+			if not found or not Util.TitleUnlocked(Config, found, data, hasPass) then
+				return
+			end
+		end
+		data.Title = id
+		Data:MarkDirty(player)
+		Services.CharacterService:RefreshOverhead(player)
+	end)
+
 	Net:On("SeenHowTo", 5, function(player)
 		local data = Data:Get(player)
 		if data and not data.Flags.HowToSeen then

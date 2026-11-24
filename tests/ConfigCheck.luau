@@ -57,6 +57,7 @@ local QUEST_TYPES = {
 	Like = true,
 }
 local PRODUCT_KINDS = {
+	HouseSkin = true,
 	Gems = true,
 	CoinPack = true,
 	Boost = true,
@@ -355,13 +356,60 @@ do
 	local base = Config.Base
 	check(#base.PedestalCosts == base.MaxPedestals, "Base.PedestalCosts needs MaxPedestals entries")
 	local district = Config.World.Bases
-	local rows = math.ceil(base.Plots / (2 * #base.Streets))
 	local half = base.PlotSize / 2
-	local lastRowEdge = district.ZStart - 18 - half - (rows - 1) * (base.PlotSize + 4) - half
-	check(lastRowEdge > district.ZEnd, string.format("%d plots need %d rows - the district (ZEnd) is too short", base.Plots, rows))
-	for _, x in base.Streets do
-		check(math.abs(x) + 12 + base.PlotSize < district.HalfX, "street at x=" .. x .. " puts plots outside the district")
+	-- territories: inside the district, no overlap, a clear lane from the gate
+	local layout = Util.PlotLayout(Config)
+	check(#layout == base.Plots, "PlotLayout must place every plot")
+	for i, spot in layout do
+		local c = spot.Center
+		check(math.abs(c.X) + half + 2 <= district.HalfX, "plot " .. i .. " sticks out of the district (HalfX)")
+		check(c.Z + half <= district.ZStart and c.Z - half >= district.ZEnd, "plot " .. i .. " sticks out of the district (Z)")
+		check(math.abs(c.X) - half >= 18, "plot " .. i .. " blocks the entrance lane")
+		for j = i + 1, #layout do
+			local o = layout[j].Center
+			local apart = math.abs(c.X - o.X) >= base.PlotSize + 10 or math.abs(c.Z - o.Z) >= base.PlotSize + 10
+			check(apart, string.format("plots %d and %d are too close (need room for gardens)", i, j))
+		end
 	end
+	-- house levels: every level bigger than the last and inside the walls
+	local prevArea, prevItems = 0, 0
+	for level, def in base.Levels do
+		local b = def.Build
+		check(b.MinX >= -half + 2 and b.MaxX <= half - 2 and b.MaxZ <= half - 2, "level " .. level .. " build area hits the walls")
+		check(b.MinZ >= -half + 9, "level " .. level .. " build area covers the collect/lock pads")
+		local area = (b.MaxX - b.MinX) * (b.MaxZ - b.MinZ)
+		check(area > prevArea and def.MaxItems > prevItems, "level " .. level .. " must be bigger than the one before")
+		check(def.Vaults >= 1 and def.Vaults <= #base.VaultCosts, "level " .. level .. " vault count out of range")
+		check(Config.HouseStyles[def.Style] ~= nil, "level " .. level .. " has unknown Style " .. tostring(def.Style))
+		check(level == 1 or def.Cost > base.Levels[level - 1].Cost, "level " .. level .. " must cost more")
+		prevArea, prevItems = area, def.MaxItems
+	end
+	check(base.Levels[1].Cost == 0, "house level 1 must be free")
+	for _, skin in Config.HouseSkins do
+		check(skin.Id == "Auto" or Config.HouseStyles[skin.Id] ~= nil, "skin " .. skin.Id .. " has no HouseStyle")
+		if skin.Product then
+			check(
+				Config.Products[skin.Product] and Config.Products[skin.Product].Kind == "HouseSkin",
+				"skin " .. skin.Id .. " product missing"
+			)
+		end
+		if skin.Pass then
+			check(Config.GamePasses[skin.Pass] ~= nil, "skin " .. skin.Id .. " pass missing")
+		end
+	end
+	for _, set in Config.DecorSets do
+		for _, id in set.Items do
+			check(Config.Decor[id] ~= nil, "decor set " .. set.Id .. " lists unknown item " .. id)
+		end
+		check(set.Bonus > 0 and set.Bonus <= 0.2, "decor set " .. set.Id .. " bonus out of range")
+	end
+	local seenTitles = {}
+	for _, title in Config.Titles do
+		check(not seenTitles[title.Id], "duplicate title " .. title.Id)
+		seenTitles[title.Id] = true
+		check(typeof(title.Color) == "Color3" and type(title.Need) == "table", "title " .. title.Id .. " needs Color + Need")
+	end
+	check(#Config.Paint >= 6, "Config.Paint needs colours")
 	-- decorations: every catalog item has a model, a valid category and fits the build area
 	local DecorModel = load("src/shared/DecorModel.luau")
 	local categories = {}
@@ -378,13 +426,16 @@ do
 		check(categories[def.Category] == true, "decor " .. id .. " has unknown category")
 		check(DecorModel.Has(id), "decor " .. id .. " has no model builder")
 		check(type(def.Size) == "table" and def.Size[1] >= 1 and def.Size[2] >= 1, "decor " .. id .. " bad Size")
-		check((def.Price ~= nil) ~= (def.Gems ~= nil) or def.Function == "Pedestal", "decor " .. id .. " needs Price or Gems")
+		check(
+			(def.Price ~= nil) ~= (def.Gems ~= nil) or def.Function == "Pedestal" or def.Function == "Vault",
+			"decor " .. id .. " needs Price or Gems"
+		)
 	end
 	-- the starter layout is valid and placement rules work
 	local items = {}
 	for i, entry in Config.StarterBase do
 		local x, z = DecorModel.Snap(Config, entry.Id, entry.X, entry.Z, entry.R)
-		local ok, reason = DecorModel.Validate(Config, items, entry.Id, x, z, entry.R, nil)
+		local ok, reason = DecorModel.Validate(Config, items, entry.Id, x, z, entry.R, nil, { Level = 1 })
 		check(ok, "StarterBase item " .. i .. " (" .. entry.Id .. ") invalid: " .. tostring(reason))
 		table.insert(items, { Uid = i, Id = entry.Id, X = x, Z = z, R = entry.R })
 	end
@@ -392,6 +443,42 @@ do
 	check(not DecorModel.Validate(Config, items, first.Id, first.X, first.Z, 0, nil), "overlap not detected")
 	check(DecorModel.Validate(Config, items, first.Id, first.X, first.Z, 0, first.Uid), "moving onto itself should be allowed")
 	check(not DecorModel.Validate(Config, items, "Tree", 999, 0, 0, nil), "out of bounds not detected")
+	-- bigger houses have more room; level-locked items stay locked
+	check(not DecorModel.Validate(Config, items, "Tree", 26, 0, 0, nil, { Level = 1 }), "level 1 should not reach x=26")
+	check(DecorModel.Validate(Config, items, "Tree", 26, 0, 0, nil, { Level = 5 }), "level 5 should reach x=26")
+	check(not DecorModel.Validate(Config, items, "Windmill", -10, -14, 0, nil, { Level = 1 }), "Windmill needs a higher level")
+	check(not DecorModel.Validate(Config, items, "Vault", -10, -14, 0, nil, { Level = 1, Vaults = 1 }), "vault limit not enforced")
+	check(DecorModel.Validate(Config, items, "Vault", -10, -14, 0, nil, { Level = 1, Vaults = 2 }), "VIP vault should be allowed")
+	check(select(2, DecorModel.Price(Config, "Vault", items)) == base.VaultCosts[2], "2nd vault price wrong")
+	-- who stands where: best pet goes to the vault, show-off pets stay out, exclusive skip it
+	local data = {
+		Base = { Items = items },
+		Pets = {
+			{ Id = 1, Name = "Owl" },
+			{ Id = 2, Name = "Fox" },
+			{ Id = 3, Name = "Bunny" },
+			{ Id = 4, Name = "Kitty" },
+			{ Id = 5, Name = "Golden Pup" },
+		},
+	}
+	local vault, display = Util.ArrangePets(Config, data)
+	check(#vault == 1 and vault[1].Name == "Owl", "the best normal pet should be in the vault")
+	check(display[1].Name == "Golden Pup", "exclusive pets should be on display (they're safe anyway)")
+	data.Pets[1].Show = true
+	vault, display = Util.ArrangePets(Config, data)
+	check(vault[1].Name == "Fox", "a show-off pet must stay out of the vault")
+	local shownOwl = false
+	for _, pet in display do
+		shownOwl = shownOwl or pet.Name == "Owl"
+	end
+	check(shownOwl, "the show-off pet should be on display")
+	check(Util.SetBonus(Config, items) == 0, "starter base should not complete a set")
+	local garden = { { Id = "Tree" }, { Id = "Flowers" }, { Id = "Bush" }, { Id = "Pond" } }
+	check(math.abs(Util.SetBonus(Config, garden) - 0.05) < 1e-9, "garden set bonus wrong")
+	local huge = Util.HatchChance(Config, "Meadow", "Bunny", "Huge")
+	check(huge and huge > 0 and huge < 1 / 500, "huge odds wrong")
+	check(Util.WantsSerial(Config, "Bunny", "Huge") and Util.WantsSerial(Config, "Midas King", nil), "serial rules wrong")
+	check(not Util.WantsSerial(Config, "Bunny", "Golden"), "golden pets don't need serials")
 	local sx, sz = DecorModel.Snap(Config, "Sofa", 0.7, 0.3, 1) -- 3x1 rotated: odd/even cells
 	check(sx % 1 == 0 and sz % 1 == 0, "snap produced off-grid values")
 	local currency, price = DecorModel.Price(Config, "Pedestal", items)

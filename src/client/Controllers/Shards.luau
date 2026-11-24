@@ -340,12 +340,17 @@ local function refreshBases()
 		if type(ownerId) == "number" then
 			local mine = ownerId == player.UserId
 			local locked = (plot:GetAttribute("LockedUntil") or 0) > serverNow
+			-- shields (newbie / after a theft / being robbed) hide the steal prompts,
+			-- except for the victim's revenge (locks and shields don't stop it)
+			local protection = plot:GetAttribute("Protection") or ""
+			local revengeHere = player:GetAttribute("RevengeTarget") == ownerId and (player:GetAttribute("RevengeUntil") or 0) > serverNow
+			local open = (protection == "" and not locked) or (revengeHere and protection ~= "robbing")
 			for _, prompt in plot:GetDescendants() do
 				if prompt:IsA("ProximityPrompt") then
 					local role = prompt:GetAttribute("Role")
 					local enabled = if role == "Owner"
 						then mine
-						elseif role == "Thief" then not mine and not locked
+						elseif role == "Thief" then not mine and open
 						elseif role == "Visitor" then not mine
 						else true
 					if prompt.Enabled ~= enabled then
@@ -354,8 +359,8 @@ local function refreshBases()
 				end
 			end
 			local shield = plot:FindFirstChild("Shield")
-			if shield and shield:IsA("BasePart") and mine and shield.CanCollide then
-				shield.CanCollide = false -- your own lock never blocks you
+			if shield and shield:IsA("BasePart") and (mine or revengeHere) and shield.CanCollide then
+				shield.CanCollide = false -- your own lock never blocks you (nor does it stop revenge)
 			end
 		end
 	end

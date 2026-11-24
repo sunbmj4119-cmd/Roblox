@@ -1,7 +1,9 @@
 --[[
 	Pet collection: every pet you own, best earners first.
-	🏠 = standing on a pedestal in your base (earning coins every second)
-	⭐ = following you (adds mining power)   📦 = waiting in storage
+	🔒 = in a VAULT (can never be stolen, 50% income)
+	🏠 = on display (full income, thieves can try to take it)
+	💎 = exclusive (never stolen)   ⭐ = following you   📦 = storage
+	Tap 🔒/🏠 on a card to choose: keep it safe in a vault, or show it off.
 	Tap 💰 twice to sell a pet (pays one minute of its income).
 ]]
 local PetModel = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("PetModel"))
@@ -119,15 +121,9 @@ function Pets.Build(content, ctx)
 		return Util.PetIncome(Config, pet.Name, pet.Variant)
 	end
 
-	local function pedestalCount(data): number
-		local count = 0
-		for _, item in data.Base and data.Base.Items or {} do
-			local def = Config.Decor[item.Id]
-			if def and def.Function == "Pedestal" then
-				count += 1
-			end
-		end
-		return count
+	local function pedestalKey(data): string
+		local display, vault = Util.Pedestals(Config, data.Base and data.Base.Items or {})
+		return #display .. "/" .. #vault
 	end
 
 	local function rebuild(data, derived)
@@ -149,19 +145,27 @@ function Pets.Build(content, ctx)
 			end
 			return income(a) > income(b)
 		end)
-		local slots = pedestalCount(data)
-		local shown = 0
-		local mult = (derived.CoinMult or 1) * (if State.HasPass("DoubleBase") then 2 else 1)
+		-- same rules as the server (Util.ArrangePets)
+		local vaultPets, displayPets = Util.ArrangePets(Config, data)
+		local where = {}
+		for _, pet in vaultPets do
+			where[pet.Id] = "vault"
+		end
+		for _, pet in displayPets do
+			where[pet.Id] = "display"
+		end
+		local mult = (derived.CoinMult or 1) * (if State.HasPass("DoubleBase") then 2 else 1) * (1 + Util.SetBonus(Config, data.Base.Items))
 		for order, pet in pets do
 			local info = Config.Pets[pet.Name]
 			local rarity = Config.Rarities[info.Rarity]
-			local onDisplay = false
-			if not pet.Away and shown < slots then
-				shown += 1
-				onDisplay = true
-			end
+			local place = where[pet.Id]
+			local onDisplay = place ~= nil
+			local exclusive = info.Exclusive == true
 			local card = New("Frame", {
-				BackgroundColor3 = if onDisplay then Color3.fromRGB(40, 70, 60) else C.Card,
+				BackgroundColor3 = if place == "vault"
+					then Color3.fromRGB(45, 55, 85)
+					elseif onDisplay then Color3.fromRGB(40, 70, 60)
+					else C.Card,
 				LayoutOrder = order,
 				Parent = grid,
 			}, {
@@ -183,6 +187,9 @@ function Pets.Build(content, ctx)
 			if pet.Variant then
 				name = T(pet.Variant) .. " " .. name
 			end
+			if pet.Serial then
+				name ..= " #" .. tostring(pet.Serial)
+			end
 			Lib.Text({
 				Text = name,
 				Size = UDim2.new(1, -6, 0, 20),
@@ -190,15 +197,27 @@ function Pets.Build(content, ctx)
 				MaxTextSize = 14,
 				Parent = card,
 			})
+			local petMult = if place == "vault" then mult * Config.Base.VaultIncome else mult
 			Lib.Text({
-				Text = "💰" .. Util.Format(income(pet) * mult) .. "/s",
+				Text = "💰" .. Util.Format(income(pet) * petMult) .. "/s",
 				TextColor3 = C.Coins,
 				Size = UDim2.new(1, -6, 0, 18),
 				Position = UDim2.fromOffset(3, 84),
 				MaxTextSize = 15,
 				Parent = card,
 			})
-			local status = if pet.Away then T("🏃 being stolen!") elseif onDisplay then T("🏠 earning") else T("📦 storage")
+			local status
+			if pet.Away then
+				status = T("🏃 being stolen!")
+			elseif place == "vault" then
+				status = T("🔒 safe")
+			elseif onDisplay and exclusive then
+				status = T("💎 safe")
+			elseif onDisplay then
+				status = T("🏠 on display")
+			else
+				status = T("📦 storage")
+			end
 			if following[pet.Id] then
 				status = "⭐ " .. status
 			end
@@ -212,6 +231,27 @@ function Pets.Build(content, ctx)
 				MaxTextSize = 11,
 				Parent = card,
 			})
+			-- vault or show off? (exclusive pets are always safe)
+			if not pet.Away and not exclusive then
+				local toggle = New("TextButton", {
+					Text = if pet.Show then "🏠" else "🔒",
+					TextScaled = true,
+					BackgroundColor3 = if pet.Show then C.Green else C.Blue,
+					Size = UDim2.fromOffset(26, 26),
+					Position = UDim2.new(0, 4, 0, 4),
+					Parent = card,
+				}, { Lib.Corner(6) })
+				toggle.Activated:Connect(function()
+					Lib.PlaySound("UI")
+					Net.Fire("PetShow", pet.Id, not pet.Show)
+					ctx.Toast(
+						if pet.Show
+							then T("🔒 This pet may go into a vault again (safe, half income)")
+							else T("🏠 This pet stays on display: full income, but it can be stolen!"),
+						if pet.Show then C.Blue else C.Gold
+					)
+				end)
+			end
 			if not pet.Away then
 				local sell = New("TextButton", {
 					Text = "💰",
@@ -264,7 +304,10 @@ function Pets.Build(content, ctx)
 		slotsButton.Visible = not State.HasPass("ExtraPets")
 		local parts = {}
 		for _, pet in data.Pets do
-			table.insert(parts, pet.Id .. (pet.Variant or "") .. (if pet.Away then "!" else ""))
+			table.insert(
+				parts,
+				pet.Id .. (pet.Variant or "") .. (if pet.Away then "!" else "") .. (if pet.Show then "s" else "") .. (pet.Serial or "")
+			)
 		end
 		local sig = table.concat(parts, ",")
 			.. "|"
@@ -272,7 +315,9 @@ function Pets.Build(content, ctx)
 			.. "|"
 			.. tostring(derived.CoinMult)
 			.. "|"
-			.. pedestalCount(data)
+			.. pedestalKey(data)
+			.. "|"
+			.. tostring(Util.SetBonus(Config, data.Base.Items))
 			.. "|"
 			.. tostring(State.HasPass("DoubleBase"))
 		if sig ~= signature then

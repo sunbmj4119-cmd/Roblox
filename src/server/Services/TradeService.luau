@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Util = require(Shared.Util)
 local Net = require(script.Parent.Net)
 
 local Trade = {}
@@ -47,7 +48,7 @@ local function sendState(session)
 			for _, petId in session.Offers[who] do
 				local pet = data and petInfo(data, petId)
 				if pet then
-					table.insert(list, { Id = pet.Id, Name = pet.Name, Variant = pet.Variant })
+					table.insert(list, { Id = pet.Id, Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial })
 				end
 			end
 			return list
@@ -100,6 +101,13 @@ local function complete(session)
 			if not pet or pet.Away then
 				return nil
 			end
+			-- both sides must be allowed to trade paid items
+			if
+				Util.IsExclusive(Config, pet)
+				and not (a:GetAttribute("PaidTradeAllowed") == true and b:GetAttribute("PaidTradeAllowed") == true)
+			then
+				return nil
+			end
 			table.insert(list, pet)
 		end
 		return list
@@ -125,7 +133,7 @@ local function complete(session)
 	end
 	local function add(data, pets)
 		for _, pet in pets do
-			local copy = { Id = data.NextPetUid, Name = pet.Name, Variant = pet.Variant }
+			local copy = { Id = data.NextPetUid, Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial }
 			data.NextPetUid += 1
 			table.insert(data.Pets, copy)
 			data.PetIndex[pet.Name] = true
@@ -213,9 +221,13 @@ function Trade:Start()
 			local petId = petIds[i]
 			if type(petId) == "number" and not seen[petId] and #clean < SETTINGS.MaxPets then
 				local pet = petInfo(data, petId)
-				if pet and not pet.Away then
+				-- exclusive (Robux) pets can't be traded where Roblox restricts paid item trading
+				local blocked = Util.IsExclusive(Config, pet) and player:GetAttribute("PaidTradeAllowed") ~= true
+				if pet and not pet.Away and not blocked then
 					seen[petId] = true
 					table.insert(clean, petId)
+				elseif pet and blocked then
+					Net:Notify(player, "💎 Exclusive pets can't be traded in your region.")
 				end
 			end
 		end

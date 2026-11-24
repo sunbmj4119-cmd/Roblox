@@ -244,6 +244,23 @@ local MENU = {
 			return d.Rebirths > 0 or d.Coins >= (derived.RebirthCost or math.huge) * 0.5
 		end,
 	},
+	{ "Houses", "🏘️", "Houses", Color3.fromRGB(255, 130, 170), tutorialDone },
+	{
+		"Titles",
+		"👑",
+		"Titles",
+		Color3.fromRGB(230, 170, 40),
+		function(d)
+			-- only once there is something to choose
+			local unlocked = 0
+			for _, title in Config.Titles do
+				if Util.TitleUnlocked(Config, title, d, State.HasPass) then
+					unlocked += 1
+				end
+			end
+			return tutorialDone(d) and unlocked >= 2
+		end,
+	},
 	{ "Store", "🛒", "Store", Color3.fromRGB(60, 200, 110), tutorialDone },
 	{
 		"Settings",
@@ -375,18 +392,107 @@ baseButton.Activated:Connect(function()
 	Lib.PlaySound("UI")
 	Net.Fire("GoBase")
 end)
+-- is my house safe right now? (shown under the base chip)
+local function protectionText(): (string, Color3)
+	local protection = player:GetAttribute("BaseProtection") or ""
+	local t = State.Now()
+	if protection == "locked" then
+		return T("🔒 Locked %s", Util.FormatTime(math.max(0, (player:GetAttribute("LockedUntil") or 0) - t))),
+			Color3.fromRGB(255, 150, 150)
+	elseif protection == "newbie" then
+		return T("🛡️ Newbie shield %s", Util.FormatTime(player:GetAttribute("NewbieShield") or 0)), Color3.fromRGB(140, 200, 255)
+	elseif protection == "shield" then
+		return T("🛡️ Protected %s", Util.FormatTime(math.max(0, (player:GetAttribute("ShieldUntil") or 0) - t))),
+			Color3.fromRGB(140, 200, 255)
+	elseif protection == "robbing" then
+		return T("🚨 Being robbed! Bonk the thief!"), C.Red
+	end
+	return T("⚠️ Open - 🔒 vault pets are always safe"), C.Sub
+end
+
 local function refreshBaseChip()
 	local data = State.Data
 	local hasBase = player:GetAttribute("BaseIndex") ~= nil
 	baseChip.Visible = hasBase and data ~= nil and (data.Tutorial == nil or data.Tutorial.Done == true)
 	if baseChip.Visible then
-		baseTitle.Text = T("🏠 BASE  💰%s/s", Util.Format(player:GetAttribute("BaseRate") or 0))
-		baseSub.Text = T("Bank: 💰%s  •  tap to go", Util.Format(player:GetAttribute("BaseBank") or 0))
+		baseTitle.Text = T(
+			"🏠 %s/s  •  Bank 💰%s",
+			Util.Format(player:GetAttribute("BaseRate") or 0),
+			Util.Format(player:GetAttribute("BaseBank") or 0)
+		)
+		local text, color = protectionText()
+		baseSub.Text = text
+		baseSub.TextColor3 = color
 	end
 end
 player:GetAttributeChangedSignal("BaseBank"):Connect(refreshBaseChip)
 player:GetAttributeChangedSignal("BaseIndex"):Connect(refreshBaseChip)
+player:GetAttributeChangedSignal("BaseProtection"):Connect(refreshBaseChip)
 State.OnChanged(refreshBaseChip)
+
+-- revenge: 5 minutes to raid the thief's house (tap to go there)
+local revengeChip = chip(7, 48, Color3.fromRGB(255, 200, 60))
+local revengeTitle = Lib.Text({
+	Text = "",
+	TextColor3 = Color3.fromRGB(255, 210, 90),
+	Size = UDim2.new(1, -12, 0, 23),
+	Position = UDim2.fromOffset(6, 3),
+	MaxTextSize = 18,
+	Parent = revengeChip,
+})
+local revengeSub = Lib.Text({
+	Text = "",
+	Font = Lib.BodyFont,
+	TextColor3 = C.Sub,
+	Size = UDim2.new(1, -12, 0, 17),
+	Position = UDim2.fromOffset(6, 27),
+	MaxTextSize = 13,
+	Parent = revengeChip,
+})
+local revengeButton =
+	New("TextButton", { BackgroundTransparency = 1, Text = "", Size = UDim2.fromScale(1, 1), ZIndex = 5, Parent = revengeChip })
+revengeButton.Activated:Connect(function()
+	local target = player:GetAttribute("RevengeTarget")
+	if type(target) == "number" then
+		Lib.PlaySound("UI")
+		Net.Fire("VisitBase", target)
+	end
+end)
+-- a bounty on me: everyone can bonk me for coins
+local bountyChip = chip(8, 30, C.Red)
+local bountyText = Lib.Text({
+	Text = "",
+	TextColor3 = Color3.fromRGB(255, 140, 120),
+	Size = UDim2.new(1, -12, 1, -4),
+	Position = UDim2.fromOffset(6, 2),
+	MaxTextSize = 16,
+	Parent = bountyChip,
+})
+local revengeName = ""
+Net.On("Revenge", function(_userId, name)
+	revengeName = tostring(name)
+	Lib.PlaySound("Event")
+end)
+task.spawn(function()
+	while true do
+		task.wait(1)
+		local untilTime = player:GetAttribute("RevengeUntil")
+		local left = if type(untilTime) == "number" then untilTime - State.Now() else 0
+		revengeChip.Visible = left > 0
+		if left > 0 then
+			revengeTitle.Text = T("🎯 REVENGE on %s", revengeName)
+			revengeSub.Text = T("%s left - locks can't stop you • tap to go", Util.FormatTime(left))
+		end
+		local bounty = player:GetAttribute("Bounty")
+		bountyChip.Visible = type(bounty) == "number" and bounty > 0
+		if bountyChip.Visible then
+			bountyText.Text = T("💰 Bounty on you: %s - don't get bonked!", Util.Format(bounty))
+		end
+		if baseChip.Visible then
+			refreshBaseChip()
+		end
+	end
+end)
 
 local boostRows = {}
 local BOOSTS = {
@@ -474,7 +580,7 @@ local function nextGoal(data, derived): string
 	local pedestals = 0
 	for _, item in data.Base and data.Base.Items or {} do
 		local def = Config.Decor[item.Id]
-		if def and def.Function == "Pedestal" then
+		if def and (def.Function == "Pedestal" or def.Function == "Vault") then
 			pedestals += 1
 		end
 	end

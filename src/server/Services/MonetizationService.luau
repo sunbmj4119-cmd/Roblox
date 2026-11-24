@@ -111,6 +111,7 @@ local function checkPolicy(player: Player)
 		local ok, policy = pcall(PolicyService.GetPolicyInfoForPlayerAsync, PolicyService, player)
 		if ok and type(policy) == "table" then
 			player:SetAttribute("PaidRandomRestricted", policy.ArePaidRandomItemsRestricted == true)
+			player:SetAttribute("PaidTradeAllowed", policy.IsPaidItemTradingAllowed == true)
 			Data:MarkDirty(player)
 			return
 		end
@@ -118,6 +119,7 @@ local function checkPolicy(player: Player)
 	end
 	-- unknown policy: be safe and treat paid random items as restricted
 	player:SetAttribute("PaidRandomRestricted", true)
+	player:SetAttribute("PaidTradeAllowed", false)
 	Data:MarkDirty(player)
 end
 
@@ -147,6 +149,15 @@ local function canBuy(player: Player, key: string, data): (boolean, string?)
 	end
 	if product.Kind == "SeasonPremium" and data.Season.Premium then
 		return false, "You already own the Premium Pass!"
+	end
+	-- where paid random items are restricted, Robux can't buy the currencies
+	-- that hatch random eggs either (gems / coins), nor the Robux egg itself
+	local currency = product.Kind == "Gems" or product.Kind == "CoinPack" or product.Kind == "StarterPack"
+	if currency and player:GetAttribute("PaidRandomRestricted") ~= false then
+		return false, "This item isn't available in your region."
+	end
+	if product.Kind == "HouseSkin" and data.Base.Skins[product.Skin] then
+		return false, "You already own this skin!"
 	end
 	if product.Kind == "PaidEgg" then
 		if player:GetAttribute("PaidRandomRestricted") ~= false then
@@ -193,6 +204,8 @@ local function grantProduct(player: Player, key: string, data)
 		Services.ProgressionService:GrantReward(player, Config.StarterPack.Reward, "Starter Pack")
 	elseif kind == "PaidEgg" then
 		Services.PetService:PaidHatch(player, product.Egg, product.Count)
+	elseif kind == "HouseSkin" then
+		Services.BaseService:GrantSkin(player, product.Skin)
 	else
 		error("Unknown product kind " .. tostring(kind))
 	end

@@ -1,23 +1,36 @@
 --[[
-	BaseService: every player owns a 44x44 home in the base district.
+	BaseService: every player owns a walled territory in the base district.
 
-	* DECORATE: buy any decoration from the build menu and place it anywhere
-	  on the grid (move / rotate / remove at any time - removing refunds
-	  100%, so redecorating is free). Saved with your data, seen by everyone.
-	* PEDESTALS are decorations too: your best pets stand on them and earn
-	  coins every second into the base bank (green pad), even offline (50%,
-	  2h). The rest of your pets wait in storage.
-	* DEFEND: stun traps freeze thieves (and send a stolen shard straight
-	  home), the red pad locks the entrance for a minute.
-	* SHOW OFF: visitors can ❤️ like your base once a day -> weekly ranked
-	  points + the "Best Bases" leaderboard.
-	* STEAL: hold the prompt on someone else's pet, then run it home.
+	* YOUR HOUSE: a 72x72 lot with its own fence, gate and name sign. The
+	  house LEVEL (🏗️ expand) grows the buildable land, the decoration limit
+	  and the number of vaults, and upgrades the walls (wood -> stone -> gold
+	  -> crystal -> galaxy). Skins (Sakura, Candy, Royal VIP, Neon, Galaxy)
+	  change the look. Name your house (filtered by Roblox).
+	* DECORATE: buy anything from the build menu and place it on the grid;
+	  🎨 paint it in 12 colours. Removing refunds 100%. Complete a decor SET
+	  for bonus income.
+	* PEDESTALS: your pets stand on them and earn coins every second into the
+	  bank (green pad), even offline (50%, 2h).
+	  - 🔒 VAULT pedestals hold your best pets: they can NEVER be stolen but
+	    earn 50%. Mark a pet "show off" to keep it out of the vault.
+	  - display pedestals earn 100% and can be robbed.
+	  - 💎 exclusive pets can never be stolen.
+	* FAIR STEALING (you never lose everything):
+	  - nobody can rob you while you're offline; your base starts locked
+	  - newbie shield for the first 20 minutes (stealing yourself ends it)
+	  - one theft at a time, then a 3 minute shield
+	  - you can't rob a base worth less than 1/3 of yours
+	  - the victim gets 5 minutes of REVENGE (locks don't stop them)
+	  - serial thieves get a 💰 bounty: bonk them to claim it
+	* SHOW OFF: visitors ❤️ like your house (gems + ranked points), every
+	  house is in the 🏘️ Houses list with a visit button.
 
-	data.Base.Items = { { Uid, Id, X, Z, R, Paid, Cur }, ... } (plot space)
+	data.Base.Items = { { Uid, Id, X, Z, R, Paid, Cur, Paint? }, ... } (plot space)
 	data.Pets entries get Away = true while a thief carries them
 ]]
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextService = game:GetService("TextService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
@@ -35,12 +48,16 @@ local SETTINGS = Config.Base
 local PLOT_HALF = SETTINGS.PlotSize / 2
 local WALL_HEIGHT = 9
 local FLOOR_Y = 0.42 -- top of the plot floor
+local GATE_HALF = 6 -- the entrance is 12 studs wide
 
 local plots = {} -- [index] = plot record
 local plotOf = {} -- [player] = plot record
 local waiting = {} -- players without a plot yet (server fuller than Plots)
 local touchDebounce = {} -- ["userId:what"] = os.clock()
 local trapReady = {} -- [trap model] = os.clock() when it can fire again
+local revenge = {} -- [victim] = { Target = thief, Until = server time }
+local thefts = {} -- [thief] = { { Victim = userId, Time, Value }, ... } (bounty)
+local houseNames = {} -- [player] = filtered custom house name
 
 ---------------------------------------------------------------------------
 -- helpers
@@ -119,73 +136,74 @@ local function setPrompt(parent: BasePart, action: string, object: string, role:
 	return prompt
 end
 
-local function plotColor(index: number): Color3
-	return Color3.fromHSV(((index - 1) * 0.618) % 1, 0.62, 1)
+local function material(name: string?): Enum.Material
+	local ok, value = pcall(function()
+		return (Enum.Material :: any)[name or "SmoothPlastic"]
+	end)
+	return if ok and value then value else Enum.Material.SmoothPlastic
+end
+
+local function hasVip(player: Player): boolean
+	return Services.MonetizationService:HasPass(player, "VIP")
+end
+
+local function houseLevel(data): number
+	return Util.HouseLevel(Config, data)
+end
+
+local function validateOpts(player: Player, data)
+	return { Level = houseLevel(data), Vaults = Util.VaultLimit(Config, data, hasVip(player)) }
 end
 
 ---------------------------------------------------------------------------
--- building the plots (static shells, built once)
+-- building the plots (static parts once, styled walls per owner)
 ---------------------------------------------------------------------------
 local tryLike -- forward declaration
 
 local function buildPlot(index: number, center: Vector3, facing: Vector3): any
-	-- local -Z (LookVector) faces the street
+	-- local -Z (LookVector) faces the avenue
 	local cf = CFrame.lookAt(center, center + facing)
-	local color = plotColor(index)
 	local model = Instance.new("Model")
 	model.Name = "Plot_" .. index
 	model:SetAttribute("OwnerId", 0)
 	model:SetAttribute("LockedUntil", 0)
+	model:SetAttribute("ShieldUntil", 0)
+	model:SetAttribute("Protection", "")
+	model:SetAttribute("HouseName", "")
+	model:SetAttribute("OwnerName", "")
+	model:SetAttribute("HouseLevel", 1)
+	model:SetAttribute("Likes", 0)
+	model:SetAttribute("Rate", 0)
 
 	local function at(x: number, y: number, z: number): CFrame
 		return cf * CFrame.new(x, y, z)
 	end
 
-	part({
+	local floor = part({
 		Name = "Floor",
 		Size = Vector3.new(PLOT_HALF * 2, 0.4, PLOT_HALF * 2),
 		CFrame = at(0, 0.2, 0),
-		Color = Color3.fromRGB(44, 46, 64),
-		Material = Enum.Material.Slate,
+		Color = Color3.fromRGB(90, 150, 80),
+		Material = Enum.Material.Grass,
 	}, model)
-	part({
-		Name = "Trim",
-		Size = Vector3.new(PLOT_HALF * 2 - 2, 0.42, PLOT_HALF * 2 - 2),
+	-- the land you can build on (grows with the house level)
+	local buildArea = part({
+		Name = "BuildArea",
+		Size = Vector3.new(32, 0.42, 36),
 		CFrame = at(0, 0.21, 0),
-		Color = color:Lerp(Color3.new(0, 0, 0), 0.6),
-		Material = Enum.Material.SmoothPlastic,
+		Color = Color3.fromRGB(110, 170, 95),
+		Material = Enum.Material.Grass,
+		CanCollide = false,
 	}, model)
 
-	-- glass walls with neon top trim; the front has an entrance gap
-	local function wallSegment(x: number, z: number, sizeX: number, sizeZ: number)
-		part({
-			Name = "Wall",
-			Size = Vector3.new(sizeX, WALL_HEIGHT, sizeZ),
-			CFrame = at(x, WALL_HEIGHT / 2, z),
-			Color = color:Lerp(Color3.new(1, 1, 1), 0.6),
-			Material = Enum.Material.Glass,
-			Transparency = 0.6,
-		}, model)
-		part({
-			Name = "WallTrim",
-			Size = Vector3.new(sizeX + 0.2, 0.5, sizeZ + 0.2),
-			CFrame = at(x, WALL_HEIGHT + 0.25, z),
-			Color = color,
-			Material = Enum.Material.Neon,
-			CanCollide = false,
-		}, model)
-	end
-	local sideLength = PLOT_HALF - 5
-	wallSegment(0, PLOT_HALF, PLOT_HALF * 2, 1) -- back
-	wallSegment(-PLOT_HALF, 0, 1, PLOT_HALF * 2) -- sides
-	wallSegment(PLOT_HALF, 0, 1, PLOT_HALF * 2)
-	wallSegment(-(5 + sideLength / 2), -PLOT_HALF, sideLength, 1) -- front, gap in the middle
-	wallSegment(5 + sideLength / 2, -PLOT_HALF, sideLength, 1)
+	local shell = Instance.new("Folder")
+	shell.Name = "Shell"
+	shell.Parent = model
 
 	-- lock forcefield in the entrance (only blocks while locked)
 	local shield = part({
 		Name = "Shield",
-		Size = Vector3.new(10, WALL_HEIGHT, 0.6),
+		Size = Vector3.new(GATE_HALF * 2, WALL_HEIGHT, 0.6),
 		CFrame = at(0, WALL_HEIGHT / 2, -PLOT_HALF),
 		Color = Color3.fromRGB(255, 80, 90),
 		Material = Enum.Material.ForceField,
@@ -193,24 +211,24 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		CanCollide = false,
 	}, model)
 
-	-- sign above the entrance
+	-- name sign above the gate
 	local signAnchor = part({
 		Name = "SignAnchor",
 		Size = Vector3.one,
-		CFrame = at(0, 15, -PLOT_HALF),
+		CFrame = at(0, 17, -PLOT_HALF),
 		Transparency = 1,
 		CanCollide = false,
 		CanQuery = false,
 		CanTouch = false,
 	}, model)
-	local sign = billboard(signAnchor, 22, 5.5, 0, color)
+	local sign = billboard(signAnchor, 26, 7.5, 0, Color3.new(1, 1, 1), 180)
 
-	-- like post on the street side of the entrance
+	-- like post on the avenue side of the gate
 	local heart = part({
 		Name = "LikeHeart",
 		Shape = Enum.PartType.Ball,
 		Size = Vector3.one * 2.2,
-		CFrame = at(-8, 4.4, -PLOT_HALF - 1.2),
+		CFrame = at(-GATE_HALF - 4, 4.4, -PLOT_HALF - 1.6),
 		Color = Color3.fromRGB(255, 80, 120),
 		Material = Enum.Material.Neon,
 		CanCollide = false,
@@ -218,16 +236,16 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 	part({
 		Name = "LikePost",
 		Size = Vector3.new(0.4, 3.4, 0.4),
-		CFrame = at(-8, 1.7, -PLOT_HALF - 1.2),
+		CFrame = at(-GATE_HALF - 4, 1.7, -PLOT_HALF - 1.6),
 		Color = Color3.fromRGB(240, 240, 245),
 		Material = Enum.Material.Metal,
 		CanCollide = false,
 	}, model)
-	setPrompt(heart, "❤️ Like", "Base", "Visitor", 0, function(visitor)
+	setPrompt(heart, "❤️ Like", "House", "Visitor", 0, function(visitor)
 		tryLike(visitor, index)
 	end, 12)
 
-	-- pads: collect (green) and lock (red), just inside the entrance
+	-- pads: collect (green) and lock (red), just inside the gate
 	local collect = part({
 		Name = "CollectPad",
 		Size = Vector3.new(7, 0.4, 7),
@@ -247,6 +265,23 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 	}, model)
 	local lockLabel = billboard(lockPad, 9, 2.4, 3.2, Color3.fromRGB(255, 150, 150), 50)
 
+	-- expand board (owner only): grow the house
+	local board = part({
+		Name = "ExpandBoard",
+		Size = Vector3.new(5, 3.4, 0.4),
+		CFrame = at(26, 3.2, -PLOT_HALF + 3),
+		Color = Color3.fromRGB(120, 85, 55),
+		Material = Enum.Material.WoodPlanks,
+	}, model)
+	part({
+		Name = "ExpandPost",
+		Size = Vector3.new(0.4, 1.6, 0.4),
+		CFrame = at(26, 0.8, -PLOT_HALF + 3),
+		Color = Color3.fromRGB(100, 70, 45),
+		Material = Enum.Material.Wood,
+	}, model)
+	local expandLabel = billboard(board, 8, 3, 3.4, Color3.fromRGB(255, 220, 120), 60)
+
 	model.Parent = World:Folder("Bases")
 	local items = Instance.new("Folder")
 	items.Name = "Items"
@@ -259,11 +294,15 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		Index = index,
 		Model = model,
 		CFrame = cf,
-		Color = color,
 		Owner = nil,
+		Floor = floor,
+		BuildArea = buildArea,
+		Shell = shell,
 		Sign = sign,
 		BankLabel = bankLabel,
 		LockLabel = lockLabel,
+		ExpandBoard = board,
+		ExpandLabel = expandLabel,
 		Shield = shield,
 		CollectPad = collect,
 		LockPad = lockPad,
@@ -272,89 +311,201 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		ItemModels = {}, -- [uid] = Model
 		LockedUntil = 0,
 		LockReadyAt = 0,
+		ShieldUntil = 0,
 		LastLabel = "",
+		StyleKey = "",
 	}
 end
 
--- plots line both sides of every street, nearest rows first
-local function plotLayout(): { { Center: Vector3, Facing: Vector3 } }
-	local bases = Config.World.Bases
-	local layout = {}
-	local row = 0
-	local offset = 10 + 2 + PLOT_HALF -- half street + walkway + half plot
-	while #layout < SETTINGS.Plots do
-		local z = bases.ZStart - 18 - PLOT_HALF - row * (SETTINGS.PlotSize + 4)
-		for _, streetX in SETTINGS.Streets do
-			for _, side in { -1, 1 } do
-				if #layout < SETTINGS.Plots then
-					table.insert(layout, {
-						Center = Vector3.new(streetX + side * offset, 0, z),
-						Facing = Vector3.new(-side, 0, 0), -- toward the street
-					})
-				end
-			end
-		end
-		row += 1
+-- walls, gate, border and aura in the owner's style
+local function applyStyle(plot, data)
+	local styleId, style = Util.HouseStyle(Config, data)
+	local level = houseLevel(data)
+	local key = styleId .. ":" .. level
+	if plot.StyleKey == key then
+		return
 	end
-	return layout
+	plot.StyleKey = key
+	local shell = plot.Shell
+	shell:ClearAllChildren()
+	local cf = plot.CFrame
+	local function at(x: number, y: number, z: number): CFrame
+		return cf * CFrame.new(x, y, z)
+	end
+
+	plot.Floor.Color = style.Ground
+	plot.Floor.Material = material(style.GroundMaterial)
+	local bounds = DecorModel.Bounds(Config, level)
+	local w, d = bounds.MaxX - bounds.MinX, bounds.MaxZ - bounds.MinZ
+	plot.BuildArea.Size = Vector3.new(w, 0.42, d)
+	plot.BuildArea.CFrame = at((bounds.MinX + bounds.MaxX) / 2, 0.21, (bounds.MinZ + bounds.MaxZ) / 2)
+	plot.BuildArea.Color = style.Ground:Lerp(Color3.new(1, 1, 1), 0.12)
+	plot.BuildArea.Material = material(style.GroundMaterial)
+
+	-- walls with a gap for the gate
+	local wallMaterial = material(style.WallMaterial)
+	local function wallSegment(x: number, z: number, sizeX: number, sizeZ: number)
+		part({
+			Name = "Wall",
+			Size = Vector3.new(sizeX, WALL_HEIGHT, sizeZ),
+			CFrame = at(x, WALL_HEIGHT / 2, z),
+			Color = style.Wall,
+			Material = wallMaterial,
+			Transparency = style.WallTransparency or 0,
+		}, shell)
+		part({
+			Name = "WallTrim",
+			Size = Vector3.new(sizeX + 0.3, 0.6, sizeZ + 0.3),
+			CFrame = at(x, WALL_HEIGHT + 0.3, z),
+			Color = style.Trim,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+		}, shell)
+		if style.Stripes then
+			part({
+				Name = "Stripe",
+				Size = Vector3.new(sizeX + 0.1, 1.2, sizeZ + 0.1),
+				CFrame = at(x, WALL_HEIGHT * 0.55, z),
+				Color = style.Stripes,
+				Material = Enum.Material.SmoothPlastic,
+				CanCollide = false,
+			}, shell)
+		end
+	end
+	local side = PLOT_HALF - GATE_HALF
+	wallSegment(0, PLOT_HALF, PLOT_HALF * 2, 1) -- back
+	wallSegment(-PLOT_HALF, 0, 1, PLOT_HALF * 2) -- sides
+	wallSegment(PLOT_HALF, 0, 1, PLOT_HALF * 2)
+	wallSegment(-(GATE_HALF + side / 2), -PLOT_HALF, side, 1) -- front, gate in the middle
+	wallSegment(GATE_HALF + side / 2, -PLOT_HALF, side, 1)
+
+	-- corner towers + gate pillars and arch (taller with every level)
+	local towerHeight = WALL_HEIGHT + 1.5 + level * 0.8
+	for _, corner in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
+		part({
+			Name = "Tower",
+			Size = Vector3.new(2.6, towerHeight, 2.6),
+			CFrame = at(corner[1] * PLOT_HALF, towerHeight / 2, corner[2] * PLOT_HALF),
+			Color = style.Pillar,
+			Material = wallMaterial,
+		}, shell)
+		part({
+			Name = "TowerCap",
+			Size = Vector3.new(3, 0.8, 3),
+			CFrame = at(corner[1] * PLOT_HALF, towerHeight + 0.4, corner[2] * PLOT_HALF),
+			Color = style.Trim,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+		}, shell)
+	end
+	local gateHeight = WALL_HEIGHT + 4 + level
+	for _, x in { -GATE_HALF - 0.9, GATE_HALF + 0.9 } do
+		part({
+			Name = "GatePillar",
+			Size = Vector3.new(1.8, gateHeight, 1.8),
+			CFrame = at(x, gateHeight / 2, -PLOT_HALF),
+			Color = style.Pillar,
+			Material = wallMaterial,
+		}, shell)
+	end
+	part({
+		Name = "GateArch",
+		Size = Vector3.new(GATE_HALF * 2 + 3.6, 1.2, 1.4),
+		CFrame = at(0, gateHeight - 0.6, -PLOT_HALF),
+		Color = style.Trim,
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, shell)
+
+	-- border of the buildable land
+	local edge = Color3.new(1, 1, 1):Lerp(style.Trim, 0.5)
+	for _, strip in
+		{
+			{ (bounds.MinX + bounds.MaxX) / 2, bounds.MinZ, w, 0.3 },
+			{ (bounds.MinX + bounds.MaxX) / 2, bounds.MaxZ, w, 0.3 },
+			{ bounds.MinX, (bounds.MinZ + bounds.MaxZ) / 2, 0.3, d },
+			{ bounds.MaxX, (bounds.MinZ + bounds.MaxZ) / 2, 0.3, d },
+		}
+	do
+		part({
+			Name = "Border",
+			Size = Vector3.new(strip[3], 0.1, strip[4]),
+			CFrame = at(strip[1], FLOOR_Y + 0.02, strip[2]),
+			Color = edge,
+			Material = Enum.Material.Neon,
+			Transparency = 0.35,
+			CanCollide = false,
+			CanQuery = false,
+		}, shell)
+	end
+
+	-- aura: fancy houses sparkle
+	if style.Aura then
+		local auraPart = part({
+			Name = "Aura",
+			Size = Vector3.new(PLOT_HALF * 2, 1, PLOT_HALF * 2),
+			CFrame = at(0, WALL_HEIGHT + 3, 0),
+			Transparency = 1,
+			CanCollide = false,
+			CanQuery = false,
+			CanTouch = false,
+		}, shell)
+		local emitter = Instance.new("ParticleEmitter")
+		emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		emitter.Color = ColorSequence.new(style.Aura)
+		emitter.LightEmission = 1
+		emitter.Size = NumberSequence.new(0.45)
+		emitter.Lifetime = NumberRange.new(2, 4)
+		emitter.Rate = 4 + level * 3
+		emitter.Speed = NumberRange.new(0.5, 1.5)
+		emitter.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.3, 0.1),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		emitter.Parent = auraPart
+	end
 end
-Base.PlotLayout = plotLayout
 
 ---------------------------------------------------------------------------
--- shards: best ones go on the pedestals, the rest wait in storage
+-- pets on pedestals
 ---------------------------------------------------------------------------
-local function pedestalItems(data)
-	local list = {}
-	for _, item in data.Base.Items do
-		local def = Config.Decor[item.Id]
-		if def and def.Function == "Pedestal" then
-			table.insert(list, item)
-		end
-	end
-	table.sort(list, function(a, b)
-		return a.Uid < b.Uid
-	end)
-	return list
+local function arrange(data)
+	return Util.ArrangePets(Config, data)
 end
 
--- the pets standing on pedestals: the best earners (not being stolen)
-local function displayedPets(data)
-	local slots = #pedestalItems(data)
-	local list = {}
-	for _, pet in data.Pets do
-		if not pet.Away and Config.Pets[pet.Name] then
-			table.insert(list, pet)
-		end
-	end
-	table.sort(list, function(a, b)
-		local ia = Util.PetIncome(Config, a.Name, a.Variant)
-		local ib = Util.PetIncome(Config, b.Name, b.Variant)
-		if ia == ib then
-			return a.Id < b.Id
-		end
-		return ia > ib
-	end)
-	local shown = {}
-	for i = 1, math.min(slots, #list) do
-		shown[i] = list[i]
-	end
-	return shown
+-- pets on display pedestals (the ones thieves can try to take)
+function Base.DisplayedPets(data)
+	local _, display = arrange(data)
+	return display
 end
-Base.DisplayedPets = displayedPets
+
+function Base.VaultPets(data)
+	local vault = arrange(data)
+	return vault
+end
 
 -- coins per second of one pet for its owner (boosts included)
-function Base:PetRate(player: Player, data, pet): number
+function Base:PetRate(player: Player, data, pet, inVault: boolean?): number
 	local rate = Util.PetIncome(Config, pet.Name, pet.Variant) * Services.StatsService:CoinMultiplier(player, data)
 	if Services.MonetizationService:HasPass(player, "DoubleBase") then
 		rate *= 2
+	end
+	rate *= 1 + Util.SetBonus(Config, data.Base.Items)
+	if inVault then
+		rate *= SETTINGS.VaultIncome
 	end
 	return rate
 end
 
 function Base:IncomeRate(player: Player, data): number
 	local total = 0
-	for _, pet in displayedPets(data) do
-		total += self:PetRate(player, data, pet)
+	local vault, display = arrange(data)
+	for _, pet in vault do
+		total += self:PetRate(player, data, pet, true)
+	end
+	for _, pet in display do
+		total += self:PetRate(player, data, pet, false)
 	end
 	return total
 end
@@ -373,7 +524,7 @@ local function renderItem(plot, item)
 	if existing then
 		existing:Destroy()
 	end
-	local model = DecorModel.Build(Config, item.Id)
+	local model = DecorModel.Build(Config, item.Id, item.Paint)
 	model:PivotTo(itemCFrame(plot, item))
 	model:SetAttribute("Uid", item.Uid)
 	model:SetAttribute("DecorId", item.Id)
@@ -403,38 +554,58 @@ function Base:RenderDisplays(player: Player)
 		return
 	end
 	plot.Displays:ClearAllChildren()
-	local shown = displayedPets(data)
-	for slot, pedestal in pedestalItems(data) do
+	local vault, display = arrange(data)
+	local displayItems, vaultItems = Util.Pedestals(Config, data.Base.Items)
+	local function put(pedestal, pet, inVault: boolean)
 		local model = plot.ItemModels[pedestal.Uid]
 		local top = model and model:FindFirstChild("Top")
-		local pet = shown[slot]
-		if top and top:IsA("BasePart") and pet then
-			local info = Config.Pets[pet.Name]
-			local rarity = Config.Rarities[info.Rarity] or Config.Rarities.Common
-			local display = PetModel.Build(pet.Name, pet.Variant)
-			display.Name = "Pet_" .. pet.Id
-			display:PivotTo(CFrame.new(top.Position + Vector3.new(0, 1.6, 0)) * (top.CFrame - top.Position))
-			display:SetAttribute("Spin", true)
-			display:SetAttribute("PetId", pet.Id)
-			display.Parent = plot.Displays
-			local anchor = display.PrimaryPart :: BasePart
-			local label = billboard(anchor, 8, 2.4, 3.4, rarity.Color, 60)
-			local rate = Util.Format(self:PetRate(player, data, pet))
-			if pet.Variant then
-				World.SetText(label, "%s %s\n💰 %s/s", pet.Variant, pet.Name, rate)
-			else
-				World.SetText(label, "%s\n💰 %s/s", pet.Name, rate)
-			end
-			local petId = pet.Id
+		if not top or not top:IsA("BasePart") or not pet then
+			return
+		end
+		local info = Config.Pets[pet.Name]
+		local rarity = Config.Rarities[info.Rarity] or Config.Rarities.Common
+		local exclusive = info.Exclusive == true
+		local petModel = PetModel.Build(pet.Name, pet.Variant)
+		petModel.Name = "Pet_" .. pet.Id
+		petModel:PivotTo(CFrame.new(top.Position + Vector3.new(0, 1.6, 0)) * (top.CFrame - top.Position))
+		-- big (huge) pets stand on the pedestal instead of sinking into it
+		local boxCFrame, boxSize = petModel:GetBoundingBox()
+		local lift = (top.Position.Y + 0.2) - (boxCFrame.Position.Y - boxSize.Y / 2)
+		if lift > 0 then
+			petModel:PivotTo(petModel:GetPivot() + Vector3.new(0, lift, 0))
+		end
+		petModel:SetAttribute("Spin", true)
+		petModel:SetAttribute("PetId", pet.Id)
+		petModel:SetAttribute("Vault", inVault)
+		petModel.Parent = plot.Displays
+		local anchor = petModel.PrimaryPart :: BasePart
+		local _, size = petModel:GetBoundingBox()
+		local label = billboard(anchor, 8, 2.4, size.Y + 1.4, rarity.Color, 60)
+		local rate = Util.Format(self:PetRate(player, data, pet, inVault))
+		local icon = if inVault then "🔒" elseif exclusive then "💎" else "🌠"
+		local serial = if pet.Serial then " #" .. tostring(pet.Serial) else ""
+		if pet.Variant then
+			World.SetText(label, "%s %s %s%s\n💰 %s/s", icon, pet.Variant, pet.Name, serial, rate)
+		else
+			World.SetText(label, "%s %s%s\n💰 %s/s", icon, pet.Name, serial, rate)
+		end
+		local petId = pet.Id
+		if not inVault and not exclusive then
 			setPrompt(anchor, "Steal", pet.Name, "Thief", SETTINGS.StealHold, function(thief)
 				Base:TrySteal(thief, player, petId)
 			end)
-			setPrompt(anchor, "Sell", pet.Name, "Owner", 0.6, function(who)
-				if who == player then
-					Base:SellPet(player, petId)
-				end
-			end)
 		end
+		setPrompt(anchor, "Sell", pet.Name, "Owner", 0.6, function(who)
+			if who == player then
+				Base:SellPet(player, petId)
+			end
+		end)
+	end
+	for slot, pedestal in vaultItems do
+		put(pedestal, vault[slot], true)
+	end
+	for slot, pedestal in displayItems do
+		put(pedestal, display[slot], false)
 	end
 	self:RefreshLabels(player, true)
 end
@@ -445,6 +616,7 @@ function Base:Render(player: Player)
 	if not plot or not data then
 		return
 	end
+	applyStyle(plot, data)
 	for _, model in plot.ItemModels do
 		model:Destroy()
 	end
@@ -457,6 +629,99 @@ function Base:Render(player: Player)
 	self:RenderDisplays(player)
 end
 
+---------------------------------------------------------------------------
+-- protection
+---------------------------------------------------------------------------
+-- seconds of newbie shield left (0 = none)
+function Base:NewbieShield(player: Player, data): number
+	data = data or Data:Get(player)
+	if not data or data.Flags.NewbieOff then
+		return 0
+	end
+	return math.max(0, SETTINGS.NewbieShieldSeconds - (data.Stats.PlaySeconds or 0))
+end
+
+local function beingRobbed(data): boolean
+	for _, pet in data.Pets do
+		if pet.Away then
+			return true
+		end
+	end
+	return false
+end
+
+-- why this base can't be robbed right now (nil = it can)
+function Base:Protection(owner: Player): string?
+	local plot = plotOf[owner]
+	local data = Data:Get(owner)
+	if not plot or not data then
+		return "none"
+	end
+	local t = now()
+	if plot.LockedUntil > t then
+		return "locked"
+	end
+	if self:NewbieShield(owner, data) > 0 then
+		return "newbie"
+	end
+	if plot.ShieldUntil > t then
+		return "shield"
+	end
+	if beingRobbed(data) then
+		return "robbing"
+	end
+	return nil
+end
+
+function Base:IsLocked(owner: Player): boolean
+	local plot = plotOf[owner]
+	return plot ~= nil and plot.LockedUntil > now()
+end
+
+function Base:LockSeconds(player: Player, data): number
+	local bonus = math.min((data.Rebirths or 0) * SETTINGS.LockPerRebirth, SETTINGS.LockMaxBonus)
+	if hasVip(player) then
+		bonus += SETTINGS.LockVipBonus
+	end
+	return SETTINGS.LockSeconds + bonus
+end
+
+-- active revenge of `victim` against `target`?
+function Base:HasRevenge(victim: Player, target: Player): boolean
+	local entry = revenge[victim]
+	return entry ~= nil and entry.Target == target and entry.Until > now()
+end
+
+-- current bounty on a thief (coins), pruning old thefts
+function Base:Bounty(thief: Player): number
+	local log = thefts[thief]
+	if not log then
+		return 0
+	end
+	local t = now()
+	local kept, victims, value = {}, {}, 0
+	for _, entry in log do
+		if t - entry.Time <= SETTINGS.Bounty.WindowSeconds then
+			table.insert(kept, entry)
+			victims[entry.Victim] = true
+			value += entry.Value
+		end
+	end
+	thefts[thief] = if #kept > 0 then kept else nil
+	local distinct = 0
+	for _ in victims do
+		distinct += 1
+	end
+	return if distinct >= SETTINGS.Bounty.MinVictims then math.floor(value) else 0
+end
+
+local STATUS_TEXT = {
+	locked = "🔒 LOCKED",
+	newbie = "🛡️ NEWBIE SHIELD",
+	shield = "🛡️ THEFT SHIELD",
+	robbing = "🚨 BEING ROBBED!",
+}
+
 function Base:RefreshLabels(player: Player, force: boolean?)
 	local plot = plotOf[player]
 	local data = Data:Get(player)
@@ -464,28 +729,50 @@ function Base:RefreshLabels(player: Player, force: boolean?)
 		return
 	end
 	local rate = self:IncomeRate(player, data)
-	local stored = math.max(0, #data.Pets - #displayedPets(data))
-	local signText = Util.Format(rate) .. "|" .. data.Base.Likes .. "|" .. stored
+	local vault, display = arrange(data)
+	local stored = math.max(0, #data.Pets - #vault - #display)
+	local level = houseLevel(data)
+	local protection = self:Protection(player)
+	local status = STATUS_TEXT[protection or ""] or "🔓 OPEN"
+	local customName = houseNames[player]
+	local signText = table.concat({ Util.Format(rate), data.Base.Likes, level, status, customName or "" }, "|")
 	if force or signText ~= plot.LastLabel then
 		plot.LastLabel = signText
-		if stored > 0 then
+		local _, style = Util.HouseStyle(Config, data)
+		plot.Sign.TextColor3 = Color3.new(1, 1, 1):Lerp(style.Trim, 0.35)
+		if customName and customName ~= "" then
 			World.SetText(
 				plot.Sign,
-				"🏠 %s's BASE\n💰 %s/s  ❤️ %s  📦 %s",
-				player.DisplayName,
+				"🏠 %s\n💰 %s/s  ❤️ %s  ⭐ Lv.%s\n%s",
+				customName,
 				Util.Format(rate),
 				tostring(data.Base.Likes),
-				tostring(stored)
+				tostring(level),
+				status
 			)
 		else
 			World.SetText(
 				plot.Sign,
-				"🏠 %s's BASE\n💰 %s/s  ❤️ %s",
+				"🏠 %s's HOUSE\n💰 %s/s  ❤️ %s  ⭐ Lv.%s\n%s",
 				player.DisplayName,
 				Util.Format(rate),
-				tostring(data.Base.Likes)
+				tostring(data.Base.Likes),
+				tostring(level),
+				status
 			)
 		end
+		local nextLevel = SETTINGS.Levels[level + 1]
+		if nextLevel then
+			World.SetText(plot.ExpandLabel, "🏗️ EXPAND\nLv.%s 💰%s", tostring(level + 1), Util.Format(nextLevel.Cost))
+		else
+			World.SetText(plot.ExpandLabel, "🏰 MAX LEVEL")
+		end
+		local model = plot.Model
+		model:SetAttribute("HouseName", customName or "")
+		model:SetAttribute("OwnerName", player.DisplayName)
+		model:SetAttribute("HouseLevel", level)
+		model:SetAttribute("Likes", data.Base.Likes)
+		model:SetAttribute("Rate", math.floor(rate))
 	end
 	World.SetText(plot.BankLabel, "💰 %s\nSTEP TO COLLECT", Util.Format(math.floor(data.Base.Bank)))
 	local t = now()
@@ -496,9 +783,31 @@ function Base:RefreshLabels(player: Player, force: boolean?)
 	else
 		World.SetText(plot.LockLabel, "🔒 LOCK BASE")
 	end
+	-- shield bubble: red = locked (blocks the gate), blue = protected
+	if protection == "locked" then
+		plot.Shield.Color = Color3.fromRGB(255, 80, 90)
+		plot.Shield.Transparency = 0.3
+		plot.Shield.CanCollide = true -- the owner's client turns this off locally
+	elseif protection == "newbie" or protection == "shield" then
+		plot.Shield.Color = Color3.fromRGB(90, 190, 255)
+		plot.Shield.Transparency = 0.55
+		plot.Shield.CanCollide = false
+	else
+		plot.Shield.Transparency = 1
+		plot.Shield.CanCollide = false
+	end
+	plot.Model:SetAttribute("Protection", protection or "")
 	player:SetAttribute("BaseRate", rate)
 	player:SetAttribute("BaseBank", math.floor(data.Base.Bank))
 	player:SetAttribute("BaseStored", stored)
+	player:SetAttribute("BaseProtection", protection or "")
+	player:SetAttribute("NewbieShield", self:NewbieShield(player, data))
+	player:SetAttribute("ShieldUntil", plot.ShieldUntil)
+	player:SetAttribute("LockedUntil", plot.LockedUntil)
+	local bounty = self:Bounty(player)
+	if (player:GetAttribute("Bounty") or 0) ~= bounty then
+		player:SetAttribute("Bounty", if bounty > 0 then bounty else nil)
+	end
 end
 
 local function clearPlot(plot)
@@ -508,16 +817,29 @@ local function clearPlot(plot)
 	end
 	plot.ItemModels = {}
 	plot.Displays:ClearAllChildren()
-	plot.Model:SetAttribute("OwnerId", 0)
-	plot.Model:SetAttribute("LockedUntil", 0)
+	plot.Shell:ClearAllChildren()
+	plot.StyleKey = ""
+	local model = plot.Model
+	model:SetAttribute("OwnerId", 0)
+	model:SetAttribute("LockedUntil", 0)
+	model:SetAttribute("ShieldUntil", 0)
+	model:SetAttribute("Protection", "")
+	model:SetAttribute("HouseName", "")
+	model:SetAttribute("OwnerName", "")
+	model:SetAttribute("Likes", 0)
+	model:SetAttribute("Rate", 0)
 	plot.LockedUntil = 0
 	plot.LockReadyAt = 0
+	plot.ShieldUntil = 0
 	plot.Shield.Transparency = 1
 	plot.Shield.CanCollide = false
 	plot.LastLabel = ""
-	World.SetText(plot.Sign, "🏠 FREE BASE")
+	plot.Floor.Color = Color3.fromRGB(90, 150, 80)
+	plot.Floor.Material = Enum.Material.Grass
+	World.SetText(plot.Sign, "🏠 FREE LAND")
 	World.SetText(plot.BankLabel, "")
 	World.SetText(plot.LockLabel, "")
+	World.SetText(plot.ExpandLabel, "")
 end
 
 ---------------------------------------------------------------------------
@@ -531,7 +853,7 @@ function Base:HasBase(player: Player): boolean
 	return plotOf[player] ~= nil
 end
 
--- is this position inside the player's own plot?
+-- is this position inside the player's own territory?
 function Base:InOwnPlot(player: Player, position: Vector3): boolean
 	local plot = plotOf[player]
 	if not plot then
@@ -546,9 +868,14 @@ function Base:HomeCFrame(player: Player): CFrame?
 	return plot and (plot.CFrame * CFrame.new(0, 3, -PLOT_HALF + 5))
 end
 
-function Base:IsLocked(owner: Player): boolean
+-- just outside the gate, looking in (for visitors)
+function Base:GateCFrame(owner: Player): CFrame?
 	local plot = plotOf[owner]
-	return plot ~= nil and plot.LockedUntil > now()
+	if not plot then
+		return nil
+	end
+	local spot = plot.CFrame * CFrame.new(0, 3, -PLOT_HALF - 8)
+	return CFrame.lookAt(spot.Position, (plot.CFrame * CFrame.new(0, 3, 0)).Position)
 end
 
 -- a pet is being carried away by a thief (or came back)
@@ -581,6 +908,14 @@ function Base:SellPet(player: Player, petId: number)
 	Services.PetService:Changed(player)
 end
 
+local PROTECTION_MESSAGES = {
+	locked = "🔒 This base is locked!",
+	newbie = "🛡️ This player is new - their base is protected for now.",
+	shield = "🛡️ This base was just robbed - it's protected for a few minutes.",
+	robbing = "Someone is already stealing from this base!",
+	none = "You can't steal here.",
+}
+
 function Base:TrySteal(thief: Player, owner: Player, petId: number)
 	if thief == owner or not owner.Parent then
 		return
@@ -594,25 +929,136 @@ function Base:TrySteal(thief: Player, owner: Player, petId: number)
 		Net:Notify(thief, "You need a base to steal pets!")
 		return
 	end
-	if self:IsLocked(owner) then
-		Net:Notify(thief, "🔒 This base is locked!")
+	local data = Data:Get(owner)
+	local thiefData = Data:Get(thief)
+	local pet = data and Services.PetService.FindPet(data, petId)
+	if not pet or pet.Away or not thiefData then
 		return
 	end
-	local data = Data:Get(owner)
-	local pet = data and Services.PetService.FindPet(data, petId)
-	if not pet or pet.Away then
+	local isRevenge = self:HasRevenge(thief, owner)
+	local protection = self:Protection(owner)
+	-- revenge ignores locks and shields (but still one theft at a time)
+	if protection and not (isRevenge and protection ~= "robbing" and protection ~= "none") then
+		Net:Notify(thief, PROTECTION_MESSAGES[protection] or PROTECTION_MESSAGES.none)
 		return
+	end
+	if Util.IsExclusive(Config, pet) then
+		Net:Notify(thief, "💎 Exclusive pets can't be stolen!")
+		return
+	end
+	local onDisplay = false
+	for _, shown in self.DisplayedPets(data) do
+		if shown.Id == petId then
+			onDisplay = true
+		end
+	end
+	if not onDisplay then
+		Net:Notify(thief, "🔒 Pets in a vault can't be stolen!")
+		return
+	end
+	-- fair play: big players can't farm tiny bases
+	if not isRevenge then
+		local thiefWorth = Util.PetWorth(Config, thiefData)
+		local victimWorth = Util.PetWorth(Config, data)
+		if thiefWorth >= SETTINGS.StealGapMinWorth and thiefWorth > victimWorth * SETTINGS.StealGap then
+			Net:Notify(thief, "This base is too small for you - pick on someone your size!")
+			return
+		end
 	end
 	self:SetAway(owner, petId, true)
-	local item = { Kind = "Pet", Name = pet.Name, Variant = pet.Variant }
-	if not shards:StartCarry(thief, item, { From = owner, PetId = petId }) then
+	local item = { Kind = "Pet", Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial }
+	if not shards:StartCarry(thief, item, { From = owner, PetId = petId, Revenge = isRevenge }) then
 		self:SetAway(owner, petId, false)
 		return
+	end
+	-- stealing ends your own newbie shield
+	if self:NewbieShield(thief, thiefData) > 0 then
+		thiefData.Flags.NewbieOff = true
+		Net:Notify(thief, "🛡️ You stole - your newbie shield is now off.", Color3.fromRGB(150, 200, 255))
 	end
 	local display = pet.Name
 	Net:Send(owner, "BaseAlarm", thief.DisplayName, display)
 	Net:Notify(owner, "🚨 %s is stealing your %s! Bonk them!", Color3.fromRGB(255, 80, 80), thief.DisplayName, display)
 	Net:Notify(thief, "🏃 You stole a %s! Run to your base!", Color3.fromRGB(255, 170, 80), display)
+	self:RefreshLabels(owner, true)
+end
+
+-- a stolen pet reached the thief's base (called by ShardService)
+function Base:StealDelivered(owner: Player, thief: Player, meta, pet)
+	local plot = plotOf[owner]
+	if plot then
+		plot.ShieldUntil = now() + SETTINGS.TheftShieldSeconds
+		plot.Model:SetAttribute("ShieldUntil", plot.ShieldUntil)
+	end
+	if meta and meta.Revenge then
+		revenge[thief] = nil
+		thief:SetAttribute("RevengeTarget", nil)
+		thief:SetAttribute("RevengeUntil", nil)
+		Net:Notify(thief, "🎯 Revenge complete!", Color3.fromRGB(255, 210, 90))
+	else
+		-- the victim may strike back
+		if owner.Parent then
+			revenge[owner] = { Target = thief, Until = now() + SETTINGS.RevengeSeconds }
+			owner:SetAttribute("RevengeTarget", thief.UserId)
+			owner:SetAttribute("RevengeUntil", now() + SETTINGS.RevengeSeconds)
+			Net:Send(owner, "Revenge", thief.UserId, thief.DisplayName, now() + SETTINGS.RevengeSeconds)
+			Net:Notify(
+				owner,
+				"🎯 REVENGE! For 5 minutes you can raid %s's base - locks can't stop you!",
+				Color3.fromRGB(255, 210, 90),
+				thief.DisplayName
+			)
+		end
+		-- serial thieves get a bounty
+		local before = self:Bounty(thief)
+		thefts[thief] = thefts[thief] or {}
+		local value = Util.PetIncome(Config, pet.Name, pet.Variant) * SETTINGS.Bounty.IncomeSeconds
+		table.insert(thefts[thief], { Victim = owner.UserId, Time = now(), Value = value })
+		local after = self:Bounty(thief)
+		if after > 0 then
+			thief:SetAttribute("Bounty", after)
+			if before == 0 then
+				Net:Announce(
+					"💰 BOUNTY! %s robbed too many houses - bonk them while they carry a pet to win 💰%s!",
+					Color3.fromRGB(255, 200, 60),
+					thief.DisplayName,
+					Util.Format(after)
+				)
+			end
+		end
+	end
+	if owner.Parent then
+		self:RefreshLabels(owner, true)
+	end
+end
+
+-- someone stopped a thief (bonk or trap): count it + pay the bounty
+function Base:ThiefCaught(hunter: Player, thief: Player)
+	if hunter == thief then
+		return
+	end
+	local data = Data:Get(hunter)
+	if not data then
+		return
+	end
+	data.Stats.ThievesCaught = (data.Stats.ThievesCaught or 0) + 1
+	local bounty = self:Bounty(thief)
+	if bounty > 0 then
+		thefts[thief] = nil
+		thief:SetAttribute("Bounty", nil)
+		data.Coins += bounty
+		data.Stats.LifetimeCoins += bounty
+		Services.Analytics:Economy(hunter, "Source", "Coins", bounty, data.Coins, "Gameplay", "Bounty")
+		Net:Send(hunter, "Sold", bounty)
+		Net:Announce(
+			"💰 %s caught %s and won the 💰%s bounty!",
+			Color3.fromRGB(255, 200, 60),
+			hunter.DisplayName,
+			thief.DisplayName,
+			Util.Format(bounty)
+		)
+	end
+	Data:MarkDirty(hunter)
 end
 
 function Base:Collect(player: Player)
@@ -634,22 +1080,27 @@ function Base:Collect(player: Player)
 	self:RefreshLabels(player)
 end
 
+local function lockFor(plot, seconds: number)
+	plot.LockedUntil = now() + seconds
+	plot.LockReadyAt = plot.LockedUntil
+	plot.Model:SetAttribute("LockedUntil", plot.LockedUntil)
+end
+
 function Base:Lock(player: Player)
 	local plot = plotOf[player]
-	if not plot then
+	local data = Data:Get(player)
+	if not plot or not data then
 		return
 	end
 	local t = now()
 	if plot.LockedUntil > t or plot.LockReadyAt > t then
 		return
 	end
-	plot.LockedUntil = t + SETTINGS.LockSeconds
+	local seconds = self:LockSeconds(player, data)
+	lockFor(plot, seconds)
 	plot.LockReadyAt = plot.LockedUntil + SETTINGS.LockCooldown
-	plot.Model:SetAttribute("LockedUntil", plot.LockedUntil)
-	plot.Shield.Transparency = 0.3
-	plot.Shield.CanCollide = true -- the owner's client turns this off locally
-	Net:Notify(player, "🔒 Base locked for %ds!", Color3.fromRGB(255, 150, 150), SETTINGS.LockSeconds)
-	self:RefreshLabels(player)
+	Net:Notify(player, "🔒 Base locked for %ds!", Color3.fromRGB(255, 150, 150), seconds)
+	self:RefreshLabels(player, true)
 end
 
 ---------------------------------------------------------------------------
@@ -668,10 +1119,15 @@ local function cleanTransform(x, z, r): (number?, number?, number?)
 	if type(x) ~= "number" or type(z) ~= "number" or type(r) ~= "number" then
 		return nil, nil, nil
 	end
-	if x ~= x or z ~= z then -- NaN
+	if x ~= x or z ~= z or r ~= r then -- NaN
 		return nil, nil, nil
 	end
 	return x, z, math.floor(r) % 4
+end
+
+local function isPedestal(id: string): boolean
+	local def = Config.Decor[id]
+	return def ~= nil and (def.Function == "Pedestal" or def.Function == "Vault")
 end
 
 -- returns ok, message
@@ -685,7 +1141,7 @@ function Base:Place(player: Player, id, x, z, r): (boolean, string?)
 	end
 	x, z = DecorModel.Snap(Config, id, x, z, r)
 	local items = data.Base.Items
-	local ok, reason = DecorModel.Validate(Config, items, id, x, z, r, nil)
+	local ok, reason = DecorModel.Validate(Config, items, id, x, z, r, nil, validateOpts(player, data))
 	if not ok then
 		return false, reason
 	end
@@ -703,11 +1159,12 @@ function Base:Place(player: Player, id, x, z, r): (boolean, string?)
 	data.Base.NextUid += 1
 	table.insert(items, item)
 	renderItem(plot, item)
-	if def.Function == "Pedestal" then
+	if isPedestal(id) then
 		self:RenderDisplays(player)
 	end
 	Services.ProgressionService:AddQuest(player, "Decorate", 1)
 	Data:MarkDirty(player)
+	self:RefreshLabels(player, true)
 	return true, nil
 end
 
@@ -720,13 +1177,13 @@ function Base:Move(player: Player, uid, x, z, r): (boolean, string?)
 		return false, "Can't move that"
 	end
 	x, z = DecorModel.Snap(Config, item.Id, x, z, r)
-	local ok, reason = DecorModel.Validate(Config, data.Base.Items, item.Id, x, z, r, item.Uid)
+	local ok, reason = DecorModel.Validate(Config, data.Base.Items, item.Id, x, z, r, item.Uid, validateOpts(player, data))
 	if not ok then
 		return false, reason
 	end
 	item.X, item.Z, item.R = x, z, r
 	renderItem(plot, item)
-	if Config.Decor[item.Id].Function == "Pedestal" then
+	if isPedestal(item.Id) then
 		self:RenderDisplays(player)
 	end
 	Data:MarkDirty(player)
@@ -744,7 +1201,7 @@ function Base:Remove(player: Player, uid): (boolean, string?)
 		return false, "Can't remove that"
 	end
 	local def = Config.Decor[item.Id]
-	if def and def.Function == "Pedestal" and #pedestalItems(data) <= 1 then
+	if def and def.Function == "Pedestal" and DecorModel.Count(data.Base.Items, "Pedestal") <= 1 then
 		return false, "Keep at least one pedestal!"
 	end
 	table.remove(data.Base.Items, index)
@@ -759,14 +1216,170 @@ function Base:Remove(player: Player, uid): (boolean, string?)
 	if model then
 		model:Destroy()
 	end
-	if def and def.Function == "Pedestal" then
+	if isPedestal(item.Id) then
+		self:RenderDisplays(player)
+	end
+	Data:MarkDirty(player)
+	self:RefreshLabels(player, true)
+	return true, nil
+end
+
+-- 🎨 paint: 0 = original colours, 1..#Config.Paint = palette colour (free)
+function Base:Paint(player: Player, uid, color): (boolean, string?)
+	local data = Data:Get(player)
+	local plot = plotOf[player]
+	local item = data and type(uid) == "number" and findItem(data, uid)
+	if not item or not plot or type(color) ~= "number" then
+		return false, "Can't paint that"
+	end
+	color = math.floor(color)
+	if color < 0 or color > #Config.Paint or not DecorModel.CanPaint(item.Id) then
+		return false, "Can't paint that"
+	end
+	item.Paint = if color == 0 then nil else color
+	renderItem(plot, item)
+	if isPedestal(item.Id) then
 		self:RenderDisplays(player)
 	end
 	Data:MarkDirty(player)
 	return true, nil
 end
 
--- traps: freeze intruders; a stolen shard from this base goes straight home
+---------------------------------------------------------------------------
+-- house: level, name, skin
+---------------------------------------------------------------------------
+function Base:Upgrade(player: Player): (boolean, string?)
+	local data = Data:Get(player)
+	local plot = plotOf[player]
+	if not data or not plot then
+		return false, "You need a base first!"
+	end
+	local level = houseLevel(data)
+	local nextDef = SETTINGS.Levels[level + 1]
+	if not nextDef then
+		return false, "Your house is already max level!"
+	end
+	if data.Coins < nextDef.Cost then
+		return false, "Not enough coins!"
+	end
+	data.Coins -= nextDef.Cost
+	data.Base.Level = level + 1
+	Services.Analytics:Economy(player, "Sink", "Coins", nextDef.Cost, data.Coins, "Upgrade", "House" .. (level + 1))
+	Services.Analytics:Custom(player, "HouseLevel", level + 1)
+	applyStyle(plot, data)
+	self:RefreshLabels(player, true)
+	Net:Notify(player, "🏗️ Your house grew into a %s!", Color3.fromRGB(255, 220, 120), nextDef.Name)
+	Net:Send(player, "HouseUpgraded", level + 1)
+	if level + 1 >= 4 then
+		Net:Announce("🏰 %s upgraded their house to a %s!", Color3.fromRGB(210, 150, 255), player.DisplayName, nextDef.Name)
+	end
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+local function filterName(player: Player, text: string): string?
+	local ok, result = pcall(function()
+		local filtered = TextService:FilterStringAsync(text, player.UserId)
+		return filtered:GetNonChatStringForBroadcastAsync()
+	end)
+	if ok and type(result) == "string" then
+		return result
+	end
+	return nil
+end
+
+function Base:SetName(player: Player, text): (boolean, string?)
+	local data = Data:Get(player)
+	if not data or type(text) ~= "string" then
+		return false, "Invalid name"
+	end
+	text = string.gsub(text, "[%c]", "")
+	text = string.match(text, "^%s*(.-)%s*$") or ""
+	local length = utf8.len(text)
+	if not length or length > SETTINGS.NameMax then
+		return false, "That name is too long!"
+	end
+	if length == 0 then
+		data.Base.Name = ""
+		houseNames[player] = nil
+		self:RefreshLabels(player, true)
+		Data:MarkDirty(player)
+		return true, nil
+	end
+	local filtered = filterName(player, text)
+	if not filtered then
+		return false, "Couldn't check that name - try again later."
+	end
+	data.Base.Name = text -- the raw text is re-filtered every time it's shown again
+	houseNames[player] = filtered
+	self:RefreshLabels(player, true)
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+local function skinDef(id)
+	for _, def in Config.HouseSkins do
+		if def.Id == id then
+			return def
+		end
+	end
+	return nil
+end
+
+function Base:GrantSkin(player: Player, id: string)
+	local data = Data:Get(player)
+	if not data or not skinDef(id) then
+		return
+	end
+	data.Base.Skins[id] = true
+	data.Base.Skin = id
+	local plot = plotOf[player]
+	if plot then
+		applyStyle(plot, data)
+		self:RefreshLabels(player, true)
+	end
+	Net:Notify(player, "🎨 New house skin: %s!", Color3.fromRGB(255, 200, 120), skinDef(id).Name)
+	Data:MarkDirty(player)
+end
+
+function Base:SetSkin(player: Player, id): (boolean, string?)
+	local data = Data:Get(player)
+	local def = type(id) == "string" and skinDef(id)
+	if not data or not def then
+		return false, "Unknown skin"
+	end
+	local base = data.Base
+	if def.Id ~= "Auto" and not base.Skins[def.Id] then
+		if def.Pass then
+			if not Services.MonetizationService:HasPass(player, def.Pass) then
+				return false, "VIP only! 👑"
+			end
+		elseif def.Level then
+			if houseLevel(data) < def.Level then
+				return false, Net:L(player, "Reach house level %d first!", def.Level)
+			end
+		elseif def.Gems then
+			if data.Gems < def.Gems then
+				return false, "Not enough gems!"
+			end
+			data.Gems -= def.Gems
+			base.Skins[def.Id] = true
+			Services.Analytics:Economy(player, "Sink", "Gems", def.Gems, data.Gems, "Cosmetic", "Skin" .. def.Id)
+		elseif def.Product then
+			return false, "Buy this skin in the store!"
+		end
+	end
+	base.Skin = def.Id
+	local plot = plotOf[player]
+	if plot then
+		applyStyle(plot, data)
+		self:RefreshLabels(player, true)
+	end
+	Data:MarkDirty(player)
+	return true, nil
+end
+
+-- traps: freeze intruders; a stolen pet from this base goes straight home
 onTrap = function(plot, model: Model, player: Player)
 	local owner = plot.Owner
 	if not owner or owner == player then
@@ -785,7 +1398,8 @@ onTrap = function(plot, model: Model, player: Player)
 	Net:Send(player, "Stunned", SETTINGS.TrapStun)
 	Net:Notify(player, "⚡ You stepped on a trap!", Color3.fromRGB(255, 230, 80))
 	if recovered then
-		Net:Notify(owner, "⚡ Your trap caught %s - shard saved!", Color3.fromRGB(255, 230, 80), player.DisplayName)
+		Net:Notify(owner, "⚡ Your trap caught %s - pet saved!", Color3.fromRGB(255, 230, 80), player.DisplayName)
+		Base:ThiefCaught(owner, player)
 	else
 		Net:Notify(owner, "⚡ Your trap stunned %s!", Color3.fromRGB(255, 230, 80), player.DisplayName)
 	end
@@ -827,9 +1441,23 @@ tryLike = function(visitor: Player, plotIndex: number)
 		base.WeeklyLikes = 0
 	end
 	base.WeeklyLikes += 1
+	-- a few gems for the owner (capped per day): decorating pays off
+	if base.LikeGemsDay ~= today then
+		base.LikeGemsDay = today
+		base.LikeGemsToday = 0
+	end
+	local gems = math.min(SETTINGS.LikeGems, SETTINGS.LikeGemsDaily - base.LikeGemsToday)
+	if gems > 0 then
+		base.LikeGemsToday += gems
+		data.Gems += gems
+	end
 	Services.ProgressionService:AddPoints(owner, SETTINGS.LikePoints)
 	Services.ProgressionService:AddQuest(visitor, "Like", 1)
-	Net:Notify(owner, "❤️ %s liked your base!", Color3.fromRGB(255, 120, 160), visitor.DisplayName)
+	if gems > 0 then
+		Net:Notify(owner, "❤️ %s liked your house! +💎%d", Color3.fromRGB(255, 120, 160), visitor.DisplayName, gems)
+	else
+		Net:Notify(owner, "❤️ %s liked your base!", Color3.fromRGB(255, 120, 160), visitor.DisplayName)
+	end
 	Net:Notify(visitor, "❤️ You liked %s's base!", Color3.fromRGB(255, 120, 160), owner.DisplayName)
 	Net:Send(owner, "BaseLiked", visitor.DisplayName)
 	Data:MarkDirty(owner)
@@ -839,27 +1467,57 @@ end
 ---------------------------------------------------------------------------
 -- plot assignment
 ---------------------------------------------------------------------------
--- first visit (or a save from before decorating existed): starter layout
+local function addItem(base, id: string, x: number, z: number, r: number, level: number): boolean
+	x, z = DecorModel.Snap(Config, id, x, z, r)
+	if DecorModel.Validate(Config, base.Items, id, x, z, r, nil, { Level = level, Vaults = 99 }) then
+		table.insert(base.Items, { Uid = base.NextUid, Id = id, X = x, Z = z, R = r, Paid = 0, Cur = "Coins" })
+		base.NextUid += 1
+		return true
+	end
+	return false
+end
+
+-- first visit: starter layout. Older saves move into the new territories.
 local function seed(data)
 	local base = data.Base
-	if base.Seeded then
+	if not base.Seeded then
+		base.Seeded = true
+		base.LayoutV = 2
+		for _, entry in Config.StarterBase do
+			addItem(base, entry.Id, entry.X, entry.Z, entry.R, 1)
+		end
+		-- pedestals bought before decorating existed are kept
+		local extra = math.max(0, (base.Pedestals or 0) - SETTINGS.StartPedestals)
+		for i = 1, extra do
+			addItem(base, "Pedestal", -12 + ((i - 1) % 5) * 6, -6 - math.floor((i - 1) / 5) * 6, 0, 1)
+		end
 		return
 	end
-	base.Seeded = true
-	local function add(id, x, z, r)
-		x, z = DecorModel.Snap(Config, id, x, z, r)
-		if DecorModel.Validate(Config, base.Items, id, x, z, r, nil) then
-			table.insert(base.Items, { Uid = base.NextUid, Id = id, X = x, Z = z, R = r, Paid = 0, Cur = "Coins" })
-			base.NextUid += 1
+	if (base.LayoutV or 0) < 2 then
+		-- saves from the 44x44 bases: their layout fits house level 2
+		base.LayoutV = 2
+		-- big enough for everything they already placed
+		local level = math.max(houseLevel(data), 2)
+		while level < #SETTINGS.Levels and SETTINGS.Levels[level].MaxItems <= #base.Items do
+			level += 1
+		end
+		base.Level = level
+		if DecorModel.Count(base.Items, "Vault") == 0 then
+			for _, spot in { { 0, 14 }, { -10, 14 }, { 10, 14 }, { 0, -16 }, { -16, -16 }, { 16, -16 } } do
+				if addItem(base, "Vault", spot[1], spot[2], 0, base.Level) then
+					break
+				end
+			end
 		end
 	end
-	for _, entry in Config.StarterBase do
-		add(entry.Id, entry.X, entry.Z, entry.R)
-	end
-	-- pedestals bought before decorating existed are kept
-	local extra = math.max(0, (base.Pedestals or 0) - SETTINGS.StartPedestals)
-	for i = 1, extra do
-		add("Pedestal", -12 + ((i - 1) % 5) * 6, 9 + math.floor((i - 1) / 5) * 6, 0)
+end
+
+local function sendHome(player: Player)
+	local home = Base:HomeCFrame(player)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if home and root and not Services.ShardService:IsCarrying(player) then
+		character:PivotTo(home)
 	end
 end
 
@@ -885,6 +1543,8 @@ local function assign(player: Player, data)
 	plotOf[player] = plot
 	plot.Model:SetAttribute("OwnerId", player.UserId)
 	player:SetAttribute("BaseIndex", plot.Index)
+	-- nobody can rob you the moment you arrive
+	lockFor(plot, SETTINGS.JoinLockSeconds)
 
 	-- offline earnings (lower rate, capped)
 	local base = data.Base
@@ -902,11 +1562,37 @@ local function assign(player: Player, data)
 	end
 	base.LastOnline = os.time()
 	Base:Render(player)
+	-- your custom house name (filtered again every session)
+	if type(base.Name) == "string" and base.Name ~= "" then
+		task.spawn(function()
+			local filtered = filterName(player, base.Name)
+			if filtered and plotOf[player] == plot then
+				houseNames[player] = filtered
+				Base:RefreshLabels(player, true)
+			end
+		end)
+	end
+	-- returning players start at home (like Adopt Me / Steal a Brainrot)
+	if data.Tutorial.Done then
+		task.delay(1.5, function()
+			if plotOf[player] == plot and player.Parent then
+				sendHome(player)
+			end
+		end)
+	end
 end
 
 local function release(player: Player)
 	local plot = plotOf[player]
 	plotOf[player] = nil
+	houseNames[player] = nil
+	revenge[player] = nil
+	thefts[player] = nil
+	for victim, entry in revenge do
+		if entry.Target == player then
+			revenge[victim] = nil
+		end
+	end
 	local index = table.find(waiting, player)
 	if index then
 		table.remove(waiting, index)
@@ -934,7 +1620,7 @@ function Base:Init(services)
 end
 
 function Base:Start()
-	for index, spot in plotLayout() do
+	for index, spot in Util.PlotLayout(Config) do
 		local plot = buildPlot(index, spot.Center, spot.Facing)
 		plots[index] = plot
 		clearPlot(plot)
@@ -950,6 +1636,14 @@ function Base:Start()
 				Base:Lock(player)
 			end
 		end)
+		setPrompt(plot.ExpandBoard, "Expand", "House", "Owner", 0.4, function(player)
+			if plot.Owner == player then
+				local ok, message = Base:Upgrade(player)
+				if not ok and message then
+					Net:Notify(player, message, Color3.fromRGB(255, 120, 120))
+				end
+			end
+		end, 12)
 	end
 
 	Data:OnLoaded(function(player, data)
@@ -978,6 +1672,20 @@ function Base:Start()
 			end
 		end
 	end)
+	-- respawning puts you back home (only real players have characters that respawn)
+	local function onPlayer(player: Player)
+		player.CharacterAdded:Connect(function()
+			local data = Data:Get(player)
+			if data and data.Tutorial.Done and plotOf[player] then
+				task.wait(0.5)
+				sendHome(player)
+			end
+		end)
+	end
+	Players.PlayerAdded:Connect(onPlayer)
+	for _, player in Players:GetPlayers() do
+		onPlayer(player)
+	end
 
 	-- income tick
 	task.spawn(function()
@@ -988,15 +1696,19 @@ function Base:Start()
 				if data and player.Parent then
 					data.Base.Bank += self:IncomeRate(player, data)
 					data.Base.LastOnline = os.time()
-					local ok, err = pcall(self.RefreshLabels, self, player)
-					if not ok then
-						warn("[Base] label refresh failed: " .. tostring(err))
-					end
 					if plot.LockedUntil > 0 and plot.LockedUntil <= now() then
 						plot.LockedUntil = 0
 						plot.Model:SetAttribute("LockedUntil", 0)
-						plot.Shield.Transparency = 1
-						plot.Shield.CanCollide = false
+					end
+					local entry = revenge[player]
+					if entry and entry.Until <= now() then
+						revenge[player] = nil
+						player:SetAttribute("RevengeTarget", nil)
+						player:SetAttribute("RevengeUntil", nil)
+					end
+					local ok, err = pcall(self.RefreshLabels, self, player)
+					if not ok then
+						warn("[Base] label refresh failed: " .. tostring(err))
 					end
 				end
 			end
@@ -1008,11 +1720,29 @@ function Base:Start()
 			Net:Notify(player, "Run! You can't teleport while carrying a shard.")
 			return
 		end
-		local home = self:HomeCFrame(player)
+		sendHome(player)
+	end)
+
+	-- visit someone's house (you arrive outside their gate)
+	Net:On("VisitBase", 1, function(player, userId)
+		local target = type(userId) == "number" and Players:GetPlayerByUserId(userId)
+		if not target or target == player then
+			return
+		end
+		if Services.ShardService:IsCarrying(player) then
+			Net:Notify(player, "Run! You can't teleport while carrying a shard.")
+			return
+		end
+		local gate = self:GateCFrame(target)
 		local character = player.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart
-		if home and root then
-			character:PivotTo(home)
+		if gate and character and character:FindFirstChild("HumanoidRootPart") then
+			character:PivotTo(gate)
+			Net:Notify(
+				player,
+				"🏘️ Welcome to %s's house! Tap ❤️ if you like it.",
+				Color3.fromRGB(255, 160, 200),
+				target.DisplayName
+			)
 		end
 	end)
 
@@ -1028,6 +1758,28 @@ function Base:Start()
 	end)
 	Net:OnRequest("BaseRemove", 0.15, function(player, uid)
 		return reply(player, self:Remove(player, uid))
+	end)
+	Net:OnRequest("BasePaint", 0.1, function(player, uid, color)
+		return reply(player, self:Paint(player, uid, color))
+	end)
+	Net:OnRequest("HouseUpgrade", 0.5, function(player)
+		return reply(player, self:Upgrade(player))
+	end)
+	Net:OnRequest("HouseName", 5, function(player, text)
+		return reply(player, self:SetName(player, text))
+	end)
+	Net:OnRequest("HouseSkin", 0.5, function(player, id)
+		return reply(player, self:SetSkin(player, id))
+	end)
+	-- choose which pets may go into the vault ("show off" keeps a pet on display)
+	Net:On("PetShow", 0.15, function(player, petId, show)
+		local data = Data:Get(player)
+		local pet = data and type(petId) == "number" and Services.PetService.FindPet(data, petId)
+		if not pet then
+			return
+		end
+		pet.Show = if show == true then true else nil
+		Services.PetService:Changed(player)
 	end)
 end
 

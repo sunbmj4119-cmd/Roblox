@@ -82,6 +82,19 @@ BUILDERS.Pedestal = function(m)
 	top:SetAttribute("IsTop", true)
 end
 
+BUILDERS.Vault = function(m)
+	cylinder(m, "Base", 2.4, 3.8, 1.2, Color3.fromRGB(60, 62, 80), Enum.Material.DiamondPlate)
+	cylinder(m, "Ring", 0.3, 4.1, 2.45, Color3.fromRGB(255, 200, 60), Enum.Material.Neon)
+	part(m, "Dome", Vector3.one * 4.4, CFrame.new(0, 3.9, 0), Color3.fromRGB(150, 220, 255), Enum.Material.Glass, {
+		Shape = Enum.PartType.Ball,
+		Transparency = 0.65,
+	})
+	local lock = part(m, "Lock", Vector3.new(0.9, 0.8, 0.3), CFrame.new(0, 1.4, -1.95), Color3.fromRGB(255, 200, 60), Enum.Material.Neon)
+	light(lock, Color3.fromRGB(255, 210, 90), 7, 0.8)
+	local top = part(m, "Top", Vector3.one * 0.2, CFrame.new(0, 2.6, 0), Color3.new(), Enum.Material.SmoothPlastic, { Transparency = 1 })
+	top:SetAttribute("IsTop", true)
+end
+
 BUILDERS.Trap = function(m)
 	part(m, "Plate", Vector3.new(3.6, 0.3, 3.6), CFrame.new(0, 0.15, 0), Color3.fromRGB(60, 60, 75), Enum.Material.Metal)
 	local trigger = part(
@@ -154,6 +167,54 @@ end
 
 BUILDERS.Rock = function(m)
 	part(m, "Rock", Vector3.new(1.8, 1.2, 1.6), CFrame.new(0, 0.6, 0) * CFrame.Angles(0.2, 0.7, 0.1), STONE, Enum.Material.Rock)
+end
+
+BUILDERS.Hedge = function(m)
+	part(m, "Hedge", Vector3.new(3.8, 2.4, 1.7), CFrame.new(0, 1.2, 0), Color3.fromRGB(60, 140, 65), Enum.Material.LeafyGrass)
+end
+
+BUILDERS.Mushroom = function(m)
+	part(m, "Stem", Vector3.new(0.6, 1.4, 0.6), CFrame.new(0, 0.7, 0), Color3.fromRGB(245, 240, 225), Enum.Material.SmoothPlastic)
+	part(m, "Cap", Vector3.new(1.8, 0.9, 1.8), CFrame.new(0, 1.6, 0), Color3.fromRGB(230, 60, 60), Enum.Material.SmoothPlastic, {
+		Shape = Enum.PartType.Ball,
+	})
+	for i = 1, 4 do
+		local angle = i * math.pi / 2
+		part(
+			m,
+			"Dot",
+			Vector3.one * 0.3,
+			CFrame.new(math.cos(angle) * 0.55, 1.85, math.sin(angle) * 0.55),
+			Color3.new(1, 1, 1),
+			Enum.Material.SmoothPlastic,
+			{ Shape = Enum.PartType.Ball }
+		)
+	end
+end
+
+BUILDERS.Pond = function(m)
+	part(m, "Rim", Vector3.new(5.8, 0.5, 3.8), CFrame.new(0, 0.25, 0), Color3.fromRGB(150, 150, 160), Enum.Material.Cobblestone)
+	part(
+		m,
+		"Water",
+		Vector3.new(5, 0.2, 3),
+		CFrame.new(0, 0.52, 0),
+		Color3.fromRGB(70, 170, 255),
+		Enum.Material.Glass,
+		{ Transparency = 0.2 }
+	)
+	for _, spot in { { -1.6, -0.6 }, { 1.4, 0.7 } } do
+		part(
+			m,
+			"Lily",
+			Vector3.new(0.12, 0.9, 0.9),
+			CFrame.new(spot[1], 0.66, spot[2]) * CFrame.Angles(0, 0, math.rad(90)),
+			Color3.fromRGB(90, 200, 90),
+			Enum.Material.SmoothPlastic,
+			{ Shape = Enum.PartType.Cylinder }
+		)
+	end
+	part(m, "Fish", Vector3.new(0.7, 0.25, 0.3), CFrame.new(0.2, 0.6, -0.4), Color3.fromRGB(255, 140, 40), Enum.Material.SmoothPlastic)
 end
 
 BUILDERS.Bench = function(m)
@@ -262,6 +323,117 @@ BUILDERS.Flag = function(m)
 	part(m, "Cloth", Vector3.new(2.2, 1.4, 0.1), CFrame.new(1.2, 5.2, 0), Color3.fromRGB(255, 70, 90), Enum.Material.Fabric)
 end
 
+BUILDERS.Gnome = function(m)
+	cylinder(m, "Body", 1.2, 1.1, 0.6, Color3.fromRGB(60, 110, 220), Enum.Material.SmoothPlastic)
+	part(m, "Beard", Vector3.new(0.9, 0.8, 0.6), CFrame.new(0, 1.3, -0.25), Color3.new(1, 1, 1), Enum.Material.SmoothPlastic, {
+		Shape = Enum.PartType.Ball,
+	})
+	part(m, "Head", Vector3.one * 0.8, CFrame.new(0, 1.55, 0), Color3.fromRGB(255, 205, 170), Enum.Material.SmoothPlastic, {
+		Shape = Enum.PartType.Ball,
+	})
+	part(
+		m,
+		"Hat",
+		Vector3.new(0.75, 1.1, 0.75),
+		CFrame.new(0, 2.25, 0) * CFrame.Angles(0, math.rad(45), 0),
+		Color3.fromRGB(230, 50, 60),
+		Enum.Material.SmoothPlastic
+	)
+	part(
+		m,
+		"HatTip",
+		Vector3.new(0.4, 0.5, 0.4),
+		CFrame.new(0, 2.95, 0) * CFrame.Angles(0, math.rad(45), 0),
+		Color3.fromRGB(230, 50, 60),
+		Enum.Material.SmoothPlastic
+	)
+end
+
+BUILDERS.Campfire = function(m)
+	for i = 1, 6 do
+		local angle = i * math.pi / 3
+		part(
+			m,
+			"Stone",
+			Vector3.new(0.8, 0.5, 0.8),
+			CFrame.new(math.cos(angle) * 1.4, 0.25, math.sin(angle) * 1.4),
+			Color3.fromRGB(120, 120, 130),
+			Enum.Material.Rock
+		)
+	end
+	for _, yaw in { 30, -30 } do
+		part(
+			m,
+			"Log",
+			Vector3.new(2.4, 0.45, 0.45),
+			CFrame.new(0, 0.35, 0) * CFrame.Angles(0, math.rad(yaw), 0),
+			DARK_WOOD,
+			Enum.Material.Wood
+		)
+	end
+	local flame = part(
+		m,
+		"Flame",
+		Vector3.new(0.9, 1.3, 0.9),
+		CFrame.new(0, 1.1, 0) * CFrame.Angles(0, math.rad(45), 0),
+		Color3.fromRGB(255, 150, 40),
+		Enum.Material.Neon,
+		{
+			Transparency = 0.2,
+		}
+	)
+	local fire = Instance.new("Fire")
+	fire.Size = 3
+	fire.Heat = 6
+	fire.Parent = flame
+	light(flame, Color3.fromRGB(255, 160, 70), 14, 1.6)
+end
+
+BUILDERS.Swing = function(m)
+	for _, x in { -2.6, 2.6 } do
+		for _, z in { -0.9, 0.9 } do
+			part(
+				m,
+				"Leg",
+				Vector3.new(0.35, 5.2, 0.35),
+				CFrame.new(x, 2.5, z) * CFrame.Angles(if z > 0 then 0.18 else -0.18, 0, 0),
+				WOOD,
+				Enum.Material.Wood
+			)
+		end
+	end
+	part(m, "Bar", Vector3.new(5.6, 0.4, 0.4), CFrame.new(0, 5, 0), DARK_WOOD, Enum.Material.Wood)
+	for _, x in { -0.8, 0.8 } do
+		part(m, "Rope", Vector3.new(0.1, 3, 0.1), CFrame.new(x, 3.5, 0), Color3.fromRGB(230, 220, 190), Enum.Material.Fabric)
+	end
+	part(m, "Seat", Vector3.new(2, 0.25, 0.8), CFrame.new(0, 2, 0), Color3.fromRGB(255, 120, 90), Enum.Material.WoodPlanks)
+end
+
+BUILDERS.Windmill = function(m)
+	part(m, "Tower", Vector3.new(3.6, 5, 3.6), CFrame.new(0, 2.5, 0), Color3.fromRGB(240, 235, 225), Enum.Material.Brick)
+	part(m, "Upper", Vector3.new(2.6, 3, 2.6), CFrame.new(0, 6.5, 0), Color3.fromRGB(240, 235, 225), Enum.Material.Brick)
+	part(
+		m,
+		"Roof",
+		Vector3.new(3, 1.4, 3),
+		CFrame.new(0, 8.7, 0) * CFrame.Angles(0, math.rad(45), 0),
+		Color3.fromRGB(190, 70, 60),
+		Enum.Material.Slate
+	)
+	part(m, "Hub", Vector3.one * 0.8, CFrame.new(0, 6.8, -1.6), DARK_WOOD, Enum.Material.Wood, { Shape = Enum.PartType.Ball })
+	for i = 0, 3 do
+		part(
+			m,
+			"Blade",
+			Vector3.new(0.7, 4.4, 0.15),
+			CFrame.new(0, 6.8, -1.75) * CFrame.Angles(0, 0, math.rad(45 + i * 90)) * CFrame.new(0, 2.3, 0),
+			Color3.fromRGB(250, 250, 245),
+			Enum.Material.Fabric
+		)
+	end
+	part(m, "Door", Vector3.new(1.2, 2, 0.2), CFrame.new(0, 1, -1.85), DARK_WOOD, Enum.Material.WoodPlanks)
+end
+
 local function floorTile(m, color: Color3, material: Enum.Material)
 	part(m, "Tile", Vector3.new(4, 0.2, 4), CFrame.new(0, 0.1, 0), color, material)
 end
@@ -329,6 +501,46 @@ BUILDERS.NeonArch = function(m)
 	light(top, color, 14, 1.5)
 end
 
+-- parts recolored by 🎨 paint (by part name)
+local PAINT = {
+	Pedestal = { "Ring" },
+	Vault = { "Ring", "Lock" },
+	Tree = { "Leaves", "Leaves2" },
+	Pine = { "Needles" },
+	Bush = { "Bush" },
+	Hedge = { "Hedge" },
+	Flowers = { "Flower" },
+	Rock = { "Rock" },
+	Mushroom = { "Cap" },
+	Pond = { "Water" },
+	Bench = { "Seat", "Back" },
+	Table = { "Top" },
+	Chair = { "Seat", "Back" },
+	Sofa = { "Seat", "Back", "Arm" },
+	Fence = { "Post", "Rail" },
+	Lantern = { "Lamp" },
+	LampPost = { "Bulb" },
+	Crystal = { "Crystal" },
+	Statue = { "Star", "Star2" },
+	Fountain = { "Water", "Spout" },
+	Trophy = { "Cup", "Stem" },
+	Flag = { "Cloth" },
+	Gnome = { "Hat", "HatTip", "Body" },
+	Campfire = { "Flame" },
+	Swing = { "Seat" },
+	Windmill = { "Blade", "Roof" },
+	WoodFloor = { "Tile" },
+	StoneFloor = { "Tile" },
+	GrassFloor = { "Tile" },
+	Carpet = { "Tile" },
+	Throne = { "Seat", "Back" },
+	NeonArch = { "Pillar", "Top" },
+}
+
+function DecorModel.CanPaint(id: string): boolean
+	return PAINT[id] ~= nil
+end
+
 function DecorModel.Has(id: string): boolean
 	return BUILDERS[id] ~= nil
 end
@@ -384,23 +596,45 @@ function DecorModel.Price(config, id: string, items): (string, number)
 		local costs = config.Base.PedestalCosts
 		return "Coins", costs[DecorModel.Count(items, id) + 1] or math.huge
 	end
+	if def.Function == "Vault" then
+		local costs = config.Base.VaultCosts
+		return "Coins", costs[DecorModel.Count(items, id) + 1] or math.huge
+	end
 	if def.Gems then
 		return "Gems", def.Gems
 	end
 	return "Coins", def.Price or 0
 end
 
--- ok, reason (English text key) - ignoreUid lets an item be moved onto itself
-function DecorModel.Validate(config, items, id: string, x: number, z: number, rotation: number, ignoreUid: number?): (boolean, string?)
+-- the buildable area of a house level (plot space)
+function DecorModel.Bounds(config, level: number?)
+	local levels = config.Base.Levels
+	return levels[math.clamp(level or 1, 1, #levels)].Build
+end
+
+-- ok, reason (English text key) - ignoreUid lets an item be moved onto itself.
+-- opts = { Level = house level, Vaults = vault pedestals allowed }
+function DecorModel.Validate(
+	config,
+	items,
+	id: string,
+	x: number,
+	z: number,
+	rotation: number,
+	ignoreUid: number?,
+	opts: { Level: number?, Vaults: number? }?
+): (boolean, string?)
 	local def = config.Decor[id]
 	if not def then
 		return false, "Unknown item"
 	end
-	local bounds = config.Base.Build
+	local level = opts and opts.Level or 1
+	local house = config.Base.Levels[math.clamp(level, 1, #config.Base.Levels)]
+	local bounds = house.Build
 	local minX, maxX, minZ, maxZ = rect(config, id, x, z, rotation)
 	local eps = 0.01
 	if minX < bounds.MinX - eps or maxX > bounds.MaxX + eps or minZ < bounds.MinZ - eps or maxZ > bounds.MaxZ + eps then
-		return false, "Out of bounds"
+		return false, "Out of bounds - expand your house for more room!"
 	end
 	local layer = layerOf(config, id)
 	for _, other in items do
@@ -412,11 +646,19 @@ function DecorModel.Validate(config, items, id: string, x: number, z: number, ro
 		end
 	end
 	if not ignoreUid then
-		if #items >= config.Base.MaxItems then
-			return false, "Your base is full of decorations!"
+		if def.MinLevel and level < def.MinLevel then
+			return false, "Upgrade your house to unlock this item!"
+		end
+		if #items >= house.MaxItems then
+			return false, "Your base is full - expand your house for more!"
 		end
 		local count = DecorModel.Count(items, id)
-		local limit = if def.Function == "Pedestal" then config.Base.MaxPedestals else def.Limit
+		local limit = def.Limit
+		if def.Function == "Pedestal" then
+			limit = config.Base.MaxPedestals
+		elseif def.Function == "Vault" then
+			limit = math.min(opts and opts.Vaults or house.Vaults, #config.Base.VaultCosts)
+		end
 		if limit and count >= limit then
 			return false, "Limit reached for this item"
 		end
@@ -424,7 +666,7 @@ function DecorModel.Validate(config, items, id: string, x: number, z: number, ro
 	return true, nil
 end
 
-function DecorModel.Build(config, id: string): Model
+function DecorModel.Build(config, id: string, paint: number?): Model
 	local model = Instance.new("Model")
 	model.Name = id
 	local cell = config.Base.Cell
@@ -442,6 +684,19 @@ function DecorModel.Build(config, id: string): Model
 	local builder = BUILDERS[id]
 	if builder then
 		builder(model)
+	end
+	local color = paint and config.Paint[paint]
+	local names = PAINT[id]
+	if color and names then
+		for _, child in model:GetChildren() do
+			if child:IsA("BasePart") and table.find(names, child.Name) then
+				child.Color = color
+				local glow = child:FindFirstChildOfClass("PointLight")
+				if glow then
+					glow.Color = color
+				end
+			end
+		end
 	end
 	return model
 end
