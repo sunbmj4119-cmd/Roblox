@@ -99,6 +99,12 @@ end
 ---------------------------------------------------------------------------
 -- carrying
 ---------------------------------------------------------------------------
+-- the theft record of whatever the player carries (nil = nothing / not stolen)
+function Shards:CarryMeta(player: Player)
+	local info = carrying[player]
+	return info and info.Meta or nil
+end
+
 function Shards:IsCarrying(player: Player): boolean
 	return carrying[player] ~= nil
 end
@@ -544,7 +550,11 @@ local function deliver(player: Player)
 			Net:Notify(player, "The owner left - the pet vanished!")
 			return
 		end
-		pets:GivePet(player, taken.Name, taken.Variant, taken.Serial)
+		local given = pets:GivePet(player, taken.Name, taken.Variant, taken.Serial)
+		-- a freshly stolen pet can't hide in the thief's vault yet: revenge can win it back
+		if given and not (meta.Revenge and meta.Thief == player) then
+			given.HotUntil = os.time() + Config.Base.HotSeconds
+		end
 		-- save both right away so a crash can't leave the pet in two places
 		task.spawn(Data.Save, Data, owner)
 		task.spawn(Data.Save, Data, player)
@@ -790,6 +800,11 @@ function Shards:Start()
 					endCarry(player)
 					returnHome(info.Meta, true)
 				end
+			elseif info.Meta and info.Meta.Deadline and os.clock() > info.Meta.Deadline then
+				-- held too long: the stolen pet escapes back home
+				endCarry(player)
+				returnHome(info.Meta, true)
+				Net:Notify(player, "⏰ Too slow - the pet ran back home!", Color3.fromRGB(255, 150, 90))
 			elseif Services.BaseService:InOwnPlot(player, root.Position) then
 				local ok, err = pcall(deliver, player)
 				if not ok then

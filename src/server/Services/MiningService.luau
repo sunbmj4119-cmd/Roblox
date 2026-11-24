@@ -470,11 +470,16 @@ local function tryBonk(attacker: Player, victim: Player)
 	end
 	immunity[victim] = clock + Config.PvP.ImmunitySeconds
 
-	local wasThief = victim:GetAttribute("CarryStolen") == true
+	local meta = shards:CarryMeta(victim)
+	local wasThief = meta ~= nil and meta.From ~= nil
+	local firstCatch = wasThief and not meta.Caught -- one catch per theft (no re-grab farming)
+	if firstCatch then
+		meta.Caught = true
+	end
 	shards:Drop(victim, attacker)
 	if wasThief then
 		-- stopped a thief: counts for the 🛡️ Guardian title + claims any bounty
-		Services.BaseService:ThiefCaught(attacker, victim)
+		Services.BaseService:ThiefCaught(attacker, victim, firstCatch)
 	end
 	aData.Stats.Bonks += 1
 	local progression = Services.ProgressionService

@@ -957,4 +957,6 @@ return {
 	["🛡️ This base was just robbed - it's protected for a few minutes."] = "🛡️ 방금 털린 집이라 몇 분 동안 보호 중이에요.",
 	["🛡️ This player is new - their base is protected for now."] = "🛡️ 초보 플레이어의 집이라 지금은 보호 중이에요.",
 	["🔓 OPEN"] = "🔓 열림",
+	["⏰ Too slow - the pet ran back home!"] = "⏰ 너무 느렸어요 - 펫이 집으로 도망갔어요!",
+	["🔥 just stolen"] = "🔥 갓 훔친 펫",
 }

@@ -1038,6 +1038,9 @@ Config.Base = {
 	StealGap = 3, -- you can't rob someone whose pets are worth less than 1/3 of yours
 	StealGapMinWorth = 60, -- (tiny bases don't count toward the gap rule)
 	RevengeSeconds = 300, -- the victim may raid the thief's base for 5 min (locks don't stop them)
+	-- a freshly stolen pet can't go into the thief's vault for this long (so revenge can win it back)
+	HotSeconds = 300,
+	StolenCarrySeconds = 90, -- a stolen pet runs home if nobody delivers it in time
 	-- serial thieves get a bounty: rob 2+ different players within 15 min
 	Bounty = { MinVictims = 2, WindowSeconds = 900, IncomeSeconds = 60 },
 	StealHold = 1.2,
@@ -3122,6 +3125,8 @@ return {
 	["🛡️ This base was just robbed - it's protected for a few minutes."] = "🛡️ 방금 털린 집이라 몇 분 동안 보호 중이에요.",
 	["🛡️ This player is new - their base is protected for now."] = "🛡️ 초보 플레이어의 집이라 지금은 보호 중이에요.",
 	["🔓 OPEN"] = "🔓 열림",
+	["⏰ Too slow - the pet ran back home!"] = "⏰ 너무 느렸어요 - 펫이 집으로 도망갔어요!",
+	["🔥 just stolen"] = "🔥 갓 훔친 펫",
 }
 ]]></string>
         </Properties>
@@ -4162,7 +4167,9 @@ function Util.ArrangePets(config, data)
 		if #vault >= #vaultItems then
 			break
 		end
-		if not pet.Show and not Util.IsExclusive(config, pet) then
+		-- freshly stolen pets ("hot") can't hide in a vault yet
+		local hot = type(pet.HotUntil) == "number" and pet.HotUntil > os.time()
+		if not pet.Show and not hot and not Util.IsExclusive(config, pet) then
 			table.insert(vault, pet)
 			used[pet] = true
 		end
@@ -4992,6 +4999,12 @@ function Base:RenderDisplays(player: Player)
 		local petModel = PetModel.Build(pet.Name, pet.Variant)
 		petModel.Name = "Pet_" .. pet.Id
 		petModel:PivotTo(CFrame.new(top.Position + Vector3.new(0, 1.6, 0)) * (top.CFrame - top.Position))
+		-- big (huge) pets stand on the pedestal instead of sinking into it
+		local boxCFrame, boxSize = petModel:GetBoundingBox()
+		local lift = (top.Position.Y + 0.2) - (boxCFrame.Position.Y - boxSize.Y / 2)
+		if lift > 0 then
+			petModel:PivotTo(petModel:GetPivot() + Vector3.new(0, lift, 0))
+		end
 		petModel:SetAttribute("Spin", true)
 		petModel:SetAttribute("PetId", pet.Id)
 		petModel:SetAttribute("Vault", inVault)
@@ -5215,6 +5228,7 @@ function Base:RefreshLabels(player: Player, force: boolean?)
 		plot.Shield.CanCollide = false
 	end
 	plot.Model:SetAttribute("Protection", protection or "")
+	plot.Model:SetAttribute("Robbing", beingRobbed(data))
 	player:SetAttribute("BaseRate", rate)
 	player:SetAttribute("BaseBank", math.floor(data.Base.Bank))
 	player:SetAttribute("BaseStored", stored)
@@ -5223,7 +5237,7 @@ function Base:RefreshLabels(player: Player, force: boolean?)
 	player:SetAttribute("ShieldUntil", plot.ShieldUntil)
 	player:SetAttribute("LockedUntil", plot.LockedUntil)
 	local bounty = self:Bounty(player)
-	if player:GetAttribute("Bounty") ~= bounty then
+	if (player:GetAttribute("Bounty") or 0) ~= bounty then
 		player:SetAttribute("Bounty", if bounty > 0 then bounty else nil)
 	end
 end
@@ -5315,7 +5329,7 @@ function Base:SellPet(player: Player, petId: number)
 	if data then
 		pet, index = Services.PetService.FindPet(data, petId)
 	end
-	if not pet or pet.Away then
+	if not pet or pet.Away or pet.SerialPending then
 		return
 	end
 	local coins = Services.PetService:SellValue(pet.Name, pet.Variant)
@@ -5354,11 +5368,19 @@ function Base:TrySteal(thief: Player, owner: Player, petId: number)
 		return
 	end
 	local isRevenge = self:HasRevenge(thief, owner)
+	-- one theft at a time, always (revenge too)
+	if beingRobbed(data) then
+		Net:Notify(thief, PROTECTION_MESSAGES.robbing)
+		return
+	end
+	-- revenge ignores locks and shields
 	local protection = self:Protection(owner)
-	-- revenge ignores locks and shields (but still one theft at a time)
-	if protection and not (isRevenge and protection ~= "robbing" and protection ~= "none") then
+	if protection and not (isRevenge and protection ~= "none") then
 		Net:Notify(thief, PROTECTION_MESSAGES[protection] or PROTECTION_MESSAGES.none)
 		return
+	end
+	if pet.SerialPending then
+		return -- (numbering a brand-new pet takes a second)
 	end
 	if Util.IsExclusive(Config, pet) then
 		Net:Notify(thief, "💎 Exclusive pets can't be stolen!")
@@ -5385,7 +5407,15 @@ function Base:TrySteal(thief: Player, owner: Player, petId: number)
 	end
 	self:SetAway(owner, petId, true)
 	local item = { Kind = "Pet", Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial }
-	if not shards:StartCarry(thief, item, { From = owner, PetId = petId, Revenge = isRevenge }) then
+	local meta = {
+		From = owner,
+		PetId = petId,
+		Thief = thief,
+		Revenge = isRevenge,
+		-- nobody can hold a stolen pet forever (that would block the base)
+		Deadline = os.clock() + SETTINGS.StolenCarrySeconds,
+	}
+	if not shards:StartCarry(thief, item, meta) then
 		self:SetAway(owner, petId, false)
 		return
 	end
@@ -5408,7 +5438,7 @@ function Base:StealDelivered(owner: Player, thief: Player, meta, pet)
 		plot.ShieldUntil = now() + SETTINGS.TheftShieldSeconds
 		plot.Model:SetAttribute("ShieldUntil", plot.ShieldUntil)
 	end
-	if meta and meta.Revenge then
+	if meta and meta.Revenge and meta.Thief == thief then
 		revenge[thief] = nil
 		thief:SetAttribute("RevengeTarget", nil)
 		thief:SetAttribute("RevengeUntil", nil)
@@ -5451,7 +5481,7 @@ function Base:StealDelivered(owner: Player, thief: Player, meta, pet)
 end
 
 -- someone stopped a thief (bonk or trap): count it + pay the bounty
-function Base:ThiefCaught(hunter: Player, thief: Player)
+function Base:ThiefCaught(hunter: Player, thief: Player, count: boolean?)
 	if hunter == thief then
 		return
 	end
@@ -5459,7 +5489,9 @@ function Base:ThiefCaught(hunter: Player, thief: Player)
 	if not data then
 		return
 	end
-	data.Stats.ThievesCaught = (data.Stats.ThievesCaught or 0) + 1
+	if count ~= false then
+		data.Stats.ThievesCaught = (data.Stats.ThievesCaught or 0) + 1
+	end
 	local bounty = self:Bounty(thief)
 	if bounty > 0 then
 		thefts[thief] = nil
@@ -5533,14 +5565,20 @@ local function findItem(data, uid)
 	return nil, nil
 end
 
+local function finite(value): boolean
+	return type(value) == "number" and value == value and math.abs(value) < 1e6
+end
+
 local function cleanTransform(x, z, r): (number?, number?, number?)
-	if type(x) ~= "number" or type(z) ~= "number" or type(r) ~= "number" then
+	-- NaN / inf would end up in the save (DataStores can't store them)
+	if not finite(x) or not finite(z) or not finite(r) then
 		return nil, nil, nil
 	end
-	if x ~= x or z ~= z or r ~= r then -- NaN
+	local rotation = math.floor(r) % 4
+	if rotation ~= rotation then
 		return nil, nil, nil
 	end
-	return x, z, math.floor(r) % 4
+	return x, z, rotation
 end
 
 local function isPedestal(id: string): boolean
@@ -5647,7 +5685,7 @@ function Base:Paint(player: Player, uid, color): (boolean, string?)
 	local data = Data:Get(player)
 	local plot = plotOf[player]
 	local item = data and type(uid) == "number" and findItem(data, uid)
-	if not item or not plot or type(color) ~= "number" then
+	if not item or not plot or not finite(color) then
 		return false, "Can't paint that"
 	end
 	color = math.floor(color)
@@ -5697,7 +5735,7 @@ end
 
 local function filterName(player: Player, text: string): string?
 	local ok, result = pcall(function()
-		local filtered = TextService:FilterStringAsync(text, player.UserId)
+		local filtered = TextService:FilterStringAsync(text, player.UserId, Enum.TextFilterContext.PublicChat)
 		return filtered:GetNonChatStringForBroadcastAsync()
 	end)
 	if ok and type(result) == "string" then
@@ -5711,8 +5749,13 @@ function Base:SetName(player: Player, text): (boolean, string?)
 	if not data or type(text) ~= "string" then
 		return false, "Invalid name"
 	end
+	-- cap first: pattern matching a huge string would stall the server
+	if #text > SETTINGS.NameMax * 4 then
+		return false, "That name is too long!"
+	end
 	text = string.gsub(text, "[%c]", "")
-	text = string.match(text, "^%s*(.-)%s*$") or ""
+	text = string.gsub(text, "^%s+", "")
+	text = string.gsub(text, "%s+$", "")
 	local length = utf8.len(text)
 	if not length or length > SETTINGS.NameMax then
 		return false, "That name is too long!"
@@ -5914,7 +5957,12 @@ local function seed(data)
 	if (base.LayoutV or 0) < 2 then
 		-- saves from the 44x44 bases: their layout fits house level 2
 		base.LayoutV = 2
-		base.Level = math.max(houseLevel(data), 2)
+		-- big enough for everything they already placed
+		local level = math.max(houseLevel(data), 2)
+		while level < #SETTINGS.Levels and SETTINGS.Levels[level].MaxItems <= #base.Items do
+			level += 1
+		end
+		base.Level = level
 		if DecorModel.Count(base.Items, "Vault") == 0 then
 			for _, spot in { { 0, 14 }, { -10, 14 }, { 10, 14 }, { 0, -16 }, { -16, -16 }, { 16, -16 } } do
 				if addItem(base, "Vault", spot[1], spot[2], 0, base.Level) then
@@ -6004,6 +6052,8 @@ local function release(player: Player)
 	for victim, entry in revenge do
 		if entry.Target == player then
 			revenge[victim] = nil
+			victim:SetAttribute("RevengeTarget", nil)
+			victim:SetAttribute("RevengeUntil", nil)
 		end
 	end
 	local index = table.find(waiting, player)
@@ -7203,6 +7253,15 @@ function Dev:Start()
 		elseif command == "Shard" then
 			local id = Util.RollShard(Config, 4)
 			Services.ShardService:StartCarry(player, { Kind = "Egg", Rarity = id, Egg = "Meadow" }, nil)
+		elseif command == "Huge" then
+			-- a random huge pet from your best unlocked coin egg
+			local zoneEgg = Config.Shards.ZoneEggs[math.clamp(data.ZoneLevel, 1, #Config.Shards.ZoneEggs)] or "Meadow"
+			local pick = Util.WeightedPick(Config.Eggs[zoneEgg].Pets)
+			Services.PetService:GrantPet(player, pick, "Huge")
+		elseif command == "House" then
+			-- free house level up (test the land / wall styles)
+			data.Coins += (Config.Base.Levels[Util.HouseLevel(Config, data) + 1] or { Cost = 0 }).Cost
+			Services.BaseService:Upgrade(player)
 		elseif command == "Reset" then
 			local fresh = Util.DeepCopy(Data.Template)
 			fresh.FirstJoin = os.time()
@@ -8867,11 +8926,16 @@ local function tryBonk(attacker: Player, victim: Player)
 	end
 	immunity[victim] = clock + Config.PvP.ImmunitySeconds
 
-	local wasThief = victim:GetAttribute("CarryStolen") == true
+	local meta = shards:CarryMeta(victim)
+	local wasThief = meta ~= nil and meta.From ~= nil
+	local firstCatch = wasThief and not meta.Caught -- one catch per theft (no re-grab farming)
+	if firstCatch then
+		meta.Caught = true
+	end
 	shards:Drop(victim, attacker)
 	if wasThief then
 		-- stopped a thief: counts for the 🛡️ Guardian title + claims any bounty
-		Services.BaseService:ThiefCaught(attacker, victim)
+		Services.BaseService:ThiefCaught(attacker, victim, firstCatch)
 	end
 	aData.Stats.Bonks += 1
 	local progression = Services.ProgressionService
@@ -9738,16 +9802,19 @@ local function nextSerial(key: string): number?
 end
 
 -- number a new huge / exclusive pet (async); then(serial?) runs afterwards
+-- (the pet can't be traded / stolen / sold while it waits: no number gets lost)
 local function giveSerial(player: Player, data, pet, andThen)
+	pet.SerialPending = true
 	task.spawn(function()
 		local key = (if pet.Variant == "Huge" then "Huge|" else "") .. pet.Name
 		local serial = nextSerial(key)
+		pet.SerialPending = nil
 		if serial and table.find(data.Pets, pet) and not pet.Serial then
 			pet.Serial = serial
 			Data:MarkDirty(player)
-			if player.Parent then
-				PetService:Changed(player)
-			end
+		end
+		if player.Parent then
+			PetService:Changed(player)
 		end
 		if andThen then
 			andThen(serial)
@@ -9764,7 +9831,7 @@ local function makeRoom(player: Player, data, name: string, variant: string?): (
 	end
 	local weakest, weakestIndex = nil, nil
 	for index, pet in data.Pets do
-		local precious = pet.Serial ~= nil or Util.IsExclusive(Config, pet)
+		local precious = pet.Serial ~= nil or pet.SerialPending or Util.IsExclusive(Config, pet)
 		if not pet.Away and not precious and (not weakest or income(pet) < income(weakest)) then
 			weakest, weakestIndex = pet, index
 		end
@@ -9916,10 +9983,12 @@ function PetService:GivePet(player: Player, name: string, variant: string?, seri
 	if not data or not Config.Pets[name] then
 		return
 	end
+	local pet = nil
 	if makeRoom(player, data, name, variant) then
-		addPet(data, name, variant, serial)
+		pet = addPet(data, name, variant, serial)
 	end
 	self:Changed(player)
+	return pet
 end
 
 ---------------------------------------------------------------------------
@@ -10007,6 +10076,13 @@ function PetService:Start()
 	Data:OnLoaded(function(player, data)
 		for _, pet in data.Pets do
 			pet.Away = nil -- a theft interrupted by a server shutdown never happened
+			pet.SerialPending = nil
+		end
+		-- numbered pets whose number never arrived (DataStore hiccup): try again
+		for _, pet in data.Pets do
+			if not pet.Serial and Util.WantsSerial(Config, pet.Name, pet.Variant) then
+				giveSerial(player, data, pet, nil)
+			end
 		end
 		migrate(player, data)
 		self:RefreshEquipped(player)
@@ -10048,7 +10124,7 @@ function PetService:Start()
 			return
 		end
 		local pet, index = findPet(data, petId)
-		if not pet or pet.Away then
+		if not pet or pet.Away or pet.SerialPending then
 			return
 		end
 		local coins = self:SellValue(pet.Name, pet.Variant)
@@ -10768,6 +10844,12 @@ end
 ---------------------------------------------------------------------------
 -- carrying
 ---------------------------------------------------------------------------
+-- the theft record of whatever the player carries (nil = nothing / not stolen)
+function Shards:CarryMeta(player: Player)
+	local info = carrying[player]
+	return info and info.Meta or nil
+end
+
 function Shards:IsCarrying(player: Player): boolean
 	return carrying[player] ~= nil
 end
@@ -11213,7 +11295,11 @@ local function deliver(player: Player)
 			Net:Notify(player, "The owner left - the pet vanished!")
 			return
 		end
-		pets:GivePet(player, taken.Name, taken.Variant, taken.Serial)
+		local given = pets:GivePet(player, taken.Name, taken.Variant, taken.Serial)
+		-- a freshly stolen pet can't hide in the thief's vault yet: revenge can win it back
+		if given and not (meta.Revenge and meta.Thief == player) then
+			given.HotUntil = os.time() + Config.Base.HotSeconds
+		end
 		-- save both right away so a crash can't leave the pet in two places
 		task.spawn(Data.Save, Data, owner)
 		task.spawn(Data.Save, Data, player)
@@ -11459,6 +11545,11 @@ function Shards:Start()
 					endCarry(player)
 					returnHome(info.Meta, true)
 				end
+			elseif info.Meta and info.Meta.Deadline and os.clock() > info.Meta.Deadline then
+				-- held too long: the stolen pet escapes back home
+				endCarry(player)
+				returnHome(info.Meta, true)
+				Net:Notify(player, "⏰ Too slow - the pet ran back home!", Color3.fromRGB(255, 150, 90))
 			elseif Services.BaseService:InOwnPlot(player, root.Position) then
 				local ok, err = pcall(deliver, player)
 				if not ok then
@@ -11715,7 +11806,8 @@ function Stats:BuildDerived(player)
 		Today = Util.DayNumber(),
 		SessionStart = progression and progression:SessionStart(player) or os.time(),
 		GiftsClaimed = progression and progression:GiftsClaimed(player) or {},
-		PaidRandomRestricted = player:GetAttribute("PaidRandomRestricted") == true,
+		-- unknown policy (still loading) counts as restricted, same as the server
+		PaidRandomRestricted = player:GetAttribute("PaidRandomRestricted") ~= false,
 		AdsEnabled = Config.RewardedAds.Enabled,
 		XPNeeded = Util.XPForLevel(Config, data.Level),
 		SpinCooldown = if Services.MonetizationService:HasPass(player, "VIP")
@@ -11892,7 +11984,7 @@ local function complete(session)
 		local list = {}
 		for _, petId in ids do
 			local pet = petInfo(data, petId)
-			if not pet or pet.Away then
+			if not pet or pet.Away or pet.SerialPending then
 				return nil
 			end
 			-- both sides must be allowed to trade paid items
@@ -12017,7 +12109,7 @@ function Trade:Start()
 				local pet = petInfo(data, petId)
 				-- exclusive (Robux) pets can't be traded where Roblox restricts paid item trading
 				local blocked = Util.IsExclusive(Config, pet) and player:GetAttribute("PaidTradeAllowed") ~= true
-				if pet and not pet.Away and not blocked then
+				if pet and not pet.Away and not pet.SerialPending and not blocked then
 					seen[petId] = true
 					table.insert(clean, petId)
 				elseif pet and blocked then
@@ -14335,11 +14427,13 @@ local Root = require(Client.UI.Root)
 local C = Lib.Colors
 
 local function build()
-	local cluster = Root.Cluster("Dev", Vector2.new(0, 1), UDim2.new(0, 12, 1, -12), UDim2.fromOffset(150, 470))
+	local cluster = Root.Cluster("Dev", Vector2.new(0, 1), UDim2.new(0, 12, 1, -12), UDim2.fromOffset(150, 540))
 	local list = Lib.New("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, -40), Visible = false, Parent = cluster }, {
 		Lib.List(Enum.FillDirection.Vertical, 4, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Bottom),
 	})
-	for order, command in { "Coins", "Gems", "Level", "Points", "Star", "Shard", "Event", "Rainbow", "Spin", "Meteor", "Reset" } do
+	for order, command in
+		{ "Coins", "Gems", "Level", "Points", "Star", "Shard", "Huge", "House", "Event", "Rainbow", "Spin", "Meteor", "Reset" }
+	do
 		Lib.Button({
 			Text = command,
 			Color = if command == "Reset" then C.Red else C.Gray,
@@ -17489,7 +17583,8 @@ local function refreshBases()
 			-- except for the victim's revenge (locks and shields don't stop it)
 			local protection = plot:GetAttribute("Protection") or ""
 			local revengeHere = player:GetAttribute("RevengeTarget") == ownerId and (player:GetAttribute("RevengeUntil") or 0) > serverNow
-			local open = (protection == "" and not locked) or (revengeHere and protection ~= "robbing")
+			local robbing = plot:GetAttribute("Robbing") == true
+			local open = not robbing and ((protection == "" and not locked) or revengeHere)
 			for _, prompt in plot:GetDescendants() do
 				if prompt:IsA("ProximityPrompt") then
 					local role = prompt:GetAttribute("Role")
@@ -18088,6 +18183,7 @@ local function slot(petName: string, variant: string?, eggColor: Color3)
 		elseif variant == "Galaxy" then Color3.fromRGB(190, 140, 255)
 		elseif variant == "Frozen" then Color3.fromRGB(170, 225, 255)
 		elseif variant == "Molten" then Color3.fromRGB(255, 130, 50)
+		elseif variant == "Huge" then Color3.fromRGB(255, 190, 60)
 		else nil
 	local rarity = Config.Rarities[info.Rarity]
 	local frame = New("Frame", {
@@ -19808,6 +19904,8 @@ function Pets.Build(content, ctx)
 				status = T("🏃 being stolen!")
 			elseif place == "vault" then
 				status = T("🔒 safe")
+			elseif type(pet.HotUntil) == "number" and pet.HotUntil > os.time() and onDisplay then
+				status = T("🔥 just stolen")
 			elseif onDisplay and exclusive then
 				status = T("💎 safe")
 			elseif onDisplay then
@@ -19903,7 +20001,12 @@ function Pets.Build(content, ctx)
 		for _, pet in data.Pets do
 			table.insert(
 				parts,
-				pet.Id .. (pet.Variant or "") .. (if pet.Away then "!" else "") .. (if pet.Show then "s" else "") .. (pet.Serial or "")
+				pet.Id
+					.. (pet.Variant or "")
+					.. (if pet.Away then "!" else "")
+					.. (if pet.Show then "s" else "")
+					.. (pet.Serial or "")
+					.. (if type(pet.HotUntil) == "number" and pet.HotUntil > os.time() then "h" else "")
 			)
 		end
 		local sig = table.concat(parts, ",")

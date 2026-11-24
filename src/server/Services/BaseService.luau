@@ -797,6 +797,7 @@ function Base:RefreshLabels(player: Player, force: boolean?)
 		plot.Shield.CanCollide = false
 	end
 	plot.Model:SetAttribute("Protection", protection or "")
+	plot.Model:SetAttribute("Robbing", beingRobbed(data))
 	player:SetAttribute("BaseRate", rate)
 	player:SetAttribute("BaseBank", math.floor(data.Base.Bank))
 	player:SetAttribute("BaseStored", stored)
@@ -897,7 +898,7 @@ function Base:SellPet(player: Player, petId: number)
 	if data then
 		pet, index = Services.PetService.FindPet(data, petId)
 	end
-	if not pet or pet.Away then
+	if not pet or pet.Away or pet.SerialPending then
 		return
 	end
 	local coins = Services.PetService:SellValue(pet.Name, pet.Variant)
@@ -936,11 +937,19 @@ function Base:TrySteal(thief: Player, owner: Player, petId: number)
 		return
 	end
 	local isRevenge = self:HasRevenge(thief, owner)
+	-- one theft at a time, always (revenge too)
+	if beingRobbed(data) then
+		Net:Notify(thief, PROTECTION_MESSAGES.robbing)
+		return
+	end
+	-- revenge ignores locks and shields
 	local protection = self:Protection(owner)
-	-- revenge ignores locks and shields (but still one theft at a time)
-	if protection and not (isRevenge and protection ~= "robbing" and protection ~= "none") then
+	if protection and not (isRevenge and protection ~= "none") then
 		Net:Notify(thief, PROTECTION_MESSAGES[protection] or PROTECTION_MESSAGES.none)
 		return
+	end
+	if pet.SerialPending then
+		return -- (numbering a brand-new pet takes a second)
 	end
 	if Util.IsExclusive(Config, pet) then
 		Net:Notify(thief, "💎 Exclusive pets can't be stolen!")
@@ -967,7 +976,15 @@ function Base:TrySteal(thief: Player, owner: Player, petId: number)
 	end
 	self:SetAway(owner, petId, true)
 	local item = { Kind = "Pet", Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial }
-	if not shards:StartCarry(thief, item, { From = owner, PetId = petId, Revenge = isRevenge }) then
+	local meta = {
+		From = owner,
+		PetId = petId,
+		Thief = thief,
+		Revenge = isRevenge,
+		-- nobody can hold a stolen pet forever (that would block the base)
+		Deadline = os.clock() + SETTINGS.StolenCarrySeconds,
+	}
+	if not shards:StartCarry(thief, item, meta) then
 		self:SetAway(owner, petId, false)
 		return
 	end
@@ -990,7 +1007,7 @@ function Base:StealDelivered(owner: Player, thief: Player, meta, pet)
 		plot.ShieldUntil = now() + SETTINGS.TheftShieldSeconds
 		plot.Model:SetAttribute("ShieldUntil", plot.ShieldUntil)
 	end
-	if meta and meta.Revenge then
+	if meta and meta.Revenge and meta.Thief == thief then
 		revenge[thief] = nil
 		thief:SetAttribute("RevengeTarget", nil)
 		thief:SetAttribute("RevengeUntil", nil)
@@ -1033,7 +1050,7 @@ function Base:StealDelivered(owner: Player, thief: Player, meta, pet)
 end
 
 -- someone stopped a thief (bonk or trap): count it + pay the bounty
-function Base:ThiefCaught(hunter: Player, thief: Player)
+function Base:ThiefCaught(hunter: Player, thief: Player, count: boolean?)
 	if hunter == thief then
 		return
 	end
@@ -1041,7 +1058,9 @@ function Base:ThiefCaught(hunter: Player, thief: Player)
 	if not data then
 		return
 	end
-	data.Stats.ThievesCaught = (data.Stats.ThievesCaught or 0) + 1
+	if count ~= false then
+		data.Stats.ThievesCaught = (data.Stats.ThievesCaught or 0) + 1
+	end
 	local bounty = self:Bounty(thief)
 	if bounty > 0 then
 		thefts[thief] = nil
@@ -1115,14 +1134,20 @@ local function findItem(data, uid)
 	return nil, nil
 end
 
+local function finite(value): boolean
+	return type(value) == "number" and value == value and math.abs(value) < 1e6
+end
+
 local function cleanTransform(x, z, r): (number?, number?, number?)
-	if type(x) ~= "number" or type(z) ~= "number" or type(r) ~= "number" then
+	-- NaN / inf would end up in the save (DataStores can't store them)
+	if not finite(x) or not finite(z) or not finite(r) then
 		return nil, nil, nil
 	end
-	if x ~= x or z ~= z or r ~= r then -- NaN
+	local rotation = math.floor(r) % 4
+	if rotation ~= rotation then
 		return nil, nil, nil
 	end
-	return x, z, math.floor(r) % 4
+	return x, z, rotation
 end
 
 local function isPedestal(id: string): boolean
@@ -1229,7 +1254,7 @@ function Base:Paint(player: Player, uid, color): (boolean, string?)
 	local data = Data:Get(player)
 	local plot = plotOf[player]
 	local item = data and type(uid) == "number" and findItem(data, uid)
-	if not item or not plot or type(color) ~= "number" then
+	if not item or not plot or not finite(color) then
 		return false, "Can't paint that"
 	end
 	color = math.floor(color)
@@ -1279,7 +1304,7 @@ end
 
 local function filterName(player: Player, text: string): string?
 	local ok, result = pcall(function()
-		local filtered = TextService:FilterStringAsync(text, player.UserId)
+		local filtered = TextService:FilterStringAsync(text, player.UserId, Enum.TextFilterContext.PublicChat)
 		return filtered:GetNonChatStringForBroadcastAsync()
 	end)
 	if ok and type(result) == "string" then
@@ -1293,8 +1318,13 @@ function Base:SetName(player: Player, text): (boolean, string?)
 	if not data or type(text) ~= "string" then
 		return false, "Invalid name"
 	end
+	-- cap first: pattern matching a huge string would stall the server
+	if #text > SETTINGS.NameMax * 4 then
+		return false, "That name is too long!"
+	end
 	text = string.gsub(text, "[%c]", "")
-	text = string.match(text, "^%s*(.-)%s*$") or ""
+	text = string.gsub(text, "^%s+", "")
+	text = string.gsub(text, "%s+$", "")
 	local length = utf8.len(text)
 	if not length or length > SETTINGS.NameMax then
 		return false, "That name is too long!"
@@ -1591,6 +1621,8 @@ local function release(player: Player)
 	for victim, entry in revenge do
 		if entry.Target == player then
 			revenge[victim] = nil
+			victim:SetAttribute("RevengeTarget", nil)
+			victim:SetAttribute("RevengeUntil", nil)
 		end
 	end
 	local index = table.find(waiting, player)

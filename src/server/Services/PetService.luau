@@ -150,16 +150,19 @@ local function nextSerial(key: string): number?
 end
 
 -- number a new huge / exclusive pet (async); then(serial?) runs afterwards
+-- (the pet can't be traded / stolen / sold while it waits: no number gets lost)
 local function giveSerial(player: Player, data, pet, andThen)
+	pet.SerialPending = true
 	task.spawn(function()
 		local key = (if pet.Variant == "Huge" then "Huge|" else "") .. pet.Name
 		local serial = nextSerial(key)
+		pet.SerialPending = nil
 		if serial and table.find(data.Pets, pet) and not pet.Serial then
 			pet.Serial = serial
 			Data:MarkDirty(player)
-			if player.Parent then
-				PetService:Changed(player)
-			end
+		end
+		if player.Parent then
+			PetService:Changed(player)
 		end
 		if andThen then
 			andThen(serial)
@@ -176,7 +179,7 @@ local function makeRoom(player: Player, data, name: string, variant: string?): (
 	end
 	local weakest, weakestIndex = nil, nil
 	for index, pet in data.Pets do
-		local precious = pet.Serial ~= nil or Util.IsExclusive(Config, pet)
+		local precious = pet.Serial ~= nil or pet.SerialPending or Util.IsExclusive(Config, pet)
 		if not pet.Away and not precious and (not weakest or income(pet) < income(weakest)) then
 			weakest, weakestIndex = pet, index
 		end
@@ -328,10 +331,12 @@ function PetService:GivePet(player: Player, name: string, variant: string?, seri
 	if not data or not Config.Pets[name] then
 		return
 	end
+	local pet = nil
 	if makeRoom(player, data, name, variant) then
-		addPet(data, name, variant, serial)
+		pet = addPet(data, name, variant, serial)
 	end
 	self:Changed(player)
+	return pet
 end
 
 ---------------------------------------------------------------------------
@@ -419,6 +424,13 @@ function PetService:Start()
 	Data:OnLoaded(function(player, data)
 		for _, pet in data.Pets do
 			pet.Away = nil -- a theft interrupted by a server shutdown never happened
+			pet.SerialPending = nil
+		end
+		-- numbered pets whose number never arrived (DataStore hiccup): try again
+		for _, pet in data.Pets do
+			if not pet.Serial and Util.WantsSerial(Config, pet.Name, pet.Variant) then
+				giveSerial(player, data, pet, nil)
+			end
 		end
 		migrate(player, data)
 		self:RefreshEquipped(player)
@@ -460,7 +472,7 @@ function PetService:Start()
 			return
 		end
 		local pet, index = findPet(data, petId)
-		if not pet or pet.Away then
+		if not pet or pet.Away or pet.SerialPending then
 			return
 		end
 		local coins = self:SellValue(pet.Name, pet.Variant)

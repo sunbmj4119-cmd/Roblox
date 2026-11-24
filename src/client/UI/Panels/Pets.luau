@@ -211,6 +211,8 @@ function Pets.Build(content, ctx)
 				status = T("🏃 being stolen!")
 			elseif place == "vault" then
 				status = T("🔒 safe")
+			elseif type(pet.HotUntil) == "number" and pet.HotUntil > os.time() and onDisplay then
+				status = T("🔥 just stolen")
 			elseif onDisplay and exclusive then
 				status = T("💎 safe")
 			elseif onDisplay then
@@ -306,7 +308,12 @@ function Pets.Build(content, ctx)
 		for _, pet in data.Pets do
 			table.insert(
 				parts,
-				pet.Id .. (pet.Variant or "") .. (if pet.Away then "!" else "") .. (if pet.Show then "s" else "") .. (pet.Serial or "")
+				pet.Id
+					.. (pet.Variant or "")
+					.. (if pet.Away then "!" else "")
+					.. (if pet.Show then "s" else "")
+					.. (pet.Serial or "")
+					.. (if type(pet.HotUntil) == "number" and pet.HotUntil > os.time() then "h" else "")
 			)
 		end
 		local sig = table.concat(parts, ",")

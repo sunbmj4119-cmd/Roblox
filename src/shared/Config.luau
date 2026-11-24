@@ -1020,6 +1020,9 @@ Config.Base = {
 	StealGap = 3, -- you can't rob someone whose pets are worth less than 1/3 of yours
 	StealGapMinWorth = 60, -- (tiny bases don't count toward the gap rule)
 	RevengeSeconds = 300, -- the victim may raid the thief's base for 5 min (locks don't stop them)
+	-- a freshly stolen pet can't go into the thief's vault for this long (so revenge can win it back)
+	HotSeconds = 300,
+	StolenCarrySeconds = 90, -- a stolen pet runs home if nobody delivers it in time
 	-- serial thieves get a bounty: rob 2+ different players within 15 min
 	Bounty = { MinVictims = 2, WindowSeconds = 900, IncomeSeconds = 60 },
 	StealHold = 1.2,

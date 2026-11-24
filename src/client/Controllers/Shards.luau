@@ -344,7 +344,8 @@ local function refreshBases()
 			-- except for the victim's revenge (locks and shields don't stop it)
 			local protection = plot:GetAttribute("Protection") or ""
 			local revengeHere = player:GetAttribute("RevengeTarget") == ownerId and (player:GetAttribute("RevengeUntil") or 0) > serverNow
-			local open = (protection == "" and not locked) or (revengeHere and protection ~= "robbing")
+			local robbing = plot:GetAttribute("Robbing") == true
+			local open = not robbing and ((protection == "" and not locked) or revengeHere)
 			for _, prompt in plot:GetDescendants() do
 				if prompt:IsA("ProximityPrompt") then
 					local role = prompt:GetAttribute("Role")

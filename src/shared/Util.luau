@@ -492,7 +492,9 @@ function Util.ArrangePets(config, data)
 		if #vault >= #vaultItems then
 			break
 		end
-		if not pet.Show and not Util.IsExclusive(config, pet) then
+		-- freshly stolen pets ("hot") can't hide in a vault yet
+		local hot = type(pet.HotUntil) == "number" and pet.HotUntil > os.time()
+		if not pet.Show and not hot and not Util.IsExclusive(config, pet) then
 			table.insert(vault, pet)
 			used[pet] = true
 		end

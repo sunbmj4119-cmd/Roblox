@@ -197,6 +197,8 @@ local coinsAfterPlace = dataA.Coins
 local ok2 = Net:CallForTest("BaseRemove", A, placed.Uid)
 check(ok2 == true and dataA.Coins == coinsAfterPlace + Config.Decor.Tree.Price, "remove/refund failed")
 check(Net:CallForTest("BasePlace", A, "Tree", 999, 999, 0) ~= true, "out-of-bounds placement was accepted")
+check(Net:CallForTest("BasePlace", A, "Tree", 0, 14, math.huge) ~= true, "infinite rotation was accepted (NaN in saves)")
+check(Net:CallForTest("BasePlace", A, "Tree", 0 / 0, 14, 0) ~= true, "NaN position was accepted")
 check(Net:CallForTest("BasePlace", A, "Tree", 18, 0, 0) ~= true, "level 1 house should not reach x=18")
 check(Net:CallForTest("BasePlace", A, "Windmill", -6, -14, 0) ~= true, "level-locked item was placed")
 local coinsBeforeUpgrade = dataA.Coins
@@ -210,6 +212,7 @@ local painted = plotA.ItemModels[tree.Uid]
 local leaves = painted and painted:FindFirstChild("Leaves")
 check(leaves and leaves.Color == Config.Paint[3], "painted model has the wrong colour")
 check(Net:CallForTest("BasePaint", A, tree.Uid, 0) == true and tree.Paint == nil, "unpaint failed")
+check(Net:CallForTest("BasePaint", A, tree.Uid, 0 / 0) ~= true and tree.Paint == nil, "NaN paint was accepted")
 Net:CallForTest("BaseRemove", A, tree.Uid)
 
 -- 6) protection --------------------------------------------------------------
@@ -277,6 +280,10 @@ end
 check(not aliceStillHas, "Alice still owns the stolen pet (duplicate!)")
 check(Base:Protection(A) == "shield", "theft shield not active after a theft")
 check(Base:HasRevenge(A, B), "victim did not get revenge")
+-- a freshly stolen pet can't hide in the thief's vault (so revenge can win it back)
+check(stolen ~= nil and type(stolen.HotUntil) == "number", "stolen pet not marked hot")
+local _, bobDisplay = Util.ArrangePets(Config, dataB)
+check(stolen ~= nil and table.find(bobDisplay, stolen) ~= nil, "a hot pet went into the vault")
 
 -- f) revenge: even a locked base can't stop it
 if stolen then
@@ -402,6 +409,9 @@ check(hugeSize.Y > plainSize.Y * 1.6, "huge pet model is not bigger")
 local nameOk, nameMessage = Base:SetName(A, "Sunny Garden")
 results.houseName = if nameOk then plotA.Model:GetAttribute("HouseName") else tostring(nameMessage)
 check(Base:SetName(A, string.rep("x", 40)) == false, "an overlong house name was accepted")
+local started = os.clock()
+check(Base:SetName(A, "a" .. string.rep(" ", 200000) .. "b") == false, "a huge house name was accepted")
+check(os.clock() - started < 0.2, "a huge house name took too long (server stall)")
 
 -- 13) skins: gems skin, VIP-only skin, back to the level style
 local gemsBefore = dataA.Gems

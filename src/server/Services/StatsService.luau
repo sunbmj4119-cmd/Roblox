@@ -173,7 +173,8 @@ function Stats:BuildDerived(player)
 		Today = Util.DayNumber(),
 		SessionStart = progression and progression:SessionStart(player) or os.time(),
 		GiftsClaimed = progression and progression:GiftsClaimed(player) or {},
-		PaidRandomRestricted = player:GetAttribute("PaidRandomRestricted") == true,
+		-- unknown policy (still loading) counts as restricted, same as the server
+		PaidRandomRestricted = player:GetAttribute("PaidRandomRestricted") ~= false,
 		AdsEnabled = Config.RewardedAds.Enabled,
 		XPNeeded = Util.XPForLevel(Config, data.Level),
 		SpinCooldown = if Services.MonetizationService:HasPass(player, "VIP")

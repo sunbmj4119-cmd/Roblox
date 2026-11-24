@@ -98,7 +98,7 @@ local function complete(session)
 		local list = {}
 		for _, petId in ids do
 			local pet = petInfo(data, petId)
-			if not pet or pet.Away then
+			if not pet or pet.Away or pet.SerialPending then
 				return nil
 			end
 			-- both sides must be allowed to trade paid items
@@ -223,7 +223,7 @@ function Trade:Start()
 				local pet = petInfo(data, petId)
 				-- exclusive (Robux) pets can't be traded where Roblox restricts paid item trading
 				local blocked = Util.IsExclusive(Config, pet) and player:GetAttribute("PaidTradeAllowed") ~= true
-				if pet and not pet.Away and not blocked then
+				if pet and not pet.Away and not pet.SerialPending and not blocked then
 					seen[petId] = true
 					table.insert(clean, petId)
 				elseif pet and blocked then
