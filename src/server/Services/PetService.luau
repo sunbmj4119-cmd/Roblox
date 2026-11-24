@@ -118,6 +118,30 @@ function PetService:Changed(player: Player)
 	end
 end
 
+-- where a new pet ended up: shown on the hatch card so players always know
+-- ("🔒 in your vault", "🏠 on display +💰/s", "📦 in storage", "⭐ follows you")
+local function describe(player: Player, data, pet, isNew: boolean?)
+	local where, rate = "Storage", 0
+	local base = Services.BaseService
+	if base then
+		local vault, display = Util.ArrangePets(Config, data)
+		if table.find(vault, pet) then
+			where, rate = "Vault", base:PetRate(player, data, pet, true)
+		elseif table.find(display, pet) then
+			where, rate = "Display", base:PetRate(player, data, pet, false)
+		end
+	end
+	return {
+		Id = pet.Id,
+		Name = pet.Name,
+		Variant = pet.Variant,
+		Where = where,
+		Rate = rate,
+		New = isNew == true,
+		Follow = table.find(data.Equipped, pet.Id) ~= nil,
+	}
+end
+
 local function findPet(data, petId)
 	for index, pet in data.Pets do
 		if pet.Id == petId then
@@ -263,13 +287,14 @@ local function roll(player: Player, data, eggId: string, count: number, extraLuc
 	local egg = Config.Eggs[eggId]
 	local luck = Services.StatsService:Luck(player, data) * (extraLuck or 1)
 	local fn = luckFn(luck)
-	local results = {}
+	local made = {}
 	for _ = 1, count do
 		local name = Util.WeightedPick(egg.Pets, fn)
 		local variant = rollVariant(luck)
-		local ok = makeRoom(player, data, name, variant)
+		local isNew = not data.PetIndex[name]
+		local ok, coins = makeRoom(player, data, name, variant)
 		local pet = if ok then addPet(data, name, variant) else nil
-		table.insert(results, { Name = name, Variant = variant })
+		table.insert(made, { Pet = pet, Name = name, Variant = variant, New = isNew, Coins = if ok then nil else coins })
 		if variant == "Huge" then
 			data.Stats.HugesFound = (data.Stats.HugesFound or 0) + 1
 		elseif variant == "Titanic" then
@@ -288,6 +313,15 @@ local function roll(player: Player, data, eggId: string, count: number, extraLuc
 	Services.ProgressionService:AddQuest(player, "Hatch", count)
 	Services.ProgressionService:AddSeasonXP(player, 25 * count)
 	PetService:Changed(player)
+	local results = {}
+	for _, entry in made do
+		if entry.Pet then
+			table.insert(results, describe(player, data, entry.Pet, entry.New))
+		else
+			-- storage was full and the new pet was the weakest: sold right away
+			table.insert(results, { Name = entry.Name, Variant = entry.Variant, Where = "Sold", Coins = entry.Coins, New = entry.New })
+		end
+	end
 	return results
 end
 
@@ -296,14 +330,20 @@ function PetService:GrantPet(player: Player, name: string, variant: string?)
 	if not data or not Config.Pets[name] then
 		return
 	end
-	if makeRoom(player, data, name, variant) then
-		local pet = addPet(data, name, variant)
+	local isNew = not data.PetIndex[name]
+	local ok, coins = makeRoom(player, data, name, variant)
+	local pet = nil
+	if ok then
+		pet = addPet(data, name, variant)
 		if Util.WantsSerial(Config, name, variant) then
 			giveSerial(player, data, pet, nil)
 		end
 	end
 	self:Changed(player)
-	Net:Send(player, "HatchResult", { { Name = name, Variant = variant } }, nil)
+	local result = if pet
+		then describe(player, data, pet, isNew)
+		else { Name = name, Variant = variant, Where = "Sold", Coins = coins, New = isNew }
+	Net:Send(player, "HatchResult", { result }, nil)
 end
 
 function PetService:PaidHatch(player: Player, eggId: string, count: number)
@@ -347,12 +387,19 @@ function PetService:GivePet(player: Player, name: string, variant: string?, seri
 	if not data or not Config.Pets[name] then
 		return
 	end
+	local isNew = not data.PetIndex[name]
 	local pet = nil
 	if makeRoom(player, data, name, variant) then
 		pet = addPet(data, name, variant, serial)
 	end
 	self:Changed(player)
-	return pet
+	return pet, isNew
+end
+
+-- (used to show a stolen pet with the same "where did it go" card)
+function PetService:Describe(player: Player, pet, isNew: boolean?)
+	local data = Data:Get(player)
+	return data and describe(player, data, pet, isNew) or nil
 end
 
 ---------------------------------------------------------------------------
@@ -406,6 +453,24 @@ local function hatch(player: Player, eggId, count)
 	end
 	local results = roll(player, data, eggId, count)
 	return { Pets = results, Egg = eggId }
+end
+
+-- egg stands: hold "Hatch" to hatch one without opening the shop
+local quickHatchAt = {}
+function PetService:QuickHatch(player: Player, eggId: string)
+	if os.clock() - (quickHatchAt[player] or 0) < 0.6 then
+		return
+	end
+	quickHatchAt[player] = os.clock()
+	local result = hatch(player, eggId, 1)
+	if type(result) ~= "table" then
+		return
+	end
+	if result.Error then
+		Net:Send(player, "Notify", result.Error, Color3.fromRGB(255, 110, 110))
+		return
+	end
+	Net:Send(player, "HatchResult", result.Pets, eggId)
 end
 
 ---------------------------------------------------------------------------

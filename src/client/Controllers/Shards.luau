@@ -132,12 +132,8 @@ Net.On("CarryLost", function(name)
 end)
 
 -- star eggs show the normal hatch animation (HatchResult); stolen pets get a cheer
-Net.On("ShardDelivered", function(name, result)
-	if result == "Stolen" then
-		Lib.PlaySound("LevelUp")
-		celebrate(T("🦹 %s STOLEN!", T(tostring(name))), T("It earns coins in your base now - guard it!"), C.Pink, true)
-	end
-end)
+-- (stolen pets get the reveal card from HatchResult - it says where the pet went)
+Net.On("ShardDelivered", function(_name, _result) end)
 
 Net.On("ShardRecovered", function(name)
 	Lib.PlaySound("Reward")
@@ -145,7 +141,7 @@ Net.On("ShardRecovered", function(name)
 end)
 
 Net.On("BaseCollected", function(amount)
-	Lib.PlaySound("Coin", 1, 0.2)
+	Lib.PlaySound("CoinBig")
 	local h = hud()
 	if h and h.FlyCoins then
 		h.FlyCoins(amount)
@@ -178,7 +174,7 @@ Net.On("BaseAlarm", function(thiefName, shardName)
 		for _ = 1, 4 do
 			alarm.BackgroundTransparency = 0.6
 			TweenService:Create(alarm, TweenInfo.new(0.35), { BackgroundTransparency = 1 }):Play()
-			Lib.PlaySound("Swing", 0.6, 0.5)
+			Lib.PlaySound("Alarm", 0.8)
 			task.wait(0.45)
 		end
 	end)

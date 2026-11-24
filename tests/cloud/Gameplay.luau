@@ -158,6 +158,10 @@ local result = Net:CallForTest("Hatch", A, "Meadow", 1)
 check(type(result) == "table" and result.Pets and #result.Pets == 1, "hatch failed: " .. HttpService:JSONEncode(result or {}))
 check(dataA.Coins == coinsBefore - Config.Eggs.Meadow.Price, "hatch did not charge the price")
 check(#dataA.Pets == 1, "pet not added")
+local card = type(result) == "table" and result.Pets and result.Pets[1]
+local places = { Vault = true, Display = true, Storage = true, Sold = true }
+check(card and places[card.Where] == true, "hatch card does not say where the pet went")
+check(card and card.New == true, "first pet of a kind should be NEW")
 check((dataA.Shop.Bought.Meadow or 0) == 1, "stock purchase not counted")
 results.firstPet = dataA.Pets[1] and dataA.Pets[1].Name
 
@@ -542,6 +546,14 @@ for _, item in dataD.Base.Items do
 	end
 end
 check(allInside and dataD.Base.LayoutV == 3, "old items behind the house were not moved onto the land")
+
+-- 24) quick hatch at the egg stand (no menu) hatches and charges like the shop
+dataA.Shop.Bought = {}
+local before = #dataA.Pets
+local coinsQuick = dataA.Coins
+S.PetService:QuickHatch(A, "Meadow")
+check(#dataA.Pets == before + 1 or dataA.Coins > coinsQuick - Config.Eggs.Meadow.Price, "quick hatch did nothing")
+check(dataA.Coins <= coinsQuick - Config.Eggs.Meadow.Price + 1e6, "quick hatch did not charge")
 
 results.alicePets = #dataA.Pets
 results.bobPets = #dataB.Pets

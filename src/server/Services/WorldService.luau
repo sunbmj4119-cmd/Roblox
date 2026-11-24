@@ -332,6 +332,15 @@ local function eggStand(position: Vector3, eggId: string, parent)
 	end
 	billboard(eggPart, "%s\n%s", Color3.new(1, 1, 1), 6, 9, 3.4, egg.Name, priceText)
 	prompt(eggPart, "Open", egg.Name, openPanel("Egg", eggId))
+	if egg.Currency ~= "Robux" then
+		-- quick hatch right at the stand (no menu needed)
+		local quick = prompt(eggPart, "Hatch x1", egg.Name, function(player)
+			Services.PetService:QuickHatch(player, eggId)
+		end)
+		quick.KeyboardKeyCode = Enum.KeyCode.F
+		quick.HoldDuration = 0.25
+		quick.UIOffset = Vector2.new(0, 70)
+	end
 	eggPart:SetAttribute("EggId", eggId)
 	return eggPart
 end

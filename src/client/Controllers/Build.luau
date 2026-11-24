@@ -434,7 +434,7 @@ actionButton("Place", "✅ Place", C.Green, 2, function()
 			backToBrowse()
 		end
 	elseif request("BasePlace", currentId, ghostX, ghostZ, ghostR) then
-		Lib.PlaySound("Coin", 0.8, 0.1)
+		Lib.PlaySound("Build")
 		Lib.Pop(actionButtons.Place)
 		-- keep the same item selected: quick to lay floors / fences
 		task.delay(0.15, updateGhost)
@@ -462,7 +462,7 @@ actionButton("Paint", "🎨 Paint", C.Pink, 3, function()
 	end
 	local nextColor = ((item.Paint or 0) + 1) % (#Config.Paint + 1)
 	if request("BasePaint", item.Uid, nextColor) then
-		Lib.PlaySound("UI", 0.7, 0.2)
+		Lib.PlaySound("Pop")
 		task.delay(0.2, function()
 			selectItem(item.Uid)
 			refreshActions()
@@ -472,7 +472,7 @@ end)
 actionButton("Remove", "🗑 Remove", C.Red, 4, function()
 	local item = selectedUid and findItem(selectedUid)
 	if item and request("BaseRemove", item.Uid) then
-		Lib.PlaySound("Coin", 0.7, -0.1)
+		Lib.PlaySound("Whoosh", 0.8)
 		backToBrowse()
 	end
 end)
@@ -689,7 +689,8 @@ local function buildHouseCards()
 				local ok, message = Net.Invoke("HouseUpgrade")
 				local hud = Build.HUD
 				if ok then
-					Lib.PlaySound("LevelUp")
+					Lib.PlaySound("Build")
+					Lib.PlaySound("Success")
 					task.delay(0.3, function()
 						Build.Refocus()
 					end)

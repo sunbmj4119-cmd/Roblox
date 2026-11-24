@@ -137,6 +137,32 @@ end
 
 -- Play a named sound from Config.Sounds (random variant + pitch variance),
 -- or a raw sound id. pitchOffset lets combos/coins rise in pitch.
+-- sound effects play in their own group (music has another one, see Ambience)
+local sfxGroup = Instance.new("SoundGroup")
+sfxGroup.Name = "SFX"
+sfxGroup.Volume = 1
+sfxGroup.Parent = SoundService
+Lib.SfxGroup = sfxGroup
+Lib.DuckMusic = nil -- set by Ambience: lowers the music under big stingers
+
+-- load every sound once at start so the first hatch / coin isn't silent
+task.spawn(function()
+	local list = {}
+	for _, def in Config.Sounds do
+		for _, id in def.Ids or {} do
+			if string.find(id, "rbxassetid://", 1, true) then
+				table.insert(list, Lib.New("Sound", { SoundId = id, Parent = sfxGroup }))
+			end
+		end
+	end
+	pcall(function()
+		game:GetService("ContentProvider"):PreloadAsync(list)
+	end)
+	for _, sound in list do
+		sound:Destroy()
+	end
+end)
+
 function Lib.PlaySound(name: string?, volumeMult: number?, pitchOffset: number?)
 	if not name or name == "" or Lib.Muted then
 		return
@@ -155,9 +181,21 @@ function Lib.PlaySound(name: string?, volumeMult: number?, pitchOffset: number?)
 	if not id or id == "" then
 		return
 	end
-	local sound = New("Sound", { SoundId = id, Volume = volume, PlaybackSpeed = math.max(0.1, pitch), Parent = SoundService })
+	local sound = New("Sound", {
+		SoundId = id,
+		Volume = volume,
+		PlaybackSpeed = math.max(0.1, pitch),
+		SoundGroup = sfxGroup,
+		Parent = sfxGroup,
+	})
 	sound:Play()
-	Debris:AddItem(sound, 5)
+	sound.Ended:Once(function()
+		sound:Destroy()
+	end)
+	Debris:AddItem(sound, 12)
+	if type(def) == "table" and def.Duck and Lib.DuckMusic then
+		Lib.DuckMusic(def.Duck)
+	end
 end
 
 -- Big chunky game button. props.Color, props.Text, props.OnClick

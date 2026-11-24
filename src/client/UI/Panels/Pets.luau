@@ -233,6 +233,15 @@ function Pets.Build(content, ctx)
 				MaxTextSize = 11,
 				Parent = card,
 			})
+			if State.NewPets and State.NewPets[pet.Id] then
+				New("Frame", {
+					BackgroundColor3 = C.Pink,
+					Size = UDim2.fromOffset(46, 20),
+					Position = UDim2.new(1, -50, 0, 4),
+					ZIndex = 3,
+					Parent = card,
+				}, { Lib.Corner(10), Lib.Text({ Text = "NEW", Size = UDim2.fromScale(1, 1), MaxTextSize = 13, ZIndex = 4 }) })
+			end
 			-- vault or show off? (exclusive pets are always safe)
 			if not pet.Away and not exclusive then
 				local toggle = New("TextButton", {
@@ -316,7 +325,13 @@ function Pets.Build(content, ctx)
 					.. (if type(pet.HotUntil) == "number" and pet.HotUntil > os.time() then "h" else "")
 			)
 		end
+		local newCount = 0
+		for _ in State.NewPets or {} do
+			newCount += 1
+		end
 		local sig = table.concat(parts, ",")
+			.. "|new"
+			.. newCount
 			.. "|"
 			.. table.concat(data.Equipped, ",")
 			.. "|"

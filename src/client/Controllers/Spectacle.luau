@@ -57,12 +57,26 @@ local function burst(position: Vector3, colors: ColorSequence, amount: number, s
 	Debris:AddItem(holder, 3)
 end
 
+-- how loud something at this spot is for us (far away = quiet / silent)
+local function nearVolume(position: Vector3): number
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return 1
+	end
+	local distance = (camera.CFrame.Position - position).Magnitude
+	return math.clamp(1 - (distance - 30) / 90, 0, 1)
+end
+
 Net.On("Confetti", function(position)
 	if typeof(position) ~= "Vector3" then
 		return
 	end
 	burst(position, RAINBOW, 60, 30, 0.8)
-	Lib.PlaySound("Reward", 0.7, 0.2)
+	local volume = nearVolume(position)
+	if volume > 0 then
+		Lib.PlaySound("Pop", volume)
+		Lib.PlaySound("Success", volume * 0.8)
+	end
 end)
 
 Net.On("Boom", function(position)
@@ -70,7 +84,10 @@ Net.On("Boom", function(position)
 		return
 	end
 	burst(position, ColorSequence.new(Color3.fromRGB(255, 140, 40), Color3.fromRGB(60, 50, 50)), 45, 40, 1.4)
-	Lib.PlaySound("Impact", 0.6)
+	local volume = nearVolume(position)
+	if volume > 0 then
+		Lib.PlaySound("Boom", volume)
+	end
 end)
 
 -- a pillar of light on a lucky player (everyone sees it)
@@ -97,12 +114,18 @@ Net.On("BigHatch", function(userId, kind)
 	pillar.CFrame = CFrame.new(root.Position + Vector3.new(0, 200, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	pillar.Parent = workspace
 	burst(root.Position, RAINBOW, if kind == "Titanic" then 160 else 80, 45, 1)
-	Lib.PlaySound("Legendary")
+	if other ~= Players.LocalPlayer then
+		Lib.PlaySound("Cheer", 0.8) -- (the lucky player hears the fanfare on their card)
+	end
 	TweenService:Create(pillar, TweenInfo.new(8, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 		Transparency = 1,
 		Size = Vector3.new(400, 0.5, 0.5),
 	}):Play()
 	Debris:AddItem(pillar, 8.5)
+end)
+
+Net.On("Party", function()
+	Lib.PlaySound("Cheer")
 end)
 
 -- 🌙 Thief Night: the sky goes dark while it lasts

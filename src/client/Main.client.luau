@@ -43,6 +43,7 @@ local Hatch = require(UI:WaitForChild("Hatch"))
 Panels.Provide("Hatch", Hatch)
 
 local HUD = require(Controllers:WaitForChild("HUD"))
+Hatch.HUD = HUD
 local Mining = require(Controllers:WaitForChild("Mining"))
 Mining.HUD = HUD
 require(Controllers:WaitForChild("PetFollow"))

@@ -1428,10 +1428,44 @@ Config.Sounds = {
 	Reward = { Ids = { "rbxasset://sounds/electronicpingshort.mp3" }, Volume = 0.6, Pitch = 1.6, Variance = 0 },
 	RankUp = { Ids = { "rbxasset://sounds/victory.mp3" }, Volume = 0.7, Pitch = 1.25, Variance = 0 },
 	Event = { Ids = { "rbxasset://sounds/bass.mp3" }, Volume = 0.6, Pitch = 1.2, Variance = 0 },
+	-- Roblox-licensed Creator Store sounds (Pro Sound Effects library; all
+	-- checked to load on a live server)
+	Open = { Ids = { "rbxassetid://9113537815" }, Volume = 0.3, Pitch = 1.15, Variance = 0.04 },
+	Close = { Ids = { "rbxassetid://9113537815" }, Volume = 0.2, Pitch = 0.85, Variance = 0.03 },
+	Error = { Ids = { "rbxassetid://9113085764" }, Volume = 0.18, Pitch = 1.6, Variance = 0 },
+	CoinBig = { Ids = { "rbxassetid://9113728049" }, Volume = 0.45, Pitch = 1, Variance = 0.04 },
+	Gems = { Ids = { "rbxassetid://9126073001" }, Volume = 0.4, Pitch = 1, Variance = 0.05 },
+	Pop = { Ids = { "rbxassetid://9113263649" }, Volume = 0.45, Pitch = 1.1, Variance = 0.1 },
+	EggShake = { Ids = { "rbxassetid://9125805579" }, Volume = 0.45, Pitch = 1, Variance = 0 },
+	EggCrack = { Ids = { "rbxassetid://9113959343", "rbxassetid://9113959332" }, Volume = 0.75, Pitch = 1, Variance = 0.05 },
+	Reveal = { Ids = { "rbxassetid://9116395089" }, Volume = 0.55, Pitch = 1, Variance = 0.03 },
+	RevealRare = { Ids = { "rbxassetid://9116422213" }, Volume = 0.6, Pitch = 1, Variance = 0 },
+	Discover = { Ids = { "rbxassetid://9119447936" }, Volume = 0.4, Pitch = 1.1, Variance = 0 },
+	Fanfare = { Ids = { "rbxassetid://1844584698" }, Volume = 0.55, Pitch = 1, Variance = 0, Duck = 4.5 },
+	Cheer = { Ids = { "rbxassetid://9120974911" }, Volume = 0.35, Pitch = 1, Variance = 0, Duck = 4 },
+	Fly = { Ids = { "rbxassetid://9125648149" }, Volume = 0.35, Pitch = 1.1, Variance = 0.05 },
+	Store = { Ids = { "rbxassetid://9116406610" }, Volume = 0.4, Pitch = 1.2, Variance = 0.08 },
+	Alarm = { Ids = { "rbxassetid://9113085764" }, Volume = 0.45, Pitch = 1, Variance = 0 },
+	Boom = { Ids = { "rbxassetid://9120705982" }, Volume = 0.55, Pitch = 1, Variance = 0.05 },
+	Build = { Ids = { "rbxassetid://9114756916" }, Volume = 0.45, Pitch = 1.1, Variance = 0.1 },
+	Success = { Ids = { "rbxassetid://9125492333" }, Volume = 0.4, Pitch = 1, Variance = 0 },
+	Whoosh = { Ids = { "rbxassetid://9126229255" }, Volume = 0.35, Pitch = 1, Variance = 0.08 },
 }
 
--- optional looping background music (Creator Store audio ids, "" = off)
-Config.Music = { Hub = "", Mine = "", Meteor = "", Volume = 0.3 }
+-- background music that follows what you're doing (Roblox-licensed Creator
+-- Store tracks, all checked to load on a live server; "" = silence)
+Config.Music = {
+	Hub = "rbxassetid://1843404009", -- Happy Song: cheerful plaza
+	Home = "rbxassetid://9043887091", -- Lo-fi Chill A: cozy at your own house
+	Bases = "rbxassetid://1840383905", -- Happy Shoppers: walking past the houses
+	Mine = "rbxassetid://9047876673", -- Happy Adventure: the first mines
+	DeepMine = "rbxassetid://1845149698", -- Seek & Destroy: the deep zones
+	Meteor = "rbxassetid://1837301451", -- Epic Battle Simulator: meteor fight
+	Chase = "rbxassetid://1845092181", -- Meltdown: carrying a stolen pet / star
+	Night = "rbxassetid://1837467266", -- Sneaky Ghost: Thief Night
+	Party = "rbxassetid://1837779005", -- Beach Party: weekly party
+	Volume = 0.28,
+}
 
 return Config
 ]]></string>
@@ -3239,6 +3273,25 @@ return {
 	["🗿 %s hatched a TITANIC %s%s!%s"] = "🗿 %s님이 타이타닉 %s%s 부화!%s",
 	["🗿 Titanic Owner"] = "🗿 타이타닉 주인",
 	["😂 %s fell for your prank pet!"] = "😂 %s님이 내 가짜 펫에 속았어요!",
+	-- v18: pet arrival cards, music settings
+	["Earns 💰%s/s on a pedestal"] = "받침대에 올리면 💰%s/초",
+	["Hatch x1"] = "바로 부화 x1",
+	["NEW"] = "NEW",
+	["Tap to continue"] = "화면을 탭하면 계속",
+	["✨ NEW! 📖 +1"] = "✨ 새 펫! 📖 +1",
+	["⭐ follows you"] = "⭐ 나를 따라다녀요",
+	["🎵 Music: OFF"] = "🎵 음악: 끔",
+	["🎵 Music: ON"] = "🎵 음악: 켬",
+	["🏠 On display - earning!"] = "🏠 전시대에 올렸어요 - 돈 버는 중!",
+	["🏠 display %d"] = "🏠 전시대 %d",
+	["🐾 Your new pets: %s"] = "🐾 새 펫 도착: %s",
+	["💰 Storage full - sold for %s"] = "💰 보관함이 가득 차서 %s에 판매됐어요",
+	["💰 sold %d"] = "💰 판매 %d",
+	["📦 Saved in storage"] = "📦 보관함에 저장했어요",
+	["📦 storage %d"] = "📦 보관함 %d",
+	["🔒 Safe in your vault"] = "🔒 금고에 안전하게 보관했어요",
+	["🔒 vault %d"] = "🔒 금고 %d",
+	["🦹 STOLEN!"] = "🦹 훔치기 성공!",
 }
 ]]></string>
         </Properties>
@@ -7407,7 +7460,7 @@ local TEMPLATE = {
 	FreeSpinAt = 0, -- unix time when the next free spin is ready
 	Codes = {}, -- [CODE] = true
 	Tutorial = { Step = 1, Progress = 0, Done = false },
-	Settings = { Lang = "auto" }, -- "auto" | "ko" | "en"
+	Settings = { Lang = "auto", Sfx = true, Music = true }, -- Lang: "auto" | "ko" | "en"
 	-- star-shard base: Shards = { { Id = rarityId }, ... } in pedestal order
 	-- Items = placed decorations { Uid, Id, X, Z, R, Paid, Cur } in plot space
 	Base = {
@@ -10831,6 +10884,30 @@ function PetService:Changed(player: Player)
 	end
 end
 
+-- where a new pet ended up: shown on the hatch card so players always know
+-- ("🔒 in your vault", "🏠 on display +💰/s", "📦 in storage", "⭐ follows you")
+local function describe(player: Player, data, pet, isNew: boolean?)
+	local where, rate = "Storage", 0
+	local base = Services.BaseService
+	if base then
+		local vault, display = Util.ArrangePets(Config, data)
+		if table.find(vault, pet) then
+			where, rate = "Vault", base:PetRate(player, data, pet, true)
+		elseif table.find(display, pet) then
+			where, rate = "Display", base:PetRate(player, data, pet, false)
+		end
+	end
+	return {
+		Id = pet.Id,
+		Name = pet.Name,
+		Variant = pet.Variant,
+		Where = where,
+		Rate = rate,
+		New = isNew == true,
+		Follow = table.find(data.Equipped, pet.Id) ~= nil,
+	}
+end
+
 local function findPet(data, petId)
 	for index, pet in data.Pets do
 		if pet.Id == petId then
@@ -10976,13 +11053,14 @@ local function roll(player: Player, data, eggId: string, count: number, extraLuc
 	local egg = Config.Eggs[eggId]
 	local luck = Services.StatsService:Luck(player, data) * (extraLuck or 1)
 	local fn = luckFn(luck)
-	local results = {}
+	local made = {}
 	for _ = 1, count do
 		local name = Util.WeightedPick(egg.Pets, fn)
 		local variant = rollVariant(luck)
-		local ok = makeRoom(player, data, name, variant)
+		local isNew = not data.PetIndex[name]
+		local ok, coins = makeRoom(player, data, name, variant)
 		local pet = if ok then addPet(data, name, variant) else nil
-		table.insert(results, { Name = name, Variant = variant })
+		table.insert(made, { Pet = pet, Name = name, Variant = variant, New = isNew, Coins = if ok then nil else coins })
 		if variant == "Huge" then
 			data.Stats.HugesFound = (data.Stats.HugesFound or 0) + 1
 		elseif variant == "Titanic" then
@@ -11001,6 +11079,15 @@ local function roll(player: Player, data, eggId: string, count: number, extraLuc
 	Services.ProgressionService:AddQuest(player, "Hatch", count)
 	Services.ProgressionService:AddSeasonXP(player, 25 * count)
 	PetService:Changed(player)
+	local results = {}
+	for _, entry in made do
+		if entry.Pet then
+			table.insert(results, describe(player, data, entry.Pet, entry.New))
+		else
+			-- storage was full and the new pet was the weakest: sold right away
+			table.insert(results, { Name = entry.Name, Variant = entry.Variant, Where = "Sold", Coins = entry.Coins, New = entry.New })
+		end
+	end
 	return results
 end
 
@@ -11009,14 +11096,20 @@ function PetService:GrantPet(player: Player, name: string, variant: string?)
 	if not data or not Config.Pets[name] then
 		return
 	end
-	if makeRoom(player, data, name, variant) then
-		local pet = addPet(data, name, variant)
+	local isNew = not data.PetIndex[name]
+	local ok, coins = makeRoom(player, data, name, variant)
+	local pet = nil
+	if ok then
+		pet = addPet(data, name, variant)
 		if Util.WantsSerial(Config, name, variant) then
 			giveSerial(player, data, pet, nil)
 		end
 	end
 	self:Changed(player)
-	Net:Send(player, "HatchResult", { { Name = name, Variant = variant } }, nil)
+	local result = if pet
+		then describe(player, data, pet, isNew)
+		else { Name = name, Variant = variant, Where = "Sold", Coins = coins, New = isNew }
+	Net:Send(player, "HatchResult", { result }, nil)
 end
 
 function PetService:PaidHatch(player: Player, eggId: string, count: number)
@@ -11060,12 +11153,19 @@ function PetService:GivePet(player: Player, name: string, variant: string?, seri
 	if not data or not Config.Pets[name] then
 		return
 	end
+	local isNew = not data.PetIndex[name]
 	local pet = nil
 	if makeRoom(player, data, name, variant) then
 		pet = addPet(data, name, variant, serial)
 	end
 	self:Changed(player)
-	return pet
+	return pet, isNew
+end
+
+-- (used to show a stolen pet with the same "where did it go" card)
+function PetService:Describe(player: Player, pet, isNew: boolean?)
+	local data = Data:Get(player)
+	return data and describe(player, data, pet, isNew) or nil
 end
 
 ---------------------------------------------------------------------------
@@ -11119,6 +11219,24 @@ local function hatch(player: Player, eggId, count)
 	end
 	local results = roll(player, data, eggId, count)
 	return { Pets = results, Egg = eggId }
+end
+
+-- egg stands: hold "Hatch" to hatch one without opening the shop
+local quickHatchAt = {}
+function PetService:QuickHatch(player: Player, eggId: string)
+	if os.clock() - (quickHatchAt[player] or 0) < 0.6 then
+		return
+	end
+	quickHatchAt[player] = os.clock()
+	local result = hatch(player, eggId, 1)
+	if type(result) ~= "table" then
+		return
+	end
+	if result.Error then
+		Net:Send(player, "Notify", result.Error, Color3.fromRGB(255, 110, 110))
+		return
+	end
+	Net:Send(player, "HatchResult", result.Pets, eggId)
 end
 
 ---------------------------------------------------------------------------
@@ -11787,6 +11905,17 @@ function Progression:Start()
 		end
 	end)
 
+	-- sound effects / music on or off (remembered)
+	Net:On("SetAudio", 0.3, function(player, sfx, music)
+		local data = Data:Get(player)
+		if not data or type(sfx) ~= "boolean" or type(music) ~= "boolean" then
+			return
+		end
+		data.Settings.Sfx = sfx
+		data.Settings.Music = music
+		Data:MarkDirty(player)
+	end)
+
 	Net:On("SetLanguage", 1, function(player, lang)
 		local data = Data:Get(player)
 		if not data or (lang ~= "ko" and lang ~= "en" and lang ~= "auto") then
@@ -12373,7 +12502,7 @@ local function deliver(player: Player)
 			Net:Notify(player, "The owner left - the pet vanished!")
 			return
 		end
-		local given = pets:GivePet(player, taken.Name, taken.Variant, taken.Serial)
+		local given, isNew = pets:GivePet(player, taken.Name, taken.Variant, taken.Serial)
 		-- a freshly stolen pet can't hide in the thief's vault yet: revenge can win it back
 		if given and not (meta.Revenge and meta.Thief == player) then
 			given.HotUntil = os.time() + Config.Base.HotSeconds
@@ -12405,6 +12534,12 @@ local function deliver(player: Player)
 		Services.ProgressionService:AddQuest(player, "Steal", 1)
 		Services.Analytics:Custom(player, "PetStolen", tier)
 		Net:Send(player, "ShardDelivered", display, "Stolen", 0)
+		-- the same "where did it go" card as a hatch (no egg)
+		local card = given and pets:Describe(player, given, isNew)
+		if card then
+			card.Stolen = true
+			Net:Send(player, "HatchResult", { card }, nil, "Stolen")
+		end
 		if tier >= 5 then
 			Net:Announce("🦹 %s stole a %s from %s!", itemColor(item), player.DisplayName, display, owner.DisplayName)
 		end
@@ -13593,6 +13728,15 @@ local function eggStand(position: Vector3, eggId: string, parent)
 	end
 	billboard(eggPart, "%s\n%s", Color3.new(1, 1, 1), 6, 9, 3.4, egg.Name, priceText)
 	prompt(eggPart, "Open", egg.Name, openPanel("Egg", eggId))
+	if egg.Currency ~= "Robux" then
+		-- quick hatch right at the stand (no menu needed)
+		local quick = prompt(eggPart, "Hatch x1", egg.Name, function(player)
+			Services.PetService:QuickHatch(player, eggId)
+		end)
+		quick.KeyboardKeyCode = Enum.KeyCode.F
+		quick.HoldDuration = 0.25
+		quick.UIOffset = Vector2.new(0, 70)
+	end
 	eggPart:SetAttribute("EggId", eggId)
 	return eggPart
 end
@@ -14399,6 +14543,7 @@ local Util = require(Shared.Util)
 
 local Client = script.Parent.Parent
 local Lib = require(Client.UI.Lib)
+local State = require(Client.State)
 local Root = require(Client.UI.Root)
 
 local player = Players.LocalPlayer
@@ -14442,34 +14587,131 @@ local function showTitle(text: string, color: Color3)
 	end)
 end
 
--- optional music
-local music = Instance.new("Sound")
-music.Name = "BGM"
-music.Looped = true
-music.Volume = 0
-music.Parent = SoundService
+-- background music: two players that crossfade, a track for every situation
+-- (meteor fight > party > Thief Night > carrying a stolen pet / star >
+-- your own house > the base avenue > hub > mines > deep mines). Big
+-- fanfares duck the music for a moment (Lib.DuckMusic).
+local musicGroup = Instance.new("SoundGroup")
+musicGroup.Name = "Music"
+musicGroup.Volume = 1
+musicGroup.Parent = SoundService
+local players = {}
+for i = 1, 2 do
+	local sound = Instance.new("Sound")
+	sound.Name = "BGM" .. i
+	sound.Looped = true
+	sound.Volume = 0
+	sound.SoundGroup = musicGroup
+	sound.Parent = musicGroup
+	players[i] = sound
+end
+local active = 1
 local currentTrack = ""
+local duckUntil = 0
+local MUSIC = Config.Music
+
+local function targetVolume(): number
+	if Lib.MusicOff then
+		return 0
+	end
+	local volume = MUSIC.Volume or 0.3
+	if os.clock() < duckUntil then
+		volume *= 0.25
+	end
+	return volume
+end
+
 local function playTrack(id: string)
 	if id == currentTrack then
 		return
 	end
 	currentTrack = id
-	TweenService:Create(music, TweenInfo.new(0.8), { Volume = 0 }):Play()
-	task.delay(0.8, function()
-		if currentTrack ~= id then
-			return
+	local old = players[active]
+	active = 3 - active
+	local nextSound = players[active]
+	TweenService:Create(old, TweenInfo.new(1.2), { Volume = 0 }):Play()
+	task.delay(1.3, function()
+		if players[active] ~= old then
+			old:Stop()
 		end
-		if id == "" then
-			music:Stop()
-			return
+	end)
+	if id == "" then
+		return
+	end
+	nextSound.SoundId = id
+	nextSound.TimePosition = 0
+	nextSound.Volume = 0
+	nextSound:Play()
+	TweenService:Create(nextSound, TweenInfo.new(1.5), { Volume = targetVolume() }):Play()
+end
+
+-- big moments: the music steps back so the fanfare shines
+Lib.DuckMusic = function(seconds: number)
+	duckUntil = math.max(duckUntil, os.clock() + seconds)
+	local sound = players[active]
+	TweenService:Create(sound, TweenInfo.new(0.25), { Volume = targetVolume() }):Play()
+	task.delay(seconds + 0.05, function()
+		if os.clock() >= duckUntil then
+			TweenService:Create(players[active], TweenInfo.new(1), { Volume = targetVolume() }):Play()
 		end
-		music.SoundId = id
-		music:Play()
-		TweenService:Create(music, TweenInfo.new(1.2), { Volume = Config.Music.Volume or 0.3 }):Play()
 	end)
 end
 
+-- (Settings toggles music on/off)
+function Lib.SetMusic(on: boolean)
+	Lib.MusicOff = not on
+	TweenService:Create(players[active], TweenInfo.new(0.5), { Volume = targetVolume() }):Play()
+end
+
+-- remembered sound / music settings
+local appliedSettings = false
+State.OnChanged(function()
+	local settings = State.Data and State.Data.Settings
+	if settings and not appliedSettings then
+		appliedSettings = true
+		Lib.Muted = settings.Sfx == false
+		Lib.SetMusic(settings.Music ~= false)
+	end
+end)
+
+local function inOwnPlot(position: Vector3): boolean
+	local index = player:GetAttribute("BaseIndex")
+	local map = workspace:FindFirstChild("Map")
+	local plot = index and map and map:FindFirstChild("Bases") and map.Bases:FindFirstChild("Plot_" .. tostring(index))
+	local floor = plot and plot:FindFirstChild("Floor")
+	if not floor or not floor:IsA("BasePart") then
+		return false
+	end
+	local p = floor.CFrame:PointToObjectSpace(position)
+	local half = Config.Base.PlotSize / 2
+	return math.abs(p.X) <= half and math.abs(p.Z) <= half
+end
+
 local currentZone = -1
+
+local function wantedTrack(position: Vector3): string
+	local now = workspace:GetServerTimeNow()
+	if workspace:GetAttribute("MeteorState") == "Active" then
+		return MUSIC.Meteor
+	end
+	if (workspace:GetAttribute("PartyEnd") or 0) > now then
+		return MUSIC.Party
+	end
+	if workspace:GetAttribute("EventId") == "ThiefNight" then
+		return MUSIC.Night
+	end
+	if player:GetAttribute("Carrying") ~= nil and (player:GetAttribute("CarryStolen") or (player:GetAttribute("CarryTier") or 0) >= 3) then
+		return MUSIC.Chase
+	end
+	if currentZone == -2 then
+		return if inOwnPlot(position) then MUSIC.Home else MUSIC.Bases
+	end
+	if currentZone == 0 then
+		return MUSIC.Hub
+	end
+	return if (currentZone or 1) >= 4 then MUSIC.DeepMine else MUSIC.Mine
+end
+
 task.spawn(function()
 	while true do
 		task.wait(0.5)
@@ -14489,12 +14731,10 @@ task.spawn(function()
 					showTitle(Lib.T(mood.Title), if zoneConfig then zoneConfig.Accent else Color3.fromRGB(255, 230, 120))
 				end
 			end
-			local meteorActive = workspace:GetAttribute("MeteorState") == "Active"
-			local wanted = if meteorActive and Config.Music.Meteor ~= ""
-				then Config.Music.Meteor
-				elseif currentZone == 0 or currentZone == -2 then Config.Music.Hub
-				else Config.Music.Mine
-			playTrack(wanted or "")
+			local ok, track = pcall(wantedTrack, root.Position)
+			if ok then
+				playTrack(track or "")
+			end
 		end
 	end
 end)
@@ -14942,7 +15182,7 @@ actionButton("Place", "✅ Place", C.Green, 2, function()
 			backToBrowse()
 		end
 	elseif request("BasePlace", currentId, ghostX, ghostZ, ghostR) then
-		Lib.PlaySound("Coin", 0.8, 0.1)
+		Lib.PlaySound("Build")
 		Lib.Pop(actionButtons.Place)
 		-- keep the same item selected: quick to lay floors / fences
 		task.delay(0.15, updateGhost)
@@ -14970,7 +15210,7 @@ actionButton("Paint", "🎨 Paint", C.Pink, 3, function()
 	end
 	local nextColor = ((item.Paint or 0) + 1) % (#Config.Paint + 1)
 	if request("BasePaint", item.Uid, nextColor) then
-		Lib.PlaySound("UI", 0.7, 0.2)
+		Lib.PlaySound("Pop")
 		task.delay(0.2, function()
 			selectItem(item.Uid)
 			refreshActions()
@@ -14980,7 +15220,7 @@ end)
 actionButton("Remove", "🗑 Remove", C.Red, 4, function()
 	local item = selectedUid and findItem(selectedUid)
 	if item and request("BaseRemove", item.Uid) then
-		Lib.PlaySound("Coin", 0.7, -0.1)
+		Lib.PlaySound("Whoosh", 0.8)
 		backToBrowse()
 	end
 end)
@@ -15197,7 +15437,8 @@ local function buildHouseCards()
 				local ok, message = Net.Invoke("HouseUpgrade")
 				local hud = Build.HUD
 				if ok then
-					Lib.PlaySound("LevelUp")
+					Lib.PlaySound("Build")
+					Lib.PlaySound("Success")
 					task.delay(0.3, function()
 						Build.Refocus()
 					end)
@@ -15908,6 +16149,9 @@ Lib.List(Enum.FillDirection.Vertical, 6).Parent = toastCluster
 local toastOrder = 0
 function HUD.Toast(text: string, color: Color3?)
 	toastOrder += 1
+	if color == C.Red then
+		Lib.PlaySound("Error")
+	end
 	local toast = New("Frame", {
 		BackgroundColor3 = DARK,
 		BackgroundTransparency = 0.15,
@@ -16879,6 +17123,97 @@ local function celebrate(title: string, sub: string, color: Color3, withConfetti
 	end)
 end
 HUD.Celebrate = celebrate
+
+-- new pets fly into the 🐾 Pets button (+N badge until you open it), with a
+-- one-line summary of where they went
+State.NewPets = State.NewPets or {} -- [petId] = true (NEW tags in the Pets panel)
+local newPetCount = 0
+local petsBadgeText = badges.Pets and badges.Pets:FindFirstChildWhichIsA("TextLabel")
+local function refreshPetsBadge()
+	if badges.Pets then
+		badges.Pets.Visible = newPetCount > 0
+		if petsBadgeText then
+			petsBadgeText.Text = if newPetCount > 9 then "9+" else tostring(newPetCount)
+		end
+	end
+end
+local PLACE_ICONS = { Vault = "🔒", Display = "🏠", Storage = "📦", Sold = "💰" }
+function HUD.PetsLanded(entries)
+	local button = menuButtons.Pets
+	local targetGui = if button and button.Visible then button else coinPill
+	local inset = GuiService:GetGuiInset()
+	local target = targetGui.AbsolutePosition + targetGui.AbsoluteSize / 2 + inset
+	local camera = workspace.CurrentCamera
+	local center = if camera then camera.ViewportSize / 2 else Vector2.new(640, 380)
+	local counts = { Vault = 0, Display = 0, Storage = 0, Sold = 0 }
+	for i, entry in entries do
+		local where = entry.Where or "Storage"
+		counts[where] = (counts[where] or 0) + 1
+		if entry.Id and where ~= "Sold" then
+			State.NewPets[entry.Id] = true
+		end
+		local icon = Lib.Text({
+			Text = PLACE_ICONS[where] or "🐾",
+			Size = UDim2.fromOffset(46, 46),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(center.X + (i - (#entries + 1) / 2) * 70, center.Y),
+			MaxTextSize = 40,
+			Outline = false,
+			ZIndex = 60,
+			Parent = Root.Overlay,
+		})
+		task.delay((i - 1) * 0.12, function()
+			Lib.PlaySound("Fly", 0.8, (i - 1) * 0.05)
+			local tween = TweenService:Create(icon, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Position = UDim2.fromOffset(target.X, target.Y),
+				Size = UDim2.fromOffset(20, 20),
+			})
+			tween:Play()
+			tween.Completed:Once(function()
+				icon:Destroy()
+				Lib.PlaySound(if where == "Sold" then "CoinBig" else "Store", 0.8)
+				Lib.Pop(targetGui)
+				if where ~= "Sold" then
+					newPetCount += 1
+					refreshPetsBadge()
+				end
+			end)
+		end)
+	end
+	-- "where did they go?" in one short line
+	local parts = {}
+	if counts.Vault > 0 then
+		table.insert(parts, T("🔒 vault %d", counts.Vault))
+	end
+	if counts.Display > 0 then
+		table.insert(parts, T("🏠 display %d", counts.Display))
+	end
+	if counts.Storage > 0 then
+		table.insert(parts, T("📦 storage %d", counts.Storage))
+	end
+	if counts.Sold > 0 then
+		table.insert(parts, T("💰 sold %d", counts.Sold))
+	end
+	if #parts > 0 then
+		HUD.Toast(T("🐾 Your new pets: %s", table.concat(parts, "  •  ")), Color3.fromRGB(150, 230, 160))
+	end
+end
+-- opening the Pets panel clears the +N badge (NEW tags clear when it closes)
+task.spawn(function()
+	local wasOpen = false
+	while true do
+		task.wait(0.5)
+		local open = Panels.Current == "Pets"
+		if open and newPetCount > 0 then
+			newPetCount = 0
+			refreshPetsBadge()
+		end
+		if wasOpen and not open then
+			State.NewPets = {}
+		end
+		wasOpen = open
+	end
+end)
 HUD.FlyCoins = flyCoins
 
 ---------------------------------------------------------------------------
@@ -18628,12 +18963,8 @@ Net.On("CarryLost", function(name)
 end)
 
 -- star eggs show the normal hatch animation (HatchResult); stolen pets get a cheer
-Net.On("ShardDelivered", function(name, result)
-	if result == "Stolen" then
-		Lib.PlaySound("LevelUp")
-		celebrate(T("🦹 %s STOLEN!", T(tostring(name))), T("It earns coins in your base now - guard it!"), C.Pink, true)
-	end
-end)
+-- (stolen pets get the reveal card from HatchResult - it says where the pet went)
+Net.On("ShardDelivered", function(_name, _result) end)
 
 Net.On("ShardRecovered", function(name)
 	Lib.PlaySound("Reward")
@@ -18641,7 +18972,7 @@ Net.On("ShardRecovered", function(name)
 end)
 
 Net.On("BaseCollected", function(amount)
-	Lib.PlaySound("Coin", 1, 0.2)
+	Lib.PlaySound("CoinBig")
 	local h = hud()
 	if h and h.FlyCoins then
 		h.FlyCoins(amount)
@@ -18674,7 +19005,7 @@ Net.On("BaseAlarm", function(thiefName, shardName)
 		for _ = 1, 4 do
 			alarm.BackgroundTransparency = 0.6
 			TweenService:Create(alarm, TweenInfo.new(0.35), { BackgroundTransparency = 1 }):Play()
-			Lib.PlaySound("Swing", 0.6, 0.5)
+			Lib.PlaySound("Alarm", 0.8)
 			task.wait(0.45)
 		end
 	end)
@@ -18993,12 +19324,26 @@ local function burst(position: Vector3, colors: ColorSequence, amount: number, s
 	Debris:AddItem(holder, 3)
 end
 
+-- how loud something at this spot is for us (far away = quiet / silent)
+local function nearVolume(position: Vector3): number
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return 1
+	end
+	local distance = (camera.CFrame.Position - position).Magnitude
+	return math.clamp(1 - (distance - 30) / 90, 0, 1)
+end
+
 Net.On("Confetti", function(position)
 	if typeof(position) ~= "Vector3" then
 		return
 	end
 	burst(position, RAINBOW, 60, 30, 0.8)
-	Lib.PlaySound("Reward", 0.7, 0.2)
+	local volume = nearVolume(position)
+	if volume > 0 then
+		Lib.PlaySound("Pop", volume)
+		Lib.PlaySound("Success", volume * 0.8)
+	end
 end)
 
 Net.On("Boom", function(position)
@@ -19006,7 +19351,10 @@ Net.On("Boom", function(position)
 		return
 	end
 	burst(position, ColorSequence.new(Color3.fromRGB(255, 140, 40), Color3.fromRGB(60, 50, 50)), 45, 40, 1.4)
-	Lib.PlaySound("Impact", 0.6)
+	local volume = nearVolume(position)
+	if volume > 0 then
+		Lib.PlaySound("Boom", volume)
+	end
 end)
 
 -- a pillar of light on a lucky player (everyone sees it)
@@ -19033,12 +19381,18 @@ Net.On("BigHatch", function(userId, kind)
 	pillar.CFrame = CFrame.new(root.Position + Vector3.new(0, 200, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	pillar.Parent = workspace
 	burst(root.Position, RAINBOW, if kind == "Titanic" then 160 else 80, 45, 1)
-	Lib.PlaySound("Legendary")
+	if other ~= Players.LocalPlayer then
+		Lib.PlaySound("Cheer", 0.8) -- (the lucky player hears the fanfare on their card)
+	end
 	TweenService:Create(pillar, TweenInfo.new(8, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 		Transparency = 1,
 		Size = Vector3.new(400, 0.5, 0.5),
 	}):Play()
 	Debris:AddItem(pillar, 8.5)
+end)
+
+Net.On("Party", function()
+	Lib.PlaySound("Cheer")
 end)
 
 -- 🌙 Thief Night: the sky goes dark while it lasts
@@ -19635,6 +19989,7 @@ local Hatch = require(UI:WaitForChild("Hatch"))
 Panels.Provide("Hatch", Hatch)
 
 local HUD = require(Controllers:WaitForChild("HUD"))
+Hatch.HUD = HUD
 local Mining = require(Controllers:WaitForChild("Mining"))
 Mining.HUD = HUD
 require(Controllers:WaitForChild("PetFollow"))
@@ -19775,8 +20130,13 @@ return State
             <Properties>
               <string name="Name">Hatch</string>
               <string name="Source"><![CDATA[--[[
-	Egg hatch animation: egg shakes, flashes, then reveals the pet(s) in a
-	3D viewport with a rarity-colored burst. The dopamine moment of the game.
+	Pet reveal: the egg shakes (rising whoosh), cracks, and the pet pops out
+	in a 3D viewport with a rarity-coloured flash. Every card says clearly
+	WHAT you got and WHERE it went:
+	    🔒 safe in your vault · 🏠 on display (earning) · 📦 in storage
+	    ⭐ follows you · 💰 sold (storage full) · ✨ NEW (first of its kind)
+	Tap anywhere to continue; afterwards the pets fly into the 🐾 Pets button.
+	Stolen pets and reward pets use the same card (no egg).
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -19790,12 +20150,15 @@ local Lib = require(script.Parent.Lib)
 local Root = require(script.Parent.Root)
 local Net = require(script.Parent.Parent.Net)
 
-local New, C = Lib.New, Lib.Colors
+local New, C, T = Lib.New, Lib.Colors, Lib.T
 local Hatch = {}
 Hatch.Playing = false
+Hatch.HUD = nil -- set by Main (fly-to-pets animation)
 
-local dim = New("Frame", {
+local dim = New("TextButton", {
 	Name = "HatchOverlay",
+	Text = "",
+	AutoButtonColor = false,
 	Size = UDim2.fromScale(1, 1),
 	BackgroundColor3 = Color3.new(0, 0, 0),
 	BackgroundTransparency = 0.35,
@@ -19803,7 +20166,7 @@ local dim = New("Frame", {
 	ZIndex = 100,
 	Parent = Root.Overlay,
 })
-local holder = Root.Cluster("HatchHolder", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(900, 420), dim)
+local holder = Root.Cluster("HatchHolder", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(900, 440), dim)
 New("UIListLayout", {
 	FillDirection = Enum.FillDirection.Horizontal,
 	HorizontalAlignment = Enum.HorizontalAlignment.Center,
@@ -19811,29 +20174,64 @@ New("UIListLayout", {
 	Padding = UDim.new(0, 20),
 	Parent = holder,
 })
+local titleCluster = Root.Cluster("HatchTitle", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.12), UDim2.fromOffset(700, 60), dim)
+local title = Lib.Text({ Text = "", Size = UDim2.fromScale(1, 1), MaxTextSize = 46, ZIndex = 104, Parent = titleCluster })
+local hintCluster = Root.Cluster("HatchHint", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -24), UDim2.fromOffset(400, 34), dim)
+local hint = Lib.Text({
+	Text = "",
+	Font = Lib.BodyFont,
+	TextColor3 = Color3.fromRGB(220, 220, 230),
+	Size = UDim2.fromScale(1, 1),
+	MaxTextSize = 20,
+	ZIndex = 104,
+	Parent = hintCluster,
+})
 
 local queue = {}
+local skip = false
+dim.Activated:Connect(function()
+	skip = true
+end)
 
-local function slot(petName: string, variant: string?, eggColor: Color3)
+local VARIANT_COLORS = {
+	Rainbow = Color3.fromRGB(255, 120, 230),
+	Golden = Color3.fromRGB(255, 210, 60),
+	Galaxy = Color3.fromRGB(190, 140, 255),
+	Frozen = Color3.fromRGB(170, 225, 255),
+	Molten = Color3.fromRGB(255, 130, 50),
+	Huge = Color3.fromRGB(255, 190, 60),
+	Titanic = Color3.fromRGB(255, 120, 60),
+}
+
+-- where the pet went, in words + colour
+local function placeText(entry): (string, Color3)
+	local where = entry.Where
+	if where == "Vault" then
+		return T("🔒 Safe in your vault"), Color3.fromRGB(110, 170, 255)
+	elseif where == "Display" then
+		return T("🏠 On display - earning!"), Color3.fromRGB(110, 230, 140)
+	elseif where == "Sold" then
+		return T("💰 Storage full - sold for %s", Util.Format(entry.Coins or 0)), C.Gold
+	elseif where == "Storage" then
+		return T("📦 Saved in storage"), Color3.fromRGB(200, 200, 215)
+	end
+	return "", C.Sub
+end
+
+local function slot(entry, eggColor: Color3?)
+	local petName, variant = entry.Name, entry.Variant
 	local info = Config.Pets[petName]
-	local variantColor = if variant == "Rainbow"
-		then Color3.fromRGB(255, 120, 230)
-		elseif variant == "Golden" then Color3.fromRGB(255, 210, 60)
-		elseif variant == "Galaxy" then Color3.fromRGB(190, 140, 255)
-		elseif variant == "Frozen" then Color3.fromRGB(170, 225, 255)
-		elseif variant == "Molten" then Color3.fromRGB(255, 130, 50)
-		elseif variant == "Huge" then Color3.fromRGB(255, 190, 60)
-		else nil
+	local variantColor = variant and VARIANT_COLORS[variant]
 	local rarity = Config.Rarities[info.Rarity]
 	local frame = New("Frame", {
 		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(260, 400),
+		Size = UDim2.fromOffset(260, 430),
 		ZIndex = 101,
 		Parent = holder,
 	})
 	local viewport = New("ViewportFrame", {
 		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(260, 260),
+		Size = UDim2.fromOffset(260, 240),
 		ZIndex = 102,
 		Ambient = Color3.fromRGB(200, 200, 200),
 		LightColor = Color3.new(1, 1, 1),
@@ -19841,97 +20239,184 @@ local function slot(petName: string, variant: string?, eggColor: Color3)
 	})
 	local camera = New("Camera", { FieldOfView = 40, Parent = viewport })
 	viewport.CurrentCamera = camera
-
-	local egg = New("Part", {
-		Shape = Enum.PartType.Ball,
-		Size = Vector3.new(4, 4, 4),
-		Color = eggColor,
-		Material = Enum.Material.SmoothPlastic,
-		Anchored = true,
-		CFrame = CFrame.new(),
-		Parent = viewport,
-	}, { New("SpecialMesh", { MeshType = Enum.MeshType.Sphere, Scale = Vector3.new(1, 1.3, 1) }) })
+	local egg = nil
+	if eggColor then
+		egg = New("Part", {
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.new(4, 4, 4),
+			Color = eggColor,
+			Material = Enum.Material.SmoothPlastic,
+			Anchored = true,
+			CFrame = CFrame.new(),
+			Parent = viewport,
+		}, { New("SpecialMesh", { MeshType = Enum.MeshType.Sphere, Scale = Vector3.new(1, 1.3, 1) }) })
+	end
 	camera.CFrame = CFrame.new(Vector3.new(0, 0.6, 11), Vector3.new(0, 0, 0))
 
-	local nameLabel = Lib.Text({
-		Text = Util.PetDisplayName(Lib.T(petName), variant and Lib.T(variant)),
-		Size = UDim2.new(1, 0, 0, 40),
-		Position = UDim2.fromOffset(0, 262),
-		MaxTextSize = 34,
-		ZIndex = 103,
-		Visible = false,
-		Parent = frame,
-	})
-	local rarityLabel = Lib.Text({
-		Text = (if variant then "✨ " .. string.upper(Lib.T(variant)) .. " ✨  " else "") .. string.upper(Lib.T(info.Rarity)),
-		TextColor3 = variantColor or rarity.Color,
-		Size = UDim2.new(1, 0, 0, 34),
-		Position = UDim2.fromOffset(0, 302),
-		MaxTextSize = 30,
-		ZIndex = 103,
-		Visible = false,
-		Parent = frame,
-	})
-	local powerLabel = Lib.Text({
-		Text = Lib.T("💰 %s/s in your base", Util.Format(Util.PetIncome(Config, petName, variant))),
-		Font = Lib.BodyFont,
-		Size = UDim2.new(1, 0, 0, 26),
-		Position = UDim2.fromOffset(0, 340),
-		MaxTextSize = 22,
-		ZIndex = 103,
-		Visible = false,
-		Parent = frame,
-	})
+	local labels = {}
+	if entry.New then
+		table.insert(
+			labels,
+			New("Frame", {
+				BackgroundColor3 = C.Pink,
+				Size = UDim2.fromOffset(150, 30),
+				Position = UDim2.new(0.5, -75, 0, 4),
+				ZIndex = 105,
+				Visible = false,
+				Parent = frame,
+			}, {
+				Lib.Corner(15),
+				Lib.Stroke(Color3.new(1, 1, 1), 2, 0),
+				Lib.Text({ Text = "✨ NEW! 📖 +1", Size = UDim2.fromScale(1, 1), MaxTextSize = 18, ZIndex = 106 }),
+			})
+		)
+	end
+	local name = Util.PetDisplayName(T(petName), variant and T(variant))
+	if entry.Serial then
+		name ..= " #" .. tostring(entry.Serial)
+	end
+	table.insert(
+		labels,
+		Lib.Text({
+			Text = name,
+			Size = UDim2.new(1, 0, 0, 38),
+			Position = UDim2.fromOffset(0, 242),
+			MaxTextSize = 32,
+			ZIndex = 103,
+			Visible = false,
+			Parent = frame,
+		})
+	)
+	table.insert(
+		labels,
+		Lib.Text({
+			Text = (if variant then "✨ " .. string.upper(T(variant)) .. " ✨  " else "") .. string.upper(T(info.Rarity)),
+			TextColor3 = variantColor or rarity.Color,
+			Size = UDim2.new(1, 0, 0, 30),
+			Position = UDim2.fromOffset(0, 280),
+			MaxTextSize = 26,
+			ZIndex = 103,
+			Visible = false,
+			Parent = frame,
+		})
+	)
+	-- where it went (only when the server told us)
+	local text, color = placeText(entry)
+	if text ~= "" then
+		table.insert(
+			labels,
+			New("Frame", {
+				BackgroundColor3 = Color3.fromRGB(20, 22, 34),
+				BackgroundTransparency = 0.1,
+				Size = UDim2.fromOffset(250, 34),
+				Position = UDim2.fromOffset(5, 316),
+				ZIndex = 103,
+				Visible = false,
+				Parent = frame,
+			}, {
+				Lib.Corner(17),
+				Lib.Stroke(color, 2.5, 0),
+				Lib.Text({
+					Text = text,
+					TextColor3 = color,
+					Size = UDim2.new(1, -12, 1, -6),
+					Position = UDim2.fromOffset(6, 3),
+					MaxTextSize = 18,
+					ZIndex = 104,
+				}),
+			})
+		)
+	end
+	local income = Util.PetIncome(Config, petName, variant)
+	local line
+	if entry.Where == "Display" or entry.Where == "Vault" then
+		line = T("💰 %s/s in your base", Util.Format(entry.Rate or income))
+	elseif entry.Where == "Storage" then
+		line = T("Earns 💰%s/s on a pedestal", Util.Format(income))
+	elseif entry.Where == "Sold" then
+		line = ""
+	else
+		line = T("💰 %s/s in your base", Util.Format(income))
+	end
+	if entry.Follow then
+		line = (if line ~= "" then line .. "  •  " else "") .. T("⭐ follows you")
+	end
+	table.insert(
+		labels,
+		Lib.Text({
+			Text = line,
+			Font = Lib.BodyFont,
+			Size = UDim2.new(1, 0, 0, 24),
+			Position = UDim2.fromOffset(0, 356),
+			MaxTextSize = 19,
+			ZIndex = 103,
+			Visible = false,
+			Parent = frame,
+		})
+	)
 	return {
 		Frame = frame,
 		Viewport = viewport,
 		Camera = camera,
 		Egg = egg,
-		Labels = { nameLabel, rarityLabel, powerLabel },
+		Labels = labels,
 		Rarity = rarity,
-		PetName = petName,
-		Variant = variant,
+		Entry = entry,
 		FlashColor = variantColor or rarity.Color,
 	}
 end
 
-local function play(pets, eggId)
+local function play(pets, eggId, mode)
 	Hatch.Playing = true
+	skip = false
 	Lib.Clear(holder)
 	local egg = eggId and Config.Eggs[eggId]
-	local eggColor = if egg then egg.Color else C.Gold
+	local stolen = mode == "Stolen"
+	local eggColor = if stolen then nil elseif egg then egg.Color else C.Gold
 	local slots = {}
-	local anyVariant = false
-	for _, entry in pets do
-		-- entries are { Name, Variant } (older format: plain name)
-		local name = if type(entry) == "table" then entry.Name else entry
-		local variant = if type(entry) == "table" then entry.Variant else nil
-		if variant then
-			anyVariant = true
-		end
-		if Config.Pets[name] then
-			table.insert(slots, slot(name, variant, eggColor))
+	local entries = {}
+	for _, raw in pets do
+		-- entries are { Name, Variant, Where, ... } (older format: plain name)
+		local entry = if type(raw) == "table" then raw else { Name = raw }
+		if Config.Pets[entry.Name] then
+			table.insert(entries, entry)
+			table.insert(slots, slot(entry, eggColor))
 		end
 	end
+	if #slots == 0 then
+		Hatch.Playing = false
+		return
+	end
+	title.Text = if stolen then T("🦹 STOLEN!") else ""
+	title.TextColor3 = C.Pink
+	hint.Text = ""
 	dim.Visible = true
 
-	-- shake
-	local start = os.clock()
-	local shakeTime = if egg then 1.4 else 0.2
-	while os.clock() - start < shakeTime do
-		local t = os.clock() - start
-		local intensity = t / shakeTime
-		for _, s in slots do
-			s.Egg.CFrame = CFrame.Angles(0, 0, math.sin(t * 40) * 0.35 * intensity)
+	-- shake (eggs only): a rising whoosh while it wobbles
+	if eggColor then
+		Lib.PlaySound("EggShake")
+		local start = os.clock()
+		local shakeTime = if egg then 1.3 else 0.5
+		while os.clock() - start < shakeTime do
+			local t = os.clock() - start
+			local intensity = t / shakeTime
+			for _, s in slots do
+				if s.Egg then
+					s.Egg.CFrame = CFrame.Angles(0, 0, math.sin(t * 40) * 0.35 * intensity)
+				end
+			end
+			RunService.RenderStepped:Wait()
 		end
-		RunService.RenderStepped:Wait()
+		Lib.PlaySound("EggCrack")
 	end
 
 	-- reveal
-	local best = 0
+	local best, anyVariant, anyNew, big = 0, false, false, false
 	for _, s in slots do
-		s.Egg:Destroy()
-		local model = PetModel.Build(s.PetName, s.Variant)
+		if s.Egg then
+			s.Egg:Destroy()
+		end
+		local model = PetModel.Build(s.Entry.Name, s.Entry.Variant)
 		model.Parent = s.Viewport
 		model:PivotTo(CFrame.new())
 		local size = model:GetExtentsSize().Magnitude
@@ -19942,21 +20427,46 @@ local function play(pets, eggId)
 		end
 		Lib.Pop(s.Frame)
 		best = math.max(best, s.Rarity.Order)
+		anyVariant = anyVariant or s.Entry.Variant ~= nil
+		anyNew = anyNew or s.Entry.New == true
+		big = big or s.Entry.Variant == "Huge" or s.Entry.Variant == "Titanic"
 		local flash = New("Frame", {
 			BackgroundColor3 = s.FlashColor,
 			BackgroundTransparency = 0.2,
-			Size = UDim2.fromOffset(260, 260),
+			Size = UDim2.fromOffset(240, 240),
+			Position = UDim2.fromOffset(10, 0),
 			ZIndex = 101,
 			Parent = s.Frame,
-		}, { Lib.Corner(130) })
+		}, { Lib.Corner(120) })
 		TweenService:Create(flash, TweenInfo.new(0.8), { BackgroundTransparency = 1 }):Play()
 	end
-	Lib.PlaySound(if best >= 5 or anyVariant then "Legendary" else "Hatch")
+	-- the sound matches how special it is
+	if big or best >= 6 then
+		Lib.PlaySound("Fanfare")
+		Lib.PlaySound("Cheer")
+	elseif best >= 5 or stolen then
+		Lib.PlaySound("Fanfare")
+	elseif best >= 3 or anyVariant then
+		Lib.PlaySound("RevealRare")
+	else
+		Lib.PlaySound("Reveal")
+	end
+	if anyNew then
+		task.delay(0.35, function()
+			Lib.PlaySound("Discover")
+		end)
+	end
 
-	-- spin for a moment
+	-- spin until tapped (or a few seconds)
+	skip = false
+	task.delay(0.6, function()
+		if dim.Visible then
+			hint.Text = T("Tap to continue")
+		end
+	end)
 	local spinStart = os.clock()
-	local duration = if best >= 5 then 3.2 else 2.2
-	while os.clock() - spinStart < duration do
+	local duration = if best >= 5 or big then 4.5 else 3
+	while os.clock() - spinStart < duration and not (skip and os.clock() - spinStart > 0.5) do
 		for _, s in slots do
 			if s.Model then
 				s.Model:PivotTo(CFrame.Angles(0, (os.clock() - spinStart) * 2, 0))
@@ -19967,17 +20477,22 @@ local function play(pets, eggId)
 	dim.Visible = false
 	Lib.Clear(holder)
 	Hatch.Playing = false
+	-- the pets fly into the Pets button (so you see where they went)
+	local hud = Hatch.HUD
+	if hud and hud.PetsLanded then
+		task.spawn(hud.PetsLanded, entries)
+	end
 end
 
-function Hatch.Play(pets, eggId)
-	table.insert(queue, { Pets = pets, Egg = eggId })
+function Hatch.Play(pets, eggId, mode)
+	table.insert(queue, { Pets = pets, Egg = eggId, Mode = mode })
 	if Hatch.Playing then
 		return
 	end
 	task.spawn(function()
 		while #queue > 0 do
 			local item = table.remove(queue, 1)
-			local ok, err = pcall(play, item.Pets, item.Egg)
+			local ok, err = pcall(play, item.Pets, item.Egg, item.Mode)
 			if not ok then
 				warn("[Hatch] " .. tostring(err))
 				dim.Visible = false
@@ -19987,9 +20502,9 @@ function Hatch.Play(pets, eggId)
 	end)
 end
 
--- paid eggs & reward pets arrive from the server
-Net.On("HatchResult", function(pets, eggId)
-	Hatch.Play(pets, eggId)
+-- star eggs, rewards, lucky blocks, stolen pets, quick hatches at the stands
+Net.On("HatchResult", function(pets, eggId, mode)
+	Hatch.Play(pets, eggId, mode)
 end)
 
 return Hatch
@@ -20138,6 +20653,32 @@ end
 
 -- Play a named sound from Config.Sounds (random variant + pitch variance),
 -- or a raw sound id. pitchOffset lets combos/coins rise in pitch.
+-- sound effects play in their own group (music has another one, see Ambience)
+local sfxGroup = Instance.new("SoundGroup")
+sfxGroup.Name = "SFX"
+sfxGroup.Volume = 1
+sfxGroup.Parent = SoundService
+Lib.SfxGroup = sfxGroup
+Lib.DuckMusic = nil -- set by Ambience: lowers the music under big stingers
+
+-- load every sound once at start so the first hatch / coin isn't silent
+task.spawn(function()
+	local list = {}
+	for _, def in Config.Sounds do
+		for _, id in def.Ids or {} do
+			if string.find(id, "rbxassetid://", 1, true) then
+				table.insert(list, Lib.New("Sound", { SoundId = id, Parent = sfxGroup }))
+			end
+		end
+	end
+	pcall(function()
+		game:GetService("ContentProvider"):PreloadAsync(list)
+	end)
+	for _, sound in list do
+		sound:Destroy()
+	end
+end)
+
 function Lib.PlaySound(name: string?, volumeMult: number?, pitchOffset: number?)
 	if not name or name == "" or Lib.Muted then
 		return
@@ -20156,9 +20697,21 @@ function Lib.PlaySound(name: string?, volumeMult: number?, pitchOffset: number?)
 	if not id or id == "" then
 		return
 	end
-	local sound = New("Sound", { SoundId = id, Volume = volume, PlaybackSpeed = math.max(0.1, pitch), Parent = SoundService })
+	local sound = New("Sound", {
+		SoundId = id,
+		Volume = volume,
+		PlaybackSpeed = math.max(0.1, pitch),
+		SoundGroup = sfxGroup,
+		Parent = sfxGroup,
+	})
 	sound:Play()
-	Debris:AddItem(sound, 5)
+	sound.Ended:Once(function()
+		sound:Destroy()
+	end)
+	Debris:AddItem(sound, 12)
+	if type(def) == "table" and def.Duck and Lib.DuckMusic then
+		Lib.DuckMusic(def.Duck)
+	end
 end
 
 -- Big chunky game button. props.Color, props.Text, props.OnClick
@@ -20467,6 +21020,9 @@ function Panels.Open(name: string, arg: any?)
 	if Panels.Current and Panels.Current ~= name and opened[Panels.Current] then
 		opened[Panels.Current].Window.Visible = false
 	end
+	if Panels.Current ~= name then
+		Lib.PlaySound("Open")
+	end
 	Panels.Current = name
 	Panels.CurrentArg = arg
 	backdrop.Visible = true
@@ -20484,6 +21040,9 @@ end
 
 function Panels.Close()
 	local name = Panels.Current
+	if name then
+		Lib.PlaySound("Close")
+	end
 	if name and opened[name] then
 		local window = opened[name].Window
 		local scale = window:FindFirstChildOfClass("UIScale")
@@ -21566,6 +22125,15 @@ function Pets.Build(content, ctx)
 				MaxTextSize = 11,
 				Parent = card,
 			})
+			if State.NewPets and State.NewPets[pet.Id] then
+				New("Frame", {
+					BackgroundColor3 = C.Pink,
+					Size = UDim2.fromOffset(46, 20),
+					Position = UDim2.new(1, -50, 0, 4),
+					ZIndex = 3,
+					Parent = card,
+				}, { Lib.Corner(10), Lib.Text({ Text = "NEW", Size = UDim2.fromScale(1, 1), MaxTextSize = 13, ZIndex = 4 }) })
+			end
 			-- vault or show off? (exclusive pets are always safe)
 			if not pet.Away and not exclusive then
 				local toggle = New("TextButton", {
@@ -21649,7 +22217,13 @@ function Pets.Build(content, ctx)
 					.. (if type(pet.HotUntil) == "number" and pet.HotUntil > os.time() then "h" else "")
 			)
 		end
+		local newCount = 0
+		for _ in State.NewPets or {} do
+			newCount += 1
+		end
 		local sig = table.concat(parts, ",")
+			.. "|new"
+			.. newCount
 			.. "|"
 			.. table.concat(data.Equipped, ",")
 			.. "|"
@@ -22218,21 +22792,40 @@ function Settings.Build(content, ctx)
 	end
 
 	Lib.Text({ Text = "🔊 Sound", Size = UDim2.new(1, 0, 0, 34), Position = UDim2.fromOffset(0, 170), MaxTextSize = 28, Parent = content })
+	local function saveAudio()
+		Net.Fire("SetAudio", not Lib.Muted, not Lib.MusicOff)
+	end
 	local soundButton = Lib.Button({
-		Size = UDim2.fromOffset(240, 54),
-		Position = UDim2.new(0.5, -250, 0, 214),
-		TextSize = 24,
+		Size = UDim2.fromOffset(200, 54),
+		Position = UDim2.new(0.5, -316, 0, 214),
+		TextSize = 22,
 		Parent = content,
 		OnClick = function()
 			Lib.Muted = not Lib.Muted
+			saveAudio()
+			ctx.Panels.RefreshCurrent()
+		end,
+	})
+	local musicButton = Lib.Button({
+		Size = UDim2.fromOffset(200, 54),
+		Position = UDim2.new(0.5, -100, 0, 214),
+		TextSize = 22,
+		Parent = content,
+		OnClick = function()
+			if Lib.SetMusic then
+				Lib.SetMusic(Lib.MusicOff == true)
+			else
+				Lib.MusicOff = not Lib.MusicOff
+			end
+			saveAudio()
 			ctx.Panels.RefreshCurrent()
 		end,
 	})
 	Lib.Button({
 		Text = "❓ How to play",
 		Color = C.Blue,
-		Size = UDim2.fromOffset(240, 54),
-		Position = UDim2.new(0.5, 10, 0, 214),
+		Size = UDim2.fromOffset(200, 54),
+		Position = UDim2.new(0.5, 116, 0, 214),
 		TextSize = 24,
 		Parent = content,
 		OnClick = function()
@@ -22249,6 +22842,7 @@ function Settings.Build(content, ctx)
 			Lib.SetButton(button, nil, if id == current then C.Gold else C.Gray)
 		end
 		Lib.SetButton(soundButton, if Lib.Muted then "🔇 Sound: OFF" else "🔊 Sound: ON", if Lib.Muted then C.Gray else C.Green)
+		Lib.SetButton(musicButton, if Lib.MusicOff then "🎵 Music: OFF" else "🎵 Music: ON", if Lib.MusicOff then C.Gray else C.Green)
 	end
 
 	return { Refresh = refresh }

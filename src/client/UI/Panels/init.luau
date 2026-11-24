@@ -139,6 +139,9 @@ function Panels.Open(name: string, arg: any?)
 	if Panels.Current and Panels.Current ~= name and opened[Panels.Current] then
 		opened[Panels.Current].Window.Visible = false
 	end
+	if Panels.Current ~= name then
+		Lib.PlaySound("Open")
+	end
 	Panels.Current = name
 	Panels.CurrentArg = arg
 	backdrop.Visible = true
@@ -156,6 +159,9 @@ end
 
 function Panels.Close()
 	local name = Panels.Current
+	if name then
+		Lib.PlaySound("Close")
+	end
 	if name and opened[name] then
 		local window = opened[name].Window
 		local scale = window:FindFirstChildOfClass("UIScale")

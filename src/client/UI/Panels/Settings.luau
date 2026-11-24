@@ -57,21 +57,40 @@ function Settings.Build(content, ctx)
 	end
 
 	Lib.Text({ Text = "🔊 Sound", Size = UDim2.new(1, 0, 0, 34), Position = UDim2.fromOffset(0, 170), MaxTextSize = 28, Parent = content })
+	local function saveAudio()
+		Net.Fire("SetAudio", not Lib.Muted, not Lib.MusicOff)
+	end
 	local soundButton = Lib.Button({
-		Size = UDim2.fromOffset(240, 54),
-		Position = UDim2.new(0.5, -250, 0, 214),
-		TextSize = 24,
+		Size = UDim2.fromOffset(200, 54),
+		Position = UDim2.new(0.5, -316, 0, 214),
+		TextSize = 22,
 		Parent = content,
 		OnClick = function()
 			Lib.Muted = not Lib.Muted
+			saveAudio()
+			ctx.Panels.RefreshCurrent()
+		end,
+	})
+	local musicButton = Lib.Button({
+		Size = UDim2.fromOffset(200, 54),
+		Position = UDim2.new(0.5, -100, 0, 214),
+		TextSize = 22,
+		Parent = content,
+		OnClick = function()
+			if Lib.SetMusic then
+				Lib.SetMusic(Lib.MusicOff == true)
+			else
+				Lib.MusicOff = not Lib.MusicOff
+			end
+			saveAudio()
 			ctx.Panels.RefreshCurrent()
 		end,
 	})
 	Lib.Button({
 		Text = "❓ How to play",
 		Color = C.Blue,
-		Size = UDim2.fromOffset(240, 54),
-		Position = UDim2.new(0.5, 10, 0, 214),
+		Size = UDim2.fromOffset(200, 54),
+		Position = UDim2.new(0.5, 116, 0, 214),
 		TextSize = 24,
 		Parent = content,
 		OnClick = function()
@@ -88,6 +107,7 @@ function Settings.Build(content, ctx)
 			Lib.SetButton(button, nil, if id == current then C.Gold else C.Gray)
 		end
 		Lib.SetButton(soundButton, if Lib.Muted then "🔇 Sound: OFF" else "🔊 Sound: ON", if Lib.Muted then C.Gray else C.Green)
+		Lib.SetButton(musicButton, if Lib.MusicOff then "🎵 Music: OFF" else "🎵 Music: ON", if Lib.MusicOff then C.Gray else C.Green)
 	end
 
 	return { Refresh = refresh }

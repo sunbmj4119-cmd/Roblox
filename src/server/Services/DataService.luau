@@ -40,7 +40,7 @@ local TEMPLATE = {
 	FreeSpinAt = 0, -- unix time when the next free spin is ready
 	Codes = {}, -- [CODE] = true
 	Tutorial = { Step = 1, Progress = 0, Done = false },
-	Settings = { Lang = "auto" }, -- "auto" | "ko" | "en"
+	Settings = { Lang = "auto", Sfx = true, Music = true }, -- Lang: "auto" | "ko" | "en"
 	-- star-shard base: Shards = { { Id = rarityId }, ... } in pedestal order
 	-- Items = placed decorations { Uid, Id, X, Z, R, Paid, Cur } in plot space
 	Base = {

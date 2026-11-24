@@ -551,7 +551,7 @@ local function deliver(player: Player)
 			Net:Notify(player, "The owner left - the pet vanished!")
 			return
 		end
-		local given = pets:GivePet(player, taken.Name, taken.Variant, taken.Serial)
+		local given, isNew = pets:GivePet(player, taken.Name, taken.Variant, taken.Serial)
 		-- a freshly stolen pet can't hide in the thief's vault yet: revenge can win it back
 		if given and not (meta.Revenge and meta.Thief == player) then
 			given.HotUntil = os.time() + Config.Base.HotSeconds
@@ -583,6 +583,12 @@ local function deliver(player: Player)
 		Services.ProgressionService:AddQuest(player, "Steal", 1)
 		Services.Analytics:Custom(player, "PetStolen", tier)
 		Net:Send(player, "ShardDelivered", display, "Stolen", 0)
+		-- the same "where did it go" card as a hatch (no egg)
+		local card = given and pets:Describe(player, given, isNew)
+		if card then
+			card.Stolen = true
+			Net:Send(player, "HatchResult", { card }, nil, "Stolen")
+		end
 		if tier >= 5 then
 			Net:Announce("🦹 %s stole a %s from %s!", itemColor(item), player.DisplayName, display, owner.DisplayName)
 		end

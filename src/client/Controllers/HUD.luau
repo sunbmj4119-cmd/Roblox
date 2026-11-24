@@ -41,6 +41,9 @@ Lib.List(Enum.FillDirection.Vertical, 6).Parent = toastCluster
 local toastOrder = 0
 function HUD.Toast(text: string, color: Color3?)
 	toastOrder += 1
+	if color == C.Red then
+		Lib.PlaySound("Error")
+	end
 	local toast = New("Frame", {
 		BackgroundColor3 = DARK,
 		BackgroundTransparency = 0.15,
@@ -1012,6 +1015,97 @@ local function celebrate(title: string, sub: string, color: Color3, withConfetti
 	end)
 end
 HUD.Celebrate = celebrate
+
+-- new pets fly into the 🐾 Pets button (+N badge until you open it), with a
+-- one-line summary of where they went
+State.NewPets = State.NewPets or {} -- [petId] = true (NEW tags in the Pets panel)
+local newPetCount = 0
+local petsBadgeText = badges.Pets and badges.Pets:FindFirstChildWhichIsA("TextLabel")
+local function refreshPetsBadge()
+	if badges.Pets then
+		badges.Pets.Visible = newPetCount > 0
+		if petsBadgeText then
+			petsBadgeText.Text = if newPetCount > 9 then "9+" else tostring(newPetCount)
+		end
+	end
+end
+local PLACE_ICONS = { Vault = "🔒", Display = "🏠", Storage = "📦", Sold = "💰" }
+function HUD.PetsLanded(entries)
+	local button = menuButtons.Pets
+	local targetGui = if button and button.Visible then button else coinPill
+	local inset = GuiService:GetGuiInset()
+	local target = targetGui.AbsolutePosition + targetGui.AbsoluteSize / 2 + inset
+	local camera = workspace.CurrentCamera
+	local center = if camera then camera.ViewportSize / 2 else Vector2.new(640, 380)
+	local counts = { Vault = 0, Display = 0, Storage = 0, Sold = 0 }
+	for i, entry in entries do
+		local where = entry.Where or "Storage"
+		counts[where] = (counts[where] or 0) + 1
+		if entry.Id and where ~= "Sold" then
+			State.NewPets[entry.Id] = true
+		end
+		local icon = Lib.Text({
+			Text = PLACE_ICONS[where] or "🐾",
+			Size = UDim2.fromOffset(46, 46),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(center.X + (i - (#entries + 1) / 2) * 70, center.Y),
+			MaxTextSize = 40,
+			Outline = false,
+			ZIndex = 60,
+			Parent = Root.Overlay,
+		})
+		task.delay((i - 1) * 0.12, function()
+			Lib.PlaySound("Fly", 0.8, (i - 1) * 0.05)
+			local tween = TweenService:Create(icon, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Position = UDim2.fromOffset(target.X, target.Y),
+				Size = UDim2.fromOffset(20, 20),
+			})
+			tween:Play()
+			tween.Completed:Once(function()
+				icon:Destroy()
+				Lib.PlaySound(if where == "Sold" then "CoinBig" else "Store", 0.8)
+				Lib.Pop(targetGui)
+				if where ~= "Sold" then
+					newPetCount += 1
+					refreshPetsBadge()
+				end
+			end)
+		end)
+	end
+	-- "where did they go?" in one short line
+	local parts = {}
+	if counts.Vault > 0 then
+		table.insert(parts, T("🔒 vault %d", counts.Vault))
+	end
+	if counts.Display > 0 then
+		table.insert(parts, T("🏠 display %d", counts.Display))
+	end
+	if counts.Storage > 0 then
+		table.insert(parts, T("📦 storage %d", counts.Storage))
+	end
+	if counts.Sold > 0 then
+		table.insert(parts, T("💰 sold %d", counts.Sold))
+	end
+	if #parts > 0 then
+		HUD.Toast(T("🐾 Your new pets: %s", table.concat(parts, "  •  ")), Color3.fromRGB(150, 230, 160))
+	end
+end
+-- opening the Pets panel clears the +N badge (NEW tags clear when it closes)
+task.spawn(function()
+	local wasOpen = false
+	while true do
+		task.wait(0.5)
+		local open = Panels.Current == "Pets"
+		if open and newPetCount > 0 then
+			newPetCount = 0
+			refreshPetsBadge()
+		end
+		if wasOpen and not open then
+			State.NewPets = {}
+		end
+		wasOpen = open
+	end
+end)
 HUD.FlyCoins = flyCoins
 
 ---------------------------------------------------------------------------

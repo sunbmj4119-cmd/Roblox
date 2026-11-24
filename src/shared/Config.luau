@@ -1410,9 +1410,43 @@ Config.Sounds = {
 	Reward = { Ids = { "rbxasset://sounds/electronicpingshort.mp3" }, Volume = 0.6, Pitch = 1.6, Variance = 0 },
 	RankUp = { Ids = { "rbxasset://sounds/victory.mp3" }, Volume = 0.7, Pitch = 1.25, Variance = 0 },
 	Event = { Ids = { "rbxasset://sounds/bass.mp3" }, Volume = 0.6, Pitch = 1.2, Variance = 0 },
+	-- Roblox-licensed Creator Store sounds (Pro Sound Effects library; all
+	-- checked to load on a live server)
+	Open = { Ids = { "rbxassetid://9113537815" }, Volume = 0.3, Pitch = 1.15, Variance = 0.04 },
+	Close = { Ids = { "rbxassetid://9113537815" }, Volume = 0.2, Pitch = 0.85, Variance = 0.03 },
+	Error = { Ids = { "rbxassetid://9113085764" }, Volume = 0.18, Pitch = 1.6, Variance = 0 },
+	CoinBig = { Ids = { "rbxassetid://9113728049" }, Volume = 0.45, Pitch = 1, Variance = 0.04 },
+	Gems = { Ids = { "rbxassetid://9126073001" }, Volume = 0.4, Pitch = 1, Variance = 0.05 },
+	Pop = { Ids = { "rbxassetid://9113263649" }, Volume = 0.45, Pitch = 1.1, Variance = 0.1 },
+	EggShake = { Ids = { "rbxassetid://9125805579" }, Volume = 0.45, Pitch = 1, Variance = 0 },
+	EggCrack = { Ids = { "rbxassetid://9113959343", "rbxassetid://9113959332" }, Volume = 0.75, Pitch = 1, Variance = 0.05 },
+	Reveal = { Ids = { "rbxassetid://9116395089" }, Volume = 0.55, Pitch = 1, Variance = 0.03 },
+	RevealRare = { Ids = { "rbxassetid://9116422213" }, Volume = 0.6, Pitch = 1, Variance = 0 },
+	Discover = { Ids = { "rbxassetid://9119447936" }, Volume = 0.4, Pitch = 1.1, Variance = 0 },
+	Fanfare = { Ids = { "rbxassetid://1844584698" }, Volume = 0.55, Pitch = 1, Variance = 0, Duck = 4.5 },
+	Cheer = { Ids = { "rbxassetid://9120974911" }, Volume = 0.35, Pitch = 1, Variance = 0, Duck = 4 },
+	Fly = { Ids = { "rbxassetid://9125648149" }, Volume = 0.35, Pitch = 1.1, Variance = 0.05 },
+	Store = { Ids = { "rbxassetid://9116406610" }, Volume = 0.4, Pitch = 1.2, Variance = 0.08 },
+	Alarm = { Ids = { "rbxassetid://9113085764" }, Volume = 0.45, Pitch = 1, Variance = 0 },
+	Boom = { Ids = { "rbxassetid://9120705982" }, Volume = 0.55, Pitch = 1, Variance = 0.05 },
+	Build = { Ids = { "rbxassetid://9114756916" }, Volume = 0.45, Pitch = 1.1, Variance = 0.1 },
+	Success = { Ids = { "rbxassetid://9125492333" }, Volume = 0.4, Pitch = 1, Variance = 0 },
+	Whoosh = { Ids = { "rbxassetid://9126229255" }, Volume = 0.35, Pitch = 1, Variance = 0.08 },
 }
 
--- optional looping background music (Creator Store audio ids, "" = off)
-Config.Music = { Hub = "", Mine = "", Meteor = "", Volume = 0.3 }
+-- background music that follows what you're doing (Roblox-licensed Creator
+-- Store tracks, all checked to load on a live server; "" = silence)
+Config.Music = {
+	Hub = "rbxassetid://1843404009", -- Happy Song: cheerful plaza
+	Home = "rbxassetid://9043887091", -- Lo-fi Chill A: cozy at your own house
+	Bases = "rbxassetid://1840383905", -- Happy Shoppers: walking past the houses
+	Mine = "rbxassetid://9047876673", -- Happy Adventure: the first mines
+	DeepMine = "rbxassetid://1845149698", -- Seek & Destroy: the deep zones
+	Meteor = "rbxassetid://1837301451", -- Epic Battle Simulator: meteor fight
+	Chase = "rbxassetid://1845092181", -- Meltdown: carrying a stolen pet / star
+	Night = "rbxassetid://1837467266", -- Sneaky Ghost: Thief Night
+	Party = "rbxassetid://1837779005", -- Beach Party: weekly party
+	Volume = 0.28,
+}
 
 return Config

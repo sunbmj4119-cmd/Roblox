@@ -541,6 +541,17 @@ function Progression:Start()
 		end
 	end)
 
+	-- sound effects / music on or off (remembered)
+	Net:On("SetAudio", 0.3, function(player, sfx, music)
+		local data = Data:Get(player)
+		if not data or type(sfx) ~= "boolean" or type(music) ~= "boolean" then
+			return
+		end
+		data.Settings.Sfx = sfx
+		data.Settings.Music = music
+		Data:MarkDirty(player)
+	end)
+
 	Net:On("SetLanguage", 1, function(player, lang)
 		local data = Data:Get(player)
 		if not data or (lang ~= "ko" and lang ~= "en" and lang ~= "auto") then
