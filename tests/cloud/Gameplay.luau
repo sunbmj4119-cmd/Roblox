@@ -517,6 +517,32 @@ local PetModelModule = require(Shared.PetModel)
 local _, titanicSize = PetModelModule.Build("Bunny", "Titanic"):GetBoundingBox()
 check(titanicSize.Y > hugeSize.Y * 1.5, "titanic pet is not bigger than a huge one")
 
+-- 23) old saves: items where the house now stands move back onto the land
+local D = fakePlayer(1004, "Dave")
+local old = Util.DeepCopy(Data.Template)
+old.Tutorial.Done = true
+old.Base.Seeded = true
+old.Base.LayoutV = 2
+old.Base.Level = 4
+old.Base.NextUid = 4
+old.Base.Items = {
+	{ Uid = 1, Id = "Pedestal", X = 0, Z = 2, R = 0, Paid = 0, Cur = "Coins" },
+	{ Uid = 2, Id = "Pedestal", X = 0, Z = 30, R = 0, Paid = 0, Cur = "Coins" },
+	{ Uid = 3, Id = "Tree", X = 10, Z = 30, R = 0, Paid = 120, Cur = "Coins" },
+}
+for _, err in Data:InjectForTest(D, old) do
+	fail("OnLoaded for Dave: " .. err)
+end
+local dataD = Data:Get(D)
+local daveBounds = require(Shared.DecorModel).Bounds(Config, Util.HouseLevel(Config, dataD))
+local allInside = #dataD.Base.Items == 3
+for _, item in dataD.Base.Items do
+	if item.Z + 2 > daveBounds.MaxZ + 0.01 then
+		allInside = false
+	end
+end
+check(allInside and dataD.Base.LayoutV == 3, "old items behind the house were not moved onto the land")
+
 results.alicePets = #dataA.Pets
 results.bobPets = #dataB.Pets
 results.carolPets = dataC and #dataC.Pets

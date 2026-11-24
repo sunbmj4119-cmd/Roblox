@@ -532,6 +532,7 @@ end
 ---------------------------------------------------------------------------
 -- delivery
 ---------------------------------------------------------------------------
+local nightBonusPaid = {} -- ["thief:owner"] = os.clock() (no passing one pet back and forth)
 local function deliver(player: Player)
 	local info = endCarry(player)
 	if not info then
@@ -562,7 +563,10 @@ local function deliver(player: Player)
 		Services.BaseService:StealDelivered(owner, player, meta, taken)
 		-- 🌙 Thief Night: delivered steals pay a bonus
 		local bonusSeconds = Services.EventService:Get("StealBonus", 0)
-		if bonusSeconds > 0 and data then
+		local pairKey = player.UserId .. ":" .. owner.UserId
+		local repeatPair = os.clock() - (nightBonusPaid[pairKey] or -1e9) < 600
+		if bonusSeconds > 0 and data and not meta.Revenge and not repeatPair then
+			nightBonusPaid[pairKey] = os.clock()
 			local bonus = math.floor(Util.PetIncome(Config, taken.Name, taken.Variant) * bonusSeconds)
 			if bonus > 0 then
 				data.Coins += bonus

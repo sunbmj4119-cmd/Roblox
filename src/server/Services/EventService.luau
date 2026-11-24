@@ -14,6 +14,7 @@
 ]]
 local MessagingService = game:GetService("MessagingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
@@ -109,9 +110,9 @@ function Events:PartyActive(): boolean
 end
 
 -- 🎉 party: lucky block rain every few minutes, a starfall and 2x luck
-function Events:StartParty(minutes: number)
+function Events:StartParty(minutes: number): boolean
 	if self:PartyActive() then
-		return
+		return false
 	end
 	minutes = math.clamp(minutes, 1, 60)
 	partyEnds = os.time() + minutes * 60
@@ -132,12 +133,15 @@ function Events:StartParty(minutes: number)
 		end
 		workspace:SetAttribute("PartyEnd", 0)
 	end)
+	return true
 end
 
 -- the owner's "admin event": a party in EVERY server
 function Events:GlobalParty(minutes: number)
 	self:StartParty(minutes)
-	publish({ Kind = "Party", Minutes = minutes })
+	if not RunService:IsStudio() then -- (a Studio test must never start a party in live servers)
+		publish({ Kind = "Party", Minutes = minutes })
+	end
 end
 
 local function onMessage(message)
@@ -158,8 +162,10 @@ local function checkWeekly()
 	local t = os.date("!*t")
 	local day = math.floor(os.time() / 86400)
 	if t.wday == PARTY.WeekDay and t.hour == PARTY.HourUTC and t.min < PARTY.Minutes and lastPartyDay ~= day then
-		lastPartyDay = day
-		Events:StartParty(PARTY.Minutes - t.min)
+		-- (if another party is still running, try again next second)
+		if Events:StartParty(PARTY.Minutes - t.min) then
+			lastPartyDay = day
+		end
 	elseif t.wday == PARTY.WeekDay and t.hour == PARTY.HourUTC - 1 and t.min >= 50 and warnedDay ~= day then
 		warnedDay = day
 		Net:Announce("🎉 The weekly PARTY starts in 10 minutes! Lucky blocks + 2x luck!", Color3.fromRGB(255, 200, 80))

@@ -877,6 +877,10 @@ local function tapAt(position: Vector3)
 	if ghost then
 		table.insert(ignore, ghost)
 	end
+	local shell = plot:FindFirstChild("Shell")
+	if shell then
+		table.insert(ignore, shell)
+	end
 	rayParams.FilterDescendantsInstances = ignore
 	local result = workspace:Raycast(ray.Origin, ray.Direction * 400, rayParams)
 	if not result then

@@ -102,6 +102,9 @@ local bannerQueue = {}
 local bannerBusy = false
 
 function HUD.Announce(text: string, color: Color3?)
+	if #bannerQueue >= 3 then
+		table.remove(bannerQueue, 1) -- never fall minutes behind
+	end
 	table.insert(bannerQueue, { Text = text, Color = color or C.Gold })
 	if bannerBusy then
 		return
@@ -152,7 +155,9 @@ local function layoutTop()
 		y += 46 * s
 	end
 	bannerCluster.Position = UDim2.new(0.5, 0, 0, y)
-	toastCluster.Position = UDim2.new(0.5, 0, 0, y + 48 * s)
+	-- toasts live in the overlay (it ignores the top bar inset, the rest doesn't)
+	local inset = GuiService:GetGuiInset().Y
+	toastCluster.Position = UDim2.new(0.5, 0, 0, y + 48 * s + inset)
 end
 layoutTop()
 task.defer(function()
@@ -316,8 +321,8 @@ table.insert(MENU, {
 	"⋯",
 	"More",
 	Color3.fromRGB(90, 95, 120),
-	function(d)
-		return tutorialAt(d, 2)
+	function()
+		return true -- (Settings lives in here, needed from the first minute)
 	end,
 })
 for order, item in MENU do

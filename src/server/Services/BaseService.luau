@@ -390,6 +390,19 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 	}
 end
 
+local HOUSE_PARTS = {
+	House = true,
+	Roof = true,
+	Door = true,
+	DoorKnob = true,
+	Window = true,
+	HouseTower = true,
+	TowerRoof = true,
+	Chimney = true,
+	FlagPole = true,
+	Flag = true,
+}
+
 -- walls, gate, border and aura in the owner's style
 local function applyStyle(plot, data)
 	local styleId, style = Util.HouseStyle(Config, data)
@@ -595,6 +608,13 @@ local function applyStyle(plot, data)
 		Material = Enum.Material.Fabric,
 		CanCollide = false,
 	}, shell)
+
+	-- the house can't be tapped through in build mode (taps reach the yard)
+	for _, child in shell:GetChildren() do
+		if child:IsA("BasePart") and HOUSE_PARTS[child.Name] then
+			child.CanQuery = false
+		end
+	end
 
 	-- border of the buildable land
 	local edge = Color3.new(1, 1, 1):Lerp(style.Trim, 0.5)
@@ -802,6 +822,7 @@ function Base:RenderDisplays(player: Player)
 				petModel:PivotTo(petModel:GetPivot() + Vector3.new(0, lift, 0))
 			end
 			petModel:SetAttribute("Spin", true)
+			petModel:SetAttribute("PetId", -item.Uid) -- bounces like a real pet (no giveaway)
 			petModel.Parent = plot.Displays
 			local anchor = petModel.PrimaryPart :: BasePart
 			local info = Config.Pets[fake.Name]
@@ -841,8 +862,13 @@ end
 
 -- a thief grabbed a prank pet: confetti, a launch, a short stun, a laugh
 local decoyReady = {} -- [model] = os.clock()
+local prankCounted = {} -- ["thief:owner"] = os.clock() (one counted prank per pair per 5 min)
 function Base:SpringDecoy(owner: Player, thief: Player, model: Model)
-	if thief == owner or not owner.Parent then
+	if thief == owner or not owner.Parent or not model.Parent then
+		return
+	end
+	-- same rules as a real steal: protected houses can't be "robbed" at all
+	if not plotOf[thief] or Services.ShardService:IsCarrying(thief) or self:Protection(owner) ~= nil then
 		return
 	end
 	if (decoyReady[model] or 0) > os.clock() then
@@ -856,13 +882,18 @@ function Base:SpringDecoy(owner: Player, thief: Player, model: Model)
 	Net:Send(thief, "Stunned", 2)
 	Net:Send(thief, "Launch", Vector3.new(0, 120, 0))
 	Net:Broadcast("Confetti", model:GetPivot().Position)
+	Net:Notify(thief, "🎭 It was a PRANK PET! 😂", Color3.fromRGB(255, 170, 90))
+	Net:Notify(owner, "😂 %s fell for your prank pet!", Color3.fromRGB(255, 200, 90), thief.DisplayName)
+	local key = thief.UserId .. ":" .. owner.UserId
+	if os.clock() - (prankCounted[key] or -1e9) < 300 then
+		return
+	end
+	prankCounted[key] = os.clock()
 	local data = Data:Get(owner)
 	if data then
 		data.Stats.Pranks = (data.Stats.Pranks or 0) + 1
 		Data:MarkDirty(owner)
 	end
-	Net:Notify(thief, "🎭 It was a PRANK PET! 😂", Color3.fromRGB(255, 170, 90))
-	Net:Notify(owner, "😂 %s fell for your prank pet!", Color3.fromRGB(255, 200, 90), thief.DisplayName)
 	Net:Announce("🎭 %s got pranked by %s's fake pet!", Color3.fromRGB(255, 190, 90), thief.DisplayName, owner.DisplayName)
 end
 
@@ -1552,7 +1583,8 @@ function Base:ArrangePedestals(player: Player): (boolean, string?)
 			table.insert(others, item)
 		end
 	end
-	local order = { Vault = 1, Pedestal = 2, Decoy = 3 }
+	-- (decoys mix in with the real display pedestals: no giveaway)
+	local order = { Vault = 1, Pedestal = 2, Decoy = 2 }
 	table.sort(peds, function(a, b)
 		local oa, ob = order[Config.Decor[a.Id].Function], order[Config.Decor[b.Id].Function]
 		if oa ~= ob then
@@ -1615,7 +1647,20 @@ function Base:SetRoof(player: Player, color): (boolean, string?)
 		return false, "Can't paint that"
 	end
 	data.Base.Roof = color
-	applyStyle(plot, data)
+	local styleId, style = Util.HouseStyle(Config, data)
+	local prefix = styleId .. ":" .. houseLevel(data) .. ":"
+	if string.sub(plot.StyleKey, 1, #prefix) == prefix then
+		-- same house: just repaint (no rebuild)
+		plot.StyleKey = prefix .. color
+		local roofColor = Config.Paint[color] or style.Trim
+		for _, child in plot.Shell:GetChildren() do
+			if child:IsA("BasePart") and (child.Name == "Roof" or child.Name == "TowerRoof" or child.Name == "Flag") then
+				child.Color = roofColor
+			end
+		end
+	else
+		applyStyle(plot, data)
+	end
 	Data:MarkDirty(player)
 	return true, nil
 end
@@ -1858,11 +1903,59 @@ local function addItem(base, id: string, x: number, z: number, r: number, level:
 end
 
 -- first visit: starter layout. Older saves move into the new territories.
+-- items outside the buildable land (layouts from older versions) move to a
+-- free spot inside it, or are refunded if there is no room
+local function rehome(data)
+	local base = data.Base
+	local level = houseLevel(data)
+	local bounds = DecorModel.Bounds(Config, level)
+	local opts = { Level = level, Vaults = 99 }
+	local kept = {}
+	local outside = {}
+	for _, item in base.Items do
+		local def = Config.Decor[item.Id]
+		if def then
+			local w, d = DecorModel.Footprint(Config, item.Id, item.R or 0)
+			local inside = item.X - w / 2 >= bounds.MinX - 0.01
+				and item.X + w / 2 <= bounds.MaxX + 0.01
+				and item.Z - d / 2 >= bounds.MinZ - 0.01
+				and item.Z + d / 2 <= bounds.MaxZ + 0.01
+			table.insert(if inside then kept else outside, item)
+		end
+	end
+	for _, item in outside do
+		local placed = false
+		local z = bounds.MaxZ - 2
+		while not placed and z >= bounds.MinZ + 1 do
+			local x = bounds.MinX + 2
+			while not placed and x <= bounds.MaxX - 1 do
+				local sx, sz = DecorModel.Snap(Config, item.Id, x, z, 0)
+				if DecorModel.Validate(Config, kept, item.Id, sx, sz, 0, item.Uid, opts) then
+					item.X, item.Z, item.R = sx, sz, 0
+					table.insert(kept, item)
+					placed = true
+				end
+				x += 2
+			end
+			z -= 2
+		end
+		if not placed then
+			local refund = math.max(0, math.floor(item.Paid or 0))
+			if item.Cur == "Gems" then
+				data.Gems += refund
+			else
+				data.Coins += refund
+			end
+		end
+	end
+	base.Items = kept
+end
+
 local function seed(data)
 	local base = data.Base
 	if not base.Seeded then
 		base.Seeded = true
-		base.LayoutV = 2
+		base.LayoutV = 3
 		for _, entry in Config.StarterBase do
 			addItem(base, entry.Id, entry.X, entry.Z, entry.R, 1)
 		end
@@ -1889,6 +1982,11 @@ local function seed(data)
 				end
 			end
 		end
+	end
+	if (base.LayoutV or 0) < 3 then
+		-- v16: the house stands behind z = 22 now
+		base.LayoutV = 3
+		rehome(data)
 	end
 end
 
@@ -2071,7 +2169,6 @@ function Base:Start()
 	end
 
 	-- 👑 the most liked house in the server wears a crown
-	local bestPlot = nil
 	local function updateCrown()
 		local best, bestLikes = nil, 0
 		for owner, plot in plotOf do
@@ -2081,10 +2178,6 @@ function Base:Start()
 				best, bestLikes = plot, likes
 			end
 		end
-		if best == bestPlot then
-			return
-		end
-		bestPlot = best
 		for _, plot in plots do
 			local isBest = plot == best
 			plot.Model:SetAttribute("BestHouse", isBest)
@@ -2217,7 +2310,7 @@ function Base:Start()
 	Net:OnRequest("BaseArrange", 1, function(player)
 		return reply(player, self:ArrangePedestals(player))
 	end)
-	Net:OnRequest("HouseRoof", 0.2, function(player, color)
+	Net:OnRequest("HouseRoof", 0.5, function(player, color)
 		return reply(player, self:SetRoof(player, color))
 	end)
 	Net:OnRequest("HouseUpgrade", 0.5, function(player)

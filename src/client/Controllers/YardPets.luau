@@ -24,7 +24,9 @@ local YardPets = {}
 local player = Players.LocalPlayer
 local T = Lib.T
 
-local VIEW_DISTANCE = 190
+local VIEW_DISTANCE = 150
+local MAX_YARDS = 3 -- only the nearest houses get wandering pets (phones stay smooth)
+local STEP = 1 / 20 -- pets move 20 times a second
 local SPEED = 4
 local folder = Instance.new("Folder")
 folder.Name = "YardPets"
@@ -71,7 +73,9 @@ local function build(plot: Model, key: string)
 				-- how far the pivot sits above the model's feet
 				local lift = model:GetPivot().Position.Y - (box.Position.Y - size.Y / 2)
 				for _, d in model:GetDescendants() do
-					if d:IsA("BasePart") then
+					if d:IsA("Light") or d:IsA("ParticleEmitter") or d:IsA("Sparkles") or d:IsA("Fire") then
+						d:Destroy() -- (cheap yard copies: no lights / particles)
+					elseif d:IsA("BasePart") then
 						d.CanCollide = false
 						d.CanQuery = false
 						d.CanTouch = false
@@ -96,11 +100,28 @@ end
 local function refreshYards()
 	local camera = workspace.CurrentCamera
 	local eye = camera and camera.CFrame.Position or Vector3.zero
+	-- the nearest few houses within view distance
+	local candidates = {}
 	for _, plot in bases() do
 		local frame = plotFrame(plot)
+		if frame then
+			local distance = (frame.Position - eye).Magnitude
+			if distance < VIEW_DISTANCE then
+				table.insert(candidates, { Plot = plot, Distance = distance })
+			end
+		end
+	end
+	table.sort(candidates, function(a, b)
+		return a.Distance < b.Distance
+	end)
+	local chosen = {}
+	for i = 1, math.min(MAX_YARDS, #candidates) do
+		chosen[candidates[i].Plot] = true
+	end
+	for _, plot in bases() do
 		local ownerId = plot:GetAttribute("OwnerId")
 		local key = plot:GetAttribute("Yard")
-		local near = frame ~= nil and (frame.Position - eye).Magnitude < VIEW_DISTANCE
+		local near = chosen[plot] == true
 		if near and type(ownerId) == "number" and ownerId ~= 0 and type(key) == "string" then
 			local yard = yards[plot]
 			if not yard or yard.Key ~= key then
@@ -171,7 +192,14 @@ task.spawn(function()
 	end
 end)
 
-RunService.Heartbeat:Connect(function(dt)
+local accumulator = 0
+RunService.Heartbeat:Connect(function(frameDt)
+	accumulator += frameDt
+	if accumulator < STEP then
+		return
+	end
+	local dt = math.min(accumulator, 0.2)
+	accumulator = 0
 	local t = os.clock()
 	for plot, yard in yards do
 		local frame = plotFrame(plot)
