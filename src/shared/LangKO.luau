@@ -1087,4 +1087,5 @@ return {
 	["💥 You bonked %s! It dropped the egg - grab it! +💰%s"] = "💥 %s을(를) 때렸어요! 별알을 떨어뜨렸어요 - 주워요! +💰%s",
 	["🤖 Rival robots are here! Beat them to the meteor - and don't let them fly off with your eggs!"] = "🤖 라이벌 로봇 등장! 운석은 먼저 부수고, 별알을 뺏기지 마세요!",
 	["⭐ Your %d strongest pets follow you and help you mine & smash meteors (+%s%% power)"] = "⭐ 가장 강한 펫 %d마리가 따라다니며 채굴과 운석 부수기를 도와요 (힘 +%s%%)",
+	["💥 You bonked %s! It dropped the egg - grab it!"] = "💥 %s을(를) 때렸어요! 별알을 떨어뜨렸어요 - 주워요!",
 }

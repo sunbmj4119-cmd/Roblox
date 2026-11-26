@@ -417,6 +417,8 @@ function Shards:SpawnGround(item, position: Vector3, meta, opts)
 		PriorityUntil = opts.PriorityUntil or 0,
 		BlockUser = opts.BlockUser,
 		BlockUntil = opts.BlockUntil or 0,
+		NoRival = opts.NoRival, -- (tutorial eggs: robots never take them)
+		RivalBlockUntil = os.clock() + (opts.RivalBlockSeconds or 0),
 	}
 	ground[model] = record
 	if opts.Guardian then
@@ -470,6 +472,8 @@ function Shards:RivalTargets(rivalId: number, minAge: number)
 			record.Item.Kind == "Egg"
 			and not record.Meta
 			and not record.Guardian
+			and not record.NoRival
+			and os.clock() >= (record.RivalBlockUntil or 0)
 			and not reservedForOther
 			and not blocked
 			and os.clock() - (record.SpawnedAt or 0) >= minAge
@@ -714,6 +718,7 @@ function Shards:TutorialStar(player: Player, position: Vector3?)
 			PriorityUser = player.UserId,
 			PriorityUntil = now() + 600,
 			Lifetime = 900,
+			NoRival = true,
 		})
 	end
 	if position then
@@ -739,7 +744,13 @@ end
 function Shards:SpillMeteor(position: Vector3, ranking, info)
 	info = info or {}
 	local spill = Config.Meteor.Spill
-	local count = math.min(spill.Base + spill.PerParticipant * #ranking, spill.Max) + (info.Extra or 0)
+	local real = 0 -- (🤖 robots don't add eggs)
+	for _, entry in ranking do
+		if not entry.Player.IsRival then
+			real += 1
+		end
+	end
+	local count = math.min(spill.Base + spill.PerParticipant * real, spill.Max) + (info.Extra or 0)
 	count = math.max(count, 1)
 	local egg = info.Egg or "Cosmic"
 	local luck = info.Luck or spill.Luck

@@ -10,8 +10,12 @@
 	    try to fly away with them (they beam up after a few seconds),
 	  * bonk a robot (swing at it) to stun it: if it carries an egg, the egg
 	    drops and you get a few coins.
-	They never take eggs reserved for someone (tutorial / top 3) or guarded
-	ones, never enter the base district, and leave once the server fills up.
+	They never take eggs reserved for someone (tutorial / top 3), guarded
+	ones or eggs in the base district, never flee out of the area they grabbed
+	the egg in (no escaping through walls / into locked zones), and leave
+	once the server fills up.
+	(Only the root part is anchored and moved - the rest is welded to it, so
+	one CFrame per robot replicates, ~20 times a second.)
 ]]
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -40,6 +44,24 @@ local function flat(v: Vector3): Vector3
 	return Vector3.new(v.X, 0, v.Z)
 end
 
+-- the walkable area around a position: the hub or one mine zone (x/z limits)
+local function areaBounds(position: Vector3)
+	local zone = Util.ZoneAt(Config, Vector3.new(position.X, 3, position.Z))
+	local layout = Config.World.Layout
+	local margin = 6
+	if zone and zone > 0 and World.Zones[zone] then
+		local info = World.Zones[zone]
+		local half = layout.ZoneWidth / 2 - margin
+		return { MinX = -half, MaxX = half, MinZ = info.ZStart + margin, MaxZ = info.ZEnd - margin }
+	end
+	local half = layout.HubHalf - margin
+	return { MinX = -half, MaxX = half, MinZ = -half, MaxZ = half }
+end
+
+local function clampTo(bounds, position: Vector3): Vector3
+	return Vector3.new(math.clamp(position.X, bounds.MinX, bounds.MaxX), position.Y, math.clamp(position.Z, bounds.MinZ, bounds.MaxZ))
+end
+
 ---------------------------------------------------------------------------
 -- the robot
 ---------------------------------------------------------------------------
@@ -52,6 +74,8 @@ local function buildRobot(name: string, color: Color3): (Model, BasePart, BasePa
 	root.Transparency = 1
 	root.Anchored = true
 	root.CanCollide = false
+	root.CanQuery = false
+	root.CanTouch = false
 	root.Parent = model
 	local function piece(partName: string, size: Vector3, offset: CFrame, partColor: Color3, material: Enum.Material, shape)
 		local p = Instance.new("Part")
@@ -60,14 +84,21 @@ local function buildRobot(name: string, color: Color3): (Model, BasePart, BasePa
 		p.CFrame = root.CFrame * offset
 		p.Color = partColor
 		p.Material = material
-		p.Anchored = true -- moved by the server (no physics)
+		p.Anchored = false -- welded to the anchored root (one CFrame replicates)
+		p.Massless = true
 		p.CanCollide = false
+		p.CanQuery = false -- (only a robot carrying an egg can be tapped)
+		p.CanTouch = false
 		p.CastShadow = false
 		p.TopSurface = Enum.SurfaceType.Smooth
 		p.BottomSurface = Enum.SurfaceType.Smooth
 		if shape then
 			p.Shape = shape
 		end
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = root
+		weld.Part1 = p
+		weld.Parent = p
 		p.Parent = model
 		return p
 	end
@@ -153,9 +184,10 @@ local function spawnRival(index: number)
 		CarryUntil = 0,
 		TargetEgg = nil,
 		-- identity in the meteor ranking (looks enough like a player there)
-		Entity = { DisplayName = "🤖 " .. name, Name = name, UserId = -nextId, Parent = workspace, IsRival = true },
+		-- (ids far below Studio's test players -1, -2, ...)
+		Entity = { DisplayName = "🤖 " .. name, Name = name, UserId = -1000000 - nextId, Parent = workspace, IsRival = true },
 	}
-	model:PivotTo(CFrame.new(record.Position))
+	root.CFrame = CFrame.new(record.Position)
 	model.Parent = World:Folder("Shards")
 	rivals[model] = record
 	return record
@@ -165,7 +197,8 @@ local function despawn(record)
 	rivals[record.Model] = nil
 	if record.Carry then
 		-- (never take an egg with you when leaving: drop it)
-		Services.ShardService:SpawnGround(record.Carry, flat(record.Position), nil, { Beacon = true })
+		local spot = clampTo(areaBounds(record.GrabSpot or record.Position), flat(record.Position))
+		Services.ShardService:SpawnGround(record.Carry, spot, nil, { Beacon = true, RivalBlockSeconds = 20 })
 		record.Carry = nil
 	end
 	Services.MeteorService:Forget(record.Entity)
@@ -194,6 +227,12 @@ local function setCarry(record, item)
 		record.Egg.Transparency = 1
 		record.Model:SetAttribute("Carrying", nil)
 		World.SetText(record.Tag, "🤖 %s", record.Name)
+	end
+	-- taps go through robots unless they carry an egg (then: bonk it!)
+	for _, part in record.Model:GetDescendants() do
+		if part:IsA("BasePart") and part ~= record.Root then
+			part.CanQuery = item ~= nil and part.Transparency < 1
+		end
 	end
 end
 
@@ -265,8 +304,10 @@ local function think(record)
 				away = diff.Unit
 			end
 		end
-		local destination = flat(record.Position) + away * 20
-		-- never into the homes: turn back toward where it grabbed the egg
+		-- stay in the area where it grabbed the egg (slides along walls,
+		-- never through gates into locked zones / out over the void)
+		local bounds = areaBounds(record.GrabSpot or record.Position)
+		local destination = clampTo(bounds, flat(record.Position) + away * 20)
 		if Util.InBases(Config, destination + Vector3.new(0, 3, 0)) then
 			destination = flat(record.GrabSpot or record.Dock)
 		end
@@ -340,23 +381,30 @@ local function move(record, dt: number)
 	local target = Vector3.new(record.Destination.X, SETTINGS.HoverY, record.Destination.Z)
 	local diff = flat(target - record.Position)
 	local distance = diff.Magnitude
-	if distance > 0.3 and record.StunnedUntil <= now() then
+	local stunned = record.StunnedUntil > now()
+	local moved = false
+	if distance > 0.3 and not stunned then
 		local step = math.min(distance, record.Speed * dt)
 		record.Facing = diff.Unit
 		record.Position += record.Facing * step
+		moved = true
 	end
-	local clock = os.clock()
-	local bob = math.sin(clock * 4 + record.Index) * 0.3
+	local dip = 0
 	if record.Bob and record.Bob > 0 then
 		record.Bob -= dt
-		bob -= 0.4 -- a little "smash" dip
+		dip = -0.4 -- a little "smash" dip
+		moved = true
 	end
-	local at = Vector3.new(record.Position.X, SETTINGS.HoverY + bob, record.Position.Z)
+	if not moved and not stunned and not record.Dirty then
+		return -- hovering still: nothing to send
+	end
+	record.Dirty = stunned or dip ~= 0 -- (one more update after a wobble / dip)
+	local at = Vector3.new(record.Position.X, SETTINGS.HoverY + dip, record.Position.Z)
 	local cf = CFrame.lookAt(at, at + record.Facing)
-	if record.StunnedUntil > now() then
-		cf *= CFrame.Angles(0, 0, math.sin(clock * 20) * 0.25) -- dizzy
+	if stunned then
+		cf *= CFrame.Angles(0, 0, math.sin(os.clock() * 20) * 0.25) -- dizzy
 	end
-	record.Model:PivotTo(cf)
+	record.Root.CFrame = cf
 end
 
 ---------------------------------------------------------------------------
@@ -398,7 +446,8 @@ function Rival:Bonk(player: Player, model: Model): boolean
 	record.StunnedUntil = t + SETTINGS.StunSeconds
 	local push = flat(record.Position - root.Position)
 	push = if push.Magnitude > 0.1 then push.Unit else Vector3.zAxis
-	record.Position += push * 5
+	local pushed = clampTo(areaBounds(record.GrabSpot or record.Position), record.Position + push * 5)
+	record.Position = Vector3.new(pushed.X, record.Position.Y, pushed.Z)
 	Net:Send(player, "BonkHit", record.Position)
 	local item = record.Carry
 	if not item then
@@ -406,21 +455,27 @@ function Rival:Bonk(player: Player, model: Model): boolean
 		return true
 	end
 	setCarry(record, nil)
+	-- the egg drops: the bonker gets the first grab, robots keep off it for a while
 	Services.ShardService:SpawnGround(item, flat(record.Position), nil, {
 		Beacon = true,
-		BlockUser = record.Entity.UserId,
-		BlockUntil = t + SETTINGS.StunSeconds + 4,
+		PriorityUser = player.UserId,
+		PriorityUntil = t + 4,
+		RivalBlockSeconds = SETTINGS.DropBlockSeconds,
 	})
+	-- reward only the first time an egg is knocked off a robot (no farming)
 	local data = Data:Get(player)
-	local coins = 0
-	if data then
-		coins = math.max(SETTINGS.BonkMinCoins, math.floor(Services.BaseService:IncomeRate(player, data) * SETTINGS.BonkIncomeSeconds))
-		data.Coins += coins
-		data.Stats.LifetimeCoins += coins
-		data.Stats.ThievesCaught = (data.Stats.ThievesCaught or 0) + 1
-		Net:Send(player, "Sold", coins)
-		Data:MarkDirty(player)
+	if not data or item.RivalBonked then
+		Net:Notify(player, "💥 You bonked %s! It dropped the egg - grab it!", Color3.fromRGB(150, 235, 255), record.Name)
+		return true
 	end
+	item.RivalBonked = true
+	local coins = math.max(SETTINGS.BonkMinCoins, math.floor(Services.BaseService:IncomeRate(player, data) * SETTINGS.BonkIncomeSeconds))
+	data.Coins += coins
+	data.Stats.LifetimeCoins += coins
+	data.Stats.ThievesCaught = (data.Stats.ThievesCaught or 0) + 1
+	Services.Analytics:Economy(player, "Source", "Coins", coins, data.Coins, "Gameplay", "RivalBonk")
+	Net:Send(player, "Sold", coins)
+	Data:MarkDirty(player)
 	Net:Notify(
 		player,
 		"💥 You bonked %s! It dropped the egg - grab it! +💰%s",
@@ -460,7 +515,7 @@ end
 function Rival:PlaceForTest(record, position: Vector3)
 	assert(not RunService:IsRunning(), "test hook used on a live server")
 	record.Position = Vector3.new(position.X, SETTINGS.HoverY, position.Z)
-	record.Model:PivotTo(CFrame.new(record.Position))
+	record.Root.CFrame = CFrame.new(record.Position)
 end
 
 ---------------------------------------------------------------------------
@@ -511,13 +566,20 @@ function Rival:Start()
 			end
 		end
 	end)
-	-- smooth movement every frame (only while robots exist)
+	-- movement ~20 times a second (only while robots exist, only when they move)
+	local acc = 0
 	RunService.Heartbeat:Connect(function(dt)
 		if next(rivals) == nil then
 			return
 		end
+		acc += dt
+		if acc < 0.05 then
+			return
+		end
+		local step = acc
+		acc = 0
 		for _, record in rivals do
-			local ok, err = pcall(move, record, dt)
+			local ok, err = pcall(move, record, step)
 			if not ok then
 				warn("[Rival] move: " .. tostring(err))
 			end

@@ -617,6 +617,17 @@ end
 -- 🐾 pet helpers: following pets hit ores / the meteor next to their owner
 ---------------------------------------------------------------------------
 local PET_HELP = Config.PetHelp
+-- (only clients close enough to see the pets get the hop animation)
+local function sendPetHelp(player: Player, at: Vector3, targets)
+	for _, other in Players:GetPlayers() do
+		local character = other.Character
+		local otherRoot = character and character:FindFirstChild("HumanoidRootPart")
+		if otherRoot and otherRoot:IsA("BasePart") and (otherRoot.Position - at).Magnitude <= 160 then
+			Net:Send(other, "PetHelp", player.UserId, targets)
+		end
+	end
+end
+
 local function petHelpFor(player: Player)
 	local data = Data:Get(player)
 	local last = lastSwing[player]
@@ -638,7 +649,7 @@ local function petHelpFor(player: Player)
 		if meteor:PetHit(player, pets, damage) then
 			local at = meteor:Position()
 			if at then
-				Net:Broadcast("PetHelp", player.UserId, { at })
+				sendPetHelp(player, root.Position, { at })
 			end
 		end
 		return
@@ -670,7 +681,7 @@ local function petHelpFor(player: Player)
 		end
 	end
 	if #targets > 0 then
-		Net:Broadcast("PetHelp", player.UserId, targets)
+		sendPetHelp(player, root.Position, targets)
 		Data:MarkDirty(player)
 	end
 end

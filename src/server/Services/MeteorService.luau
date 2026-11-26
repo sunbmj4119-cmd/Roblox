@@ -419,9 +419,11 @@ local function finish(destroyed: boolean)
 	end
 	state = "Ending"
 	local list = ranking()
-	local total = 0
+	local total = 0 -- (real players only: 🤖 robots don't shrink anyone's share)
 	for _, entry in list do
-		total += entry.Score
+		if not entry.Player.IsRival then
+			total += entry.Score
+		end
 	end
 	local mult = if destroyed then 1 else settings.FailedMultiplier
 	local progression = Services.ProgressionService

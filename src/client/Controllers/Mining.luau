@@ -304,7 +304,8 @@ local function classify(hit: Instance?)
 		end
 		local map = workspace:FindFirstChild("Map")
 		local shardFolder = map and map:FindFirstChild("Shards")
-		if shardFolder and model.Parent == shardFolder and (model.Name == "StarGuardian" or model.Name == "RivalBot") then
+		local robotWithEgg = model.Name == "RivalBot" and model:GetAttribute("Carrying") == true
+		if shardFolder and model.Parent == shardFolder and (model.Name == "StarGuardian" or robotWithEgg) then
 			local guardianRoot = model:FindFirstChild("HumanoidRootPart")
 			if guardianRoot and guardianRoot:IsA("BasePart") then
 				return { Kind = "Player", Part = guardianRoot } -- walk up and bonk it

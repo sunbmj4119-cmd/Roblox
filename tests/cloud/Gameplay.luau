@@ -754,6 +754,20 @@ if #bots == 2 then
 		check(dataA.Coins > coinsBeforeBonk, "no coins for bonking a robot")
 		check(#workspace.Map.Shards:GetChildren() >= groundBefore, "the robot's egg did not drop")
 		check(Rival:Bonk(A, carrier.Model) == false, "a dizzy robot could be bonked again")
+		-- the dropped egg is off-limits for robots for a while (no bonk farming)
+		local reGrab = false
+		for _, entry in S.ShardService:RivalTargets(carrier.Entity.UserId, 0) do
+			if
+				(Vector3.new(entry.Position.X, 0, entry.Position.Z) - Vector3.new(carrier.Position.X, 0, carrier.Position.Z)).Magnitude < 2
+			then
+				reGrab = true
+			end
+		end
+		check(not reGrab, "robots could grab the bonked egg right back (coin farming)")
+		check(
+			carrier.Model.PrimaryPart.Anchored and not carrier.Model:FindFirstChild("Body").Anchored,
+			"robot parts should be welded to one anchored root"
+		)
 	end
 	-- a robot that keeps its egg too long beams up with it
 	local other = nil

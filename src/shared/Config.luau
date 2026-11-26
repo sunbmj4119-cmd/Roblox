@@ -720,6 +720,7 @@ Config.Rivals = {
 	SearchRange = 120,
 	EscapeSeconds = 14, -- then it beams up with the egg
 	StunSeconds = 3,
+	DropBlockSeconds = 20, -- robots keep off an egg knocked out of their hands
 	BonkMinCoins = 50,
 	BonkIncomeSeconds = 8, -- reward: 8s of your home income
 }
