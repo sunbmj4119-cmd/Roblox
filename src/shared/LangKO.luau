@@ -1079,4 +1079,12 @@ return {
 	["🎯 REVENGE TARGET"] = "🎯 복수 대상",
 	["🎯 Someone you robbed can take revenge on your home!"] = "🎯 내가 턴 사람이 우리 집에 복수할 수 있어요!",
 	["🛡️ That's a new player's first egg - let them bring it home!"] = "🛡️ 새 친구의 첫 별알이에요 - 집에 가져가게 해 주세요!",
+	-- 🤖 rivals + 🐾 pet help
+	["🤖 %s"] = "🤖 %s",
+	["🤖 %s 🥚!"] = "🤖 %s 🥚!",
+	["🤖 %s flew away with a %s! Bonk robots before they escape!"] = "🤖 %s이(가) %s을(를) 들고 날아갔어요! 도망가기 전에 로봇을 때려요!",
+	["💥 %s is dizzy!"] = "💥 %s 어질어질!",
+	["💥 You bonked %s! It dropped the egg - grab it! +💰%s"] = "💥 %s을(를) 때렸어요! 별알을 떨어뜨렸어요 - 주워요! +💰%s",
+	["🤖 Rival robots are here! Beat them to the meteor - and don't let them fly off with your eggs!"] = "🤖 라이벌 로봇 등장! 운석은 먼저 부수고, 별알을 뺏기지 마세요!",
+	["⭐ Your %d strongest pets follow you and help you mine & smash meteors (+%s%% power)"] = "⭐ 가장 강한 펫 %d마리가 따라다니며 채굴과 운석 부수기를 도와요 (힘 +%s%%)",
 }

@@ -80,7 +80,7 @@ local GOLD = Color3.fromRGB(255, 200, 50)
 local BUILDERS = {}
 
 BUILDERS.Pedestal = function(m)
-	cylinder(m, "Base", 2.4, 3.8, 1.2, Color3.fromRGB(235, 235, 245), Enum.Material.Marble)
+	cylinder(m, "Base", 2.4, 3.8, 1.2, Color3.fromRGB(196, 202, 218), Enum.Material.Marble)
 	cylinder(m, "Ring", 0.3, 4.1, 2.45, Color3.fromRGB(120, 220, 255), Enum.Material.Neon)
 	local top = part(m, "Top", Vector3.one * 0.2, CFrame.new(0, 2.6, 0), Color3.new(), Enum.Material.SmoothPlastic, { Transparency = 1 })
 	top:SetAttribute("IsTop", true)

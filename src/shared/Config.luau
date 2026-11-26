@@ -687,6 +687,43 @@ Config.Meteor = {
 	FailedMultiplier = 0.5, -- rewards when the meteor wasn't destroyed in time
 }
 
+-- 🐾 your following pets help: while you're mining / smashing (you swung in
+-- the last few seconds) each one hops over and hits an ore or the meteor
+Config.PetHelp = {
+	Interval = 1.2, -- seconds between pet hits
+	ActiveSeconds = 8, -- pets only help while you play (no AFK farming)
+	Range = 16, -- ores this close to you
+	OreShare = 0.25, -- each pet hit = 25% of your hit
+	MeteorShare = 0.25, -- each pet adds 25% of a hit's meteor score
+}
+
+-- 🤖 rival robots: with only 1-2 players in a server, two hover robots join
+-- the meteor race (they smash too, steal unclaimed eggs and try to fly away;
+-- bonk them to make them drop the egg)
+Config.Rivals = {
+	MaxRealPlayers = 2,
+	Count = 2,
+	Names = { "Rocky", "Zip", "Bolt", "Nova", "Pip", "Dex", "Sparky", "Comet" },
+	Colors = {
+		Color3.fromRGB(255, 120, 90),
+		Color3.fromRGB(110, 170, 255),
+		Color3.fromRGB(170, 120, 255),
+		Color3.fromRGB(255, 190, 70),
+	},
+	Dock = Vector3.new(-40, 0, 52), -- where they hover in the hub between meteors
+	HoverY = 3,
+	Speed = 18, -- (players walk 22: you can beat them to the meteor)
+	CarrySpeed = 11, -- slow while carrying: you can catch them
+	Pace = 0.6, -- they smash at 60% of the average player's pace
+	GrabDelay = 5, -- an egg must lie there this long before a robot takes it
+	GrabRange = 3,
+	SearchRange = 120,
+	EscapeSeconds = 14, -- then it beams up with the egg
+	StunSeconds = 3,
+	BonkMinCoins = 50,
+	BonkIncomeSeconds = 8, -- reward: 8s of your home income
+}
+
 -- bonking: only players carrying a star shard can be bonked (they drop it)
 Config.PvP = {
 	BonkRange = 10,

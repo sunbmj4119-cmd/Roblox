@@ -1050,22 +1050,25 @@ end
 
 local function setupLighting()
 	Lighting.ClockTime = 14.5
-	Lighting.Brightness = 2.2
+	-- (tuned for phones: bright and colourful but nothing glares - white
+	-- pets / marble / gold must stay readable in the sun)
+	Lighting.Brightness = 1.9
+	Lighting.ExposureCompensation = -0.15
 	Lighting.GlobalShadows = true
 	Lighting.OutdoorAmbient = Color3.fromRGB(140, 140, 150)
 	Lighting.Ambient = Color3.fromRGB(70, 70, 80)
 
 	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere")
 	atmosphere.Density = 0.28
-	atmosphere.Haze = 1
+	atmosphere.Haze = 0.5
 	atmosphere.Color = Color3.fromRGB(200, 215, 255)
 	atmosphere.Decay = Color3.fromRGB(120, 110, 160)
 	atmosphere.Parent = Lighting
 
 	local bloom = Lighting:FindFirstChildOfClass("BloomEffect") or Instance.new("BloomEffect")
-	bloom.Intensity = 0.6
-	bloom.Size = 30
-	bloom.Threshold = 1.2
+	bloom.Intensity = 0.3
+	bloom.Size = 18
+	bloom.Threshold = 2 -- only real light sources glow, not white surfaces
 	bloom.Parent = Lighting
 
 	local cc = Lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect")
@@ -1074,13 +1077,13 @@ local function setupLighting()
 	cc.Parent = Lighting
 
 	local rays = Lighting:FindFirstChildOfClass("SunRaysEffect") or Instance.new("SunRaysEffect")
-	rays.Intensity = 0.06
+	rays.Intensity = 0.03
 	rays.Spread = 0.6
 	rays.Parent = Lighting
 
 	-- shinier materials (metal ores, neon, glass) without extra parts
-	Lighting.EnvironmentDiffuseScale = 0.6
-	Lighting.EnvironmentSpecularScale = 1
+	Lighting.EnvironmentDiffuseScale = 0.5
+	Lighting.EnvironmentSpecularScale = 0.45 -- (foil / gold reflections were blinding)
 end
 
 function World:Init(services)

@@ -128,6 +128,31 @@ Net.On("Party", function()
 	Lib.PlaySound("Cheer")
 end)
 
+-- 🤖 a rival robot beams up with an egg
+Net.On("RivalEscape", function(position)
+	if typeof(position) ~= "Vector3" then
+		return
+	end
+	local beam = Instance.new("Part")
+	beam.Anchored = true
+	beam.CanCollide = false
+	beam.CanQuery = false
+	beam.CanTouch = false
+	beam.Shape = Enum.PartType.Cylinder
+	beam.Material = Enum.Material.Neon
+	beam.Color = Color3.fromRGB(120, 230, 255)
+	beam.Transparency = 0.4
+	beam.Size = Vector3.new(160, 4, 4)
+	beam.CFrame = CFrame.new(position + Vector3.new(0, 80, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	beam.Parent = workspace
+	TweenService:Create(beam, TweenInfo.new(1.2), { Transparency = 1, Size = Vector3.new(160, 0.5, 0.5) }):Play()
+	Debris:AddItem(beam, 1.3)
+	local volume = nearVolume(position)
+	if volume > 0 then
+		Lib.PlaySound("Whoosh", volume)
+	end
+end)
+
 -- 🌙 Thief Night is coming (20s): a short alarm so everyone runs home
 Net.On("RaidWarning", function()
 	for i = 0, 1 do

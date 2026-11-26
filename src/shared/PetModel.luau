@@ -359,7 +359,7 @@ function PetModel.Build(petName: string, variant: string?): Model
 		if variant == "Golden" then
 			tint, material, glow = Color3.fromRGB(255, 205, 50), Enum.Material.Foil, Color3.fromRGB(255, 230, 120)
 		elseif variant == "Rainbow" then
-			tint, material, glow = Color3.fromRGB(255, 90, 210), Enum.Material.Neon, Color3.new(1, 1, 1)
+			tint, material, glow = Color3.fromRGB(255, 90, 210), Enum.Material.SmoothPlastic, Color3.fromRGB(255, 200, 245)
 		elseif variant == "Galaxy" then
 			tint, material, glow = Color3.fromRGB(70, 30, 140), Enum.Material.Glass, Color3.fromRGB(190, 140, 255)
 		elseif variant == "Frozen" then
@@ -376,8 +376,8 @@ function PetModel.Build(petName: string, variant: string?): Model
 			end
 			local light = Instance.new("PointLight")
 			light.Color = glow
-			light.Range = 10
-			light.Brightness = 2
+			light.Range = 7
+			light.Brightness = 0.7 -- (soft: a brighter light washed out the pedestals)
 			light.Parent = body
 			sparkles(body, glow, if variant == "Galaxy" then 14 else 8, if variant == "Galaxy" then 0.45 else 0.35)
 			if variant == "Molten" then

@@ -430,7 +430,10 @@ local function finish(destroyed: boolean)
 
 	for place, entry in list do
 		local player = entry.Player
-		local data = Data:Get(player)
+		local data = if player.IsRival then nil else Data:Get(player)
+		if player.IsRival and settings.PlaceRewards[place] then
+			table.insert(topNames, player.DisplayName) -- 🤖 robots can win places too
+		end
 		if data then
 			local share = if total > 0 then entry.Score / total else 0
 			local stardust = settings.ParticipationStardust + math.floor(share * settings.ShareStardust)
@@ -582,6 +585,35 @@ function Meteor:Hit(player: Player, damage: number, cooldown: number?)
 	if hp <= 0 then
 		safeFinish(true)
 	end
+end
+
+-- a rival robot left: drop its score
+function Meteor:Forget(entity)
+	scores[entity] = nil
+end
+
+function Meteor:ScoreOf(who): number
+	return scores[who] or 0
+end
+
+-- 🐾 following pets add score for a player who is already smashing
+function Meteor:PetHit(player: Player, pets: number, damage: number): boolean
+	if state ~= "Active" or not scores[player] or pets <= 0 then
+		return false
+	end
+	local score = pets * Config.PetHelp.MeteorShare * (1 + math.log10(math.max(1, damage)))
+	scores[player] += score
+	hp = math.max(0, hp - score)
+	workspace:SetAttribute("MeteorHP", hp)
+	updateBar()
+	if hp <= 0 then
+		safeFinish(true)
+	end
+	return true
+end
+
+function Meteor:Position(): Vector3?
+	return if meteorPart then meteorPart.Position else nil
 end
 
 function Meteor:Summon(player: Player)

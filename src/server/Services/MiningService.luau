@@ -169,15 +169,15 @@ local function spawnBlock(slot, forcedLucky)
 		end
 		local light = Instance.new("PointLight")
 		light.Color = part.Color
-		light.Range = 16
-		light.Brightness = 2
+		light.Range = 10
+		light.Brightness = 1
 		light.Parent = part
 		addCrystals(part, part.Color, part.Material)
 	elseif ore.Glow then
 		local light = Instance.new("PointLight")
 		light.Color = ore.Color
-		light.Range = 10
-		light.Brightness = 1.4
+		light.Range = 8
+		light.Brightness = 0.8
 		light.Parent = part
 		addCrystals(part, ore.Color, Enum.Material.Neon)
 	end
@@ -564,6 +564,10 @@ local function onSwing(player: Player, hint)
 			return
 		end
 		local shards = Services.ShardService
+		if model and Services.RivalService:IsRival(model) then
+			Services.RivalService:Bonk(player, model)
+			return
+		end
 		if model and shards:IsGuardian(model) then
 			if (hintPart.Position - root.Position).Magnitude <= Config.PvP.BonkRange + 2 then
 				shards:HitGuardian(player, model)
@@ -591,6 +595,11 @@ local function onSwing(player: Player, hint)
 		tryBonk(player, carrier)
 		return
 	end
+	local robot = Services.RivalService:NearestCarrying(root.Position, Config.PvP.BonkRange + 2)
+	if robot then
+		Services.RivalService:Bonk(player, robot)
+		return
+	end
 	local guardian = Services.ShardService:NearestGuardian(root.Position, Config.PvP.BonkRange)
 	if guardian then
 		Services.ShardService:HitGuardian(player, guardian)
@@ -602,6 +611,75 @@ local function onSwing(player: Player, hint)
 	if target then
 		mineBlock(player, data, target)
 	end
+end
+
+---------------------------------------------------------------------------
+-- 🐾 pet helpers: following pets hit ores / the meteor next to their owner
+---------------------------------------------------------------------------
+local PET_HELP = Config.PetHelp
+local function petHelpFor(player: Player)
+	local data = Data:Get(player)
+	local last = lastSwing[player]
+	local pets = data and #data.Equipped or 0
+	if pets <= 0 or not last or os.clock() - last > PET_HELP.ActiveSeconds then
+		return
+	end
+	if Services.ShardService:IsCarrying(player) then
+		return
+	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return
+	end
+	local damage = Services.StatsService:Damage(player, data)
+	local meteor = Services.MeteorService
+	if meteor:IsActive() and meteor:InRange(root.Position) then
+		if meteor:PetHit(player, pets, damage) then
+			local at = meteor:Position()
+			if at then
+				Net:Broadcast("PetHelp", player.UserId, { at })
+			end
+		end
+		return
+	end
+	local zone = World:ZoneAt(root.Position)
+	if not zone or zone == 0 or zone > data.ZoneLevel then
+		return
+	end
+	-- the closest ores around you, one per pet
+	local near = {}
+	for part in zoneBlocks[zone] do
+		local distance = (part.Position - root.Position).Magnitude
+		if distance <= PET_HELP.Range then
+			table.insert(near, { Part = part, Distance = distance })
+		end
+	end
+	if #near == 0 then
+		return
+	end
+	table.sort(near, function(a, b)
+		return a.Distance < b.Distance
+	end)
+	local targets = {}
+	for i = 1, pets do
+		local entry = near[((i - 1) % #near) + 1]
+		if blockInfo[entry.Part] then
+			table.insert(targets, entry.Part.Position)
+			hitBlock(player, data, entry.Part, damage * PET_HELP.OreShare, false, true)
+		end
+	end
+	if #targets > 0 then
+		Net:Broadcast("PetHelp", player.UserId, targets)
+		Data:MarkDirty(player)
+	end
+end
+
+-- cloud tests: one pet-help tick for a player now
+function Mining:PetHelpForTest(player: Player, swungAgo: number?)
+	assert(not game:GetService("RunService"):IsRunning(), "test hook used on a live server")
+	lastSwing[player] = os.clock() - (swungAgo or 0)
+	petHelpFor(player)
 end
 
 function Mining:Init(services)
@@ -620,6 +698,18 @@ function Mining:Start()
 	end
 
 	Net:On("Swing", 0.08, onSwing)
+
+	task.spawn(function()
+		while true do
+			task.wait(PET_HELP.Interval)
+			for _, player in Players:GetPlayers() do
+				local ok, err = pcall(petHelpFor, player)
+				if not ok then
+					warn("[Mining] pet help failed: " .. tostring(err))
+				end
+			end
+		end
+	end)
 
 	-- fever expiry
 	task.spawn(function()

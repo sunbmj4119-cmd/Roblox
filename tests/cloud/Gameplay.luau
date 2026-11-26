@@ -42,6 +42,7 @@ local ORDER = {
 	"TradeService",
 	"MeteorService",
 	"LuckyService",
+	"RivalService",
 	"ProgressionService",
 	"LeaderboardService",
 	"DevService",
@@ -678,6 +679,105 @@ for _, err in Data:InjectForTest(F, oldTutorial) do
 end
 local dataF = Data:Get(F)
 check(dataF.Tutorial.Step == 1 and dataF.Tutorial.Version == Config.Tutorial.Version, "old tutorial save not restarted")
+
+-- 28) 🐾 following pets help mine ores next to you (only while you play)
+local oreNear = nil
+for _, ore in workspace.Map.Ores:GetChildren() do
+	if ore:GetAttribute("Zone") == 1 then
+		oreNear = ore
+		break
+	end
+end
+check(oreNear ~= nil and #dataA.Equipped >= 1, "pet help test setup")
+if oreNear then
+	if S.ShardService:IsCarrying(A) then
+		S.ShardService:Drop(A)
+	end
+	rootA.CFrame = CFrame.new(oreNear.Position + Vector3.new(0, 0, 5))
+	local hpBefore = oreNear:GetAttribute("HP")
+	S.MiningService:PetHelpForTest(A, 30) -- swung 30s ago: pets don't help AFK players
+	check(oreNear.Parent ~= nil and oreNear:GetAttribute("HP") == hpBefore, "pets helped an AFK player")
+	S.MiningService:PetHelpForTest(A, 0)
+	check(oreNear.Parent == nil or oreNear:GetAttribute("HP") < hpBefore, "following pets did not hit the ore next to Alice")
+end
+
+-- 29) 🤖 rival robots: join small servers, smash meteors, steal eggs, get bonked
+local Rival = S.RivalService
+Rival:ForceForTest(2)
+for _ = 1, 20 do
+	if #Rival:RecordsForTest() == 2 then
+		break
+	end
+	task.wait(0.25)
+end
+local bots = Rival:RecordsForTest()
+check(#bots == 2, "rival robots did not show up: " .. #bots)
+if #bots == 2 then
+	local rush = Meteor:LaunchForTest("Hub", true)
+	for _ = 1, 30 do
+		if Meteor:StateForTest() == "Active" then
+			break
+		end
+		task.wait(0.25)
+	end
+	for i, bot in bots do
+		Rival:PlaceForTest(bot, rush.Position + Vector3.new(rush.Size.Radius + 2, 0, (i - 1.5) * 4))
+	end
+	task.wait(2.5)
+	check(Meteor:ScoreOf(bots[1].Entity) > 0, "robots did not smash the meteor")
+	for _ = 1, 3000 do
+		if Meteor:StateForTest() ~= "Active" then
+			break
+		end
+		Meteor:Hit(A, 50, 0.4)
+	end
+	check(Meteor:StateForTest() == "Idle", "rush meteor not smashed")
+	local carrier = nil
+	for _ = 1, 40 do
+		for _, bot in bots do
+			if bot.Carry then
+				carrier = bot
+			end
+		end
+		if carrier then
+			break
+		end
+		task.wait(0.25)
+	end
+	check(carrier ~= nil, "no robot went for a star egg")
+	if carrier then
+		local groundBefore = #workspace.Map.Shards:GetChildren()
+		local coinsBeforeBonk = dataA.Coins
+		rootA.CFrame = CFrame.new(carrier.Position + Vector3.new(3, 0, 0))
+		check(Rival:Bonk(A, carrier.Model) == true, "bonking a robot failed")
+		check(carrier.Carry == nil, "the bonked robot kept the egg")
+		check(dataA.Coins > coinsBeforeBonk, "no coins for bonking a robot")
+		check(#workspace.Map.Shards:GetChildren() >= groundBefore, "the robot's egg did not drop")
+		check(Rival:Bonk(A, carrier.Model) == false, "a dizzy robot could be bonked again")
+	end
+	-- a robot that keeps its egg too long beams up with it
+	local other = nil
+	for _ = 1, 40 do
+		for _, bot in bots do
+			if bot.Carry and bot ~= carrier then
+				other = bot
+			end
+		end
+		if other then
+			break
+		end
+		task.wait(0.25)
+	end
+	if other then
+		other.CarryUntil = workspace:GetServerTimeNow() - 1
+		task.wait(0.6)
+		check(other.Carry == nil, "a robot did not fly away with its egg")
+	end
+	results.rivals = { Carrier = carrier ~= nil, Escaper = other ~= nil, Score = math.floor(Meteor:ScoreOf(bots[1].Entity)) }
+end
+Rival:ForceForTest(0)
+task.wait(1)
+check(#Rival:RecordsForTest() == 0, "robots did not leave")
 
 results.alicePets = #dataA.Pets
 results.bobPets = #dataB.Pets

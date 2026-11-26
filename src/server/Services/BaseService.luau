@@ -323,6 +323,7 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		CFrame = at(-14, 0.45, -PLOT_HALF + 5),
 		Color = Color3.fromRGB(70, 255, 130),
 		Material = Enum.Material.Neon,
+		Transparency = 0.35,
 		CanCollide = false,
 	}, model)
 	local bankLabel = billboard(collect, 6.5, 2.2, 3, Color3.fromRGB(140, 255, 170), 40)
@@ -332,6 +333,7 @@ local function buildPlot(index: number, center: Vector3, facing: Vector3): any
 		CFrame = at(14, 0.45, -PLOT_HALF + 5),
 		Color = Color3.fromRGB(255, 80, 90),
 		Material = Enum.Material.Neon,
+		Transparency = 0.35,
 		CanCollide = false,
 	}, model)
 	local lockLabel = billboard(lockPad, 6.5, 1.8, 2.8, Color3.fromRGB(255, 150, 150), 35)
@@ -445,7 +447,7 @@ local function applyStyle(plot, data)
 			Size = Vector3.new(sizeX + 0.3, 0.6, sizeZ + 0.3),
 			CFrame = at(x, WALL_HEIGHT + 0.3, z),
 			Color = style.Trim,
-			Material = Enum.Material.Neon,
+			Material = Enum.Material.SmoothPlastic,
 			CanCollide = false,
 		}, shell)
 		if style.Stripes then
@@ -481,7 +483,7 @@ local function applyStyle(plot, data)
 			Size = Vector3.new(3, 0.8, 3),
 			CFrame = at(corner[1] * PLOT_HALF, towerHeight + 0.4, corner[2] * PLOT_HALF),
 			Color = style.Trim,
-			Material = Enum.Material.Neon,
+			Material = Enum.Material.SmoothPlastic,
 			CanCollide = false,
 		}, shell)
 	end
@@ -500,7 +502,7 @@ local function applyStyle(plot, data)
 		Size = Vector3.new(GATE_HALF * 2 + 3.6, 1.2, 1.4),
 		CFrame = at(0, gateHeight - 0.6, -PLOT_HALF),
 		Color = style.Trim,
-		Material = Enum.Material.Neon,
+		Material = Enum.Material.SmoothPlastic,
 		CanCollide = false,
 	}, shell)
 
@@ -632,7 +634,7 @@ local function applyStyle(plot, data)
 			CFrame = at(strip[1], FLOOR_Y + 0.02, strip[2]),
 			Color = edge,
 			Material = Enum.Material.Neon,
-			Transparency = 0.35,
+			Transparency = 0.6,
 			CanCollide = false,
 			CanQuery = false,
 		}, shell)

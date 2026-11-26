@@ -110,7 +110,18 @@ function Pets.Build(content, ctx)
 		end,
 	})
 
-	local grid = Lib.Scroll({ Position = UDim2.fromOffset(0, 78), Size = UDim2.new(1, 0, 1, -78), Parent = content })
+	-- how following works (people asked: "who decides which pets follow me?")
+	local followInfo = Lib.Text({
+		Text = "",
+		Font = Lib.BodyFont,
+		TextColor3 = C.Sub,
+		Size = UDim2.new(1, 0, 0, 18),
+		Position = UDim2.fromOffset(0, 74),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		MaxTextSize = 14,
+		Parent = content,
+	})
+	local grid = Lib.Scroll({ Position = UDim2.fromOffset(0, 96), Size = UDim2.new(1, 0, 1, -96), Parent = content })
 	Lib.Grid(UDim2.fromOffset(122, 136), 8).Parent = grid
 	Lib.Padding(4).Parent = grid
 
@@ -311,6 +322,12 @@ function Pets.Build(content, ctx)
 			Config.MaxPets,
 			indexCount,
 			totalPets
+		)
+		local derivedNow = State.Derived or {}
+		followInfo.Text = T(
+			"⭐ Your %d strongest pets follow you and help you mine & smash meteors (+%s%% power)",
+			derivedNow.PetSlots or Config.BasePetSlots,
+			Util.Format(math.floor((derivedNow.PetPower or 0) * 100))
 		)
 		slotsButton.Visible = not State.HasPass("ExtraPets")
 		local parts = {}

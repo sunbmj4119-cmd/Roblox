@@ -304,7 +304,7 @@ local function classify(hit: Instance?)
 		end
 		local map = workspace:FindFirstChild("Map")
 		local shardFolder = map and map:FindFirstChild("Shards")
-		if shardFolder and model.Parent == shardFolder and model.Name == "StarGuardian" then
+		if shardFolder and model.Parent == shardFolder and (model.Name == "StarGuardian" or model.Name == "RivalBot") then
 			local guardianRoot = model:FindFirstChild("HumanoidRootPart")
 			if guardianRoot and guardianRoot:IsA("BasePart") then
 				return { Kind = "Player", Part = guardianRoot } -- walk up and bonk it
@@ -397,7 +397,8 @@ local function nearestGuardian(root: BasePart): BasePart?
 	end
 	local best, bestDistance = nil, Config.PvP.BonkRange + 6
 	for _, model in folder:GetChildren() do
-		if model.Name == "StarGuardian" then
+		-- guardians, and 🤖 robots running off with an egg
+		if model.Name == "StarGuardian" or (model.Name == "RivalBot" and model:GetAttribute("Carrying")) then
 			local guardianRoot = model:FindFirstChild("HumanoidRootPart")
 			if guardianRoot and guardianRoot:IsA("BasePart") then
 				local distance = (guardianRoot.Position - root.Position).Magnitude

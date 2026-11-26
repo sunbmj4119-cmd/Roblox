@@ -411,6 +411,8 @@ function Shards:SpawnGround(item, position: Vector3, meta, opts)
 	local record = {
 		Item = item,
 		Meta = meta,
+		Position = position,
+		SpawnedAt = os.clock(),
 		PriorityUser = opts.PriorityUser,
 		PriorityUntil = opts.PriorityUntil or 0,
 		BlockUser = opts.BlockUser,
@@ -441,6 +443,50 @@ function Shards:SpawnGround(item, position: Vector3, meta, opts)
 		end
 	end)
 	return model
+end
+
+-- 🤖 rival robots (RivalService) -------------------------------------------
+Shards.ItemColor = itemColor
+Shards.ItemName = itemName
+
+function Shards:IsOnGround(model: Model): boolean
+	return ground[model] ~= nil
+end
+
+function Shards:GroundPosition(model: Model): Vector3?
+	local record = ground[model]
+	return record and record.Position
+end
+
+-- star eggs a robot may go for: lying there for a few seconds, not guarded,
+-- not a stolen pet, not reserved for somebody else (tutorial / top 3)
+function Shards:RivalTargets(rivalId: number, minAge: number)
+	local list = {}
+	local t = now()
+	for model, record in ground do
+		local reservedForOther = record.PriorityUser ~= nil and record.PriorityUser ~= rivalId and t < record.PriorityUntil
+		local blocked = record.BlockUser == rivalId and t < record.BlockUntil
+		if
+			record.Item.Kind == "Egg"
+			and not record.Meta
+			and not record.Guardian
+			and not reservedForOther
+			and not blocked
+			and os.clock() - (record.SpawnedAt or 0) >= minAge
+		then
+			table.insert(list, { Model = model, Position = record.Position })
+		end
+	end
+	return list
+end
+
+function Shards:TakeForRival(model: Model)
+	local record = ground[model]
+	if not record or record.Guardian or record.Meta then
+		return nil
+	end
+	destroyGround(model)
+	return record.Item
 end
 
 tryPickup = function(model: Model, record, hit: BasePart)
@@ -730,7 +776,7 @@ function Shards:SpillMeteor(position: Vector3, ranking, info)
 			opts.PriorityUntil = now() + (if entry.Place == 1 then priority else priority - 1)
 		end
 		self:SpawnGround({ Kind = "Egg", Rarity = entry.Id, Egg = egg }, spot, nil, opts)
-		if entry.Reserved then
+		if entry.Reserved and typeof(entry.Reserved) == "Instance" then -- (robots get no messages)
 			local medal = ({ "🥇", "🥈", "🥉" })[entry.Place]
 			Net:Notify(entry.Reserved, "%s Your %s is waiting - grab it first!", Color3.fromRGB(255, 220, 90), medal, rarityName(entry.Id))
 		end
