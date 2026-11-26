@@ -75,6 +75,10 @@ end
 -- (random picks never choose NoRandom events: raids come every RaidEvery-th time)
 function Events:Trigger(id: string?)
 	local def = find(id)
+	-- an announced or running 🌙 raid is never replaced (party / DEV events wait)
+	if (raidAt > 0 or (current ~= nil and current.Raid)) and not (def and def.Raid) then
+		return
+	end
 	if not def then
 		local pool = {}
 		for _, candidate in settings.List do

@@ -3401,6 +3401,9 @@ return {
 	["Help smash %d meteors"] = "운석 %d개 부수기에 참여하기",
 	["Bring %d star eggs home"] = "별알 %d개를 집으로 가져오기",
 	["Meteor Rush"] = "운석 러시",
+	["🎯 REVENGE TARGET"] = "🎯 복수 대상",
+	["🎯 Someone you robbed can take revenge on your home!"] = "🎯 내가 턴 사람이 우리 집에 복수할 수 있어요!",
+	["🛡️ That's a new player's first egg - let them bring it home!"] = "🛡️ 새 친구의 첫 별알이에요 - 집에 가져가게 해 주세요!",
 }
 ]]></string>
         </Properties>
@@ -5670,8 +5673,14 @@ function Base:Protection(owner: Player): string?
 		return "robbing"
 	end
 	-- 🏠 homes are safe - raids only happen on 🌙 Thief Night
+	-- (a thief's own home stays open to their victim's revenge for a while)
 	local events = Services.EventService
 	if not (events and events:RaidActive()) then
+		for _, entry in revenge do
+			if entry.Target == owner and entry.Until > t then
+				return "revenge"
+			end
+		end
 		return "safe"
 	end
 	if plot.LockedUntil > t then
@@ -5730,6 +5739,7 @@ end
 
 local STATUS_TEXT = {
 	safe = "🏠 SAFE",
+	revenge = "🎯 REVENGE TARGET",
 	locked = "🔒 LOCKED",
 	newbie = "🛡️ NEWBIE SHIELD",
 	shield = "🛡️ THEFT SHIELD",
@@ -5933,6 +5943,7 @@ end
 
 local PROTECTION_MESSAGES = {
 	safe = "🏠 Homes are safe! Raids only happen on 🌙 Thief Night.",
+	revenge = "🏠 Homes are safe! Raids only happen on 🌙 Thief Night.",
 	locked = "🔒 This base is locked!",
 	newbie = "🛡️ This player is new - their base is protected for now.",
 	shield = "🛡️ This base was just robbed - it's protected for a few minutes.",
@@ -8067,6 +8078,12 @@ function Dev:Start()
 			Services.ProgressionService:AddSeasonXP(player, 5 * 2000)
 		elseif command == "Meteor" then
 			Services.MeteorService:Summon(player)
+		elseif command == "Golden" then
+			-- the next meteor is a GIANT GOLDEN one (falls next to you)
+			Services.MeteorService:QueueSpecial("Giant", true)
+			Services.MeteorService:Summon(player)
+		elseif command == "Raid" then
+			Services.EventService:Trigger("ThiefNight")
 		elseif command == "Level" then
 			Services.ProgressionService:AddXP(player, 2000)
 		elseif command == "Event" then
@@ -8349,6 +8366,10 @@ end
 -- (random picks never choose NoRandom events: raids come every RaidEvery-th time)
 function Events:Trigger(id: string?)
 	local def = find(id)
+	-- an announced or running 🌙 raid is never replaced (party / DEV events wait)
+	if (raidAt > 0 or (current ~= nil and current.Raid)) and not (def and def.Raid) then
+		return
+	end
 	if not def then
 		local pool = {}
 		for _, candidate in settings.List do
@@ -9652,6 +9673,11 @@ function Meteor:ClaimChunk(player: Player, part: BasePart): number?
 	if not info or not data then
 		return nil
 	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") or (root.Position - part.Position).Magnitude > 14 then
+		return nil -- (touches are reported by clients: you must really be there)
+	end
 	chunks[part] = nil
 	part:Destroy()
 	local cfg = settings.Chunks
@@ -10659,6 +10685,12 @@ local function tryBonk(attacker: Player, victim: Player)
 	end
 	if (vRoot.Position - World.HubSpawn.Position).Magnitude <= Config.World.SpawnSafeRadius then
 		warnOnce(attacker, 3, "🛡️ The spawn is a safe zone!")
+		return
+	end
+	-- a new player's very first egg (tutorial) can't be knocked away
+	local tutorial = vData.Tutorial
+	if tutorial and not tutorial.Done and tutorial.Step <= 3 then
+		warnOnce(attacker, 3, "🛡️ That's a new player's first egg - let them bring it home!")
 		return
 	end
 	local clock = os.clock()
@@ -12132,6 +12164,36 @@ function Progression:TutorialSetup(player: Player, context)
 				Services.ShardService:TutorialStar(player)
 			end
 		end)
+	elseif step.Id == "Pickaxe" and (data.PickaxeTier or 1) > 1 then
+		-- bought a pickaxe already (during the "mine" step): that counts
+		self:TutorialEvent(player, "Pickaxe", 1)
+	end
+end
+
+-- the tutorial can never get stuck: if the egg is gone (expired, lost on a
+-- reset) or the meteor never came, the step is set up again
+local emptyHanded = {} -- [player] = os.clock() since when they hold nothing in the "Shard" step
+local function tutorialWatchdog()
+	for _, player in Data:LoadedPlayers() do
+		local data = Data:Get(player)
+		local tutorial = data and data.Tutorial
+		local step = tutorial and not tutorial.Done and Config.Tutorial.Steps[tutorial.Step]
+		local id = step and step.Id
+		local carrying = Services.ShardService:IsCarrying(player)
+		if id == "Shard" and not carrying then
+			emptyHanded[player] = emptyHanded[player] or os.clock()
+			if os.clock() - emptyHanded[player] >= 15 then
+				emptyHanded[player] = nil
+				Services.ShardService:TutorialStar(player)
+			end
+		else
+			emptyHanded[player] = nil
+			if id == "Meteor" then
+				Services.MeteorService:TutorialMeteor(player)
+			elseif id == "Grab" and not carrying then
+				Services.ShardService:TutorialStar(player)
+			end
+		end
 	end
 end
 
@@ -12316,13 +12378,13 @@ function Progression:Start()
 		if not data.Tutorial.Done and data.Tutorial.Step == 1 and data.Tutorial.Progress == 0 then
 			Services.Analytics:Funnel(player, 1, "Joined")
 		end
-		-- veterans who already did everything skip the tutorial
-		if not data.Tutorial.Done and data.Stats.EggsHatched > 0 and data.PickaxeTier > 1 then
-			data.Tutorial.Done = true
-		end
 		-- ☄️ Meteor Rush: unfinished tutorials restart with the new first steps
+		-- (veterans of the old game who already did everything skip it)
 		local version = Config.Tutorial.Version or 1
 		if (data.Tutorial.Version or 0) < version then
+			if not data.Tutorial.Done and data.Stats.EggsHatched > 0 and data.PickaxeTier > 1 then
+				data.Tutorial.Done = true
+			end
 			if not data.Tutorial.Done then
 				data.Tutorial.Step = 1
 				data.Tutorial.Progress = 0
@@ -12343,7 +12405,17 @@ function Progression:Start()
 			end)
 		end
 	end)
+	task.spawn(function()
+		while true do
+			task.wait(5)
+			local ok, err = pcall(tutorialWatchdog)
+			if not ok then
+				warn("[Progression] tutorial watchdog: " .. tostring(err))
+			end
+		end
+	end)
 	Players.PlayerRemoving:Connect(function(player)
+		emptyHanded[player] = nil
 		sessionStart[player] = nil
 		giftsClaimed[player] = nil
 	end)
@@ -13316,7 +13388,9 @@ function Shards:SpillMeteor(position: Vector3, ranking, info)
 	table.sort(order, function(a, b)
 		return a.Tier > b.Tier
 	end)
-	for i = 1, math.min(spill.Guardians, #order) do
+	-- (not on the avenue: guardians never chase into the base district)
+	local guarded = if info.Narrow then 0 else spill.Guardians
+	for i = 1, math.min(guarded, #order) do
 		order[i].Guardian = true
 	end
 	for i, entry in eggs do
@@ -16512,7 +16586,9 @@ local function build()
 			"Lucky",
 			"Party",
 			"Event",
+			"Raid",
 			"Meteor",
+			"Golden",
 			"Reset",
 		}
 	do
@@ -16769,7 +16845,8 @@ local function pickTarget(root: BasePart)
 		return meteorAt, meteorText
 	end
 	if step then
-		if id == "Pickaxe" and data.Coins >= Config.Pickaxes[2].Cost then
+		local nextPick = Config.Pickaxes[(data.PickaxeTier or 1) + 1]
+		if id == "Pickaxe" and nextPick and data.Coins >= nextPick.Cost then
 			return PICKAXE_SHOP, T("⛏️ BUY A PICKAXE")
 		elseif id == "Hatch" and data.Coins >= Config.Eggs.Meadow.Price then
 			local egg = part({ "Hub", "Eggs", "MeadowEgg" })
@@ -17347,6 +17424,8 @@ local function protectionText(): (string, Color3)
 			Color3.fromRGB(140, 200, 255)
 	elseif protection == "robbing" then
 		return T("🚨 Being robbed! Bonk the thief!"), C.Red
+	elseif protection == "revenge" then
+		return T("🎯 Someone you robbed can take revenge on your home!"), Color3.fromRGB(255, 200, 90)
 	elseif protection == "safe" then
 		local raidAt = workspace:GetAttribute("RaidAt") or 0
 		if raidAt > t then
@@ -17585,24 +17664,26 @@ local function currentObjective(data, derived)
 		local steps = Config.Tutorial.Steps
 		local step = steps[tutorial.Step]
 		if step then
+			-- a real meteor beats the tutorial's "mine" steps: go join it
+			if step.Id == "Mine" or step.Id == "Pickaxe" then
+				local meteor = meteorGoal(data)
+				if meteor then
+					return "🎯 " .. meteor, nil
+				end
+			end
 			local text = T(step.Text)
 			local progress = tutorial.Progress / step.Target
+			local nextPick = Config.Pickaxes[(data.PickaxeTier or 1) + 1]
 			if step.Id == "Mine" then
 				text = string.format("%s  (%d/%d)", text, tutorial.Progress, step.Target)
-			elseif step.Id == "Pickaxe" and data.Coins < Config.Pickaxes[2].Cost then
-				text = T("Mine ore until you have %s coins", Util.Format(Config.Pickaxes[2].Cost))
-				progress = data.Coins / Config.Pickaxes[2].Cost
+			elseif step.Id == "Pickaxe" and nextPick and data.Coins < nextPick.Cost then
+				text = T("Mine ore until you have %s coins", Util.Format(nextPick.Cost))
+				progress = data.Coins / nextPick.Cost
 			elseif step.Id == "Hatch" and data.Coins < Config.Eggs.Meadow.Price then
 				text = T("Mine ore until you have %s coins", Util.Format(Config.Eggs.Meadow.Price))
 				progress = data.Coins / Config.Eggs.Meadow.Price
 			elseif step.Id == "Shard" and player:GetAttribute("Carrying") then
 				text = T("Run home 🏠 with the egg - don't get bonked!")
-			elseif step.Id == "Mine" or step.Id == "Pickaxe" then
-				-- a real meteor beats the tutorial: go join it
-				local meteor = meteorGoal(data)
-				if meteor then
-					return "🎯 " .. meteor, nil
-				end
 			end
 			return string.format("📘 %d/%d  %s", tutorial.Step, #steps, text), progress
 		end
@@ -18564,7 +18645,7 @@ task.spawn(function()
 			rankFrame.Visible = false
 		end
 		-- right after the burst: everyone races for the eggs
-		if stateName == "Idle" and (workspace:GetAttribute("MeteorLootUntil") or 0) > os.time() then
+		if stateName == "Idle" and (workspace:GetAttribute("MeteorLootUntil") or 0) > State.Now() then
 			pillText.Text = T("🥚 GRAB THE STAR EGGS & RUN HOME!")
 			pillText.TextColor3 = Color3.fromRGB(150, 230, 255)
 			stroke.Color = Color3.fromRGB(150, 230, 255)

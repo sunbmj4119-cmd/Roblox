@@ -464,6 +464,12 @@ local function tryBonk(attacker: Player, victim: Player)
 		warnOnce(attacker, 3, "🛡️ The spawn is a safe zone!")
 		return
 	end
+	-- a new player's very first egg (tutorial) can't be knocked away
+	local tutorial = vData.Tutorial
+	if tutorial and not tutorial.Done and tutorial.Step <= 3 then
+		warnOnce(attacker, 3, "🛡️ That's a new player's first egg - let them bring it home!")
+		return
+	end
 	local clock = os.clock()
 	if (immunity[victim] or 0) > clock then
 		return

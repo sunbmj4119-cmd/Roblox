@@ -302,7 +302,7 @@ task.spawn(function()
 			rankFrame.Visible = false
 		end
 		-- right after the burst: everyone races for the eggs
-		if stateName == "Idle" and (workspace:GetAttribute("MeteorLootUntil") or 0) > os.time() then
+		if stateName == "Idle" and (workspace:GetAttribute("MeteorLootUntil") or 0) > State.Now() then
 			pillText.Text = T("🥚 GRAB THE STAR EGGS & RUN HOME!")
 			pillText.TextColor3 = Color3.fromRGB(150, 230, 255)
 			stroke.Color = Color3.fromRGB(150, 230, 255)

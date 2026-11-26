@@ -1076,4 +1076,7 @@ return {
 	["Help smash %d meteors"] = "운석 %d개 부수기에 참여하기",
 	["Bring %d star eggs home"] = "별알 %d개를 집으로 가져오기",
 	["Meteor Rush"] = "운석 러시",
+	["🎯 REVENGE TARGET"] = "🎯 복수 대상",
+	["🎯 Someone you robbed can take revenge on your home!"] = "🎯 내가 턴 사람이 우리 집에 복수할 수 있어요!",
+	["🛡️ That's a new player's first egg - let them bring it home!"] = "🛡️ 새 친구의 첫 별알이에요 - 집에 가져가게 해 주세요!",
 }

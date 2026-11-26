@@ -212,7 +212,8 @@ local function pickTarget(root: BasePart)
 		return meteorAt, meteorText
 	end
 	if step then
-		if id == "Pickaxe" and data.Coins >= Config.Pickaxes[2].Cost then
+		local nextPick = Config.Pickaxes[(data.PickaxeTier or 1) + 1]
+		if id == "Pickaxe" and nextPick and data.Coins >= nextPick.Cost then
 			return PICKAXE_SHOP, T("⛏️ BUY A PICKAXE")
 		elseif id == "Hatch" and data.Coins >= Config.Eggs.Meadow.Price then
 			local egg = part({ "Hub", "Eggs", "MeadowEgg" })

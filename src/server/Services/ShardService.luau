@@ -710,7 +710,9 @@ function Shards:SpillMeteor(position: Vector3, ranking, info)
 	table.sort(order, function(a, b)
 		return a.Tier > b.Tier
 	end)
-	for i = 1, math.min(spill.Guardians, #order) do
+	-- (not on the avenue: guardians never chase into the base district)
+	local guarded = if info.Narrow then 0 else spill.Guardians
+	for i = 1, math.min(guarded, #order) do
 		order[i].Guardian = true
 	end
 	for i, entry in eggs do

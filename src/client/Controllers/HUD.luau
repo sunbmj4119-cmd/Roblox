@@ -501,6 +501,8 @@ local function protectionText(): (string, Color3)
 			Color3.fromRGB(140, 200, 255)
 	elseif protection == "robbing" then
 		return T("🚨 Being robbed! Bonk the thief!"), C.Red
+	elseif protection == "revenge" then
+		return T("🎯 Someone you robbed can take revenge on your home!"), Color3.fromRGB(255, 200, 90)
 	elseif protection == "safe" then
 		local raidAt = workspace:GetAttribute("RaidAt") or 0
 		if raidAt > t then
@@ -739,24 +741,26 @@ local function currentObjective(data, derived)
 		local steps = Config.Tutorial.Steps
 		local step = steps[tutorial.Step]
 		if step then
+			-- a real meteor beats the tutorial's "mine" steps: go join it
+			if step.Id == "Mine" or step.Id == "Pickaxe" then
+				local meteor = meteorGoal(data)
+				if meteor then
+					return "🎯 " .. meteor, nil
+				end
+			end
 			local text = T(step.Text)
 			local progress = tutorial.Progress / step.Target
+			local nextPick = Config.Pickaxes[(data.PickaxeTier or 1) + 1]
 			if step.Id == "Mine" then
 				text = string.format("%s  (%d/%d)", text, tutorial.Progress, step.Target)
-			elseif step.Id == "Pickaxe" and data.Coins < Config.Pickaxes[2].Cost then
-				text = T("Mine ore until you have %s coins", Util.Format(Config.Pickaxes[2].Cost))
-				progress = data.Coins / Config.Pickaxes[2].Cost
+			elseif step.Id == "Pickaxe" and nextPick and data.Coins < nextPick.Cost then
+				text = T("Mine ore until you have %s coins", Util.Format(nextPick.Cost))
+				progress = data.Coins / nextPick.Cost
 			elseif step.Id == "Hatch" and data.Coins < Config.Eggs.Meadow.Price then
 				text = T("Mine ore until you have %s coins", Util.Format(Config.Eggs.Meadow.Price))
 				progress = data.Coins / Config.Eggs.Meadow.Price
 			elseif step.Id == "Shard" and player:GetAttribute("Carrying") then
 				text = T("Run home 🏠 with the egg - don't get bonked!")
-			elseif step.Id == "Mine" or step.Id == "Pickaxe" then
-				-- a real meteor beats the tutorial: go join it
-				local meteor = meteorGoal(data)
-				if meteor then
-					return "🎯 " .. meteor, nil
-				end
 			end
 			return string.format("📘 %d/%d  %s", tutorial.Step, #steps, text), progress
 		end

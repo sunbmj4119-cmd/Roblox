@@ -138,6 +138,36 @@ function Progression:TutorialSetup(player: Player, context)
 				Services.ShardService:TutorialStar(player)
 			end
 		end)
+	elseif step.Id == "Pickaxe" and (data.PickaxeTier or 1) > 1 then
+		-- bought a pickaxe already (during the "mine" step): that counts
+		self:TutorialEvent(player, "Pickaxe", 1)
+	end
+end
+
+-- the tutorial can never get stuck: if the egg is gone (expired, lost on a
+-- reset) or the meteor never came, the step is set up again
+local emptyHanded = {} -- [player] = os.clock() since when they hold nothing in the "Shard" step
+local function tutorialWatchdog()
+	for _, player in Data:LoadedPlayers() do
+		local data = Data:Get(player)
+		local tutorial = data and data.Tutorial
+		local step = tutorial and not tutorial.Done and Config.Tutorial.Steps[tutorial.Step]
+		local id = step and step.Id
+		local carrying = Services.ShardService:IsCarrying(player)
+		if id == "Shard" and not carrying then
+			emptyHanded[player] = emptyHanded[player] or os.clock()
+			if os.clock() - emptyHanded[player] >= 15 then
+				emptyHanded[player] = nil
+				Services.ShardService:TutorialStar(player)
+			end
+		else
+			emptyHanded[player] = nil
+			if id == "Meteor" then
+				Services.MeteorService:TutorialMeteor(player)
+			elseif id == "Grab" and not carrying then
+				Services.ShardService:TutorialStar(player)
+			end
+		end
 	end
 end
 
@@ -322,13 +352,13 @@ function Progression:Start()
 		if not data.Tutorial.Done and data.Tutorial.Step == 1 and data.Tutorial.Progress == 0 then
 			Services.Analytics:Funnel(player, 1, "Joined")
 		end
-		-- veterans who already did everything skip the tutorial
-		if not data.Tutorial.Done and data.Stats.EggsHatched > 0 and data.PickaxeTier > 1 then
-			data.Tutorial.Done = true
-		end
 		-- ☄️ Meteor Rush: unfinished tutorials restart with the new first steps
+		-- (veterans of the old game who already did everything skip it)
 		local version = Config.Tutorial.Version or 1
 		if (data.Tutorial.Version or 0) < version then
+			if not data.Tutorial.Done and data.Stats.EggsHatched > 0 and data.PickaxeTier > 1 then
+				data.Tutorial.Done = true
+			end
 			if not data.Tutorial.Done then
 				data.Tutorial.Step = 1
 				data.Tutorial.Progress = 0
@@ -349,7 +379,17 @@ function Progression:Start()
 			end)
 		end
 	end)
+	task.spawn(function()
+		while true do
+			task.wait(5)
+			local ok, err = pcall(tutorialWatchdog)
+			if not ok then
+				warn("[Progression] tutorial watchdog: " .. tostring(err))
+			end
+		end
+	end)
 	Players.PlayerRemoving:Connect(function(player)
+		emptyHanded[player] = nil
 		sessionStart[player] = nil
 		giftsClaimed[player] = nil
 	end)

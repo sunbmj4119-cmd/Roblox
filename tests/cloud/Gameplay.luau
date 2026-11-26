@@ -518,6 +518,7 @@ S.EventService:Trigger("ThiefNight")
 check(S.EventService:Get("StealBonus", 0) > 0, "thief night has no steal bonus")
 S.EventService:StartParty(1)
 check(S.EventService:PartyActive() and (workspace:GetAttribute("PartyEnd") or 0) > os.time(), "party did not start")
+check(S.EventService:RaidActive(), "the party cancelled a running Thief Night")
 
 -- 21) the most liked house wears the crown
 dataA.Base.Likes = 50
@@ -622,6 +623,10 @@ for part in Meteor:ChunksForTest() do
 	someChunk = part
 end
 check(chunkCount >= Config.Meteor.Chunks.Count, "coin chunks missing: " .. chunkCount)
+check(someChunk == nil or Meteor:ClaimChunk(B, someChunk) == nil, "a coin chunk paid a player far away")
+if someChunk then
+	rootB.CFrame = CFrame.new(someChunk.Position)
+end
 local coinsBeforeChunk = dataB.Coins
 local chunkPaid = someChunk and Meteor:ClaimChunk(B, someChunk)
 check(chunkPaid ~= nil and dataB.Coins == coinsBeforeChunk + chunkPaid and chunkPaid >= Config.Meteor.Chunks.Min, "coin chunk did not pay")
@@ -657,6 +662,12 @@ S.ShardService:StartCarry(E, { Kind = "Egg", Rarity = "Rare", Egg = "Meadow" }, 
 rootE.CFrame = Base:HomeCFrame(E) * CFrame.new(0, 0, 6)
 task.wait(0.6)
 check(dataE.Tutorial.Step == 4 and #dataE.Pets >= 1, "carrying the egg home did not hatch it / finish the step")
+-- bought the pickaxe early (during "mine"): the pickaxe step completes by itself
+dataE.PickaxeTier = 2
+for _ = 1, Config.Tutorial.Steps[4].Target do
+	S.ProgressionService:TutorialEvent(E, "Mine", 1)
+end
+check(dataE.Tutorial.Done == true, "tutorial stuck at the pickaxe step after an early pickaxe: step " .. dataE.Tutorial.Step)
 
 -- 27) an old save mid-tutorial restarts with the meteor steps
 local F = fakePlayer(1006, "Finn")

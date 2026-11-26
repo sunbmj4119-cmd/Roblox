@@ -345,6 +345,11 @@ function Meteor:ClaimChunk(player: Player, part: BasePart): number?
 	if not info or not data then
 		return nil
 	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") or (root.Position - part.Position).Magnitude > 14 then
+		return nil -- (touches are reported by clients: you must really be there)
+	end
 	chunks[part] = nil
 	part:Destroy()
 	local cfg = settings.Chunks

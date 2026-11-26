@@ -949,8 +949,14 @@ function Base:Protection(owner: Player): string?
 		return "robbing"
 	end
 	-- 🏠 homes are safe - raids only happen on 🌙 Thief Night
+	-- (a thief's own home stays open to their victim's revenge for a while)
 	local events = Services.EventService
 	if not (events and events:RaidActive()) then
+		for _, entry in revenge do
+			if entry.Target == owner and entry.Until > t then
+				return "revenge"
+			end
+		end
 		return "safe"
 	end
 	if plot.LockedUntil > t then
@@ -1009,6 +1015,7 @@ end
 
 local STATUS_TEXT = {
 	safe = "🏠 SAFE",
+	revenge = "🎯 REVENGE TARGET",
 	locked = "🔒 LOCKED",
 	newbie = "🛡️ NEWBIE SHIELD",
 	shield = "🛡️ THEFT SHIELD",
@@ -1212,6 +1219,7 @@ end
 
 local PROTECTION_MESSAGES = {
 	safe = "🏠 Homes are safe! Raids only happen on 🌙 Thief Night.",
+	revenge = "🏠 Homes are safe! Raids only happen on 🌙 Thief Night.",
 	locked = "🔒 This base is locked!",
 	newbie = "🛡️ This player is new - their base is protected for now.",
 	shield = "🛡️ This base was just robbed - it's protected for a few minutes.",
