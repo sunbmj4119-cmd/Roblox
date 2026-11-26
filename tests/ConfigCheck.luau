@@ -32,6 +32,7 @@ end
 
 local Config = load("src/shared/Config.luau")
 local Util = load("src/shared/Util.luau")
+local Vector3 = roblox.Vector3
 
 local failures = 0
 local function check(condition: any, message: string)
@@ -312,7 +313,7 @@ end
 check(Util.PetIncome(Config, "Fox", "Golden") > Util.PetIncome(Config, "Fox", nil), "golden pets must earn more")
 check(Util.ShopRestockIn(Config, 600) == Config.Shop.RestockSeconds, "restock timer wrong at slot start")
 
-local TUTORIAL_EVENTS = { Mine = true, Pickaxe = true, Hatch = true, Shard = true }
+local TUTORIAL_EVENTS = { Meteor = true, Grab = true, Mine = true, Pickaxe = true, Hatch = true, Shard = true }
 for i, step in Config.Tutorial.Steps do
 	check(TUTORIAL_EVENTS[step.Id] == true, "tutorial step " .. i .. " has unknown Id " .. tostring(step.Id))
 	check(type(step.Target) == "number" and step.Target >= 1, "tutorial step " .. i .. " bad Target")
@@ -332,6 +333,61 @@ do
 		end
 		coins += step.Reward.Coins or 0
 	end
+end
+
+-- ☄️ meteor rush
+do
+	local m = Config.Meteor
+	check(m.Tutorial ~= nil and m.Tutorial.Hits >= 3, "meteor tutorial needs a few hits")
+	check(Config.Tutorial.Steps[1].Id == "Meteor", "the tutorial must start with the meteor")
+	check(#m.Kinds == #Config.Zones, "Meteor.Kinds needs one kind per zone")
+	for index, kind in m.Kinds do
+		check(Config.Eggs[kind.Egg] ~= nil, "meteor kind " .. index .. " has unknown egg " .. tostring(kind.Egg))
+		check(kind.Color ~= nil and kind.Icon ~= nil and kind.Name ~= nil, "meteor kind " .. index .. " incomplete")
+	end
+	local siteWeight = 0
+	for _, site in m.Sites do
+		check(site.Kind == "Hub" or site.Kind == "Avenue" or site.Kind == "Zone", "bad meteor site " .. tostring(site.Kind))
+		siteWeight += site.Weight
+	end
+	check(siteWeight > 0, "meteor sites need weight")
+	check(#m.HubSpots >= 3 and #m.AvenueX >= 3, "meteor needs several hub / avenue spots")
+	for _, size in m.Sizes do
+		check(size.Radius >= 5 and size.Radius <= 14, "meteor size " .. size.Id .. " radius out of range")
+		check(size.HP > 0 and size.Eggs >= 0, "meteor size " .. size.Id .. " bad HP / eggs")
+	end
+	check(m.GoldenChance > 0 and m.GoldenChance < 0.3, "golden meteor chance out of range")
+	check(m.Spill.Base + m.Spill.PerParticipant >= 3, "a meteor must spill a few eggs even with one player")
+	check(m.Chunks.Count >= 1 and m.Chunks.Min > 0, "meteor coin chunks")
+	-- avenue sites sit between the two rows of homes, inside the base district
+	local z = Util.AvenueZ(Config)
+	for _, x in m.AvenueX do
+		check(Util.InBases(Config, Vector3.new(x, 3, z)), "avenue meteor spot x=" .. x .. " is outside the base district")
+		check(Util.ZoneAt(Config, Vector3.new(x, 3, z)) == 0, "avenue meteor spot x=" .. x .. " is inside a mine")
+	end
+	for _, spot in m.HubSpots do
+		check(Util.ZoneAt(Config, spot + Vector3.new(0, 3, 0)) == 0, "hub meteor spot inside a mine")
+		check(not Util.InBases(Config, spot + Vector3.new(0, 3, 0)), "hub meteor spot inside the base district")
+	end
+	local cycle = m.IntervalSeconds + m.WarningSeconds + m.DurationSeconds
+	print(
+		string.format(
+			"Meteor cycle: max %ds (rest %ds + warning %ds + smash <= %ds)",
+			cycle,
+			m.IntervalSeconds,
+			m.WarningSeconds,
+			m.DurationSeconds
+		)
+	)
+	check(cycle <= 240, "a meteor round should come at least every 4 minutes")
+	local raid = nil
+	for _, event in Config.Events.List do
+		if event.Raid then
+			raid = event
+		end
+	end
+	check(raid ~= nil and raid.NoRandom == true and (raid.Warn or 0) >= 10, "Thief Night must be a warned, scheduled raid event")
+	check(Config.Events.RaidEvery >= 2, "raids must not be every event")
 end
 
 -- star shards + bases

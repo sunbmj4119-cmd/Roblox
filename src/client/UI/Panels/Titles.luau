@@ -64,6 +64,12 @@ function Titles.Build(content, ctx)
 		elseif need.Lucky then
 			local have = stats.LuckyBlocks or 0
 			return T("Open %d lucky blocks", need.Lucky), string.format("%d/%d", math.min(have, need.Lucky), need.Lucky)
+		elseif need.Meteors then
+			local have = stats.MeteorJoins or 0
+			return T("Help smash %d meteors", need.Meteors), string.format("%d/%d", math.min(have, need.Meteors), need.Meteors)
+		elseif need.Delivered then
+			local have = stats.ShardsDelivered or 0
+			return T("Bring %d star eggs home", need.Delivered), string.format("%d/%d", math.min(have, need.Delivered), need.Delivered)
 		elseif need.Pass then
 			return T("Own the VIP pass"), ""
 		end

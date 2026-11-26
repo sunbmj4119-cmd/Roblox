@@ -51,4 +51,4 @@ for _, name in ORDER do
 end
 Services.DataService:Start()
 
-print("[Meteor Miners] server ready")
+print("[Meteor Rush] server ready")

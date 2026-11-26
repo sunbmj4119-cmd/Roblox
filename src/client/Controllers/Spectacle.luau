@@ -128,6 +128,15 @@ Net.On("Party", function()
 	Lib.PlaySound("Cheer")
 end)
 
+-- 🌙 Thief Night is coming (20s): a short alarm so everyone runs home
+Net.On("RaidWarning", function()
+	for i = 0, 1 do
+		task.delay(i * 0.6, function()
+			Lib.PlaySound("Alarm", 0.7)
+		end)
+	end
+end)
+
 -- 🌙 Thief Night: the sky goes dark while it lasts
 local normalClock = nil
 local function refreshNight()

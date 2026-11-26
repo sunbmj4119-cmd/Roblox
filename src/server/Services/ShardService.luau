@@ -481,6 +481,7 @@ tryPickup = function(model: Model, record, hit: BasePart)
 		return
 	end
 	destroyGround(model)
+	Services.ProgressionService:TutorialEvent(player, "Grab", 1)
 	if record.Guardian then
 		local guardian = record.Guardian
 		guardian.Target = player
@@ -650,9 +651,10 @@ function Shards:FallingStar(forcedZone: number?)
 	return id
 end
 
--- tutorial: a guaranteed star just for this player, landing in the hub
+-- tutorial: a guaranteed star egg just for this player (popped out of their
+-- tutorial meteor at `position`, or falling into the hub after a rejoin)
 local tutorialStars = {} -- [player] = ground model
-function Shards:TutorialStar(player: Player)
+function Shards:TutorialStar(player: Player, position: Vector3?)
 	local existing = tutorialStars[player]
 	if existing and existing.Parent then
 		return
@@ -660,46 +662,78 @@ function Shards:TutorialStar(player: Player)
 	if carrying[player] then
 		return
 	end
-	local position = Vector3.new(-30, 0, -38) + Vector3.new(rng:NextNumber(-4, 4), 0, rng:NextNumber(-4, 4))
+	local function spawn(at: Vector3)
+		tutorialStars[player] = self:SpawnGround({ Kind = "Egg", Rarity = "Rare", Egg = "Meadow" }, at, nil, {
+			Beacon = true,
+			PriorityUser = player.UserId,
+			PriorityUntil = now() + 600,
+			Lifetime = 900,
+		})
+	end
+	if position then
+		spawn(position)
+		Net:Notify(player, "🥚 A star egg popped out! Grab it!", Color3.fromRGB(120, 230, 255))
+		return
+	end
+	local spot = Config.Meteor.Tutorial.Position + Vector3.new(rng:NextNumber(-4, 4), 0, rng:NextNumber(-4, 4))
 	local flight = 1.6
-	Net:Send(player, "StarFall", position, "Rare", flight)
+	Net:Send(player, "StarFall", spot, "Rare", flight)
 	task.delay(flight, function()
 		if not player.Parent then
 			return
 		end
-		tutorialStars[player] = self:SpawnGround({ Kind = "Egg", Rarity = "Rare", Egg = "Meadow" }, position, nil, {
-			Beacon = true,
-			PriorityUser = player.UserId,
-			PriorityUntil = now() + 300,
-			Lifetime = 600,
-		})
+		spawn(spot)
 		Net:Notify(player, "🌠 A star fell just for you! Grab it!", Color3.fromRGB(120, 230, 255))
 	end)
 end
 
+-- ☄️ the meteor bursts: star eggs of its kind scatter around the crater.
 -- ranking = { { Player = p, Score = n }, ... } best first
-function Shards:SpillMeteor(position: Vector3, ranking)
-	local settings = SETTINGS.Meteor
-	local count = math.clamp(settings.Count + settings.PerParticipant * #ranking, 1, settings.Max)
+-- info = { Egg = "Lava", Luck = 2.5, Extra = 0..3, Narrow = avenue? } (from MeteorService)
+function Shards:SpillMeteor(position: Vector3, ranking, info)
+	info = info or {}
+	local spill = Config.Meteor.Spill
+	local count = math.min(spill.Base + spill.PerParticipant * #ranking, spill.Max) + (info.Extra or 0)
+	count = math.max(count, 1)
+	local egg = info.Egg or "Cosmic"
+	local luck = info.Luck or spill.Luck
+	local priority = SETTINGS.Meteor.TopPriority
+	-- roll everything first: the top 3 get one reserved egg each (1st: Epic+)
+	local eggs = {}
 	for i = 1, count do
+		local reserved = ranking[i] and i <= 3 and ranking[i].Player or nil
+		local id = Util.RollShard(Config, luck, rng, if i == 1 and reserved then 3 else nil)
+		table.insert(eggs, { Id = id, Tier = Util.ShardIndex(Config, id), Reserved = reserved, Place = i })
+	end
+	-- the best eggs are guarded by meteor golems
+	local order = table.clone(eggs)
+	table.sort(order, function(a, b)
+		return a.Tier > b.Tier
+	end)
+	for i = 1, math.min(spill.Guardians, #order) do
+		order[i].Guardian = true
+	end
+	for i, entry in eggs do
 		local angle = (i / count) * math.pi * 2 + rng:NextNumber(-0.2, 0.2)
 		local radius = rng:NextNumber(11, 19)
-		local spot = Vector3.new(position.X + math.cos(angle) * radius, 0, position.Z + math.sin(angle) * radius)
-		local top = ranking[1] and ranking[1].Player
-		if i == 1 and top then
-			-- the winner's prize: Epic or better, reserved for them for a moment
-			local id = Util.RollShard(Config, settings.Luck, rng, 3)
-			self:SpawnGround({ Kind = "Egg", Rarity = id, Egg = "Cosmic" }, spot, nil, {
-				Beacon = true,
-				PriorityUser = top.UserId,
-				PriorityUntil = now() + settings.TopPriority,
-			})
-			Net:Notify(top, "🥇 Your %s prize shard is waiting - grab it!", Color3.fromRGB(255, 220, 90), rarityName(id))
-		else
-			local id = Util.RollShard(Config, settings.Luck, rng)
-			self:SpawnGround({ Kind = "Egg", Rarity = id, Egg = "Cosmic" }, spot, nil, { Beacon = true })
+		local dx, dz = math.cos(angle) * radius, math.sin(angle) * radius
+		if info.Narrow then
+			-- (on the avenue: spread along the street, not into people's gardens)
+			dx, dz = math.cos(angle) * (radius + 5), math.sin(angle) * rng:NextNumber(3, 10)
+		end
+		local spot = Vector3.new(position.X + dx, 0, position.Z + dz)
+		local opts = { Beacon = true, WithGuardian = entry.Guardian }
+		if entry.Reserved then
+			opts.PriorityUser = entry.Reserved.UserId
+			opts.PriorityUntil = now() + (if entry.Place == 1 then priority else priority - 1)
+		end
+		self:SpawnGround({ Kind = "Egg", Rarity = entry.Id, Egg = egg }, spot, nil, opts)
+		if entry.Reserved then
+			local medal = ({ "🥇", "🥈", "🥉" })[entry.Place]
+			Net:Notify(entry.Reserved, "%s Your %s is waiting - grab it first!", Color3.fromRGB(255, 220, 90), medal, rarityName(entry.Id))
 		end
 	end
+	return eggs
 end
 
 ---------------------------------------------------------------------------

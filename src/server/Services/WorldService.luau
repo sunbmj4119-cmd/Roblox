@@ -531,7 +531,7 @@ local function buildHub()
 		end
 	end
 	sign(Vector3.new(-18, 9, -46), "👍 LIKE + ⭐ FAVORITE\nfor new CODES & updates!", Color3.fromRGB(255, 220, 90))
-	sign(Vector3.new(18, 9, -46), "⛏️ Tap ore = 💰 coins\n🌠 Carry stars home = 💰 every second", Color3.fromRGB(120, 230, 255))
+	sign(Vector3.new(18, 9, -46), "☄️ Smash meteors together\n🥚 Grab a star egg & run home!", Color3.fromRGB(120, 230, 255))
 
 	-- plaza centerpiece: star fountain (ore pays coins directly, no selling)
 	newPart({

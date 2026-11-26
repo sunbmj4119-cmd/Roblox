@@ -82,7 +82,8 @@ function Progression:RewardText(player: Player, reward): string
 end
 
 -- tutorial: Event(id) advances the current step when it matches
-function Progression:TutorialEvent(player: Player, id: string, amount: number?)
+-- (context is handed to the next step's setup, e.g. where the egg pops out)
+function Progression:TutorialEvent(player: Player, id: string, amount: number?, context)
 	local data = Data:Get(player)
 	local tutorial = data and data.Tutorial
 	if not tutorial or tutorial.Done then
@@ -108,17 +109,30 @@ function Progression:TutorialEvent(player: Player, id: string, amount: number?)
 		Net:Send(player, "TutorialDone", self:RewardText(player, Config.Tutorial.FinalReward))
 	else
 		Net:Send(player, "TutorialStep", tutorial.Step, self:RewardText(player, step.Reward))
-		self:TutorialSetup(player)
+		self:TutorialSetup(player, context)
 	end
 	Data:MarkDirty(player)
 end
 
--- some steps need the world to cooperate (a star to carry home)
-function Progression:TutorialSetup(player: Player)
+-- some steps need the world to cooperate (a meteor to smash, an egg to carry)
+function Progression:TutorialSetup(player: Player, context)
 	local data = Data:Get(player)
 	local tutorial = data and data.Tutorial
 	local step = tutorial and not tutorial.Done and Config.Tutorial.Steps[tutorial.Step]
-	if step and step.Id == "Shard" then
+	if not step then
+		return
+	end
+	if step.Id == "Meteor" then
+		Services.MeteorService:TutorialMeteor(player)
+	elseif step.Id == "Grab" then
+		if Services.ShardService:IsCarrying(player) then
+			-- already holding an egg: that counts
+			self:TutorialEvent(player, "Grab", 1)
+		else
+			Services.ShardService:TutorialStar(player, context and context.Position)
+		end
+	elseif step.Id == "Shard" and not Services.ShardService:IsCarrying(player) then
+		-- (rejoined without the egg) a new one falls next to the spawn
 		task.delay(2, function()
 			if player.Parent then
 				Services.ShardService:TutorialStar(player)
@@ -312,7 +326,17 @@ function Progression:Start()
 		if not data.Tutorial.Done and data.Stats.EggsHatched > 0 and data.PickaxeTier > 1 then
 			data.Tutorial.Done = true
 		end
-		task.delay(6, function()
+		-- ☄️ Meteor Rush: unfinished tutorials restart with the new first steps
+		local version = Config.Tutorial.Version or 1
+		if (data.Tutorial.Version or 0) < version then
+			if not data.Tutorial.Done then
+				data.Tutorial.Step = 1
+				data.Tutorial.Progress = 0
+			end
+			data.Tutorial.Version = version
+			Data:MarkDirty(player)
+		end
+		task.delay(if data.Tutorial.Step == 1 then 3 else 6, function()
 			if player.Parent then
 				self:TutorialSetup(player)
 			end
@@ -535,8 +559,9 @@ function Progression:Start()
 
 	Net:On("SeenHowTo", 5, function(player)
 		local data = Data:Get(player)
-		if data and not data.Flags.HowToSeen then
+		if data and not (data.Flags.HowToSeen and data.Flags.HowToRush) then
 			data.Flags.HowToSeen = true
+			data.Flags.HowToRush = true -- (the ☄️ Meteor Rush rules were shown)
 			Data:MarkDirty(player)
 		end
 	end)

@@ -1,5 +1,5 @@
 --[[
-	Meteor Miners - central game configuration.
+	Meteor Rush - central game configuration.
 
 	Every number that matters for balance and monetization lives here so you can
 	tune the game without touching gameplay code.
@@ -15,7 +15,7 @@
 
 local Config = {}
 
-Config.GameName = "Meteor Miners"
+Config.GameName = "Meteor Rush"
 Config.DataStoreName = "MeteorMiners_PlayerData_v1"
 Config.LeaderboardPrefix = "MeteorMiners_LB_v1_"
 Config.GroupId = 0 -- your Roblox group id (0 = disabled)
@@ -624,15 +624,56 @@ Config.Social = {
 ---------------------------------------------------------------------------
 -- COMPETITION
 ---------------------------------------------------------------------------
+-- ☄️ METEOR RUSH (the heart of the game, see docs/METEOR_RUSH.md):
+-- every ~3 minutes a meteor falls somewhere (hub, the base avenue or a mine
+-- zone), everyone smashes it together, it bursts into star eggs + coin
+-- chunks, and you run the eggs home while others try to bonk you.
 Config.Meteor = {
-	IntervalSeconds = 420, -- a meteor every 7 minutes
-	WarningSeconds = 30,
+	IntervalSeconds = 120, -- rest between meteors (mine, upgrade, hatch)
+	FirstSeconds = 60, -- first meteor after a server starts
+	WarningSeconds = 20,
 	SummonWarningSeconds = 10,
-	DurationSeconds = 90,
-	BaseHP = 60, -- score points
-	SecondsPerParticipant = 40, -- each new hitter adds ~40s of their own hitting to the HP
-	Position = Vector3.new(0, 0, 40),
+	DurationSeconds = 50, -- max time to crack it
+	BaseHP = 40, -- score points
+	SecondsPerParticipant = 22, -- each new hitter adds ~22s of their own hitting to the HP
+	Position = Vector3.new(0, 0, 40), -- the hub crater (one of the sites)
 	Radius = 9,
+	-- where meteors land: weights per site type
+	Sites = {
+		{ Kind = "Hub", Weight = 35 },
+		{ Kind = "Avenue", Weight = 25 },
+		{ Kind = "Zone", Weight = 40 },
+	},
+	-- open ground in the hub (clear of the fountain, shops, egg stands, the
+	-- hall of fame and the tutorial meteor spot)
+	HubSpots = {
+		Vector3.new(0, 0, 40), -- the crater
+		Vector3.new(30, 0, 30),
+		Vector3.new(-30, 0, 30),
+		Vector3.new(32, 0, -14),
+		Vector3.new(36, 0, -30),
+		Vector3.new(-36, 0, -32),
+	},
+	AvenueX = { -150, -100, -50, 50, 100, 150 },
+	-- meteor kind = the zone whose star eggs it carries
+	Kinds = {
+		{ Name = "Meadow Meteor", Icon = "🌿", Egg = "Meadow", Color = Color3.fromRGB(120, 220, 110) },
+		{ Name = "Frost Meteor", Icon = "❄️", Egg = "Frost", Color = Color3.fromRGB(130, 200, 255) },
+		{ Name = "Lava Meteor", Icon = "🔥", Egg = "Lava", Color = Color3.fromRGB(255, 110, 40) },
+		{ Name = "Void Meteor", Icon = "🔮", Egg = "Void", Color = Color3.fromRGB(170, 100, 255) },
+		{ Name = "Cosmic Meteor", Icon = "🌌", Egg = "Cosmic", Color = Color3.fromRGB(255, 110, 220) },
+	},
+	Sizes = {
+		{ Id = "Small", Name = "Small", Weight = 55, Radius = 7, HP = 0.7, Eggs = 0 },
+		{ Id = "Big", Name = "Big", Weight = 33, Radius = 9, HP = 1, Eggs = 1 },
+		{ Id = "Giant", Name = "Giant", Weight = 12, Radius = 12, HP = 1.6, Eggs = 3 },
+	},
+	GoldenChance = 0.08, -- ✨ golden meteor: 2x egg luck, 3x coin chunks
+	Spill = { Base = 3, PerParticipant = 1, Max = 10, Luck = 2.5, GoldenLuck = 2, Guardians = 2, LuckyChance = 0.3 },
+	Chunks = { Count = 8, Seconds = 12, Min = 150, GoldenMult = 3, Lifetime = 60 },
+	FirstCrackGems = 50, -- first time you crack each meteor kind (meteor index)
+	-- tutorial: a small meteor just for you, right next to the spawn
+	Tutorial = { Position = Vector3.new(-14, 0, -40), Radius = 4, Hits = 8 },
 	-- Rank rewards (index = placement)
 	PlaceRewards = {
 		{ Stardust = 400, Gems = 100, Points = 300 },
@@ -669,7 +710,7 @@ Config.PointsPerBlock = { 1, 2, 3, 4, 6 } -- by zone index
 Config.Leaderboards = {
 	RefreshSeconds = 90,
 	Boards = {
-		{ Key = "Weekly", Title = "🏆 WEEKLY RANKED", Weekly = true },
+		{ Key = "Weekly", Title = "☄️ WEEKLY METEOR HUNTERS", Weekly = true },
 		{ Key = "LifetimeCoins", Title = "💰 RICHEST MINERS" },
 		{ Key = "Likes", Title = "❤️ BEST BASES" },
 	},
@@ -693,6 +734,8 @@ Config.Titles = {
 	{ Id = "LegendCollector", Name = "🌟 Legend Collector", Color = Color3.fromRGB(255, 230, 90), Need = { Index = 35 } },
 	{ Id = "Palace", Name = "🏰 Palace Owner", Color = Color3.fromRGB(210, 140, 255), Need = { HouseLevel = 5 } },
 	{ Id = "Tycoon", Name = "💰 Tycoon", Color = Color3.fromRGB(255, 215, 60), Need = { LifetimeCoins = 1000000000 } },
+	{ Id = "MeteorHunter", Name = "☄️ Meteor Hunter", Color = Color3.fromRGB(255, 150, 70), Need = { Meteors = 25 } },
+	{ Id = "StarRunner", Name = "🌠 Star Runner", Color = Color3.fromRGB(140, 210, 255), Need = { Delivered = 25 } },
 	{ Id = "Lucky", Name = "🍀 Lucky Charm", Color = Color3.fromRGB(120, 255, 140), Need = { Lucky = 25 } },
 	{ Id = "Prankster", Name = "🎭 Prankster", Color = Color3.fromRGB(255, 170, 90), Need = { Pranks = 10 } },
 	{ Id = "Titanic", Name = "🗿 Titanic Owner", Color = Color3.fromRGB(255, 120, 60), Need = { Titanic = 1 } },
@@ -856,6 +899,7 @@ Config.Levels = {
 Config.Events = {
 	IntervalSeconds = 300,
 	DurationSeconds = 75,
+	RaidEvery = 3, -- every 3rd event is 🌙 Thief Night (the only time homes can be raided)
 	List = {
 		{
 			Id = "Frenzy",
@@ -914,10 +958,14 @@ Config.Events = {
 		{
 			Id = "ThiefNight",
 			Name = "🌙 THIEF NIGHT",
-			Description = "Stolen pets pay a bonus! (vault pets stay safe)",
+			Description = "Homes can be raided! 🔒 Vault pets stay safe.",
 			Color = Color3.fromRGB(150, 120, 255),
 			StealBonus = 120, -- seconds of the pet's income paid on delivery
 			Night = true,
+			Raid = true, -- display pets can be stolen only now
+			Warn = 20, -- announced 20s early: put your best pets in the vault
+			Duration = 120,
+			NoRandom = true, -- only via RaidEvery
 		},
 	},
 }
@@ -925,9 +973,9 @@ Config.Events = {
 -- 🍀 lucky blocks: drop in the hub + on the avenue every few minutes. Open one
 -- for a random surprise (coins, gems, boosts, pets, a HUGE pet... or a prank)
 Config.LuckyBlocks = {
-	MinInterval = 240,
-	MaxInterval = 420,
-	Count = 4,
+	MinInterval = 360,
+	MaxInterval = 600,
+	Count = 3,
 	Lifetime = 150,
 	OpenHold = 0.8,
 	Outcomes = {
@@ -951,12 +999,15 @@ Config.LuckyBlocks = {
 Config.WeeklyParty = { WeekDay = 7, HourUTC = 11, Minutes = 20, RainEvery = 120 }
 
 -- first-time tutorial: one clear goal at a time, small reward per step
+-- first five minutes: the best moment (smashing a meteor) comes first
 Config.Tutorial = {
+	Version = 2, -- saves mid-way through an older tutorial restart at step 1
 	Steps = {
-		{ Id = "Mine", Target = 8, Text = "Tap ore blocks to mine them", Reward = { Coins = 150 } },
-		{ Id = "Pickaxe", Target = 1, Text = "Buy a better pickaxe at the shop", Reward = { Coins = 300 } },
-		{ Id = "Hatch", Target = 1, Text = "Hatch your first pet from the Meadow Egg", Reward = { Gems = 30 } },
-		{ Id = "Shard", Target = 1, Text = "Grab the falling star 🌠 and carry it to your base 🏠", Reward = { Gems = 50 } },
+		{ Id = "Meteor", Target = 1, Text = "A meteor fell! Smash it with your pickaxe ☄️", Reward = { Coins = 100 } },
+		{ Id = "Grab", Target = 1, Text = "Grab the star egg 🥚 that popped out!", Reward = { Coins = 50 } },
+		{ Id = "Shard", Target = 1, Text = "Run home 🏠 with it - it hatches there!", Reward = { Gems = 30 } },
+		{ Id = "Mine", Target = 5, Text = "Mine ore for coins while you wait for meteors", Reward = { Coins = 150 } },
+		{ Id = "Pickaxe", Target = 1, Text = "Buy a better pickaxe - hit meteors harder!", Reward = { Coins = 300 } },
 	},
 	FinalReward = { Gems = 100, Boost = { "Coins2x", 600 } },
 }
@@ -987,7 +1038,7 @@ Config.Shards = {
 	GroundLifetime = 90,
 	ReturnSeconds = 10, -- a dropped STOLEN shard flies home if nobody grabs it
 	RegrabDelay = 1.5, -- the player who dropped it can't grab it back instantly
-	FallingStar = { MinInterval = 40, MaxInterval = 70, HubChance = 0.25, LuckPerZone = 0.6 },
+	FallingStar = { MinInterval = 180, MaxInterval = 300, HubChance = 0.25, LuckPerZone = 0.6 }, -- (a bonus between meteors)
 	Meteor = { Count = 4, PerParticipant = 1, Max = 10, Luck = 3, TopPriority = 5 },
 }
 
@@ -1003,7 +1054,7 @@ Config.Base = {
 	-- price of the Nth pedestal (first 3 are free)
 	PedestalCosts = { 0, 0, 0, 500, 3000, 15000, 75000, 400000, 2000000, 10000000, 50000000, 250000000 },
 	-- vault pedestals: pets on them can NEVER be stolen, but earn less
-	VaultIncome = 0.5,
+	VaultIncome = 1,
 	VaultCosts = { 0, 2500, 40000, 600000, 8000000, 90000000 },
 	VipVaults = 1, -- VIP: +1 vault pedestal
 	StorageMax = 10, -- (legacy)
@@ -1363,7 +1414,7 @@ Config.Spin = {
 }
 
 -- promo codes: post them on YouTube / TikTok / Discord / group wall.
--- Players search "Meteor Miners codes" -> free marketing. ExpiresAt = unix time (0 = never)
+-- Players search "Meteor Rush codes" -> free marketing. ExpiresAt = unix time (0 = never)
 Config.Codes = {
 	RELEASE = { Reward = { Gems = 250 }, ExpiresAt = 0 },
 	METEOR = { Reward = { Stardust = 200 }, ExpiresAt = 0 },

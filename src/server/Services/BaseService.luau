@@ -945,6 +945,14 @@ function Base:Protection(owner: Player): string?
 		return "none"
 	end
 	local t = now()
+	if beingRobbed(data) then
+		return "robbing"
+	end
+	-- 🏠 homes are safe - raids only happen on 🌙 Thief Night
+	local events = Services.EventService
+	if not (events and events:RaidActive()) then
+		return "safe"
+	end
 	if plot.LockedUntil > t then
 		return "locked"
 	end
@@ -953,9 +961,6 @@ function Base:Protection(owner: Player): string?
 	end
 	if plot.ShieldUntil > t then
 		return "shield"
-	end
-	if beingRobbed(data) then
-		return "robbing"
 	end
 	return nil
 end
@@ -1003,6 +1008,7 @@ function Base:Bounty(thief: Player): number
 end
 
 local STATUS_TEXT = {
+	safe = "🏠 SAFE",
 	locked = "🔒 LOCKED",
 	newbie = "🛡️ NEWBIE SHIELD",
 	shield = "🛡️ THEFT SHIELD",
@@ -1205,6 +1211,7 @@ function Base:SellPet(player: Player, petId: number)
 end
 
 local PROTECTION_MESSAGES = {
+	safe = "🏠 Homes are safe! Raids only happen on 🌙 Thief Night.",
 	locked = "🔒 This base is locked!",
 	newbie = "🛡️ This player is new - their base is protected for now.",
 	shield = "🛡️ This base was just robbed - it's protected for a few minutes.",
@@ -1408,6 +1415,15 @@ function Base:Lock(player: Player)
 	end
 	local t = now()
 	if plot.LockedUntil > t or plot.LockReadyAt > t then
+		return
+	end
+	local events = Services.EventService
+	if not (events and events:RaidActive()) then
+		-- (don't waste the lock: homes can only be raided on Thief Night)
+		if debounced(player, "lockhint", 8) then
+			return
+		end
+		Net:Notify(player, "🏠 Your home is safe right now - save the lock for 🌙 Thief Night!", Color3.fromRGB(150, 230, 160))
 		return
 	end
 	local seconds = self:LockSeconds(player, data)

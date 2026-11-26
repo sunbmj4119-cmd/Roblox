@@ -35,7 +35,9 @@ local function build()
 			"Lucky",
 			"Party",
 			"Event",
+			"Raid",
 			"Meteor",
+			"Golden",
 			"Reset",
 		}
 	do

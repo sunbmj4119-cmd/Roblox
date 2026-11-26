@@ -570,7 +570,10 @@ local function onSwing(player: Player, hint)
 		end
 	end
 
-	-- 2) meteor event
+	-- 2) meteor event (or the new player's own tutorial meteor)
+	if meteor:HasTutorialMeteor(player) and meteor:TutorialHit(player, root.Position) then
+		return
+	end
 	if meteor:IsActive() and meteor:InRange(root.Position) then
 		meteor:Hit(player, Services.StatsService:Damage(player, data), cooldown)
 		return

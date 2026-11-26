@@ -1,34 +1,57 @@
 --[[
-	MeteorService: the server-wide competitive event.
-	Every few minutes (or when someone buys "Summon Meteor") a meteor crashes
-	into the hub crater. Everyone races to hit it; score per hit is
-	1 + log10(damage) so new players can still compete with veterans.
-	Top 3 get big stardust/gem rewards + weekly ranked points, everyone who
-	participates gets a share. Stardust buys the exclusive Cosmic Egg.
+	MeteorService: ☄️ METEOR RUSH - the heart of the game (docs/METEOR_RUSH.md).
+
+	Every ~3 minutes:
+	  1) WARNING (20s): a landing marker (red ring + light pillar + countdown)
+	     appears at a random site - the hub, the base avenue or a mine zone.
+	     "GO" (only now) teleports you to that area's entrance.
+	  2) FALLING: the meteor crashes in (camera shake).
+	  3) ACTIVE: everyone smashes it; score per hit = 1 + log10(damage), the
+	     HP grows with every new participant so a crack takes ~30-40s.
+	  4) BURST: star eggs of the meteor's kind (the top 3 get a head start,
+	     the best eggs get a guardian), coin chunks, sometimes a lucky block.
+	  Then the race home: carriers can be bonked and drop their egg.
+
+	Meteor kind = a zone's eggs (🌿 Meadow ... 🌌 Cosmic); size Small / Big /
+	Giant; 8% are ✨ GOLDEN (2x egg luck, 3x coin chunks). Cracking a kind for
+	the first time fills the meteor index (+💎).
+
+	New players get a small TUTORIAL meteor of their own next to the spawn.
 ]]
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Util = require(Shared.Util)
 local Net = require(script.Parent.Net)
 
 local Meteor = {}
 local Services
 local Data
+local World
 
 local settings = Config.Meteor
+local rng = Random.new()
 local state = "Idle" -- Idle | Warning | Falling | Active | Ending
-local nextAt = os.time() + math.min(150, settings.IntervalSeconds)
+local nextAt = os.time() + (settings.FirstSeconds or settings.IntervalSeconds)
 local warnEnd = 0
 local endsAt = 0
 local hp, maxHp = 0, 0
 local scores = {} -- [player] = score
 local meteorPart: BasePart? = nil
+local marker: Model? = nil
 local summoner: Player? = nil
 local summonQueue = {}
+local special = nil -- forced size / golden for the next meteor (party "mega meteor")
+local current = nil -- the meteor of this round (site, kind, size, golden)
+local tutorialMeteors = {} -- [player] = { Part, Hits, Label }
+local chunks = {} -- [part] = { Golden = bool }
+
+local SITE_NAMES = { Hub = "Hub", Avenue = "Base Avenue" }
 
 local function setAttributes()
 	workspace:SetAttribute("MeteorState", state)
@@ -37,17 +60,29 @@ local function setAttributes()
 	workspace:SetAttribute("MeteorEnd", endsAt)
 	workspace:SetAttribute("MeteorHP", hp)
 	workspace:SetAttribute("MeteorMaxHP", maxHp)
+	workspace:SetAttribute("MeteorKind", if current then settings.Kinds[current.Kind].Name else "")
+	workspace:SetAttribute("MeteorIcon", if current then settings.Kinds[current.Kind].Icon else "")
+	workspace:SetAttribute("MeteorSize", if current then current.Size.Name else "")
+	workspace:SetAttribute("MeteorGolden", current ~= nil and current.Golden)
+	workspace:SetAttribute("MeteorSite", if current then current.SiteName else "")
+	workspace:SetAttribute("MeteorSiteZone", if current then current.SiteZone else 0)
+	workspace:SetAttribute("MeteorPos", if current then current.Position else Vector3.zero)
+	workspace:SetAttribute("MeteorRadius", if current then current.Size.Radius else settings.Radius)
 end
 
 function Meteor:IsActive(): boolean
 	return state == "Active"
 end
 
+function Meteor:Current()
+	return current
+end
+
 function Meteor:InRange(position: Vector3): boolean
-	if not meteorPart then
+	if not meteorPart or not current then
 		return false
 	end
-	return (position - meteorPart.Position).Magnitude <= settings.Radius + Config.World.Reach + 2
+	return (position - meteorPart.Position).Magnitude <= current.Size.Radius + Config.World.Reach + 2
 end
 
 local function ranking()
@@ -63,24 +98,84 @@ local function ranking()
 	return list
 end
 
-local function buildMeteor(): BasePart
+local function maxZoneInServer(): number
+	local best = 1
+	for _, player in Data:LoadedPlayers() do
+		local data = Data:Get(player)
+		if data then
+			best = math.max(best, data.ZoneLevel)
+		end
+	end
+	return math.clamp(best, 1, math.min(#Config.Zones, #settings.Kinds))
+end
+
+local function weighted(list)
+	local entries = {}
+	for index, entry in list do
+		table.insert(entries, { index, entry.Weight })
+	end
+	return list[Util.WeightedPick(entries, nil, rng)]
+end
+
+-- where (and what) the next meteor is
+function Meteor:PickSite(forceType: string?, forceZone: number?)
+	local maxZone = maxZoneInServer()
+	local siteType = forceType or weighted(settings.Sites).Kind
+	local position, siteName, siteZone, lootZone
+	if siteType == "Zone" and World.Zones[1] then
+		siteZone = if forceZone and World.Zones[forceZone] then forceZone else rng:NextInteger(1, maxZone)
+		local info = World.Zones[siteZone]
+		position = Vector3.new(rng:NextNumber(-30, 30), 0, rng:NextNumber(info.ZStart + 22, info.ZEnd - 16))
+		siteName = Config.Zones[siteZone].Name
+		lootZone = siteZone
+	elseif siteType == "Avenue" then
+		local xs = settings.AvenueX
+		position = Vector3.new(xs[rng:NextInteger(1, #xs)], 0, Util.AvenueZ(Config))
+		siteName = SITE_NAMES.Avenue
+		siteZone = 0
+		lootZone = rng:NextInteger(1, maxZone)
+	else
+		siteType = "Hub"
+		local spots = settings.HubSpots
+		position = spots[rng:NextInteger(1, #spots)]
+		siteName = SITE_NAMES.Hub
+		siteZone = 0
+		lootZone = rng:NextInteger(1, maxZone)
+	end
+	local size = weighted(settings.Sizes)
+	return {
+		Type = siteType,
+		SiteName = siteName,
+		SiteZone = siteZone,
+		Position = position,
+		Kind = lootZone,
+		Size = size,
+		Golden = rng:NextNumber() < settings.GoldenChance,
+	}
+end
+
+---------------------------------------------------------------------------
+-- models
+---------------------------------------------------------------------------
+local function buildMeteor(radius: number, color: Color3, golden: boolean): BasePart
 	local part = Instance.new("Part")
 	part.Name = "Meteor"
 	part.Shape = Enum.PartType.Ball
-	part.Size = Vector3.one * settings.Radius * 2
-	part.Material = Enum.Material.Basalt
-	part.Color = Color3.fromRGB(70, 50, 45)
+	part.Size = Vector3.one * radius * 2
+	part.Material = if golden then Enum.Material.Foil else Enum.Material.Basalt
+	part.Color = if golden then Color3.fromRGB(255, 200, 60) else Color3.fromRGB(70, 50, 45)
 	part.Anchored = true
 	part.CanCollide = true
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
+	part:SetAttribute("Radius", radius)
 
 	local core = Instance.new("Part")
 	core.Name = "Core"
 	core.Shape = Enum.PartType.Ball
 	core.Size = part.Size * 0.85
 	core.Material = Enum.Material.Neon
-	core.Color = Color3.fromRGB(255, 120, 40)
+	core.Color = if golden then Color3.fromRGB(255, 230, 120) else color
 	core.Transparency = 0.35
 	core.Anchored = true
 	core.CanCollide = false
@@ -88,22 +183,22 @@ local function buildMeteor(): BasePart
 	core.Parent = part
 
 	local light = Instance.new("PointLight")
-	light.Color = Color3.fromRGB(255, 140, 60)
+	light.Color = core.Color
 	light.Range = 40
 	light.Brightness = 3
 	light.Parent = part
 
 	local fire = Instance.new("Fire")
-	fire.Size = settings.Radius * 1.6
+	fire.Size = radius * 1.6
 	fire.Heat = 12
-	fire.Color = Color3.fromRGB(255, 120, 40)
+	fire.Color = color
 	fire.SecondaryColor = Color3.fromRGB(255, 220, 80)
 	fire.Parent = part
 
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "HPBar"
 	gui.Size = UDim2.new(18, 0, 2, 0)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, settings.Radius + 5, 0)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, radius + 5, 0)
 	gui.AlwaysOnTop = true
 	gui.MaxDistance = 250
 	local back = Instance.new("Frame")
@@ -116,7 +211,7 @@ local function buildMeteor(): BasePart
 	local fill = Instance.new("Frame")
 	fill.Name = "Fill"
 	fill.Size = UDim2.fromScale(1, 1)
-	fill.BackgroundColor3 = Color3.fromRGB(255, 120, 40)
+	fill.BackgroundColor3 = core.Color
 	fill.BorderSizePixel = 0
 	local fillCorner = Instance.new("UICorner")
 	fillCorner.CornerRadius = UDim.new(0.5, 0)
@@ -130,7 +225,6 @@ local function buildMeteor(): BasePart
 	text.TextScaled = true
 	text.TextColor3 = Color3.new(1, 1, 1)
 	text.Text = "☄️ METEOR"
-	text:SetAttribute("LangFmt", "☄️ METEOR")
 	text.ZIndex = 2
 	local stroke = Instance.new("UIStroke")
 	stroke.Thickness = 2
@@ -139,6 +233,71 @@ local function buildMeteor(): BasePart
 	back.Parent = gui
 	gui.Parent = part
 	return part
+end
+
+-- the landing marker everybody runs to: red ring, light pillar, countdown
+local function buildMarker(site): Model
+	local model = Instance.new("Model")
+	model.Name = "MeteorMarker"
+	local color = if site.Golden then Color3.fromRGB(255, 210, 70) else settings.Kinds[site.Kind].Color
+	local diameter = site.Size.Radius * 2 + 8
+	local ring = Instance.new("Part")
+	ring.Name = "Ring"
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.Material = Enum.Material.Neon
+	ring.Color = Color3.fromRGB(255, 70, 60)
+	ring.Transparency = 0.35
+	ring.Size = Vector3.new(0.3, diameter, diameter)
+	ring.CFrame = CFrame.new(site.Position + Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Parent = model
+	local pillar = Instance.new("Part")
+	pillar.Name = "Pillar"
+	pillar.Shape = Enum.PartType.Cylinder
+	pillar.Anchored = true
+	pillar.CanCollide = false
+	pillar.CanQuery = false
+	pillar.CanTouch = false
+	pillar.Material = Enum.Material.Neon
+	pillar.Color = color
+	pillar.Transparency = 0.55
+	pillar.Size = Vector3.new(220, 3, 3)
+	pillar.CFrame = CFrame.new(site.Position + Vector3.new(0, 110, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	pillar.Parent = model
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "Countdown"
+	gui.Size = UDim2.fromOffset(230, 56)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 12, 0)
+	gui.AlwaysOnTop = true
+	gui.MaxDistance = 1500
+	gui.LightInfluence = 0
+	local label = Instance.new("TextLabel")
+	label.Name = "Text"
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.FredokaOne
+	label.TextScaled = true
+	label.TextColor3 = color
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 3
+	stroke.Parent = label
+	label.Parent = gui
+	gui.Parent = ring
+	model.PrimaryPart = ring
+	model.Parent = World:Folder("Drops")
+	return model
+end
+
+local function updateMarker()
+	local gui = marker and marker.PrimaryPart and marker.PrimaryPart:FindFirstChild("Countdown")
+	local label = gui and gui:FindFirstChild("Text")
+	if label and current then
+		local kind = settings.Kinds[current.Kind]
+		World.SetText(label, "☄️ %s %s  %ds", kind.Icon, kind.Name, math.max(0, warnEnd - os.time()))
+	end
 end
 
 local function updateBar()
@@ -150,18 +309,18 @@ local function updateBar()
 	if back then
 		local ratio = if maxHp > 0 then math.clamp(hp / maxHp, 0, 1) else 0
 		(back :: any).Fill.Size = UDim2.fromScale(ratio, 1)
-		Services.WorldService.SetText((back :: any).Text, "☄️ METEOR  %s%%", math.ceil(ratio * 100))
+		World.SetText((back :: any).Text, "☄️ METEOR  %s%%", math.ceil(ratio * 100))
 	end
 end
 
-local function shatter(position: Vector3)
-	local folder = Services.WorldService:Folder("Drops")
+local function shatter(position: Vector3, color: Color3?)
+	local folder = World:Folder("Drops")
 	for _ = 1, 14 do
 		local chunk = Instance.new("Part")
 		chunk.Name = "MeteorChunk"
 		chunk.Size = Vector3.one * math.random(15, 35) / 10
 		chunk.Material = Enum.Material.Basalt
-		chunk.Color = Color3.fromRGB(80, 55, 45)
+		chunk.Color = color or Color3.fromRGB(80, 55, 45)
 		chunk.CanCollide = false
 		chunk.CanQuery = false
 		chunk.Position = position + Vector3.new(math.random(-4, 4), math.random(0, 4), math.random(-4, 4))
@@ -177,6 +336,78 @@ local function shatter(position: Vector3)
 	explosion.Parent = workspace
 end
 
+---------------------------------------------------------------------------
+-- coin chunks: walk over them for instant coins (scaled to your base)
+---------------------------------------------------------------------------
+function Meteor:ClaimChunk(player: Player, part: BasePart): number?
+	local info = chunks[part]
+	local data = Data:Get(player)
+	if not info or not data then
+		return nil
+	end
+	chunks[part] = nil
+	part:Destroy()
+	local cfg = settings.Chunks
+	local rate = Services.BaseService:IncomeRate(player, data)
+	local amount = math.max(cfg.Min, math.floor(rate * cfg.Seconds))
+	if info.Golden then
+		amount *= cfg.GoldenMult
+	end
+	data.Coins += amount
+	data.Stats.LifetimeCoins += amount
+	Services.Analytics:Economy(player, "Source", "Coins", amount, data.Coins, "Gameplay", "MeteorChunk")
+	Net:Send(player, "Sold", amount)
+	Data:MarkDirty(player)
+	return amount
+end
+
+local function spawnChunks(position: Vector3, count: number, golden: boolean, narrow: boolean?)
+	local folder = World:Folder("Drops")
+	for i = 1, count do
+		local angle = (i / count) * math.pi * 2 + rng:NextNumber(-0.3, 0.3)
+		local radius = rng:NextNumber(5, 13)
+		local squash = if narrow then 0.6 else 1
+		local part = Instance.new("Part")
+		part.Name = "CoinChunk"
+		part.Shape = Enum.PartType.Ball
+		part.Size = Vector3.one * 1.6
+		part.Material = Enum.Material.Neon
+		part.Color = if golden then Color3.fromRGB(255, 235, 120) else Color3.fromRGB(255, 200, 60)
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = true
+		part.CFrame = CFrame.new(position.X + math.cos(angle) * radius, 1, position.Z + math.sin(angle) * radius * squash)
+		local sparkle = Instance.new("Sparkles")
+		sparkle.SparkleColor = part.Color
+		sparkle.Parent = part
+		part.Parent = folder
+		chunks[part] = { Golden = golden }
+		part.Touched:Connect(function(hit)
+			local character = hit:FindFirstAncestorOfClass("Model")
+			local player = character and Players:GetPlayerFromCharacter(character)
+			if player then
+				Meteor:ClaimChunk(player, part)
+			end
+		end)
+		task.delay(settings.Chunks.Lifetime, function()
+			if chunks[part] then
+				chunks[part] = nil
+				part:Destroy()
+			end
+		end)
+	end
+end
+Meteor.SpawnChunks = spawnChunks
+
+function Meteor:ChunksForTest()
+	assert(not RunService:IsRunning(), "test hook used on a live server")
+	return chunks
+end
+
+---------------------------------------------------------------------------
+-- the round
+---------------------------------------------------------------------------
 local function finish(destroyed: boolean)
 	if state ~= "Active" then
 		return
@@ -190,6 +421,7 @@ local function finish(destroyed: boolean)
 	local mult = if destroyed then 1 else settings.FailedMultiplier
 	local progression = Services.ProgressionService
 	local topNames = {}
+	local kind = current and settings.Kinds[current.Kind]
 
 	for place, entry in list do
 		local player = entry.Player
@@ -211,6 +443,16 @@ local function finish(destroyed: boolean)
 			if player == summoner then
 				stardust *= 2
 			end
+			-- ☄️ meteor index: first crack of a kind pays extra
+			local firstCrack = false
+			if destroyed and current then
+				local key = tostring(current.Kind)
+				firstCrack = (data.MeteorIndex[key] or 0) == 0
+				data.MeteorIndex[key] = (data.MeteorIndex[key] or 0) + 1
+				if firstCrack then
+					gems += settings.FirstCrackGems
+				end
+			end
 			data.Stardust += stardust
 			data.Gems += gems
 			data.Stats.MeteorJoins += 1
@@ -230,6 +472,9 @@ local function finish(destroyed: boolean)
 				Gems = gems,
 				Points = points,
 				Destroyed = destroyed,
+				Kind = kind and kind.Name,
+				Icon = kind and kind.Icon,
+				FirstCrack = firstCrack,
 			})
 			Data:MarkDirty(player)
 		end
@@ -240,27 +485,42 @@ local function finish(destroyed: boolean)
 	for i, name in topNames do
 		table.insert(parts, medals[i] .. " " .. name)
 	end
-	local headline = if destroyed then "☄️ Meteor destroyed! %s" else "☄️ The meteor escaped! %s"
+	local headline = if destroyed then "☄️ Meteor smashed! Grab the star eggs! %s" else "☄️ The meteor escaped! %s"
 	Net:Announce(headline, Color3.fromRGB(255, 170, 80), table.concat(parts, "  "))
 
+	local ground = if current then current.Position else settings.Position
 	if meteorPart then
 		local position = meteorPart.Position
 		meteorPart:Destroy()
 		meteorPart = nil
-		shatter(position)
+		shatter(position, kind and kind.Color)
 	end
-	if destroyed then
-		-- the big payoff: a burst of star shards to race for
+	if destroyed and current then
+		local spill = settings.Spill
+		-- the big payoff: star eggs to race for, coin chunks, maybe a lucky block
 		local ok, err = pcall(function()
-			Services.ShardService:SpillMeteor(Vector3.new(settings.Position.X, 0, settings.Position.Z), list)
+			Services.ShardService:SpillMeteor(Vector3.new(ground.X, 0, ground.Z), list, {
+				Egg = kind.Egg,
+				Luck = spill.Luck * (if current.Golden then spill.GoldenLuck else 1),
+				Extra = current.Size.Eggs,
+				Narrow = current.Type == "Avenue",
+			})
 		end)
 		if not ok then
-			warn("[Meteor] shard spill failed: " .. tostring(err))
+			warn("[Meteor] egg spill failed: " .. tostring(err))
 		end
+		local narrow = current.Type == "Avenue"
+		spawnChunks(Vector3.new(ground.X, 0, ground.Z), settings.Chunks.Count, current.Golden, narrow)
+		if rng:NextNumber() < spill.LuckyChance and Services.LuckyService then
+			local offset = if narrow then Vector3.new(16, 0, 0) else Vector3.new(rng:NextNumber(-8, 8), 0, 14)
+			pcall(Services.LuckyService.Spawn, Services.LuckyService, Vector3.new(ground.X, 0, ground.Z) + offset)
+		end
+		workspace:SetAttribute("MeteorLootUntil", os.time() + 25)
 	end
 	scores = {}
 	summoner = nil
 	hp, maxHp = 0, 0
+	current = nil
 	state = "Idle"
 	nextAt = os.time() + settings.IntervalSeconds
 	setAttributes()
@@ -273,9 +533,14 @@ local function resetToIdle()
 		meteorPart:Destroy()
 		meteorPart = nil
 	end
+	if marker then
+		marker:Destroy()
+		marker = nil
+	end
 	scores = {}
 	summoner = nil
 	hp, maxHp = 0, 0
+	current = nil
 	state = "Idle"
 	nextAt = os.time() + settings.IntervalSeconds
 	setAttributes()
@@ -293,13 +558,13 @@ end
 -- cooldown is the attacker's swing cooldown, used to size the meteor so the
 -- event lasts about SecondsPerParticipant no matter how strong players are
 function Meteor:Hit(player: Player, damage: number, cooldown: number?)
-	if state ~= "Active" then
+	if state ~= "Active" or not current then
 		return
 	end
 	local score = 1 + math.log10(math.max(1, damage))
 	if not scores[player] then
 		-- each new participant makes the meteor tougher by ~N seconds of their own hitting
-		local extra = settings.SecondsPerParticipant * score / math.max(0.2, cooldown or 0.5)
+		local extra = settings.SecondsPerParticipant * current.Size.HP * score / math.max(0.2, cooldown or 0.5)
 		maxHp += extra
 		hp += extra
 		workspace:SetAttribute("MeteorMaxHP", maxHp)
@@ -323,34 +588,79 @@ function Meteor:Summon(player: Player)
 	end
 end
 
-local function startWarning()
+-- the party's MEGA meteor: the next one is giant + golden, and comes soon
+function Meteor:QueueSpecial(sizeId: string, golden: boolean)
+	special = { Size = sizeId, Golden = golden }
+	if state == "Idle" then
+		nextAt = math.min(nextAt, os.time() + 10)
+		setAttributes()
+	end
+end
+
+local function startWarning(forced)
 	local summoned = table.remove(summonQueue, 1)
 	if summoned and not summoned.Parent then
 		summoned = nil
 	end
 	summoner = summoned
+	if summoned and not forced then
+		-- a summoned meteor lands where its summoner is (hub / avenue / their mine)
+		local character = summoned.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		local position = if root and root:IsA("BasePart") then root.Position else nil
+		local zone = position and Util.ZoneAt(Config, position)
+		if zone and zone > 0 then
+			forced = Meteor:PickSite("Zone", zone)
+		elseif position and Util.InBases(Config, position) then
+			forced = Meteor:PickSite("Avenue")
+		else
+			forced = Meteor:PickSite("Hub")
+		end
+	end
+	current = forced or Meteor:PickSite()
+	if special then
+		for _, size in settings.Sizes do
+			if size.Id == special.Size then
+				current.Size = size
+			end
+		end
+		current.Golden = current.Golden or special.Golden
+		special = nil
+	end
 	state = "Warning"
 	warnEnd = os.time() + (if summoned then settings.SummonWarningSeconds else settings.WarningSeconds)
+	if marker then
+		marker:Destroy()
+	end
+	marker = buildMarker(current)
+	updateMarker()
 	setAttributes()
+	local kind = settings.Kinds[current.Kind]
+	local seconds = warnEnd - os.time()
 	if summoned then
 		Net:Announce(
-			"☄️ %s SUMMONED A METEOR! Get to the crater! (%ds)",
+			"☄️ %s SUMMONED A METEOR! It lands on %s! (%ds)",
 			Color3.fromRGB(255, 150, 60),
 			summoned.DisplayName,
-			warnEnd - os.time()
+			current.SiteName,
+			seconds
 		)
+	elseif current.Golden then
+		Net:Announce("✨ A GOLDEN %s is falling on %s! (%ds)", Color3.fromRGB(255, 215, 80), kind.Name, current.SiteName, seconds)
 	else
-		Net:Announce("☄️ A METEOR is about to crash into the crater! (%ds)", Color3.fromRGB(255, 150, 60), warnEnd - os.time())
+		Net:Announce("☄️ A %s %s is falling on %s! (%ds)", kind.Color, current.Size.Name, kind.Name, current.SiteName, seconds)
 	end
 end
 
 local function startFalling()
 	state = "Falling"
 	setAttributes()
-	local final = settings.Position + Vector3.new(0, settings.Radius * 0.6, 0)
-	local part = buildMeteor()
+	local kind = settings.Kinds[current.Kind]
+	local radius = current.Size.Radius
+	local final = current.Position + Vector3.new(0, radius * 0.6, 0)
+	local part = buildMeteor(radius, kind.Color, current.Golden)
 	part.Position = final + Vector3.new(60, 320, 40)
-	part.Parent = Services.WorldService:Folder("Drops")
+	part.Parent = World:Folder("Drops")
 	meteorPart = part
 	local core = part:FindFirstChild("Core") :: BasePart
 	core.Position = part.Position
@@ -358,6 +668,10 @@ local function startFalling()
 	TweenService:Create(part, info, { Position = final }):Play()
 	TweenService:Create(core, info, { Position = final }):Play()
 	task.wait(2.25)
+	if marker then
+		marker:Destroy()
+		marker = nil
+	end
 	local explosion = Instance.new("Explosion")
 	explosion.Position = final
 	explosion.BlastPressure = 0
@@ -366,7 +680,7 @@ local function startFalling()
 	explosion.Parent = workspace
 	Net:Broadcast("MeteorImpact", final)
 
-	maxHp = settings.BaseHP
+	maxHp = settings.BaseHP * current.Size.HP
 	hp = maxHp
 	scores = {}
 	endsAt = os.time() + settings.DurationSeconds
@@ -375,22 +689,124 @@ local function startFalling()
 	updateBar()
 end
 
+---------------------------------------------------------------------------
+-- tutorial: a small meteor just for one player, next to the spawn
+---------------------------------------------------------------------------
+function Meteor:TutorialMeteor(player: Player)
+	if tutorialMeteors[player] then
+		return
+	end
+	local cfg = settings.Tutorial
+	local position = cfg.Position + Vector3.new(rng:NextNumber(-5, 5), 0, rng:NextNumber(-4, 4))
+	local entry = { Hits = 0 }
+	tutorialMeteors[player] = entry
+	Net:Send(player, "StarFall", position, "Epic", 1.4)
+	task.delay(1.4, function()
+		if tutorialMeteors[player] ~= entry or not player.Parent then
+			return
+		end
+		local kind = settings.Kinds[1]
+		local part = buildMeteor(cfg.Radius, kind.Color, false)
+		part.Name = "TutorialMeteor_" .. tostring(player.UserId)
+		part:SetAttribute("OwnerId", player.UserId)
+		part.Position = position + Vector3.new(0, cfg.Radius * 0.6, 0)
+		local core = part:FindFirstChild("Core") :: BasePart
+		core.Position = part.Position
+		part.Parent = World:Folder("Drops")
+		entry.Part = part
+		local gui = part:FindFirstChild("HPBar")
+		local back = gui and gui:FindFirstChildOfClass("Frame")
+		entry.Back = back
+		if back then
+			World.SetText((back :: any).Text, "☄️ %d", cfg.Hits)
+		end
+		Net:Send(player, "MeteorImpact", part.Position)
+		Net:Notify(player, "☄️ A meteor fell just for you! Smash it!", Color3.fromRGB(255, 170, 80))
+	end)
+end
+
+-- returns true when the swing hit the player's tutorial meteor
+function Meteor:TutorialHit(player: Player, position: Vector3): boolean
+	local entry = tutorialMeteors[player]
+	local part = entry and entry.Part
+	if not part or not part.Parent then
+		return false
+	end
+	local cfg = settings.Tutorial
+	if (position - part.Position).Magnitude > cfg.Radius + Config.World.Reach + 2 then
+		return false
+	end
+	entry.Hits += 1
+	local left = cfg.Hits - entry.Hits
+	Net:Send(player, "MeteorHit", 1)
+	if entry.Back then
+		(entry.Back :: any).Fill.Size = UDim2.fromScale(math.max(0, left / cfg.Hits), 1)
+		World.SetText((entry.Back :: any).Text, "☄️ %d", math.max(0, left))
+	end
+	if left > 0 then
+		return true
+	end
+	-- cracked! a star egg (only you can grab it first) + a few coin chunks
+	tutorialMeteors[player] = nil
+	local ground = Vector3.new(part.Position.X, 0, part.Position.Z)
+	part:Destroy()
+	shatter(ground + Vector3.new(0, 2, 0), settings.Kinds[1].Color)
+	Net:Send(player, "MeteorImpact", ground)
+	spawnChunks(ground, 3, false)
+	-- the next tutorial step ("Grab") drops the star egg right here
+	Services.ProgressionService:TutorialEvent(player, "Meteor", 1, { Position = ground + Vector3.new(0, 0, 7) })
+	return true
+end
+
+function Meteor:HasTutorialMeteor(player: Player): boolean
+	return tutorialMeteors[player] ~= nil
+end
+
+---------------------------------------------------------------------------
+-- cloud tests only
+---------------------------------------------------------------------------
+-- start a meteor at a site type now; skipWarning = it falls right away
+function Meteor:LaunchForTest(siteType: string?, skipWarning: boolean?)
+	assert(not RunService:IsRunning(), "test hook used on a live server")
+	resetToIdle()
+	startWarning(self:PickSite(siteType))
+	if skipWarning then
+		warnEnd = os.time()
+	else
+		warnEnd = os.time() + 60
+	end
+	setAttributes()
+	return current
+end
+
+function Meteor:StateForTest(): string
+	return state
+end
+
+---------------------------------------------------------------------------
 function Meteor:Init(services)
 	Services = services
 	Data = services.DataService
+	World = services.WorldService
 end
 
 function Meteor:Start()
 	setAttributes()
+	workspace:SetAttribute("MeteorLootUntil", 0)
 	task.spawn(function()
 		local lastRankPush = 0
+		local lastMarker = 0
 		local function step()
 			local now = os.time()
 			if state == "Idle" then
 				if now >= nextAt or #summonQueue > 0 then
-					startWarning()
+					startWarning(nil)
 				end
 			elseif state == "Warning" then
+				if now ~= lastMarker then
+					lastMarker = now
+					updateMarker()
+				end
 				if now >= warnEnd then
 					startFalling()
 				end
@@ -430,13 +846,38 @@ function Meteor:Start()
 
 	Players.PlayerRemoving:Connect(function(player)
 		scores[player] = nil
+		local entry = tutorialMeteors[player]
+		tutorialMeteors[player] = nil
+		if entry and entry.Part then
+			entry.Part:Destroy()
+		end
 	end)
 
+	-- "GO": during the warning only, to the entrance of the landing area
+	-- (you still have to run the last bit - that's the rush)
 	Net:On("GoToMeteor", 2, function(player)
 		local character = player.Character
-		if character and (state == "Warning" or state == "Falling" or state == "Active") then
-			character:PivotTo(CFrame.new(settings.Position + Vector3.new(0, 4, -18)))
+		local data = Data:Get(player)
+		if not character or not data or not current or state ~= "Warning" then
+			return
 		end
+		if Services.ShardService:IsCarrying(player) then
+			Net:Notify(player, "Run! You can't teleport while carrying a shard.")
+			return
+		end
+		local destination
+		if current.Type == "Zone" then
+			if data.ZoneLevel < current.SiteZone then
+				Net:Notify(player, "Unlock %s first!", nil, Config.Zones[current.SiteZone].Name)
+				return
+			end
+			destination = World:SpawnFor(current.SiteZone)
+		elseif current.Type == "Avenue" then
+			destination = CFrame.new(0, 4, Config.World.Bases.ZStart - 12)
+		else
+			destination = World.HubSpawn
+		end
+		character:PivotTo(destination)
 	end)
 end
 

@@ -1,6 +1,7 @@
 --[[
-	New-player guide: a glowing beam from your character to the next thing
-	to do (mine -> sell -> hatch -> upgrade -> unlock). The first minutes
+	Guide: a glowing beam from your character to the next thing to do -
+	your tutorial meteor, the star egg, home, and for everyone: the meteor
+	of this round while it is falling / being smashed. The first minutes
 	decide whether a player comes back (D1 retention), so never leave them
 	wondering what to do. Turns itself off once the player is established.
 ]]
@@ -79,6 +80,10 @@ local arrow = Lib.Text({
 	Parent = billboard,
 })
 
+local function flat(v: Vector3): Vector3
+	return Vector3.new(v.X, 0, v.Z)
+end
+
 local function part(path: { string }): BasePart?
 	local node: Instance? = workspace:FindFirstChild("Map")
 	for _, name in path do
@@ -146,6 +151,35 @@ local function shardTarget(root: BasePart, data)
 	return best and best.Position
 end
 
+-- ☄️ the meteor of this round (warning marker or the meteor itself), if we can get there
+local function meteorTarget(root: BasePart, data)
+	local state = workspace:GetAttribute("MeteorState")
+	if state ~= "Warning" and state ~= "Falling" and state ~= "Active" then
+		return nil
+	end
+	local site = workspace:GetAttribute("MeteorSiteZone") or 0
+	if site > (data.ZoneLevel or 1) then
+		return nil -- (a zone we haven't unlocked)
+	end
+	local position = workspace:GetAttribute("MeteorPos")
+	if typeof(position) ~= "Vector3" then
+		return nil
+	end
+	local radius = workspace:GetAttribute("MeteorRadius") or Config.Meteor.Radius
+	if flat(position - root.Position).Magnitude <= radius + 12 then
+		return nil -- we're there: just hit it
+	end
+	return position + Vector3.new(0, radius + 2, 0), if state == "Active" then T("☄️ SMASH IT!") else T("☄️ METEOR HERE!")
+end
+
+-- the new player's own tutorial meteor
+local function tutorialMeteor()
+	local map = workspace:FindFirstChild("Map")
+	local drops = map and map:FindFirstChild("Drops")
+	local meteor = drops and drops:FindFirstChild("TutorialMeteor_" .. tostring(player.UserId))
+	return if meteor and meteor:IsA("BasePart") then meteor.Position + Vector3.new(0, 3, 0) else nil
+end
+
 -- returns target position + label, or nil when the player needs no help
 local function pickTarget(root: BasePart)
 	local data, derived = State.Data, State.Derived
@@ -155,19 +189,29 @@ local function pickTarget(root: BasePart)
 	if player:GetAttribute("Carrying") then
 		local home = baseTarget()
 		if home then
-			return home, T("🏠 BRING IT HOME")
+			return home, T("🏠 RUN HOME!")
 		end
 	end
 	local tutorial = data.Tutorial
-	if tutorial and not tutorial.Done then
-		local step = Config.Tutorial.Steps[tutorial.Step]
-		local id = step and step.Id
-		if id == "Shard" then
-			local shard = shardTarget(root, data)
-			if shard then
-				return shard, T("🌠 GRAB THE SHARD")
-			end
+	local step = tutorial and not tutorial.Done and Config.Tutorial.Steps[tutorial.Step]
+	local id = step and step.Id
+	if id == "Meteor" then
+		local meteor = tutorialMeteor()
+		if meteor then
+			return meteor, T("☄️ SMASH IT!")
 		end
+		return nil
+	elseif id == "Grab" or id == "Shard" then
+		local shard = shardTarget(root, data)
+		if shard then
+			return shard, T("🥚 GRAB THE STAR EGG")
+		end
+	end
+	local meteorAt, meteorText = meteorTarget(root, data)
+	if meteorAt then
+		return meteorAt, meteorText
+	end
+	if step then
 		if id == "Pickaxe" and data.Coins >= Config.Pickaxes[2].Cost then
 			return PICKAXE_SHOP, T("⛏️ BUY A PICKAXE")
 		elseif id == "Hatch" and data.Coins >= Config.Eggs.Meadow.Price then
@@ -178,7 +222,7 @@ local function pickTarget(root: BasePart)
 	end
 	local shard = shardTarget(root, data)
 	if shard then
-		return shard, T("🌠 GRAB THE SHARD")
+		return shard, T("🥚 GRAB THE STAR EGG")
 	end
 	if (data.Level or 1) >= MAX_LEVEL or data.ZoneLevel >= 3 then
 		return nil

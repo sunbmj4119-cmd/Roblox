@@ -4,7 +4,9 @@
 -- decorate + house level + paint + sets, every theft protection (lock,
 -- newbie shield, vault, fair-size rule, theft shield), a real steal, revenge,
 -- bounty, star egg, trade (serial kept), exclusive pets, huge pets, house
--- name / skins and titles.
+-- name / skins and titles, homes safe outside 🌙 Thief Night, the ☄️ meteor
+-- round (sites, marker, GO, smash, egg burst, coin chunks, index) and the
+-- new first minute (tutorial meteor -> egg -> home).
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -232,6 +234,13 @@ local function tryTake(thief, owner, petId): boolean
 	end
 	return carrying
 end
+-- 🏠 homes are safe unless it's 🌙 Thief Night (the only raid time)
+check(Base:Protection(A) == "safe", "a home should be safe outside Thief Night: " .. tostring(Base:Protection(A)))
+check(not tryTake(B, A, victim.Id), "stole from a home outside Thief Night")
+Base:Lock(A)
+check(plotA.LockedUntil <= workspace:GetServerTimeNow(), "the lock was used up outside Thief Night")
+S.EventService:Trigger("ThiefNight")
+check(S.EventService:RaidActive() and workspace:GetAttribute("RaidActive") == true, "Thief Night is not a raid")
 -- a) locked
 Base:Lock(A)
 check(Base:Protection(A) == "locked", "lock not active")
@@ -554,6 +563,110 @@ local coinsQuick = dataA.Coins
 S.PetService:QuickHatch(A, "Meadow")
 check(#dataA.Pets == before + 1 or dataA.Coins > coinsQuick - Config.Eggs.Meadow.Price, "quick hatch did nothing")
 check(dataA.Coins <= coinsQuick - Config.Eggs.Meadow.Price + 1e6, "quick hatch did not charge")
+
+-- 25) ☄️ METEOR RUSH: sites, warning marker, GO, smash, egg burst, coin chunks, index
+local Meteor = S.MeteorService
+for _, siteType in { "Hub", "Avenue", "Zone" } do
+	local site = Meteor:PickSite(siteType)
+	check(site.Type == siteType and typeof(site.Position) == "Vector3", "bad meteor site for " .. siteType)
+	if siteType == "Avenue" then
+		check(Util.InBases(Config, site.Position + Vector3.new(0, 3, 0)), "avenue meteor outside the base district")
+	elseif siteType == "Zone" then
+		check(Util.ZoneAt(Config, site.Position + Vector3.new(0, 3, 0)) == site.SiteZone, "zone meteor outside its zone")
+	else
+		check(Util.ZoneAt(Config, site.Position + Vector3.new(0, 3, 0)) == 0, "hub meteor inside a mine")
+	end
+end
+for _, player in { A, B } do
+	if S.ShardService:IsCarrying(player) then
+		S.ShardService:Drop(player)
+	end
+end
+local site = Meteor:LaunchForTest("Avenue")
+local drops = workspace.Map.Drops
+check(Meteor:StateForTest() == "Warning" and drops:FindFirstChild("MeteorMarker") ~= nil, "no landing marker during the warning")
+check(workspace:GetAttribute("MeteorSite") ~= "" and workspace:GetAttribute("MeteorKind") ~= "", "meteor site / kind not published")
+rootA.CFrame = CFrame.new(0, 3, -60)
+Net:CallForTest("GoToMeteor", A)
+check((rootA.Position - Vector3.new(0, 4, Config.World.Bases.ZStart - 12)).Magnitude < 1, "GO did not take Alice to the avenue")
+-- now let it fall
+site = Meteor:LaunchForTest("Hub", true)
+for _ = 1, 30 do
+	if Meteor:StateForTest() == "Active" then
+		break
+	end
+	task.wait(0.25)
+end
+check(Meteor:StateForTest() == "Active", "meteor did not land: " .. Meteor:StateForTest())
+local meteorPart = drops:FindFirstChild("Meteor")
+check(meteorPart ~= nil and math.abs(meteorPart.Size.X / 2 - site.Size.Radius) < 0.01, "meteor has the wrong size")
+check(Meteor:InRange(site.Position + Vector3.new(site.Size.Radius + 2, 3, 0)), "meteor reach ignores its size")
+local shardsBefore = #workspace.Map.Shards:GetChildren()
+local joinsBefore = dataA.Stats.MeteorJoins
+for _ = 1, 3000 do
+	if Meteor:StateForTest() ~= "Active" then
+		break
+	end
+	Meteor:Hit(A, 50, 0.4)
+	Meteor:Hit(B, 20, 0.5)
+end
+check(Meteor:StateForTest() == "Idle", "meteor not smashed: " .. Meteor:StateForTest())
+local eggsSpilled = #workspace.Map.Shards:GetChildren() - shardsBefore
+check(eggsSpilled >= Config.Meteor.Spill.Base + 2, "too few star eggs spilled: " .. eggsSpilled)
+check(dataA.Stats.MeteorJoins == joinsBefore + 1, "meteor participation not counted")
+check((dataA.MeteorIndex[tostring(site.Kind)] or 0) >= 1, "meteor index not filled")
+local chunkCount = 0
+local someChunk = nil
+for part in Meteor:ChunksForTest() do
+	chunkCount += 1
+	someChunk = part
+end
+check(chunkCount >= Config.Meteor.Chunks.Count, "coin chunks missing: " .. chunkCount)
+local coinsBeforeChunk = dataB.Coins
+local chunkPaid = someChunk and Meteor:ClaimChunk(B, someChunk)
+check(chunkPaid ~= nil and dataB.Coins == coinsBeforeChunk + chunkPaid and chunkPaid >= Config.Meteor.Chunks.Min, "coin chunk did not pay")
+check(someChunk == nil or Meteor:ClaimChunk(A, someChunk) == nil, "a coin chunk paid twice")
+results.meteor = { Site = site.SiteName, Kind = site.Kind, Size = site.Size.Id, Eggs = eggsSpilled, Chunk = chunkPaid }
+
+-- 26) a new player's first minute: own meteor -> egg pops out -> grab -> home
+local E, rootE = fakePlayer(1005, "Eve")
+local fresh = Util.DeepCopy(Data.Template)
+fresh.Flags.HowToSeen = true
+for _, err in Data:InjectForTest(E, fresh) do
+	fail("OnLoaded for Eve: " .. err)
+end
+local dataE = Data:Get(E)
+check(dataE.Tutorial.Step == 1 and dataE.Tutorial.Version == Config.Tutorial.Version, "new tutorial not started")
+Meteor:TutorialMeteor(E)
+task.wait(1.8)
+local tutorialPart = drops:FindFirstChild("TutorialMeteor_" .. E.UserId)
+check(tutorialPart ~= nil, "no tutorial meteor for the new player")
+if tutorialPart then
+	rootE.CFrame = CFrame.new(tutorialPart.Position.X + 5, 3, tutorialPart.Position.Z)
+	local eggsBefore = #workspace.Map.Shards:GetChildren()
+	for _ = 1, Config.Meteor.Tutorial.Hits do
+		Meteor:TutorialHit(E, rootE.Position)
+	end
+	check(tutorialPart.Parent == nil, "tutorial meteor not cracked")
+	check(dataE.Tutorial.Step == 2, "tutorial did not move to Grab: " .. dataE.Tutorial.Step)
+	check(#workspace.Map.Shards:GetChildren() == eggsBefore + 1, "no star egg popped out of the tutorial meteor")
+end
+S.ProgressionService:TutorialEvent(E, "Grab", 1)
+check(dataE.Tutorial.Step == 3, "tutorial did not move to Shard")
+S.ShardService:StartCarry(E, { Kind = "Egg", Rarity = "Rare", Egg = "Meadow" }, nil)
+rootE.CFrame = Base:HomeCFrame(E) * CFrame.new(0, 0, 6)
+task.wait(0.6)
+check(dataE.Tutorial.Step == 4 and #dataE.Pets >= 1, "carrying the egg home did not hatch it / finish the step")
+
+-- 27) an old save mid-tutorial restarts with the meteor steps
+local F = fakePlayer(1006, "Finn")
+local oldTutorial = Util.DeepCopy(Data.Template)
+oldTutorial.Tutorial = { Step = 3, Progress = 2, Done = false }
+for _, err in Data:InjectForTest(F, oldTutorial) do
+	fail("OnLoaded for Finn: " .. err)
+end
+local dataF = Data:Get(F)
+check(dataF.Tutorial.Step == 1 and dataF.Tutorial.Version == Config.Tutorial.Version, "old tutorial save not restarted")
 
 results.alicePets = #dataA.Pets
 results.bobPets = #dataB.Pets

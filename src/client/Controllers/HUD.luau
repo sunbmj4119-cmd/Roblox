@@ -249,7 +249,7 @@ local MENU = {
 		"Upgrade",
 		C.Gold,
 		function(d)
-			return tutorialAt(d, 2)
+			return tutorialAt(d, 4) -- (step 4+: mine, then buy a pickaxe)
 		end,
 	},
 	{
@@ -258,7 +258,7 @@ local MENU = {
 		"Pets",
 		C.Green,
 		function(d)
-			return tutorialAt(d, 3)
+			return tutorialAt(d, 4) -- (the first egg hatched at home)
 		end,
 	},
 	{ "Rewards", "🎁", "Rewards", C.Pink, tutorialDone },
@@ -501,8 +501,14 @@ local function protectionText(): (string, Color3)
 			Color3.fromRGB(140, 200, 255)
 	elseif protection == "robbing" then
 		return T("🚨 Being robbed! Bonk the thief!"), C.Red
+	elseif protection == "safe" then
+		local raidAt = workspace:GetAttribute("RaidAt") or 0
+		if raidAt > t then
+			return T("🌙 Thief Night in %ds - vault your best pets!", math.ceil(raidAt - t)), Color3.fromRGB(200, 170, 255)
+		end
+		return T("🏠 Safe - raids only on 🌙 Thief Night"), Color3.fromRGB(150, 230, 160)
 	end
-	return T("⚠️ Open - 🔒 vault pets are always safe"), C.Sub
+	return T("🌙 Thief Night! 🔒 vault pets are safe"), Color3.fromRGB(200, 170, 255)
 end
 
 local function refreshBaseChip()
@@ -648,15 +654,32 @@ local starterButton = Lib.Button({
 ---------------------------------------------------------------------------
 -- objective logic
 ---------------------------------------------------------------------------
+-- ☄️ what the meteor of this round wants from us (nil when there is none)
+local function meteorGoal(data): string?
+	local state = workspace:GetAttribute("MeteorState")
+	local site = workspace:GetAttribute("MeteorSiteZone") or 0
+	local siteName = workspace:GetAttribute("MeteorSite") or ""
+	local kind = workspace:GetAttribute("MeteorKind") or ""
+	if state == "Warning" or state == "Falling" then
+		if site > data.ZoneLevel then
+			return T("☄️ A %s is falling on %s (locked for you) - mine and get ready!", kind, siteName)
+		end
+		return T("☄️ A %s is falling on %s - run there!", kind, siteName)
+	elseif state == "Active" and site <= data.ZoneLevel then
+		return T("☄️ Smash the meteor with everyone - top 3 get the best egg!")
+	end
+	return nil
+end
+
 local function nextGoal(data, derived): string
 	if player:GetAttribute("Carrying") then
-		return T("Run to your base 🏠 before someone bonks you!")
+		return T("Run home 🏠 with the egg - don't get bonked!")
 	end
-	local pets = #data.Pets
-	if pets == 0 then
-		return T("Hatch your first pet at the 🥚 egg stand - it earns 💰 in your base!")
+	local meteor = meteorGoal(data)
+	if meteor then
+		return meteor
 	end
-	-- a star on the ground we can reach?
+	-- a star egg on the ground we can reach?
 	local map = workspace:FindFirstChild("Map")
 	local stars = map and map:FindFirstChild("Shards")
 	if stars then
@@ -664,9 +687,13 @@ local function nextGoal(data, derived): string
 			local hitbox = model:FindFirstChild("Hitbox")
 			local zone = hitbox and hitbox:IsA("BasePart") and Util.ZoneAt(Config, hitbox.Position)
 			if zone and zone <= data.ZoneLevel and model:GetAttribute("Stolen") ~= true then
-				return T("Grab the falling star 🌠 - carry it home and it hatches!")
+				return T("Grab a star egg 🥚 - carry it home and it hatches!")
 			end
 		end
+	end
+	local pets = #data.Pets
+	if pets == 0 then
+		return T("Wait for the next meteor ☄️ - its star eggs become your pets!")
 	end
 	local bank = player:GetAttribute("BaseBank") or 0
 	if bank >= math.max(100, data.Coins * 0.25) then
@@ -700,9 +727,9 @@ local function nextGoal(data, derived): string
 		end
 	end
 	if cheapest < math.huge then
-		return T("Mine: %s / %s coins for the next upgrade", Util.Format(data.Coins), Util.Format(cheapest))
+		return T("Mine until the next meteor: %s / %s coins for an upgrade", Util.Format(data.Coins), Util.Format(cheapest))
 	end
-	return T("Climb the weekly ranked leaderboard!")
+	return T("Climb the weekly ☄️ meteor hunter leaderboard!")
 end
 
 -- returns text, progress (0-1 or nil)
@@ -723,7 +750,13 @@ local function currentObjective(data, derived)
 				text = T("Mine ore until you have %s coins", Util.Format(Config.Eggs.Meadow.Price))
 				progress = data.Coins / Config.Eggs.Meadow.Price
 			elseif step.Id == "Shard" and player:GetAttribute("Carrying") then
-				text = T("Run to your base 🏠 before someone bonks you!")
+				text = T("Run home 🏠 with the egg - don't get bonked!")
+			elseif step.Id == "Mine" or step.Id == "Pickaxe" then
+				-- a real meteor beats the tutorial: go join it
+				local meteor = meteorGoal(data)
+				if meteor then
+					return "🎯 " .. meteor, nil
+				end
 			end
 			return string.format("📘 %d/%d  %s", tutorial.Step, #steps, text), progress
 		end
@@ -1143,7 +1176,8 @@ Net.On("RankUp", function(rankName)
 end)
 Net.On("TutorialStep", function(_, rewardText)
 	Lib.PlaySound("Reward")
-	celebrate(T("✅ Step complete!"), "+" .. tostring(rewardText), C.Green, false)
+	local text = tostring(rewardText or "")
+	celebrate(T("✅ Step complete!"), if text ~= "" then "+" .. text else "", C.Green, false)
 end)
 Net.On("TutorialDone", function(rewardText)
 	Lib.PlaySound("Legendary")

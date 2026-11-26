@@ -1,7 +1,8 @@
 --[[
 	"How to play" card: three big pictures, one line each, one button.
-	Shown once on a player's first visit (server remembers it), and any time
-	from Settings -> ❓ How to play.
+	Shown once on a player's first visit (server remembers it, and once more
+	for everyone after the ☄️ Meteor Rush update), and any time from
+	Settings -> ❓ How to play.
 ]]
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -17,22 +18,22 @@ local HowTo = {}
 
 local STEPS = {
 	{
-		Icon = "⛏️",
-		Title = "MINE",
-		Text = "Tap ore (or hold ⛏️) to mine.\nCoins come instantly!",
-		Color = Color3.fromRGB(255, 190, 70),
+		Icon = "☄️",
+		Title = "SMASH METEORS",
+		Text = "A meteor falls every few minutes.\nRun there and smash it together!",
+		Color = Color3.fromRGB(255, 150, 60),
 	},
 	{
 		Icon = "🥚",
-		Title = "HATCH PETS",
-		Text = "Pets stand in your 🏠 base\nand earn 💰 every second.",
-		Color = Color3.fromRGB(120, 220, 120),
+		Title = "GRAB & RUN",
+		Text = "Grab a star egg and run home.\nGet bonked and you drop it!",
+		Color = Color3.fromRGB(120, 200, 255),
 	},
 	{
-		Icon = "🌠",
-		Title = "STEAL & PROTECT",
-		Text = "Steal pets from open houses.\n🔒 Your vault pets are always safe!",
-		Color = Color3.fromRGB(170, 130, 255),
+		Icon = "🏠",
+		Title = "YOUR SAFE HOME",
+		Text = "It hatches into a pet that earns 💰.\nRaids only on 🌙 Thief Night!",
+		Color = Color3.fromRGB(120, 220, 120),
 	},
 }
 
@@ -155,7 +156,7 @@ State.OnChanged(function()
 		return
 	end
 	shownOnce = true
-	if not data.Flags.HowToSeen then
+	if not data.Flags.HowToSeen or not data.Flags.HowToRush then
 		task.delay(1.5, function()
 			if Players.LocalPlayer.Parent then
 				HowTo.Show()

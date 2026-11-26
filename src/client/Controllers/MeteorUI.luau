@@ -1,7 +1,8 @@
 --[[
-	Meteor event UI: always-visible countdown (anticipation), "GO" button,
-	live top-5 ranking with your own place, camera shake on impact, and the
-	result popup with your rewards.
+	Meteor event UI: always-visible countdown (anticipation) with WHAT is
+	falling WHERE ("🔥 Big Lava Meteor -> Hub"), "GO" button during the
+	warning, live top-5 ranking with your own place, camera shake on impact,
+	"grab the eggs!" after the burst and the result popup (+ meteor index).
 ]]
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -176,8 +177,15 @@ Net.On("MeteorResult", function(info)
 		table.insert(parts, "+" .. Util.Format(info.Gems) .. " 💎")
 	end
 	table.insert(parts, T("+%d ranked pts", info.Points))
-	resultBody.Text = table.concat(parts, "   ")
-		.. (if info.Destroyed then "" else "\n<font color='#FF8888'>" .. T("The meteor escaped - half rewards") .. "</font>")
+	local extra = ""
+	if not info.Destroyed then
+		extra = "\n<font color='#FF8888'>" .. T("The meteor escaped - half rewards") .. "</font>"
+	elseif info.FirstCrack and type(info.Kind) == "string" then
+		extra = "\n<font color='#FFD25A'>" .. T("📖 NEW in your meteor index: %s %s!", info.Icon or "☄️", info.Kind) .. "</font>"
+	else
+		extra = "\n<font color='#9BE7FF'>" .. T("🥚 Now grab a star egg and run home!") .. "</font>"
+	end
+	resultBody.Text = table.concat(parts, "   ") .. extra
 	result.Visible = true
 	Lib.Pop(result)
 	Lib.PlaySound(if info.Place <= 3 then "RankUp" else "Reward")
@@ -253,27 +261,51 @@ task.spawn(function()
 		elseif stateName == "Warning" or stateName == "Falling" then
 			local warnEnd = workspace:GetAttribute("MeteorWarnEnd") or now
 			local blink = math.floor(os.clock() * 3) % 2 == 0
+			local golden = workspace:GetAttribute("MeteorGolden") == true
+			local icon = workspace:GetAttribute("MeteorIcon") or "☄️"
+			local site = workspace:GetAttribute("MeteorSite") or ""
+			local siteZone = workspace:GetAttribute("MeteorSiteZone") or 0
+			local data = State.Data
+			local locked = data ~= nil and siteZone > data.ZoneLevel
 			pillText.Text = if stateName == "Falling"
 				then T("☄️ IMPACT!")
-				else T("☄️ METEOR INCOMING  %s", Util.FormatTime(warnEnd - now))
-			pillText.TextColor3 = if blink then C.Red else Color3.fromRGB(255, 220, 120)
-			stroke.Color = C.Red
-			goButton.Visible = true
+				else T(
+					"%s%s %s → %s  %s",
+					if golden then "✨" else "",
+					icon,
+					workspace:GetAttribute("MeteorKind") or "",
+					site,
+					Util.FormatTime(warnEnd - now)
+				)
+			pillText.TextColor3 = if golden then C.Gold elseif blink then C.Red else Color3.fromRGB(255, 220, 120)
+			stroke.Color = if golden then C.Gold else C.Red
+			goButton.Visible = stateName == "Warning"
+			local goLabel = goButton:FindFirstChild("Label") :: TextLabel
+			local goText = if locked then "🔒" else T("GO ☄️")
+			if goLabel and goLabel.Text ~= goText then
+				goLabel.Text = goText
+			end
 			summonButton.Visible = false
 			rankFrame.Visible = false
 		elseif stateName == "Active" then
 			local endsAt = workspace:GetAttribute("MeteorEnd") or now
 			local hp = workspace:GetAttribute("MeteorHP") or 0
 			local maxHp = math.max(1, workspace:GetAttribute("MeteorMaxHP") or 1)
-			pillText.Text = T("☄️ METEOR %s  •  %d%%", Util.FormatTime(endsAt - now), math.ceil(hp / maxHp * 100))
+			pillText.Text = T("☄️ SMASH IT! %s  •  %d%%", Util.FormatTime(endsAt - now), math.ceil(hp / maxHp * 100))
 			pillText.TextColor3 = C.Gold
 			stroke.Color = C.Gold
-			goButton.Visible = true
+			goButton.Visible = false
 			summonButton.Visible = false
 			rankFrame.Visible = true
 		else
 			goButton.Visible = false
 			rankFrame.Visible = false
+		end
+		-- right after the burst: everyone races for the eggs
+		if stateName == "Idle" and (workspace:GetAttribute("MeteorLootUntil") or 0) > os.time() then
+			pillText.Text = T("🥚 GRAB THE STAR EGGS & RUN HOME!")
+			pillText.TextColor3 = Color3.fromRGB(150, 230, 255)
+			stroke.Color = Color3.fromRGB(150, 230, 255)
 		end
 	end
 end)

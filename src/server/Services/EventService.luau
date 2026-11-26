@@ -1,8 +1,10 @@
 --[[
 	EventService: short random server events between meteors
-	(Ore Frenzy, Lucky Rush, Gem Storm, Double Ore, Lucky Block Rain, Thief
-	Night ...). Every few minutes there is something new happening -> players
-	stay longer and talk about it.
+	(Ore Frenzy, Lucky Rush, Gem Storm, Double Ore, Lucky Block Rain ...).
+	Every few minutes there is something new happening -> players stay longer
+	and talk about it.
+	Every RaidEvery-th event is 🌙 THIEF NIGHT (announced 20s early): the
+	only time other players' homes can be raided. Homes are safe otherwise.
 	Other services read multipliers with Events:Get(key, default).
 
 	Also:
@@ -34,14 +36,32 @@ local current = nil
 local endsAt = 0
 local nextAt = os.time() + 90 -- first event shortly after the server starts
 local lastId = nil
+local eventCount = 0
+local raidAt = 0 -- 🌙 a raid was announced and starts at this time
 
 local function setAttributes()
 	workspace:SetAttribute("EventId", if current then current.Id else "")
 	workspace:SetAttribute("EventEnd", endsAt)
+	workspace:SetAttribute("RaidActive", current ~= nil and current.Raid == true)
+	workspace:SetAttribute("RaidAt", raidAt)
+end
+
+local function find(id: string?)
+	for _, candidate in settings.List do
+		if candidate.Id == id then
+			return candidate
+		end
+	end
+	return nil
 end
 
 function Events:Active()
 	return current
+end
+
+-- 🏠 homes are safe - except during a raid event (🌙 Thief Night)
+function Events:RaidActive(): boolean
+	return current ~= nil and current.Raid == true
 end
 
 function Events:Get(key: string, default: number): number
@@ -52,17 +72,13 @@ function Events:Get(key: string, default: number): number
 end
 
 -- start a specific event (id) or a random one different from the last
+-- (random picks never choose NoRandom events: raids come every RaidEvery-th time)
 function Events:Trigger(id: string?)
-	local def = nil
-	for _, candidate in settings.List do
-		if candidate.Id == id then
-			def = candidate
-		end
-	end
+	local def = find(id)
 	if not def then
 		local pool = {}
 		for _, candidate in settings.List do
-			if candidate.Id ~= lastId then
+			if candidate.Id ~= lastId and not candidate.NoRandom then
 				table.insert(pool, candidate)
 			end
 		end
@@ -73,12 +89,36 @@ function Events:Trigger(id: string?)
 	end
 	current = def
 	lastId = def.Id
-	endsAt = os.time() + settings.DurationSeconds
+	raidAt = 0
+	local duration = def.Duration or settings.DurationSeconds
+	endsAt = os.time() + duration
 	setAttributes()
-	Net:Announce("%s! %s (%ds)", def.Color, def.Name, def.Description, settings.DurationSeconds)
+	Net:Announce("%s! %s (%ds)", def.Color, def.Name, def.Description, duration)
 	Net:Broadcast("EventStarted", def.Id)
 	for _, listener in listeners do
 		task.spawn(listener, def)
+	end
+end
+
+-- the next scheduled event: every RaidEvery-th one is a raid, announced early
+local function nextEvent()
+	eventCount += 1
+	local raid = nil
+	if settings.RaidEvery and eventCount % settings.RaidEvery == 0 then
+		for _, candidate in settings.List do
+			if candidate.Raid then
+				raid = candidate
+			end
+		end
+	end
+	if raid and (raid.Warn or 0) > 0 then
+		raidAt = os.time() + raid.Warn
+		nextAt = raidAt
+		setAttributes()
+		Net:Announce("🌙 THIEF NIGHT in %ds! Put your best pets in 🔒 vaults!", raid.Color, raid.Warn)
+		Net:Broadcast("RaidWarning", raidAt)
+	else
+		Events:Trigger(if raid then raid.Id else nil)
 	end
 end
 
@@ -117,12 +157,16 @@ function Events:StartParty(minutes: number): boolean
 	minutes = math.clamp(minutes, 1, 60)
 	partyEnds = os.time() + minutes * 60
 	workspace:SetAttribute("PartyEnd", partyEnds)
-	Net:Announce("🎉 PARTY TIME! Lucky blocks, a starfall and 2x luck for everyone!", Color3.fromRGB(255, 200, 80))
+	Net:Announce("🎉 PARTY TIME! Lucky blocks, a starfall, a GIANT GOLDEN meteor and 2x luck!", Color3.fromRGB(255, 200, 80))
 	Net:Broadcast("Party", partyEnds)
 	if Services and Services.BoostService then
 		Services.BoostService:AddServer("ServerLuck", minutes * 60)
 	end
 	self:Trigger("Starfall")
+	-- ✨ and the next meteor is a GIANT GOLDEN one
+	if Services and Services.MeteorService then
+		Services.MeteorService:QueueSpecial("Giant", true)
+	end
 	task.spawn(function()
 		while os.time() < partyEnds do
 			local lucky = Services and Services.LuckyService
@@ -205,13 +249,23 @@ function Events:Start()
 				checkWeekly()
 				if current and now >= endsAt then
 					stop()
-				elseif not current and now >= nextAt then
-					self:Trigger()
+				elseif not current and raidAt > 0 and now >= raidAt then
+					local raid = nil
+					for _, candidate in settings.List do
+						if candidate.Raid then
+							raid = candidate
+						end
+					end
+					raidAt = 0
+					self:Trigger(raid and raid.Id)
+				elseif not current and raidAt == 0 and now >= nextAt then
+					nextEvent()
 				end
 			end)
 			if not ok then
 				warn("[Events] loop error: " .. tostring(err))
 				current = nil
+				raidAt = 0
 				nextAt = os.time() + settings.IntervalSeconds
 				setAttributes()
 			end

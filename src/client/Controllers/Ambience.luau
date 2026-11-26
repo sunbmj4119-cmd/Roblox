@@ -163,17 +163,22 @@ local currentZone = -1
 
 local function wantedTrack(position: Vector3): string
 	local now = workspace:GetServerTimeNow()
-	if workspace:GetAttribute("MeteorState") == "Active" then
+	local meteor = workspace:GetAttribute("MeteorState")
+	if meteor == "Active" or meteor == "Falling" then
 		return MUSIC.Meteor
+	end
+	if meteor == "Warning" then
+		return MUSIC.Chase -- (the rush to the landing spot)
+	end
+	-- carrying any star egg home: chase music (you can be bonked!)
+	if player:GetAttribute("Carrying") ~= nil then
+		return MUSIC.Chase
 	end
 	if (workspace:GetAttribute("PartyEnd") or 0) > now then
 		return MUSIC.Party
 	end
 	if workspace:GetAttribute("EventId") == "ThiefNight" then
 		return MUSIC.Night
-	end
-	if player:GetAttribute("Carrying") ~= nil and (player:GetAttribute("CarryStolen") or (player:GetAttribute("CarryTier") or 0) >= 3) then
-		return MUSIC.Chase
 	end
 	if currentZone == -2 then
 		return if inOwnPlot(position) then MUSIC.Home else MUSIC.Bases

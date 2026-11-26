@@ -39,7 +39,8 @@ local TEMPLATE = {
 	XP = 0,
 	FreeSpinAt = 0, -- unix time when the next free spin is ready
 	Codes = {}, -- [CODE] = true
-	Tutorial = { Step = 1, Progress = 0, Done = false },
+	Tutorial = { Step = 1, Progress = 0, Done = false, Version = 0 },
+	MeteorIndex = {}, -- [meteor kind index] = meteors cracked
 	Settings = { Lang = "auto", Sfx = true, Music = true }, -- Lang: "auto" | "ko" | "en"
 	-- star-shard base: Shards = { { Id = rarityId }, ... } in pedestal order
 	-- Items = placed decorations { Uid, Id, X, Z, R, Paid, Cur } in plot space
@@ -96,7 +97,7 @@ local TEMPLATE = {
 	Daily = { Day = 0, Quests = {}, Streak = 0, LastClaimDay = 0, VipChestDay = 0, ClubDay = 0 },
 	Season = { Id = 0, XP = 0, Premium = false, ClaimedFree = {}, ClaimedPremium = {} },
 	Weekly = { Week = 0, Points = 0 },
-	Flags = { StarterPack = false, GroupReward = false, HowToSeen = false, NewbieOff = false },
+	Flags = { StarterPack = false, GroupReward = false, HowToSeen = false, HowToRush = false, NewbieOff = false },
 	Title = "", -- chosen title id ("" = best unlocked)
 	Receipts = {},
 	FirstJoin = 0,

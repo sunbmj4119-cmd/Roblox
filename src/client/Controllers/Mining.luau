@@ -290,7 +290,7 @@ local function classify(hit: Instance?)
 			return { Kind = "Ore", Part = parent }
 		end
 	end
-	if hit.Name == "Meteor" then
+	if hit.Name == "Meteor" or hit.Name == "TutorialMeteor_" .. tostring(player.UserId) then
 		return { Kind = "Meteor", Part = hit }
 	end
 	local model = hit:FindFirstAncestorOfClass("Model")
@@ -333,11 +333,13 @@ local function pickAt(position: Vector3)
 	return classify(result and result.Instance)
 end
 
-local function reachFor(kind: string): number
+local function reachFor(kind: string, part: BasePart?): number
 	if kind == "Player" then
 		return Config.PvP.BonkRange - 1.5
 	elseif kind == "Meteor" then
-		return Config.Meteor.Radius + REACH - 2
+		-- meteors come in sizes: reach the surface, not the center
+		local radius = part and part:GetAttribute("Radius") or Config.Meteor.Radius
+		return radius + REACH - 2
 	elseif kind == "Shard" then
 		return 2
 	end
@@ -635,8 +637,11 @@ RunService.Heartbeat:Connect(function()
 		local map = workspace:FindFirstChild("Map")
 		local drops = map and map:FindFirstChild("Drops")
 		local meteor = drops and drops:FindFirstChild("Meteor")
+		if not (meteorActive and meteor) then
+			meteor = drops and drops:FindFirstChild("TutorialMeteor_" .. tostring(player.UserId))
+		end
 		local carrierRoot = nearestCarrier(root)
-		if meteorActive and meteor and meteor:IsA("BasePart") and flatDistance(meteor.Position, root.Position) <= reachFor("Meteor") then
+		if meteor and meteor:IsA("BasePart") and flatDistance(meteor.Position, root.Position) <= reachFor("Meteor", meteor) then
 			setTarget({ Kind = "Meteor", Part = meteor }, false)
 		elseif carrierRoot then
 			setTarget({ Kind = "Player", Part = carrierRoot }, true)
@@ -654,7 +659,7 @@ RunService.Heartbeat:Connect(function()
 		return
 	end
 	local distance = flatDistance(target.Part.Position, root.Position)
-	local reach = reachFor(target.Kind)
+	local reach = reachFor(target.Kind, target.Part)
 	if distance > reach then
 		if autoWalk then
 			if os.clock() - lastMoveTo > 0.25 then

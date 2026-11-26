@@ -40,6 +40,12 @@ function Dev:Start()
 			Services.ProgressionService:AddSeasonXP(player, 5 * 2000)
 		elseif command == "Meteor" then
 			Services.MeteorService:Summon(player)
+		elseif command == "Golden" then
+			-- the next meteor is a GIANT GOLDEN one (falls next to you)
+			Services.MeteorService:QueueSpecial("Giant", true)
+			Services.MeteorService:Summon(player)
+		elseif command == "Raid" then
+			Services.EventService:Trigger("ThiefNight")
 		elseif command == "Level" then
 			Services.ProgressionService:AddXP(player, 2000)
 		elseif command == "Event" then
