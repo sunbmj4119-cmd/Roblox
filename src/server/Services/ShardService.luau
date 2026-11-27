@@ -649,7 +649,7 @@ local function deliver(player: Player)
 		local def = SETTINGS.Rarities[item.Rarity]
 		local meteorInfo = if item.MeteorKind then { Kind = item.MeteorKind, Golden = item.Golden, Rarity = item.Rarity } else nil
 		local result = pets:HatchStarEgg(player, item.Egg, if def then def.Luck or 1 else 1, meteorInfo)
-		pets:AddFollowXP(player, Config.Growth.DeliverXP)
+		pcall(pets.AddFollowXP, pets, player, Config.Growth.DeliverXP)
 		if data then
 			data.Stats.ShardsDelivered = (data.Stats.ShardsDelivered or 0) + 1
 		end

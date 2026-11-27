@@ -41,9 +41,12 @@ local rivals = {} -- [model] = record
 local forcedCount: number? = nil -- cloud tests
 local nextId = 0
 local usedNames = {}
+local spawning = false
+local spawnRetryAt = 0
 
 local GROUP = "Rivals"
 local GATE_GROUP = "ZoneGates"
+local PLAYER_GROUP = "PlayerCharacters"
 local ANIMS = {
 	Idle = "rbxassetid://507766388",
 	Run = "rbxassetid://913376220",
@@ -74,12 +77,14 @@ local function areaOf(position: Vector3): number?
 end
 
 local function areaEntrance(area: number): Vector3
+	-- (a few studs beside the spawn point, never right on it)
+	local side = Vector3.new(if rng:NextNumber() < 0.5 then -1 else 1, 0, 0) * rng:NextNumber(7, 12)
 	if area > 0 and World.Zones[area] then
-		return World:SpawnFor(area).Position
+		return World:SpawnFor(area).Position + side + Vector3.new(0, 0, 6)
 	elseif area == -1 then
-		return Vector3.new(0, 4, Config.World.Bases.ZStart - 12)
+		return Vector3.new(0, 4, Config.World.Bases.ZStart - 12) + side
 	end
-	return World.HubSpawn.Position + Vector3.new(rng:NextNumber(-6, 6), 0, rng:NextNumber(-4, 4))
+	return World.HubSpawn.Position + side + Vector3.new(0, 0, rng:NextNumber(4, 10))
 end
 
 local function homeSpot(): Vector3
@@ -203,7 +208,6 @@ local function spawnRival(index: number)
 			break
 		end
 	end
-	usedNames[name] = true
 	local peerLevel, peerTier, peerZone = serverPeers()
 	local level = math.max(1, peerLevel + rng:NextInteger(-2, 3))
 	local model = Players:CreateHumanoidModelFromDescription(describe(), Enum.HumanoidRigType.R15)
@@ -235,19 +239,12 @@ local function spawnRival(index: number)
 	local title = if #titles > 0 and rng:NextNumber() < 0.6 then pick(titles) else nil
 	local rank = Config.Ranks[rng:NextInteger(1, math.min(3, #Config.Ranks))]
 	overhead(model, name, level, title, rank)
-	local spawnAt = World.HubSpawn.Position + Vector3.new(rng:NextNumber(-8, 8), 2, rng:NextNumber(-6, 6))
-	model:PivotTo(CFrame.new(spawnAt))
-	model.Parent = workspace
-	pcall(function()
-		root:SetNetworkOwner(nil)
-	end)
+	local spawnAt = areaEntrance(0)
+	model:PivotTo(CFrame.new(spawnAt + Vector3.new(0, 2, 0)))
 	-- a pickaxe like everyone else's (a tier near the server's players)
 	local tier = math.clamp(peerTier + rng:NextInteger(0, 1), 1, #Config.Pickaxes)
 	local tool = Services.CharacterService.BuildPickaxe(tier)
 	tool.Parent = model
-	pcall(function()
-		humanoid:EquipTool(tool)
-	end)
 	-- 2-3 pets following (rendered by every client, like players' pets)
 	local pets = {}
 	local pool = Config.Eggs[Config.Shards.ZoneEggs[math.clamp(peerZone, 1, #Config.Shards.ZoneEggs)]].Pets
@@ -257,6 +254,21 @@ local function spawnRival(index: number)
 	end
 	model:SetAttribute("Pets", HttpService:JSONEncode(pets))
 
+	-- (animations need the character in the world; an error from here on
+	-- removes the half-built rival again)
+	model.Parent = workspace
+	local okBuild, buildErr = pcall(function()
+		pcall(function()
+			root:SetNetworkOwner(nil)
+		end)
+		pcall(function()
+			humanoid:EquipTool(tool)
+		end)
+	end)
+	if not okBuild then
+		model:Destroy()
+		error(buildErr)
+	end
 	local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
 	local tracks = {}
 	for animName, id in ANIMS do
@@ -303,7 +315,13 @@ local function spawnRival(index: number)
 			end
 		end
 	end)
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.CollisionGroup = GROUP
+		end
+	end
 	playAnim(record, "Idle")
+	usedNames[name] = true
 	rivals[model] = record
 	return record
 end
@@ -339,6 +357,7 @@ local function setCarry(record, item)
 		egg.Parent = record.Model
 		record.CarryModel = egg
 		record.Model:SetAttribute("Carrying", true)
+		record.CarryUntil = os.clock() + SETTINGS.CarrySeconds
 		local def = Config.Shards.Rarities[item.Rarity]
 		record.Humanoid.WalkSpeed = SETTINGS.Speed * (if def then def.Speed else 0.85)
 	else
@@ -395,7 +414,18 @@ local function walkTo(record, goal: Vector3, allowTeleport: boolean?)
 		return
 	end
 	record.TeleportAt = nil
-	if not record.Goal or (record.Goal - goal).Magnitude > 6 or os.clock() - (record.PathAt or 0) > 4 then
+	local distance = (flat(goal - here)).Magnitude
+	if distance <= 3 then
+		return -- (there)
+	end
+	if distance <= 14 then
+		-- close: straight there, no path needed
+		record.Waypoints = nil
+		record.Goal = goal
+		record.Humanoid:MoveTo(goal)
+		return
+	end
+	if not record.Goal or (record.Goal - goal).Magnitude > 10 or os.clock() - (record.PathAt or 0) > 4 then
 		record.Goal = goal
 		record.PathAt = os.clock()
 		record.Waypoints = nil
@@ -430,7 +460,12 @@ local function walkTo(record, goal: Vector3, allowTeleport: boolean?)
 			record.Stuck = (record.Stuck or 0) + 1
 			record.Humanoid.Jump = true
 			record.PathAt = 0
-			if record.Stuck >= 4 and not record.Carry then
+			if
+				record.Stuck >= 4
+				and not record.Carry
+				and allowTeleport ~= false
+				and not Util.InBases(Config, goal + Vector3.new(0, 3, 0))
+			then
 				teleport(record, goal + Vector3.new(rng:NextNumber(-4, 4), 0, rng:NextNumber(-4, 4)))
 			end
 		else
@@ -495,7 +530,9 @@ end
 local function think(record)
 	local t = now()
 	local root = record.Root
-	if not root.Parent then
+	if not root.Parent or not record.Model.Parent or root.Position.Y < -40 then
+		-- (fell out of the world somehow: leave; a new rival joins later)
+		despawn(record)
 		return
 	end
 	if record.StunnedUntil > t then
@@ -508,6 +545,13 @@ local function think(record)
 	local state = workspace:GetAttribute("MeteorState")
 
 	-- 1) carrying an egg: run home with it (like everybody)
+	if record.Carry and os.clock() > (record.CarryUntil or math.huge) then
+		-- couldn't make it home in time: drop the egg here
+		local item = record.Carry
+		setCarry(record, nil)
+		record.Home = nil
+		shards:SpawnGround(item, flat(root.Position), nil, { Beacon = true, RivalBlockSeconds = SETTINGS.DropBlockSeconds })
+	end
 	if record.Carry then
 		record.Task = "Home"
 		local home = record.Home or homeSpot()
@@ -526,7 +570,8 @@ local function think(record)
 
 	-- 2) chasing a player who carries an egg (now and then)
 	local chase = record.ChaseTarget
-	if chase and (not chase.Parent or t > record.ChaseUntil or not shards:IsCarrying(chase)) then
+	-- (gives up at once near the spawn / in the base district / on a new player)
+	if chase and (not chase.Parent or t > record.ChaseUntil or not Services.MiningService:CanNpcBonk(chase)) then
 		record.ChaseTarget = nil
 		chase = nil
 	end
@@ -791,6 +836,32 @@ function Rival:Start()
 		PhysicsService:RegisterCollisionGroup(GATE_GROUP)
 		PhysicsService:CollisionGroupSetCollidable(GROUP, GATE_GROUP, false)
 	end)
+	pcall(function()
+		PhysicsService:RegisterCollisionGroup(PLAYER_GROUP)
+		PhysicsService:CollisionGroupSetCollidable(GROUP, PLAYER_GROUP, false)
+	end)
+	local function groupCharacter(character: Model)
+		for _, part in character:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.CollisionGroup = PLAYER_GROUP
+			end
+		end
+		character.DescendantAdded:Connect(function(part)
+			if part:IsA("BasePart") then
+				part.CollisionGroup = PLAYER_GROUP
+			end
+		end)
+	end
+	local function onPlayer(player: Player)
+		player.CharacterAdded:Connect(groupCharacter)
+		if player.Character then
+			groupCharacter(player.Character)
+		end
+	end
+	Players.PlayerAdded:Connect(onPlayer)
+	for _, player in Players:GetPlayers() do
+		onPlayer(player)
+	end
 	for _, zone in World.Zones do
 		if zone.Gate then
 			zone.Gate.CollisionGroup = GATE_GROUP
@@ -813,8 +884,23 @@ function Rival:Start()
 						used[record.Index] = true
 					end
 					for index = 1, wanted do
-						if not used[index] and count() < wanted then
-							spawnRival(index)
+						if not used[index] and count() < wanted and not spawning and os.clock() >= spawnRetryAt then
+							-- (building an avatar downloads its items: off the brain loop)
+							spawning = true
+							task.spawn(function()
+								local ok, err = pcall(spawnRival, index)
+								spawning = false
+								if not ok then
+									warn("[Rival] spawn failed: " .. tostring(err))
+									spawnRetryAt = os.clock() + 30
+									-- (nothing half-built stays in the world)
+									for _, child in workspace:GetChildren() do
+										if child:IsA("Model") and child:GetAttribute("Rival") == true and not rivals[child] then
+											child:Destroy()
+										end
+									end
+								end
+							end)
 						end
 					end
 				elseif count() > wanted and idle then

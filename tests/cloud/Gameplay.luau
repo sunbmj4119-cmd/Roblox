@@ -749,9 +749,17 @@ if #bots == 2 then
 	task.wait(Config.Rivals.GrabDelay + 0.5)
 	local carrier = nil
 	for attempt = 1, 3 do
-		local targets = S.ShardService:RivalTargets(bots[attempt % 2 + 1].Entity.UserId, Config.Rivals.GrabDelay)
-		if #targets > 0 then
-			Rival:PlaceForTest(bots[attempt % 2 + 1], targets[1].Position)
+		-- (rivals never take eggs in the base district; characters don't walk in
+		-- cloud tests, so put the rival right on a public egg)
+		local bot = bots[attempt % 2 + 1]
+		local spot = nil
+		for _, entry in S.ShardService:RivalTargets(bot.Entity.UserId, Config.Rivals.GrabDelay) do
+			if not Util.InBases(Config, entry.Position + Vector3.new(0, 3, 0)) then
+				spot = entry.Position
+			end
+		end
+		if spot then
+			Rival:PlaceForTest(bot, spot)
 		end
 		for _ = 1, 8 do
 			for _, bot in bots do

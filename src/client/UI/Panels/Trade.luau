@@ -105,7 +105,7 @@ function Trade.Build(content, ctx)
 			Parent = frame,
 		})
 		Lib.Text({
-			Text = "💰" .. Util.Format(Util.PetIncome(Config, pet.Name, pet.Variant)) .. "/s",
+			Text = Util.PetBadge(Config, pet) .. "  💰" .. Util.Format(Util.PetIncomeOf(Config, pet)) .. "/s",
 			TextColor3 = C.Coins,
 			Size = UDim2.new(1, -8, 0, 16),
 			Position = UDim2.fromOffset(4, 24),
@@ -225,7 +225,7 @@ function Trade.Build(content, ctx)
 		Lib.Clear(inventory)
 		local pets = table.clone(data.Pets)
 		table.sort(pets, function(a, b)
-			return Util.PetIncome(Config, a.Name, a.Variant) > Util.PetIncome(Config, b.Name, b.Variant)
+			return Util.PetIncomeOf(Config, a) > Util.PetIncomeOf(Config, b)
 		end)
 		for order, pet in pets do
 			if not pet.Away and Config.Pets[pet.Name] then

@@ -749,6 +749,37 @@ local function renderItem(plot, item)
 	end
 end
 
+-- level-ups: new numbers on the pedestal labels, no re-render (a re-render
+-- would also cancel steals in progress)
+function Base:RefreshPetLabels(player: Player)
+	local plot = plotOf[player]
+	local data = Data:Get(player)
+	if not plot or not data then
+		return
+	end
+	for _, petModel in plot.Displays:GetChildren() do
+		local id = petModel:GetAttribute("PetId")
+		local pet = type(id) == "number" and id > 0 and Services.PetService.FindPet(data, id)
+		local anchor = petModel:IsA("Model") and petModel.PrimaryPart
+		local gui = anchor and anchor:FindFirstChildOfClass("BillboardGui")
+		local label = gui and gui:FindFirstChildOfClass("TextLabel")
+		if pet and label then
+			local inVault = petModel:GetAttribute("Vault") == true
+			local info = Config.Pets[pet.Name]
+			local icon = if inVault then "🔒" elseif info and info.Exclusive then "💎" else "🌠"
+			local serial = if pet.Serial then " #" .. tostring(pet.Serial) else ""
+			local rate = Util.Format(self:PetRate(player, data, pet, inVault))
+			local badge = Util.PetBadge(Config, pet)
+			if pet.Variant then
+				World.SetText(label, "%s %s %s%s\n%s  💰 %s/s", icon, pet.Variant, pet.Name, serial, badge, rate)
+			else
+				World.SetText(label, "%s %s%s\n%s  💰 %s/s", icon, pet.Name, serial, badge, rate)
+			end
+		end
+	end
+	self:RefreshLabels(player)
+end
+
 function Base:RenderDisplays(player: Player)
 	local plot = plotOf[player]
 	local data = Data:Get(player)
@@ -817,7 +848,9 @@ function Base:RenderDisplays(player: Player)
 		local top = model and model:FindFirstChild("Top")
 		if top and top:IsA("BasePart") then
 			local fake = def.Fake
-			local petModel = PetModel.Build(fake.Name, fake.Variant)
+			-- (looks grown like real pets: no giveaway)
+			local fakeGrowth = { Level = 4 + item.Uid % 7, Stars = if item.Uid % 3 == 0 then 1 else 0 }
+			local petModel = PetModel.Build(fake.Name, fake.Variant, fakeGrowth)
 			petModel.Name = "Decoy_" .. item.Uid
 			petModel:PivotTo(CFrame.new(top.Position + Vector3.new(0, 1.6, 0)) * (top.CFrame - top.Position))
 			local boxCFrame, boxSize = petModel:GetBoundingBox()
@@ -832,8 +865,9 @@ function Base:RenderDisplays(player: Player)
 			local info = Config.Pets[fake.Name]
 			local rarity = Config.Rarities[info.Rarity] or Config.Rarities.Common
 			local label = billboard(anchor, 5.5, 1.7, boxSize.Y + 1, rarity.Color, 40)
-			local fakeRate = Util.Format(Util.PetIncome(Config, fake.Name, fake.Variant))
-			World.SetText(label, "%s %s %s%s\n💰 %s/s", "🌠", fake.Variant, fake.Name, "", fakeRate)
+			local fakePet = { Name = fake.Name, Variant = fake.Variant, Level = fakeGrowth.Level, Stars = fakeGrowth.Stars }
+			local fakeRate = Util.Format(Util.PetIncomeOf(Config, fakePet))
+			World.SetText(label, "%s %s %s%s\n%s  💰 %s/s", "🌠", fake.Variant, fake.Name, "", Util.PetBadge(Config, fakePet), fakeRate)
 			local decoyModel = model
 			setPrompt(anchor, "Steal", fake.Name, "Thief", SETTINGS.StealHold, function(thief)
 				Base:SpringDecoy(player, thief, decoyModel)
@@ -1213,7 +1247,7 @@ function Base:SellPet(player: Player, petId: number)
 	if not pet or pet.Away or pet.SerialPending then
 		return
 	end
-	local coins = Services.PetService:SellValue(pet.Name, pet.Variant)
+	local coins = Services.PetService:SellValueOf(pet)
 	table.remove(data.Pets, index)
 	data.Coins += coins
 	data.Stats.LifetimeCoins += coins

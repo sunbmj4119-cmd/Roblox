@@ -435,6 +435,21 @@ do
 	for id in Config.Meteor.MeteorPetChance do
 		check(Config.Shards.Rarities[id] ~= nil, "meteor pet chance for unknown star egg " .. id)
 	end
+	-- evolve only uses plain copies that aren't more evolved than the pet
+	local mainPet = { Id = 1, Name = "Chick", Level = 10, Stars = 1 }
+	local fodderData = {
+		Pets = {
+			mainPet,
+			{ Id = 2, Name = "Chick" },
+			{ Id = 3, Name = "Chick", Variant = "Rainbow" },
+			{ Id = 4, Name = "Chick", Stars = 2 },
+			{ Id = 5, Name = "Chick", Serial = 7 },
+			{ Id = 6, Name = "Chick", Level = 5 },
+			{ Id = 7, Name = "Bunny" },
+		},
+	}
+	local copies = Util.EvolveCopies(Config, fodderData, mainPet)
+	check(#copies == 2 and copies[1].Id == 2 and copies[2].Id == 6, "evolve would use the wrong copies")
 	local look = Config.Rivals.Look
 	check(#look.Hair > 0 and #look.Shirts > 0 and #look.Pants > 0 and #look.Skins > 0, "rival looks")
 	check(#Config.Rivals.Names >= Config.Rivals.Count * 2, "enough rival names")

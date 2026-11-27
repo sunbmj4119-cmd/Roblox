@@ -825,6 +825,7 @@ Config.Rivals = {
 	GrabRange = 4,
 	SearchRange = 120,
 	StunSeconds = 2.5,
+	CarrySeconds = 60, -- couldn't get home with an egg by then: drops it
 	DropBlockSeconds = 20, -- rivals keep off an egg knocked out of their hands
 	BonkMinCoins = 50,
 	BonkIncomeSeconds = 8, -- reward: 8s of your home income

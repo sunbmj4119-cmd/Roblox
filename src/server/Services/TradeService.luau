@@ -48,7 +48,14 @@ local function sendState(session)
 			for _, petId in session.Offers[who] do
 				local pet = data and petInfo(data, petId)
 				if pet then
-					table.insert(list, { Id = pet.Id, Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial })
+					table.insert(list, {
+						Id = pet.Id,
+						Name = pet.Name,
+						Variant = pet.Variant,
+						Serial = pet.Serial,
+						Level = pet.Level,
+						Stars = pet.Stars,
+					})
 				end
 			end
 			return list

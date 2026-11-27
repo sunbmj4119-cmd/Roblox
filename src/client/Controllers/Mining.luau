@@ -294,6 +294,9 @@ local function classify(hit: Instance?)
 		return { Kind = "Meteor", Part = hit }
 	end
 	local model = hit:FindFirstAncestorOfClass("Model")
+	if model and model.Parent and model.Parent:IsA("Model") and model.Parent:GetAttribute("Rival") == true then
+		model = model.Parent -- (the egg above a rival's head)
+	end
 	if model then
 		local other = Players:GetPlayerFromCharacter(model)
 		-- (rivals: only worth a swing while they carry an egg)

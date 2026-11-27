@@ -468,7 +468,7 @@ local function finish(destroyed: boolean)
 			data.Stats.MeteorJoins += 1
 			if destroyed then
 				-- 🌱 the pets that helped grow
-				Services.PetService:AddFollowXP(player, Config.Growth.MeteorXP)
+				pcall(Services.PetService.AddFollowXP, Services.PetService, player, Config.Growth.MeteorXP)
 			end
 			if place == 1 and destroyed then
 				data.Stats.MeteorWins += 1

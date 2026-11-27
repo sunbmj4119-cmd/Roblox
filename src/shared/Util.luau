@@ -313,6 +313,35 @@ function Util.PetBadge(config, pet): string
 	return stage.Icon .. level .. (if stars > 0 then " " .. string.rep("★", stars) else "")
 end
 
+-- the copies an evolve may use: same species, plain (no mutation), not more
+-- evolved than the pet itself, not numbered / exclusive / away. Least grown first.
+function Util.EvolveCopies(config, data, pet)
+	local list = {}
+	local stars = Util.PetStars(pet)
+	for _, other in data.Pets do
+		if
+			other ~= pet
+			and other.Name == pet.Name
+			and not other.Away
+			and not other.Serial
+			and not other.SerialPending
+			and not other.Variant
+			and Util.PetStars(other) <= stars
+			and not Util.IsExclusive(config, other)
+		then
+			table.insert(list, other)
+		end
+	end
+	table.sort(list, function(a, b)
+		local ga, gb = Util.PetGrowthMult(config, a), Util.PetGrowthMult(config, b)
+		if ga ~= gb then
+			return ga < gb
+		end
+		return a.Id < b.Id
+	end)
+	return list
+end
+
 -- stardust cost of one feed, and the xp it gives
 function Util.PetFeed(config, pet): (number, number)
 	local growth = config.Growth

@@ -1142,4 +1142,5 @@ return {
 	["Adult"] = "어른",
 	["Legend"] = "전설",
 	["💰 %s/s  •  ⚡ x%s"] = "💰 %s/초  •  ⚡ x%s",
+	["⭐ Tap again to evolve - it uses %d plain copies of this pet"] = "⭐ 한 번 더 누르면 진화해요 - 같은 펫(변이 없는) %d마리가 사용돼요",
 }

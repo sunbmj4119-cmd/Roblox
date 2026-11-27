@@ -139,6 +139,7 @@ function Pets.Build(content, ctx)
 
 	local signature = ""
 	local confirmSell = {} -- [petId] = os.clock()
+	local xpBars = {} -- [petId] = fill frame (updated in place)
 
 	local function income(pet)
 		return Util.PetIncomeOf(Config, pet)
@@ -205,10 +206,18 @@ function Pets.Build(content, ctx)
 		Parent = detail,
 	})
 	local feedButton, evolveButton
+	local evolveConfirm = 0
 	local function act(name: string)
 		if not selectedId then
 			return
 		end
+		if name == "PetEvolve" and os.clock() - evolveConfirm > 2.5 then
+			-- (evolving uses up copies: tap twice)
+			evolveConfirm = os.clock()
+			ctx.Toast(T("⭐ Tap again to evolve - it uses %d plain copies of this pet", Config.Growth.Evolve.Copies), C.Purple)
+			return
+		end
+		evolveConfirm = 0
 		local result = Net.Invoke(name, selectedId)
 		if type(result) == "table" and result.Error then
 			Lib.PlaySound("Error")
@@ -297,13 +306,8 @@ function Pets.Build(content, ctx)
 			xpFill.Size = UDim2.fromScale(math.clamp(xp / need, 0, 1), 1)
 			xpText.Text = string.format("%d / %d XP", xp, need)
 		end
-		-- copies available for evolving
-		local copies = 0
-		for _, other in data.Pets do
-			if other ~= pet and other.Name == pet.Name and not other.Away and not other.Serial then
-				copies += 1
-			end
-		end
+		-- copies available for evolving (plain, not more evolved - same rule as the server)
+		local copies = #Util.EvolveCopies(Config, data, pet)
 		local need = growth.Evolve.Copies
 		if stars >= growth.Evolve.MaxStars then
 			dHelp.Text = T("★★★ Fully evolved! The best version of this pet.")
@@ -339,6 +343,7 @@ function Pets.Build(content, ctx)
 
 	local function rebuild(data, derived)
 		Lib.Clear(grid)
+		xpBars = {}
 		local following = {}
 		for _, id in data.Equipped do
 			following[id] = true
@@ -452,7 +457,7 @@ function Pets.Build(content, ctx)
 				Position = UDim2.fromOffset(5, 104),
 				Parent = card,
 			}, { Lib.Corner(2) })
-			New("Frame", {
+			xpBars[pet.Id] = New("Frame", {
 				BackgroundColor3 = if level >= Config.Growth.MaxLevel then C.Gold else C.Green,
 				Size = UDim2.fromScale(xpShare, 1),
 				Parent = bar,
@@ -594,8 +599,6 @@ function Pets.Build(content, ctx)
 					.. (if type(pet.HotUntil) == "number" and pet.HotUntil > os.time() then "h" else "")
 					.. "L"
 					.. Util.PetLevel(pet)
-					.. "x"
-					.. tostring(pet.XP or 0)
 					.. "s"
 					.. Util.PetStars(pet)
 			)
@@ -620,6 +623,13 @@ function Pets.Build(content, ctx)
 		if sig ~= signature then
 			signature = sig
 			rebuild(data, derived)
+		end
+		-- xp bars move without rebuilding the grid
+		for _, pet in data.Pets do
+			local fill = xpBars[pet.Id]
+			if fill and Util.PetLevel(pet) < Config.Growth.MaxLevel then
+				fill.Size = UDim2.fromScale(math.clamp((tonumber(pet.XP) or 0) / Util.PetXPNeed(Config, pet), 0, 1), 1)
+			end
 		end
 		if selectedId then
 			showDetail(data)

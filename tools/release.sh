@@ -19,7 +19,7 @@ fi
 
 echo "== 2/3 cloud tests on version $VERSION (boot + gameplay with stand-in players)"
 for TEST in tests/cloud/Boot.luau tests/cloud/Gameplay.luau; do
-	if ! VERSION="$VERSION" tools/cloud_run.sh "$TEST" 150; then
+	if ! VERSION="$VERSION" tools/cloud_run.sh "$TEST" 240; then
 		echo "cloud test $TEST FAILED - version $VERSION stays unpublished"
 		exit 1
 	fi

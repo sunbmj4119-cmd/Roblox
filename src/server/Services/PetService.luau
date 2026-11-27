@@ -211,7 +211,8 @@ end
 
 -- inventory full: keep the better of (new pet, weakest pet) and sell the other.
 -- Returns true when the new pet may be added, plus coins paid for a sold pet.
-local function makeRoom(player: Player, data, name: string, variant: string?): (boolean, number)
+local function makeRoom(player: Player, data, name: string, variant: string?, growth): (boolean, number)
+	local incoming = { Name = name, Variant = variant, Level = growth and growth.Level, Stars = growth and growth.Stars }
 	data.PetIndex[name] = true -- discovered, even if it gets sold right away
 	if #data.Pets < Config.MaxPets then
 		return true, 0
@@ -223,7 +224,7 @@ local function makeRoom(player: Player, data, name: string, variant: string?): (
 			weakest, weakestIndex = pet, index
 		end
 	end
-	if weakest and Util.PetIncome(Config, name, variant) > income(weakest) then
+	if weakest and income(incoming) > income(weakest) then
 		local coins = PetService:SellValueOf(weakest)
 		table.remove(data.Pets, weakestIndex)
 		data.Coins += coins
@@ -237,7 +238,7 @@ local function makeRoom(player: Player, data, name: string, variant: string?): (
 		)
 		return true, coins
 	end
-	local coins = PetService:SellValue(name, variant)
+	local coins = PetService:SellValueOf(incoming)
 	data.Coins += coins
 	data.Stats.LifetimeCoins += coins
 	Net:Notify(player, "Pet storage full - sold the new %s for 💰%s", Color3.fromRGB(255, 220, 120), name, Util.Format(coins))
@@ -389,6 +390,20 @@ function PetService:HatchStarEgg(player: Player, eggId: string, luck: number, me
 			local pet = if ok then addPet(data, meteorPet, variant) else nil
 			data.Stats.EggsHatched += 1
 			data.Stats.MeteorPets = (data.Stats.MeteorPets or 0) + 1
+			if variant == "Huge" then
+				data.Stats.HugesFound = (data.Stats.HugesFound or 0) + 1
+			elseif variant == "Titanic" then
+				data.Stats.TitanicsFound = (data.Stats.TitanicsFound or 0) + 1
+			end
+			if pet and Util.WantsSerial(Config, meteorPet, variant) then
+				giveSerial(player, data, pet, function(serial)
+					announceIfRare(player, meteorPet, variant, nil, serial)
+				end)
+			elseif variant == "Huge" or variant == "Titanic" or variant == "Rainbow" or variant == "Galaxy" then
+				announceIfRare(player, meteorPet, variant, nil, nil)
+			end
+			Services.ProgressionService:AddQuest(player, "Hatch", 1)
+			Services.ProgressionService:AddSeasonXP(player, 25)
 			self:Changed(player)
 			local card = if pet
 				then describe(player, data, pet, isNew)
@@ -433,7 +448,7 @@ function PetService:GivePet(player: Player, name: string, variant: string?, seri
 	end
 	local isNew = not data.PetIndex[name]
 	local pet = nil
-	if makeRoom(player, data, name, variant) then
+	if makeRoom(player, data, name, variant, growth) then
 		pet = addPet(data, name, variant, serial, growth)
 	end
 	self:Changed(player)
@@ -598,7 +613,19 @@ function PetService:AddXP(player: Player, pets, amount: number)
 	Data:MarkDirty(player)
 	if #ups > 0 then
 		Net:Send(player, "PetLevelUp", ups)
-		self:Changed(player) -- (bigger pets, new income labels)
+		local grew = false
+		for _, up in ups do
+			grew = grew or up.Grew
+		end
+		if grew then
+			self:Changed(player) -- (a bigger model: re-render the pedestals)
+		else
+			-- just new numbers: follow-pet badges + pedestal labels
+			self:RefreshEquipped(player)
+			if Services.BaseService then
+				Services.BaseService:RefreshPetLabels(player)
+			end
+		end
 	end
 	return ups
 end
@@ -653,35 +680,13 @@ local function feed(player: Player, petId)
 	data.Stardust -= cost
 	Services.Analytics:Economy(player, "Sink", "Stardust", cost, data.Stardust, "Gameplay", "PetFeed")
 	local ups = PetService:AddXP(player, { pet }, xp)
-	Data:MarkDirty(player)
-	if #ups == 0 then
-		PetService:Changed(player) -- (sync the xp bar)
-	end
+	Data:MarkDirty(player) -- (the xp bar syncs with the data)
 	return { Ok = true, Level = Util.PetLevel(pet), Up = #ups > 0 }
 end
 
--- the copies an evolve would use: same species, not numbered / away
+-- the copies an evolve would use (Util.EvolveCopies: plain, not more evolved)
 local function evolveFodder(data, pet)
-	local list = {}
-	for _, other in data.Pets do
-		if other ~= pet and other.Name == pet.Name and not other.Away and not other.Serial and not other.SerialPending then
-			table.insert(list, other)
-		end
-	end
-	-- use the least grown copies first (plain before mutated)
-	table.sort(list, function(a, b)
-		local ga, gb = Util.PetGrowthMult(Config, a), Util.PetGrowthMult(Config, b)
-		if ga ~= gb then
-			return ga < gb
-		end
-		local va = Util.PetIncome(Config, a.Name, a.Variant)
-		local vb = Util.PetIncome(Config, b.Name, b.Variant)
-		if va ~= vb then
-			return va < vb
-		end
-		return a.Id < b.Id
-	end)
-	return list
+	return Util.EvolveCopies(Config, data, pet)
 end
 PetService.EvolveFodder = evolveFodder
 
