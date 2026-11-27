@@ -22,6 +22,7 @@ local Util = require(Shared.Util)
 local Net = require(script.Parent.Net)
 
 local PetService = {}
+local rng = Random.new()
 local Services
 local Data
 
@@ -48,16 +49,21 @@ end
 PetService.LuckFn = luckFn
 
 local function power(pet): number
-	return Util.PetPower(Config, pet.Name, pet.Variant)
+	return Util.PetPowerOf(Config, pet)
 end
 
 local function income(pet): number
-	return Util.PetIncome(Config, pet.Name, pet.Variant)
+	return Util.PetIncomeOf(Config, pet)
 end
 PetService.Income = income
 
 function PetService:SellValue(name: string, variant: string?): number
 	return math.max(1, math.floor(Util.PetIncome(Config, name, variant) * Config.PetSellSeconds))
+end
+
+-- (grown / evolved pets are worth more)
+function PetService:SellValueOf(pet): number
+	return math.max(1, math.floor(Util.PetIncomeOf(Config, pet) * Config.PetSellSeconds))
 end
 
 local function activeEventId(): string?
@@ -101,8 +107,9 @@ function PetService:RefreshEquipped(player: Player)
 	local ids, names = {}, {}
 	for i = 1, math.min(slots, #sorted) do
 		table.insert(ids, sorted[i].Id)
-		-- "Variant|Name" so every client can render golden/rainbow pets
-		table.insert(names, (sorted[i].Variant or "") .. "|" .. sorted[i].Name)
+		-- "Variant|Name|Level|Stars" so every client can render golden / grown pets
+		local pet = sorted[i]
+		table.insert(names, (pet.Variant or "") .. "|" .. pet.Name .. "|" .. Util.PetLevel(pet) .. "|" .. Util.PetStars(pet))
 	end
 	data.Equipped = ids
 	player:SetAttribute("Pets", HttpService:JSONEncode(names))
@@ -139,6 +146,9 @@ local function describe(player: Player, data, pet, isNew: boolean?)
 		Rate = rate,
 		New = isNew == true,
 		Follow = table.find(data.Equipped, pet.Id) ~= nil,
+		Level = Util.PetLevel(pet),
+		Stars = Util.PetStars(pet),
+		Meteor = (Config.Pets[pet.Name] or {}).Meteor == true,
 	}
 end
 
@@ -152,8 +162,13 @@ local function findPet(data, petId)
 end
 PetService.FindPet = findPet
 
-local function addPet(data, name: string, variant: string?, serial: number?)
+local function addPet(data, name: string, variant: string?, serial: number?, growth)
 	local pet = { Id = data.NextPetUid, Name = name, Variant = variant, Serial = serial }
+	if growth then
+		pet.Level = growth.Level
+		pet.XP = growth.XP
+		pet.Stars = growth.Stars
+	end
 	data.NextPetUid += 1
 	table.insert(data.Pets, pet)
 	data.PetIndex[name] = true
@@ -209,7 +224,7 @@ local function makeRoom(player: Player, data, name: string, variant: string?): (
 		end
 	end
 	if weakest and Util.PetIncome(Config, name, variant) > income(weakest) then
-		local coins = PetService:SellValue(weakest.Name, weakest.Variant)
+		local coins = PetService:SellValueOf(weakest)
 		table.remove(data.Pets, weakestIndex)
 		data.Coins += coins
 		data.Stats.LifetimeCoins += coins
@@ -356,10 +371,39 @@ function PetService:PaidHatch(player: Player, eggId: string, count: number)
 end
 
 -- a star egg carried home hatches (luck from the star's rarity)
-function PetService:HatchStarEgg(player: Player, eggId: string, luck: number)
+-- meteor = { Kind = 1..5, Golden = bool, Rarity = "Epic" } for eggs from a meteor:
+-- they can hatch that meteor's ☄️ METEOR PET
+function PetService:HatchStarEgg(player: Player, eggId: string, luck: number, meteor)
 	local data = Data:Get(player)
 	if not data or not Config.Eggs[eggId] then
 		return nil
+	end
+	local settings = Config.Meteor
+	local meteorPet = meteor and settings.MeteorPets[meteor.Kind]
+	if meteorPet and Config.Pets[meteorPet] then
+		local chance = (settings.MeteorPetChance[meteor.Rarity] or 0) * (if meteor.Golden then 2 else 1)
+		if rng:NextNumber() < chance then
+			local variant = rollVariant(Services.StatsService:Luck(player, data) * luck)
+			local isNew = not data.PetIndex[meteorPet]
+			local ok, coins = makeRoom(player, data, meteorPet, variant)
+			local pet = if ok then addPet(data, meteorPet, variant) else nil
+			data.Stats.EggsHatched += 1
+			data.Stats.MeteorPets = (data.Stats.MeteorPets or 0) + 1
+			self:Changed(player)
+			local card = if pet
+				then describe(player, data, pet, isNew)
+				else { Name = meteorPet, Variant = variant, Where = "Sold", Coins = coins, New = isNew }
+			card.Meteor = true
+			Net:Send(player, "HatchResult", { card }, eggId)
+			Net:Broadcast("BigHatch", player.UserId, "Meteor")
+			Net:Announce(
+				"☄️ %s hatched a METEOR PET: %s! (only from meteors)",
+				Color3.fromRGB(255, 150, 80),
+				player.DisplayName,
+				meteorPet
+			)
+			return card
+		end
 	end
 	local results = roll(player, data, eggId, 1, luck)
 	Net:Send(player, "HatchResult", results, eggId)
@@ -378,11 +422,11 @@ function PetService:TakePet(player: Player, petId: number)
 	end
 	table.remove(data.Pets, index)
 	self:Changed(player)
-	return { Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial }
+	return { Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial, Level = pet.Level, XP = pet.XP, Stars = pet.Stars }
 end
 
 -- numbered pets keep their number when they change owners
-function PetService:GivePet(player: Player, name: string, variant: string?, serial: number?)
+function PetService:GivePet(player: Player, name: string, variant: string?, serial: number?, growth)
 	local data = Data:Get(player)
 	if not data or not Config.Pets[name] then
 		return
@@ -390,7 +434,7 @@ function PetService:GivePet(player: Player, name: string, variant: string?, seri
 	local isNew = not data.PetIndex[name]
 	local pet = nil
 	if makeRoom(player, data, name, variant) then
-		pet = addPet(data, name, variant, serial)
+		pet = addPet(data, name, variant, serial, growth)
 	end
 	self:Changed(player)
 	return pet, isNew
@@ -496,6 +540,224 @@ local function migrate(player: Player, data)
 	Net:Notify(player, "Your star shards hatched into pets! 🐾", Color3.fromRGB(150, 230, 255))
 end
 
+---------------------------------------------------------------------------
+-- 🌱 growth: levels, feeding, ★ evolving
+---------------------------------------------------------------------------
+local GROWTH = Config.Growth
+
+-- add xp to one pet; true when it reached a new level
+local function grow(pet, amount: number): boolean
+	if amount <= 0 or not Config.Pets[pet.Name] then
+		return false
+	end
+	local level = Util.PetLevel(pet)
+	if level >= GROWTH.MaxLevel then
+		pet.XP = nil
+		return false
+	end
+	pet.XP = (tonumber(pet.XP) or 0) + amount
+	local leveled = false
+	local guard = 0
+	while level < GROWTH.MaxLevel and pet.XP >= Util.PetXPNeed(Config, pet) and guard < 20 do
+		guard += 1
+		pet.XP -= Util.PetXPNeed(Config, pet)
+		level += 1
+		pet.Level = level
+		leveled = true
+	end
+	if level >= GROWTH.MaxLevel then
+		pet.XP = nil
+	end
+	return leveled
+end
+
+-- give xp to some pets; level-ups are celebrated and the pets re-rendered
+function PetService:AddXP(player: Player, pets, amount: number)
+	local data = Data:Get(player)
+	if not data or amount <= 0 then
+		return {}
+	end
+	local ups = {}
+	for _, pet in pets do
+		if not pet.Away then
+			local before = Util.PetStage(Config, Util.PetLevel(pet))
+			if grow(pet, amount) then
+				local stage = Util.PetStage(Config, Util.PetLevel(pet))
+				table.insert(ups, {
+					Id = pet.Id,
+					Name = pet.Name,
+					Variant = pet.Variant,
+					Level = Util.PetLevel(pet),
+					Stars = Util.PetStars(pet),
+					Stage = stage.Id,
+					Grew = stage ~= before,
+				})
+			end
+		end
+	end
+	Data:MarkDirty(player)
+	if #ups > 0 then
+		Net:Send(player, "PetLevelUp", ups)
+		self:Changed(player) -- (bigger pets, new income labels)
+	end
+	return ups
+end
+
+function PetService:FollowingPets(data)
+	local list = {}
+	for _, id in data.Equipped do
+		local pet = findPet(data, id)
+		if pet then
+			table.insert(list, pet)
+		end
+	end
+	return list
+end
+
+-- xp for the pets following you (pet help, meteors, deliveries)
+function PetService:AddFollowXP(player: Player, amount: number)
+	local data = Data:Get(player)
+	if data then
+		return self:AddXP(player, self:FollowingPets(data), amount)
+	end
+	return {}
+end
+
+-- pets standing in your home grow slowly (while you're in the game)
+function PetService:HomeXP(player: Player)
+	local data = Data:Get(player)
+	if not data then
+		return
+	end
+	local vault, display = Util.ArrangePets(Config, data)
+	local list = table.clone(vault)
+	for _, pet in display do
+		table.insert(list, pet)
+	end
+	self:AddXP(player, list, GROWTH.HomeXPPerMinute)
+end
+
+local function feed(player: Player, petId)
+	local data = Data:Get(player)
+	local pet = data and type(petId) == "number" and findPet(data, petId)
+	if not pet or pet.Away then
+		return { Error = Net:L(player, "That pet isn't here right now.") }
+	end
+	if Util.PetLevel(pet) >= GROWTH.MaxLevel then
+		return { Error = Net:L(player, "👑 Max level! Evolve it with %d copies ⭐", GROWTH.Evolve.Copies) }
+	end
+	local cost, xp = Util.PetFeed(Config, pet)
+	if data.Stardust < cost then
+		return { Error = Net:L(player, "Not enough ✨ stardust (%s) - smash meteors!", Util.Format(cost)) }
+	end
+	data.Stardust -= cost
+	Services.Analytics:Economy(player, "Sink", "Stardust", cost, data.Stardust, "Gameplay", "PetFeed")
+	local ups = PetService:AddXP(player, { pet }, xp)
+	Data:MarkDirty(player)
+	if #ups == 0 then
+		PetService:Changed(player) -- (sync the xp bar)
+	end
+	return { Ok = true, Level = Util.PetLevel(pet), Up = #ups > 0 }
+end
+
+-- the copies an evolve would use: same species, not numbered / away
+local function evolveFodder(data, pet)
+	local list = {}
+	for _, other in data.Pets do
+		if other ~= pet and other.Name == pet.Name and not other.Away and not other.Serial and not other.SerialPending then
+			table.insert(list, other)
+		end
+	end
+	-- use the least grown copies first (plain before mutated)
+	table.sort(list, function(a, b)
+		local ga, gb = Util.PetGrowthMult(Config, a), Util.PetGrowthMult(Config, b)
+		if ga ~= gb then
+			return ga < gb
+		end
+		local va = Util.PetIncome(Config, a.Name, a.Variant)
+		local vb = Util.PetIncome(Config, b.Name, b.Variant)
+		if va ~= vb then
+			return va < vb
+		end
+		return a.Id < b.Id
+	end)
+	return list
+end
+PetService.EvolveFodder = evolveFodder
+
+local function evolve(player: Player, petId)
+	local data = Data:Get(player)
+	local pet = data and type(petId) == "number" and findPet(data, petId)
+	if not pet or pet.Away or pet.SerialPending then
+		return { Error = Net:L(player, "That pet isn't here right now.") }
+	end
+	if Services.TradeService and Services.TradeService:IsTrading(player) then
+		return { Error = Net:L(player, "Finish your trade first.") }
+	end
+	local settings = GROWTH.Evolve
+	if Util.PetStars(pet) >= settings.MaxStars then
+		return { Error = Net:L(player, "This pet is fully evolved! ★★★") }
+	end
+	if Util.PetLevel(pet) < GROWTH.MaxLevel then
+		return { Error = Net:L(player, "Grow it to level %d first 👑", GROWTH.MaxLevel) }
+	end
+	local fodder = evolveFodder(data, pet)
+	if #fodder < settings.Copies then
+		return { Error = Net:L(player, "You need %d more %s to evolve", settings.Copies - #fodder, pet.Name) }
+	end
+	for i = 1, settings.Copies do
+		local index = table.find(data.Pets, fodder[i])
+		if index then
+			table.remove(data.Pets, index)
+		end
+	end
+	pet.Stars = Util.PetStars(pet) + 1
+	pet.Level = 1
+	pet.XP = nil
+	data.Stats.Evolved = (data.Stats.Evolved or 0) + 1
+	PetService:Changed(player)
+	Data:MarkDirty(player)
+	local card = describe(player, data, pet, false)
+	card.Evolved = true
+	Net:Send(player, "PetEvolved", card)
+	Net:Broadcast("BigHatch", player.UserId, "Evolve")
+	if pet.Stars >= settings.MaxStars or (Config.Rarities[Config.Pets[pet.Name].Rarity].Order >= Config.AnnounceRarity) then
+		Net:Announce("🌟 %s evolved a %s %s!", Color3.fromRGB(255, 210, 90), player.DisplayName, string.rep("★", pet.Stars), pet.Name)
+	end
+	return { Ok = true, Stars = pet.Stars }
+end
+
+-- 📖 index milestones: claim gems (+ a permanent home income bonus)
+local function claimIndex(player: Player, index)
+	local data = Data:Get(player)
+	local milestone = data and type(index) == "number" and Config.Index.Milestones[index]
+	if not milestone then
+		return { Error = "?" }
+	end
+	data.IndexClaimed = data.IndexClaimed or {}
+	local key = tostring(index)
+	if data.IndexClaimed[key] then
+		return { Error = Net:L(player, "Already claimed!") }
+	end
+	if Util.IndexCount(data) < milestone.Count then
+		return { Error = Net:L(player, "Discover %d different pets first", milestone.Count) }
+	end
+	data.IndexClaimed[key] = true
+	data.Gems += milestone.Gems or 0
+	Services.Analytics:Economy(player, "Source", "Gems", milestone.Gems or 0, data.Gems, "Gameplay", "IndexMilestone")
+	Data:MarkDirty(player)
+	if Services.BaseService then
+		Services.BaseService:RefreshLabels(player, true)
+	end
+	Net:Send(player, "Sold", 0)
+	return { Ok = true, Gems = milestone.Gems or 0, Bonus = milestone.Bonus or 0 }
+end
+
+-- cloud tests: call the request handlers directly
+PetService.FeedForTest = feed
+PetService.EvolveForTest = evolve
+PetService.ClaimIndexForTest = claimIndex
+
 function PetService:Init(services)
 	Services = services
 	Data = services.DataService
@@ -518,6 +780,21 @@ function PetService:Start()
 	end)
 
 	Net:OnRequest("Hatch", 0.35, hatch)
+	Net:OnRequest("PetFeed", 0.2, feed)
+	Net:OnRequest("PetEvolve", 1, evolve)
+	Net:OnRequest("IndexClaim", 0.5, claimIndex)
+	-- pets at home grow a little every minute
+	task.spawn(function()
+		while true do
+			task.wait(60)
+			for _, player in Data:LoadedPlayers() do
+				local ok, err = pcall(PetService.HomeXP, PetService, player)
+				if not ok then
+					warn("[Pets] home xp: " .. tostring(err))
+				end
+			end
+		end
+	end)
 
 	-- restock announcements (every server sees the same stock at the same time)
 	task.spawn(function()
@@ -556,7 +833,7 @@ function PetService:Start()
 		if not pet or pet.Away or pet.SerialPending then
 			return
 		end
-		local coins = self:SellValue(pet.Name, pet.Variant)
+		local coins = self:SellValueOf(pet)
 		table.remove(data.Pets, index)
 		data.Coins += coins
 		data.Stats.LifetimeCoins += coins
@@ -574,9 +851,10 @@ function PetService:Start()
 		for _, pet in data.Pets do
 			local info = Config.Pets[pet.Name]
 			-- mutated pets are never bulk-sold
-			if info and info.Rarity == rarity and not pet.Variant and not pet.Away then
+			local grown = Util.PetLevel(pet) > 1 or Util.PetStars(pet) > 0
+			if info and info.Rarity == rarity and not pet.Variant and not pet.Away and not grown then
 				removed += 1
-				coins += self:SellValue(pet.Name, nil)
+				coins += self:SellValueOf(pet)
 			else
 				table.insert(kept, pet)
 			end

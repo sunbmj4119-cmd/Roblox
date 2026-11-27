@@ -70,6 +70,13 @@ function Titles.Build(content, ctx)
 		elseif need.Delivered then
 			local have = stats.ShardsDelivered or 0
 			return T("Bring %d star eggs home", need.Delivered), string.format("%d/%d", math.min(have, need.Delivered), need.Delivered)
+		elseif need.MeteorPets then
+			local have = stats.MeteorPets or 0
+			return T("Hatch %d ☄️ meteor pet", need.MeteorPets),
+				string.format("%d/%d", math.min(have, need.MeteorPets), need.MeteorPets)
+		elseif need.Evolved then
+			local have = stats.Evolved or 0
+			return T("⭐ Evolve %d pets", need.Evolved), string.format("%d/%d", math.min(have, need.Evolved), need.Evolved)
 		elseif need.Pass then
 			return T("Own the VIP pass"), ""
 		end

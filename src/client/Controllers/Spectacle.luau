@@ -100,6 +100,8 @@ Net.On("BigHatch", function(userId, kind)
 	local color = if kind == "Titanic"
 		then Color3.fromRGB(255, 120, 60)
 		elseif kind == "Huge" then Color3.fromRGB(255, 210, 80)
+		elseif kind == "Meteor" then Color3.fromRGB(255, 150, 70)
+		elseif kind == "Evolve" then Color3.fromRGB(150, 220, 255)
 		else Color3.fromRGB(200, 120, 255)
 	local pillar = Instance.new("Part")
 	pillar.Anchored = true
@@ -126,31 +128,6 @@ end)
 
 Net.On("Party", function()
 	Lib.PlaySound("Cheer")
-end)
-
--- 🤖 a rival robot beams up with an egg
-Net.On("RivalEscape", function(position)
-	if typeof(position) ~= "Vector3" then
-		return
-	end
-	local beam = Instance.new("Part")
-	beam.Anchored = true
-	beam.CanCollide = false
-	beam.CanQuery = false
-	beam.CanTouch = false
-	beam.Shape = Enum.PartType.Cylinder
-	beam.Material = Enum.Material.Neon
-	beam.Color = Color3.fromRGB(120, 230, 255)
-	beam.Transparency = 0.4
-	beam.Size = Vector3.new(160, 4, 4)
-	beam.CFrame = CFrame.new(position + Vector3.new(0, 80, 0)) * CFrame.Angles(0, 0, math.rad(90))
-	beam.Parent = workspace
-	TweenService:Create(beam, TweenInfo.new(1.2), { Transparency = 1, Size = Vector3.new(160, 0.5, 0.5) }):Play()
-	Debris:AddItem(beam, 1.3)
-	local volume = nearVolume(position)
-	if volume > 0 then
-		Lib.PlaySound("Whoosh", volume)
-	end
 end)
 
 -- 🌙 Thief Night is coming (20s): a short alarm so everyone runs home

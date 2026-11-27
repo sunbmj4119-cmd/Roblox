@@ -5,6 +5,7 @@
 	💎 = exclusive (never stolen)   ⭐ = following you   📦 = storage
 	Tap 🔒/🏠 on a card to choose: keep it safe in a vault, or show it off.
 	Tap 💰 twice to sell a pet (pays one minute of its income).
+	Tap a card: 🌱 grow it (level, ✨ feed) and ⭐ evolve it (Lv10 + 2 copies).
 ]]
 local PetModel = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("PetModel"))
 
@@ -12,7 +13,7 @@ local Pets = { Title = "🐾 PETS", Color = Color3.fromRGB(120, 200, 90) }
 
 local MAX_VIEWPORTS = 24 -- 3D previews for the best pets (keeps phones smooth)
 
-local function viewport(parent: GuiObject, petName: string, variant: string?)
+local function viewport(parent: GuiObject, petName: string, variant: string?, growth)
 	local frame = Instance.new("ViewportFrame")
 	frame.BackgroundTransparency = 1
 	frame.Size = UDim2.fromOffset(64, 56)
@@ -21,7 +22,7 @@ local function viewport(parent: GuiObject, petName: string, variant: string?)
 	frame.Ambient = Color3.fromRGB(200, 200, 210)
 	frame.LightColor = Color3.new(1, 1, 1)
 	frame.Parent = parent
-	local model = PetModel.Build(petName, variant)
+	local model = PetModel.Build(petName, variant, growth)
 	model.Parent = frame
 	local camera = Instance.new("Camera")
 	local _, size = model:GetBoundingBox()
@@ -60,7 +61,7 @@ function Pets.Build(content, ctx)
 		button = Lib.Button({
 			Text = text,
 			Color = C.Gold,
-			Size = UDim2.fromOffset(170, 38),
+			Size = UDim2.fromOffset(150, 38),
 			LayoutOrder = order,
 			TextSize = 16,
 			Parent = actions,
@@ -86,9 +87,20 @@ function Pets.Build(content, ctx)
 	bulkButton("Common", "💰 Sell Commons", 1)
 	bulkButton("Uncommon", "💰 Sell Uncommons", 2)
 	Lib.Button({
+		Text = "📖 Index",
+		Color = Color3.fromRGB(110, 190, 255),
+		Size = UDim2.fromOffset(104, 38),
+		LayoutOrder = 5,
+		TextSize = 16,
+		Parent = actions,
+		OnClick = function()
+			ctx.Panels.Open("Index")
+		end,
+	})
+	Lib.Button({
 		Text = "🤝 Trade",
 		Color = C.Cyan,
-		Size = UDim2.fromOffset(120, 38),
+		Size = UDim2.fromOffset(104, 38),
 		LayoutOrder = 4,
 		TextSize = 16,
 		Parent = actions,
@@ -129,7 +141,195 @@ function Pets.Build(content, ctx)
 	local confirmSell = {} -- [petId] = os.clock()
 
 	local function income(pet)
-		return Util.PetIncome(Config, pet.Name, pet.Variant)
+		return Util.PetIncomeOf(Config, pet)
+	end
+
+	-- 🌱 pet detail: grow (feed ✨) and ⭐ evolve -------------------------------
+	local selectedId = nil
+	local detail = New("TextButton", {
+		Text = "",
+		AutoButtonColor = false,
+		BackgroundColor3 = Color3.fromRGB(16, 18, 28),
+		BackgroundTransparency = 0.05,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 30,
+		Visible = false,
+		Parent = content,
+	}, { Lib.Corner(14) })
+	local detailView = Instance.new("Frame")
+	detailView.BackgroundTransparency = 1
+	detailView.Size = UDim2.fromOffset(170, 170)
+	detailView.Position = UDim2.fromOffset(10, 10)
+	detailView.ZIndex = 31
+	detailView.Parent = detail
+	local function line(y: number, height: number, size: number, color: Color3?)
+		return Lib.Text({
+			Text = "",
+			TextColor3 = color or C.Text,
+			Size = UDim2.new(1, -200, 0, height),
+			Position = UDim2.fromOffset(190, y),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			MaxTextSize = size,
+			ZIndex = 31,
+			Parent = detail,
+		})
+	end
+	local dName = line(10, 30, 26)
+	local dStage = line(42, 24, 20, C.Gold)
+	local dIncome = line(68, 22, 18, C.Coins)
+	local xpBack = New("Frame", {
+		BackgroundColor3 = Color3.fromRGB(40, 44, 60),
+		Size = UDim2.new(1, -200, 0, 16),
+		Position = UDim2.fromOffset(190, 96),
+		ZIndex = 31,
+		Parent = detail,
+	}, { Lib.Corner(8) })
+	local xpFill = New("Frame", {
+		BackgroundColor3 = C.Green,
+		Size = UDim2.fromScale(0, 1),
+		ZIndex = 32,
+		Parent = xpBack,
+	}, { Lib.Corner(8) })
+	local xpText = Lib.Text({ Text = "", Size = UDim2.fromScale(1, 1), MaxTextSize = 12, ZIndex = 33, Parent = xpBack })
+	local dHelp = Lib.Text({
+		Text = "",
+		Font = Lib.BodyFont,
+		TextColor3 = C.Sub,
+		TextWrapped = true,
+		Size = UDim2.new(1, -200, 0, 54),
+		Position = UDim2.fromOffset(190, 116),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		MaxTextSize = 13,
+		ZIndex = 31,
+		Parent = detail,
+	})
+	local feedButton, evolveButton
+	local function act(name: string)
+		if not selectedId then
+			return
+		end
+		local result = Net.Invoke(name, selectedId)
+		if type(result) == "table" and result.Error then
+			Lib.PlaySound("Error")
+			ctx.Toast(result.Error, C.Red)
+		elseif type(result) == "table" and result.Ok then
+			Lib.PlaySound(if name == "PetEvolve" then "Fanfare" elseif result.Up then "LevelUp" else "Pop")
+		end
+	end
+	feedButton = Lib.Button({
+		Text = "🍖 Feed",
+		Color = C.Green,
+		Size = UDim2.new(0.5, -110, 0, 46),
+		Position = UDim2.new(0, 190, 1, -58),
+		TextSize = 17,
+		ZIndex = 31,
+		Parent = detail,
+		OnClick = function()
+			act("PetFeed")
+		end,
+	})
+	evolveButton = Lib.Button({
+		Text = "⭐ Evolve",
+		Color = C.Purple,
+		Size = UDim2.new(0.5, -110, 0, 46),
+		Position = UDim2.new(0.5, 90, 1, -58),
+		TextSize = 17,
+		ZIndex = 31,
+		Parent = detail,
+		OnClick = function()
+			act("PetEvolve")
+		end,
+	})
+	Lib.Button({
+		Text = "✕",
+		Color = C.Gray,
+		Size = UDim2.fromOffset(40, 40),
+		Position = UDim2.new(1, -46, 0, 6),
+		TextSize = 20,
+		ZIndex = 32,
+		Parent = detail,
+		OnClick = function()
+			selectedId = nil
+			detail.Visible = false
+		end,
+	})
+	local detailKey = ""
+	local function showDetail(data)
+		local pet = nil
+		for _, p in data.Pets do
+			if p.Id == selectedId then
+				pet = p
+			end
+		end
+		if not pet or not Config.Pets[pet.Name] then
+			detail.Visible = false
+			selectedId = nil
+			return
+		end
+		detail.Visible = true
+		local growth = Config.Growth
+		local level, stars = Util.PetLevel(pet), Util.PetStars(pet)
+		local stage = Util.PetStage(Config, level)
+		local key = pet.Id .. "|" .. level .. "|" .. stars .. "|" .. tostring(pet.Variant)
+		if key ~= detailKey then
+			detailKey = key
+			Lib.Clear(detailView)
+			local vp = viewport(detailView, pet.Name, pet.Variant, { Level = level, Stars = stars })
+			vp.Size = UDim2.fromScale(1, 1)
+			vp.Position = UDim2.fromScale(0.5, 0)
+			vp.ZIndex = 31
+		end
+		local name = T(pet.Name)
+		if pet.Variant then
+			name = T(pet.Variant) .. " " .. name
+		end
+		dName.Text = name .. (if stars > 0 then "  " .. string.rep("★", stars) else "")
+		dStage.Text = T("%s %s  •  Level %d/%d", stage.Icon, T(stage.Id), level, growth.MaxLevel)
+		dIncome.Text = T("💰 %s/s  •  ⚡ x%s", Util.Format(income(pet)), string.format("%.2f", Util.PetGrowthMult(Config, pet)))
+		local maxed = level >= growth.MaxLevel
+		if maxed then
+			xpFill.Size = UDim2.fromScale(1, 1)
+			xpText.Text = T("👑 MAX LEVEL")
+		else
+			local need = Util.PetXPNeed(Config, pet)
+			local xp = tonumber(pet.XP) or 0
+			xpFill.Size = UDim2.fromScale(math.clamp(xp / need, 0, 1), 1)
+			xpText.Text = string.format("%d / %d XP", xp, need)
+		end
+		-- copies available for evolving
+		local copies = 0
+		for _, other in data.Pets do
+			if other ~= pet and other.Name == pet.Name and not other.Away and not other.Serial then
+				copies += 1
+			end
+		end
+		local need = growth.Evolve.Copies
+		if stars >= growth.Evolve.MaxStars then
+			dHelp.Text = T("★★★ Fully evolved! The best version of this pet.")
+		elseif maxed then
+			dHelp.Text = T(
+				"⭐ Evolve: this pet + %d more %s (you have %d) -> ★%d, x%d income! (back to level 1)",
+				need,
+				T(pet.Name),
+				copies,
+				stars + 1,
+				growth.Evolve.StarMult
+			)
+		else
+			dHelp.Text = T(
+				"🌱 Grows while it follows you and helps, while it stands in your home, and when you feed it ✨ stardust. At level %d it can ⭐ evolve.",
+				growth.MaxLevel
+			)
+		end
+		local cost, xp = Util.PetFeed(Config, pet)
+		Lib.SetButton(feedButton, if maxed then T("👑 Max") else T("🍖 +%d XP  ✨%s", xp, Util.Format(cost)))
+		Lib.SetButton(
+			evolveButton,
+			if stars >= growth.Evolve.MaxStars then "★★★" else T("⭐ Evolve (%d/%d)", math.min(copies, need), need)
+		)
+		evolveButton.BackgroundColor3 = if maxed and copies >= need and stars < growth.Evolve.MaxStars then C.Purple else C.Gray
+		feedButton.BackgroundColor3 = if maxed then C.Gray elseif (data.Stardust or 0) >= cost then C.Green else C.Gray
 	end
 
 	local function pedestalKey(data): string
@@ -165,7 +365,10 @@ function Pets.Build(content, ctx)
 		for _, pet in displayPets do
 			where[pet.Id] = "display"
 		end
-		local mult = (derived.CoinMult or 1) * (if State.HasPass("DoubleBase") then 2 else 1) * (1 + Util.SetBonus(Config, data.Base.Items))
+		local mult = (derived.CoinMult or 1)
+			* (if State.HasPass("DoubleBase") then 2 else 1)
+			* (1 + Util.SetBonus(Config, data.Base.Items))
+			* (1 + Util.IndexBonus(Config, data))
 		for order, pet in pets do
 			local info = Config.Pets[pet.Name]
 			local rarity = Config.Rarities[info.Rarity]
@@ -183,8 +386,21 @@ function Pets.Build(content, ctx)
 				Lib.Corner(12),
 				Lib.Stroke(if pet.Variant then Color3.fromRGB(255, 210, 60) else rarity.Color, if pet.Variant then 4 else 3, 0),
 			})
+			-- tap the card: grow / evolve this pet
+			local open = New("TextButton", {
+				Text = "",
+				BackgroundTransparency = 1,
+				Size = UDim2.fromScale(1, 1),
+				Parent = card,
+			})
+			open.Activated:Connect(function()
+				Lib.PlaySound("UI")
+				selectedId = pet.Id
+				detailKey = ""
+				showDetail(State.Data)
+			end)
 			if order <= MAX_VIEWPORTS then
-				viewport(card, pet.Name, pet.Variant)
+				viewport(card, pet.Name, pet.Variant, { Level = Util.PetLevel(pet), Stars = Util.PetStars(pet) })
 			else
 				New("Frame", {
 					Size = UDim2.fromOffset(44, 44),
@@ -208,6 +424,39 @@ function Pets.Build(content, ctx)
 				MaxTextSize = 14,
 				Parent = card,
 			})
+			-- 🌱 level / ★ badge + xp bar
+			New("Frame", {
+				BackgroundColor3 = Color3.fromRGB(20, 22, 34),
+				BackgroundTransparency = 0.2,
+				Size = UDim2.fromOffset(58, 20),
+				Position = UDim2.new(1, -62, 0, 34),
+				ZIndex = 2,
+				Parent = card,
+			}, {
+				Lib.Corner(10),
+				Lib.Text({
+					Text = Util.PetBadge(Config, pet),
+					TextColor3 = C.Gold,
+					Size = UDim2.fromScale(1, 1),
+					MaxTextSize = 13,
+					ZIndex = 3,
+				}),
+			})
+			local level = Util.PetLevel(pet)
+			local xpShare = if level >= Config.Growth.MaxLevel
+				then 1
+				else math.clamp((tonumber(pet.XP) or 0) / Util.PetXPNeed(Config, pet), 0, 1)
+			local bar = New("Frame", {
+				BackgroundColor3 = Color3.fromRGB(40, 44, 60),
+				Size = UDim2.new(1, -10, 0, 4),
+				Position = UDim2.fromOffset(5, 104),
+				Parent = card,
+			}, { Lib.Corner(2) })
+			New("Frame", {
+				BackgroundColor3 = if level >= Config.Growth.MaxLevel then C.Gold else C.Green,
+				Size = UDim2.fromScale(xpShare, 1),
+				Parent = bar,
+			}, { Lib.Corner(2) })
 			local petMult = if place == "vault" then mult * Config.Base.VaultIncome else mult
 			Lib.Text({
 				Text = "💰" .. Util.Format(income(pet) * petMult) .. "/s",
@@ -268,7 +517,7 @@ function Pets.Build(content, ctx)
 					Net.Fire("PetShow", pet.Id, not pet.Show)
 					ctx.Toast(
 						if pet.Show
-							then T("🔒 This pet may go into a vault again (safe, half income)")
+							then T("🔒 This pet may go into a vault again (safe)")
 							else T("🏠 This pet stays on display: full income, but it can be stolen!"),
 						if pet.Show then C.Blue else C.Gold
 					)
@@ -290,7 +539,10 @@ function Pets.Build(content, ctx)
 					else
 						confirmSell[pet.Id] = os.clock()
 						sell.Text = "?"
-						ctx.Toast(T("Tap again to sell for 💰%s", Util.Format(math.floor(income(pet) * Config.PetSellSeconds))), C.Gold)
+						ctx.Toast(
+							T("Tap again to sell for 💰%s", Util.Format(math.max(1, math.floor(income(pet) * Config.PetSellSeconds)))),
+							C.Gold
+						)
 						task.delay(2.5, function()
 							if sell.Parent then
 								sell.Text = "💰"
@@ -340,6 +592,12 @@ function Pets.Build(content, ctx)
 					.. (if pet.Show then "s" else "")
 					.. (pet.Serial or "")
 					.. (if type(pet.HotUntil) == "number" and pet.HotUntil > os.time() then "h" else "")
+					.. "L"
+					.. Util.PetLevel(pet)
+					.. "x"
+					.. tostring(pet.XP or 0)
+					.. "s"
+					.. Util.PetStars(pet)
 			)
 		end
 		local newCount = 0
@@ -362,6 +620,9 @@ function Pets.Build(content, ctx)
 		if sig ~= signature then
 			signature = sig
 			rebuild(data, derived)
+		end
+		if selectedId then
+			showDetail(data)
 		end
 	end
 

@@ -450,6 +450,7 @@ end
 -- 🤖 rival robots (RivalService) -------------------------------------------
 Shards.ItemColor = itemColor
 Shards.ItemName = itemName
+Shards.BuildItemModel = buildItemModel
 
 function Shards:IsOnGround(model: Model): boolean
 	return ground[model] ~= nil
@@ -602,7 +603,7 @@ local function deliver(player: Player)
 			Net:Notify(player, "The owner left - the pet vanished!")
 			return
 		end
-		local given, isNew = pets:GivePet(player, taken.Name, taken.Variant, taken.Serial)
+		local given, isNew = pets:GivePet(player, taken.Name, taken.Variant, taken.Serial, taken)
 		-- a freshly stolen pet can't hide in the thief's vault yet: revenge can win it back
 		if given and not (meta.Revenge and meta.Thief == player) then
 			given.HotUntil = os.time() + Config.Base.HotSeconds
@@ -618,7 +619,7 @@ local function deliver(player: Player)
 		local repeatPair = os.clock() - (nightBonusPaid[pairKey] or -1e9) < 600
 		if bonusSeconds > 0 and data and not meta.Revenge and not repeatPair then
 			nightBonusPaid[pairKey] = os.clock()
-			local bonus = math.floor(Util.PetIncome(Config, taken.Name, taken.Variant) * bonusSeconds)
+			local bonus = math.floor(Util.PetIncomeOf(Config, taken) * bonusSeconds)
 			if bonus > 0 then
 				data.Coins += bonus
 				data.Stats.LifetimeCoins += bonus
@@ -646,7 +647,9 @@ local function deliver(player: Player)
 	else
 		-- a star egg: it hatches right here
 		local def = SETTINGS.Rarities[item.Rarity]
-		local result = pets:HatchStarEgg(player, item.Egg, if def then def.Luck or 1 else 1)
+		local meteorInfo = if item.MeteorKind then { Kind = item.MeteorKind, Golden = item.Golden, Rarity = item.Rarity } else nil
+		local result = pets:HatchStarEgg(player, item.Egg, if def then def.Luck or 1 else 1, meteorInfo)
+		pets:AddFollowXP(player, Config.Growth.DeliverXP)
 		if data then
 			data.Stats.ShardsDelivered = (data.Stats.ShardsDelivered or 0) + 1
 		end
@@ -786,7 +789,7 @@ function Shards:SpillMeteor(position: Vector3, ranking, info)
 			opts.PriorityUser = entry.Reserved.UserId
 			opts.PriorityUntil = now() + (if entry.Place == 1 then priority else priority - 1)
 		end
-		self:SpawnGround({ Kind = "Egg", Rarity = entry.Id, Egg = egg }, spot, nil, opts)
+		self:SpawnGround({ Kind = "Egg", Rarity = entry.Id, Egg = egg, MeteorKind = info.Kind, Golden = info.Golden }, spot, nil, opts)
 		if entry.Reserved and typeof(entry.Reserved) == "Instance" then -- (robots get no messages)
 			local medal = ({ "🥇", "🥈", "🥉" })[entry.Place]
 			Net:Notify(entry.Reserved, "%s Your %s is waiting - grab it first!", Color3.fromRGB(255, 220, 90), medal, rarityName(entry.Id))

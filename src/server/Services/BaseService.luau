@@ -688,11 +688,12 @@ end
 
 -- coins per second of one pet for its owner (boosts included)
 function Base:PetRate(player: Player, data, pet, inVault: boolean?): number
-	local rate = Util.PetIncome(Config, pet.Name, pet.Variant) * Services.StatsService:CoinMultiplier(player, data)
+	local rate = Util.PetIncomeOf(Config, pet) * Services.StatsService:CoinMultiplier(player, data)
 	if Services.MonetizationService:HasPass(player, "DoubleBase") then
 		rate *= 2
 	end
 	rate *= 1 + Util.SetBonus(Config, data.Base.Items)
+	rate *= 1 + Util.IndexBonus(Config, data) -- 📖 collection milestones + egg sets
 	if inVault then
 		rate *= SETTINGS.VaultIncome
 	end
@@ -766,7 +767,7 @@ function Base:RenderDisplays(player: Player)
 		local info = Config.Pets[pet.Name]
 		local rarity = Config.Rarities[info.Rarity] or Config.Rarities.Common
 		local exclusive = info.Exclusive == true
-		local petModel = PetModel.Build(pet.Name, pet.Variant)
+		local petModel = PetModel.Build(pet.Name, pet.Variant, { Level = Util.PetLevel(pet), Stars = Util.PetStars(pet) })
 		petModel.Name = "Pet_" .. pet.Id
 		petModel:PivotTo(CFrame.new(top.Position + Vector3.new(0, 1.6, 0)) * (top.CFrame - top.Position))
 		-- big (huge) pets stand on the pedestal instead of sinking into it
@@ -785,10 +786,11 @@ function Base:RenderDisplays(player: Player)
 		local rate = Util.Format(self:PetRate(player, data, pet, inVault))
 		local icon = if inVault then "🔒" elseif exclusive then "💎" else "🌠"
 		local serial = if pet.Serial then " #" .. tostring(pet.Serial) else ""
+		local badge = Util.PetBadge(Config, pet)
 		if pet.Variant then
-			World.SetText(label, "%s %s %s%s\n💰 %s/s", icon, pet.Variant, pet.Name, serial, rate)
+			World.SetText(label, "%s %s %s%s\n%s  💰 %s/s", icon, pet.Variant, pet.Name, serial, badge, rate)
 		else
-			World.SetText(label, "%s %s%s\n💰 %s/s", icon, pet.Name, serial, rate)
+			World.SetText(label, "%s %s%s\n%s  💰 %s/s", icon, pet.Name, serial, badge, rate)
 		end
 		local petId = pet.Id
 		if not inVault and not exclusive then
@@ -853,7 +855,7 @@ function Base:RenderDisplays(player: Player)
 		end
 	end
 	table.sort(storage, function(a, b)
-		return Util.PetIncome(Config, a.Name, a.Variant) > Util.PetIncome(Config, b.Name, b.Variant)
+		return Util.PetIncomeOf(Config, a) > Util.PetIncomeOf(Config, b)
 	end)
 	for i = 1, math.min(SETTINGS.YardPets, #storage) do
 		table.insert(yard, (storage[i].Variant or "") .. "|" .. storage[i].Name)
@@ -1341,7 +1343,7 @@ function Base:StealDelivered(owner: Player, thief: Player, meta, pet)
 		-- serial thieves get a bounty
 		local before = self:Bounty(thief)
 		thefts[thief] = thefts[thief] or {}
-		local value = Util.PetIncome(Config, pet.Name, pet.Variant) * SETTINGS.Bounty.IncomeSeconds
+		local value = Util.PetIncomeOf(Config, pet) * SETTINGS.Bounty.IncomeSeconds
 		table.insert(thefts[thief], { Victim = owner.UserId, Time = now(), Value = value })
 		local after = self:Bounty(thief)
 		if after > 0 then

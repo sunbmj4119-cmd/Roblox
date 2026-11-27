@@ -159,8 +159,10 @@ local function slot(entry, eggColor: Color3?)
 	table.insert(
 		labels,
 		Lib.Text({
-			Text = (if variant then "✨ " .. string.upper(T(variant)) .. " ✨  " else "") .. string.upper(T(info.Rarity)),
-			TextColor3 = variantColor or rarity.Color,
+			Text = (if entry.Meteor then "☄️ " .. T("METEOR PET") .. "  " else "") .. (if variant
+				then "✨ " .. string.upper(T(variant)) .. " ✨  "
+				else "") .. string.upper(T(info.Rarity)) .. (if (entry.Stars or 0) > 0 then "  " .. string.rep("★", entry.Stars) else ""),
+			TextColor3 = if entry.Meteor then Color3.fromRGB(255, 160, 80) else variantColor or rarity.Color,
 			Size = UDim2.new(1, 0, 0, 30),
 			Position = UDim2.fromOffset(0, 280),
 			MaxTextSize = 26,

@@ -296,7 +296,9 @@ local function classify(hit: Instance?)
 	local model = hit:FindFirstAncestorOfClass("Model")
 	if model then
 		local other = Players:GetPlayerFromCharacter(model)
-		if other and other ~= player then
+		-- (rivals: only worth a swing while they carry an egg)
+		local rivalWithEgg = model:GetAttribute("Rival") == true and model:GetAttribute("Carrying") == true
+		if (other and other ~= player) or rivalWithEgg then
 			local otherRoot = model:FindFirstChild("HumanoidRootPart")
 			if otherRoot and otherRoot:IsA("BasePart") then
 				return { Kind = "Player", Part = otherRoot }
@@ -304,8 +306,7 @@ local function classify(hit: Instance?)
 		end
 		local map = workspace:FindFirstChild("Map")
 		local shardFolder = map and map:FindFirstChild("Shards")
-		local robotWithEgg = model.Name == "RivalBot" and model:GetAttribute("Carrying") == true
-		if shardFolder and model.Parent == shardFolder and (model.Name == "StarGuardian" or robotWithEgg) then
+		if shardFolder and model.Parent == shardFolder and model.Name == "StarGuardian" then
 			local guardianRoot = model:FindFirstChild("HumanoidRootPart")
 			if guardianRoot and guardianRoot:IsA("BasePart") then
 				return { Kind = "Player", Part = guardianRoot } -- walk up and bonk it
@@ -398,8 +399,7 @@ local function nearestGuardian(root: BasePart): BasePart?
 	end
 	local best, bestDistance = nil, Config.PvP.BonkRange + 6
 	for _, model in folder:GetChildren() do
-		-- guardians, and 🤖 robots running off with an egg
-		if model.Name == "StarGuardian" or (model.Name == "RivalBot" and model:GetAttribute("Carrying")) then
+		if model.Name == "StarGuardian" then
 			local guardianRoot = model:FindFirstChild("HumanoidRootPart")
 			if guardianRoot and guardianRoot:IsA("BasePart") then
 				local distance = (guardianRoot.Position - root.Position).Magnitude
@@ -417,6 +417,18 @@ local function nearestCarrier(root: BasePart): BasePart?
 	for _, other in Players:GetPlayers() do
 		if other ~= player and other:GetAttribute("Carrying") then
 			local otherRoot = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+			if otherRoot and otherRoot:IsA("BasePart") then
+				local distance = (otherRoot.Position - root.Position).Magnitude
+				if distance < bestDistance then
+					best, bestDistance = otherRoot, distance
+				end
+			end
+		end
+	end
+	-- rivals running home with an egg
+	for _, model in workspace:GetChildren() do
+		if model:IsA("Model") and model:GetAttribute("Rival") == true and model:GetAttribute("Carrying") == true then
+			local otherRoot = model:FindFirstChild("HumanoidRootPart")
 			if otherRoot and otherRoot:IsA("BasePart") then
 				local distance = (otherRoot.Position - root.Position).Magnitude
 				if distance < bestDistance then

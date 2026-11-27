@@ -1,22 +1,26 @@
 --[[
-	RivalService: 🤖 rival robots for small servers (solo play).
+	RivalService: rival players for small servers (solo play).
 
-	With only 1-2 real players a server feels empty, so two cheeky hover
-	robots join in:
-	  * when a meteor warning starts they race to the landing spot,
-	  * they smash the meteor too (a bit slower than a real player) and show
-	    up in the live ranking - beat them for 1st place!
-	  * after the burst they go for star eggs nobody has picked up yet and
-	    try to fly away with them (they beam up after a few seconds),
-	  * bonk a robot (swing at it) to stun it: if it carries an egg, the egg
-	    drops and you get a few coins.
-	They never take eggs reserved for someone (tutorial / top 3), guarded
-	ones or eggs in the base district, never flee out of the area they grabbed
-	the egg in (no escaping through walls / into locked zones), and leave
-	once the server fills up.
-	(Only the root part is anchored and moved - the rest is welded to it, so
-	one CFrame per robot replicates, ~20 times a second.)
+	With only 1-2 real players a server feels empty, so two rivals join in -
+	regular-looking avatars (official Roblox catalog items), with a name,
+	level, title, pickaxe and pets following them, who play the game like
+	anybody else:
+	  * between meteors they mine ores in the mines (or hang around the hub),
+	  * a meteor warning sends them running to the landing spot (far away:
+	    they "teleport" to the area entrance, like the GO button),
+	  * they smash the meteor (a bit slower than a real player) and show up
+	    in the live ranking - beat them for 1st place!
+	  * after the burst they grab star eggs nobody picked up and run home
+	    with them (to the base district) - bonk them to make them drop it,
+	  * now and then they try to bonk YOU when you carry an egg (never a new
+	    player's first egg, never near the spawn or in the base district).
+	They never take reserved eggs (tutorial / top 3) or guarded ones, never
+	enter people's homes, and leave once the server fills up. They are game
+	characters: no fake chat, no fake join messages, no real user accounts.
 ]]
+local HttpService = game:GetService("HttpService")
+local PathfindingService = game:GetService("PathfindingService")
+local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -32,9 +36,21 @@ local Data
 local World
 
 local SETTINGS = Config.Rivals
+local rng = Random.new()
 local rivals = {} -- [model] = record
 local forcedCount: number? = nil -- cloud tests
 local nextId = 0
+local usedNames = {}
+
+local GROUP = "Rivals"
+local GATE_GROUP = "ZoneGates"
+local ANIMS = {
+	Idle = "rbxassetid://507766388",
+	Run = "rbxassetid://913376220",
+	Jump = "rbxassetid://507765000",
+	Fall = "rbxassetid://507767968",
+	Slash = "rbxassetid://522635514",
+}
 
 local function now(): number
 	return workspace:GetServerTimeNow()
@@ -44,162 +60,301 @@ local function flat(v: Vector3): Vector3
 	return Vector3.new(v.X, 0, v.Z)
 end
 
--- the walkable area around a position: the hub or one mine zone (x/z limits)
-local function areaBounds(position: Vector3)
-	local zone = Util.ZoneAt(Config, Vector3.new(position.X, 3, position.Z))
-	local layout = Config.World.Layout
-	local margin = 6
-	if zone and zone > 0 and World.Zones[zone] then
-		local info = World.Zones[zone]
-		local half = layout.ZoneWidth / 2 - margin
-		return { MinX = -half, MaxX = half, MinZ = info.ZStart + margin, MaxZ = info.ZEnd - margin }
-	end
-	local half = layout.HubHalf - margin
-	return { MinX = -half, MaxX = half, MinZ = -half, MaxZ = half }
+local function pick(list)
+	return list[rng:NextInteger(1, #list)]
 end
 
-local function clampTo(bounds, position: Vector3): Vector3
-	return Vector3.new(math.clamp(position.X, bounds.MinX, bounds.MaxX), position.Y, math.clamp(position.Z, bounds.MinZ, bounds.MaxZ))
+-- which area a position is in: 0 = hub, 1..n = mine zone, -1 = bases, nil = elsewhere
+local function areaOf(position: Vector3): number?
+	local probe = Vector3.new(position.X, 3, position.Z)
+	if Util.InBases(Config, probe) then
+		return -1
+	end
+	return Util.ZoneAt(Config, probe)
+end
+
+local function areaEntrance(area: number): Vector3
+	if area > 0 and World.Zones[area] then
+		return World:SpawnFor(area).Position
+	elseif area == -1 then
+		return Vector3.new(0, 4, Config.World.Bases.ZStart - 12)
+	end
+	return World.HubSpawn.Position + Vector3.new(rng:NextNumber(-6, 6), 0, rng:NextNumber(-4, 4))
+end
+
+local function homeSpot(): Vector3
+	return Vector3.new(rng:NextNumber(-6, 6), 3, Util.AvenueZ(Config))
 end
 
 ---------------------------------------------------------------------------
--- the robot
+-- the character
 ---------------------------------------------------------------------------
-local function buildRobot(name: string, color: Color3): (Model, BasePart, BasePart, TextLabel)
-	local model = Instance.new("Model")
-	model.Name = "RivalBot"
-	local root = Instance.new("Part")
-	root.Name = "HumanoidRootPart"
-	root.Size = Vector3.new(2.6, 3, 2.6)
-	root.Transparency = 1
-	root.Anchored = true
-	root.CanCollide = false
-	root.CanQuery = false
-	root.CanTouch = false
-	root.Parent = model
-	local function piece(partName: string, size: Vector3, offset: CFrame, partColor: Color3, material: Enum.Material, shape)
-		local p = Instance.new("Part")
-		p.Name = partName
-		p.Size = size
-		p.CFrame = root.CFrame * offset
-		p.Color = partColor
-		p.Material = material
-		p.Anchored = false -- welded to the anchored root (one CFrame replicates)
-		p.Massless = true
-		p.CanCollide = false
-		p.CanQuery = false -- (only a robot carrying an egg can be tapped)
-		p.CanTouch = false
-		p.CastShadow = false
-		p.TopSurface = Enum.SurfaceType.Smooth
-		p.BottomSurface = Enum.SurfaceType.Smooth
-		if shape then
-			p.Shape = shape
-		end
-		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = root
-		weld.Part1 = p
-		weld.Parent = p
-		p.Parent = model
-		return p
+local function describe()
+	local look = SETTINGS.Look
+	local desc = Instance.new("HumanoidDescription")
+	local skin = pick(look.Skins)
+	desc.HeadColor = skin
+	desc.TorsoColor = skin
+	desc.LeftArmColor = skin
+	desc.RightArmColor = skin
+	desc.LeftLegColor = skin
+	desc.RightLegColor = skin
+	desc.HairAccessory = tostring(pick(look.Hair))
+	if rng:NextNumber() < look.HatChance then
+		desc.HatAccessory = tostring(pick(look.Hats))
 	end
-	piece("Body", Vector3.new(2.4, 1.9, 2), CFrame.new(0, 0, 0), color, Enum.Material.SmoothPlastic)
-	piece("Head", Vector3.one * 2, CFrame.new(0, 1.55, 0), Color3.fromRGB(225, 230, 240), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
-	piece("Visor", Vector3.new(1.5, 0.5, 0.3), CFrame.new(0, 1.6, -0.85), Color3.fromRGB(40, 45, 60), Enum.Material.SmoothPlastic)
-	for _, x in { -0.35, 0.35 } do
-		piece("Eye", Vector3.new(0.28, 0.28, 0.1), CFrame.new(x, 1.62, -1.02), Color3.fromRGB(120, 255, 230), Enum.Material.Neon)
-	end
-	piece("Antenna", Vector3.new(0.12, 0.9, 0.12), CFrame.new(0, 2.85, 0), Color3.fromRGB(90, 95, 110), Enum.Material.Metal)
-	piece("AntennaTip", Vector3.one * 0.38, CFrame.new(0, 3.35, 0), color, Enum.Material.Neon, Enum.PartType.Ball)
-	for _, x in { -1.45, 1.45 } do
-		piece(
-			"Arm",
-			Vector3.new(0.45, 1.2, 0.45),
-			CFrame.new(x, -0.1, 0) * CFrame.Angles(0, 0, math.rad(x * 12)),
-			color,
-			Enum.Material.SmoothPlastic
-		)
-	end
-	local ring = piece(
-		"Hover",
-		Vector3.new(0.2, 2.6, 2.6),
-		CFrame.new(0, -1.3, 0) * CFrame.Angles(0, 0, math.rad(90)),
-		Color3.fromRGB(120, 230, 255),
-		Enum.Material.Neon,
-		Enum.PartType.Cylinder
-	)
-	ring.Transparency = 0.45
-	local egg = piece(
-		"CarriedEgg",
-		Vector3.new(1.2, 1.5, 1.2),
-		CFrame.new(0, 4.3, 0),
-		Color3.new(1, 1, 1),
-		Enum.Material.SmoothPlastic,
-		Enum.PartType.Ball
-	)
-	egg.Transparency = 1
-	model.PrimaryPart = root
+	desc.Shirt = pick(look.Shirts)
+	desc.Pants = pick(look.Pants)
+	return desc
+end
 
+-- the same overhead tag players have (title / name / level + rank)
+local function overhead(model: Model, name: string, level: number, title, rank)
+	local head = model:FindFirstChild("Head")
+	if not head then
+		return
+	end
 	local gui = Instance.new("BillboardGui")
-	gui.Name = "Tag"
-	gui.Size = UDim2.new(7, 0, 1.4, 0)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, 4.2, 0)
+	gui.Name = "Overhead"
+	gui.Size = UDim2.new(7, 0, 2.6, 0)
+	gui.StudsOffset = Vector3.new(0, 3.4, 0)
+	gui.MaxDistance = 90
 	gui.LightInfluence = 0
-	gui.MaxDistance = 140
-	local text = Instance.new("TextLabel")
-	text.BackgroundTransparency = 1
-	text.Size = UDim2.fromScale(1, 1)
-	text.Font = Enum.Font.FredokaOne
-	text.TextScaled = true
-	text.TextColor3 = Color3.fromRGB(150, 235, 255)
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 2
-	stroke.Parent = text
-	text.Parent = gui
-	gui.Parent = root
-	World.SetText(text, "🤖 %s", name)
-	return model, root, egg, text
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = Enum.FillDirection.Vertical
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = gui
+	for i, row in { "Bounty", "Title", "Tags", "Name", "Rank" } do
+		local label = Instance.new("TextLabel")
+		label.Name = row
+		label.LayoutOrder = i
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.new(1, 0, if row == "Name" then 0.26 else 0.18, 0)
+		label.Font = Enum.Font.FredokaOne
+		label.TextScaled = true
+		label.RichText = true
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.Visible = row == "Name" or row == "Rank" or (row == "Title" and title ~= nil)
+		local stroke = Instance.new("UIStroke")
+		stroke.Thickness = 2
+		stroke.Parent = label
+		label.Parent = gui
+	end
+	(gui:FindFirstChild("Name") :: TextLabel).Text = name
+	local rankLabel = gui:FindFirstChild("Rank") :: TextLabel
+	rankLabel.Text = string.format("Lv.%d %s", level, rank.Icon or "")
+	rankLabel.TextColor3 = rank.Color
+	if title then
+		local titleLabel = gui:FindFirstChild("Title") :: TextLabel
+		titleLabel.Text = title.Name
+		titleLabel.TextColor3 = title.Color
+		titleLabel:SetAttribute("LangFmt", "%s")
+		titleLabel:SetAttribute("LangArgs", HttpService:JSONEncode({ title.Name }))
+	end
+	gui.Parent = head
+end
+
+local function serverPeers()
+	local level, tier, zone, n = 0, 0, 1, 0
+	for _, player in Data:LoadedPlayers() do
+		local data = Data:Get(player)
+		if data then
+			level += data.Level or 1
+			tier += data.PickaxeTier or 1
+			zone = math.max(zone, data.ZoneLevel or 1)
+			n += 1
+		end
+	end
+	if n == 0 then
+		return 3, 2, 1
+	end
+	return math.floor(level / n + 0.5), math.floor(tier / n + 0.5), zone
+end
+
+local function playAnim(record, name: string, speed: number?)
+	local track = record.Tracks[name]
+	if not track then
+		return
+	end
+	if name == "Slash" then
+		track:Play(0.05)
+		return
+	end
+	if record.Playing ~= name then
+		if record.Playing and record.Tracks[record.Playing] then
+			record.Tracks[record.Playing]:Stop(0.2)
+		end
+		record.Playing = name
+		track:Play(0.2)
+	end
+	if speed then
+		track:AdjustSpeed(speed)
+	end
 end
 
 local function spawnRival(index: number)
 	nextId += 1
-	local name = SETTINGS.Names[((nextId - 1) % #SETTINGS.Names) + 1]
-	local color = SETTINGS.Colors[((nextId - 1) % #SETTINGS.Colors) + 1]
-	local model, root, egg, tag = buildRobot(name, color)
-	local dock = SETTINGS.Dock + Vector3.new((index - 1.5) * 6, 0, 0)
+	local name
+	for _ = 1, 20 do
+		name = pick(SETTINGS.Names)
+		if not usedNames[name] then
+			break
+		end
+	end
+	usedNames[name] = true
+	local peerLevel, peerTier, peerZone = serverPeers()
+	local level = math.max(1, peerLevel + rng:NextInteger(-2, 3))
+	local model = Players:CreateHumanoidModelFromDescription(describe(), Enum.HumanoidRigType.R15)
+	model.Name = name
+	model:SetAttribute("Rival", true)
+	local animate = model:FindFirstChild("Animate")
+	if animate then
+		animate:Destroy() -- (animations are played by the server)
+	end
+	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	humanoid.WalkSpeed = SETTINGS.Speed
+	humanoid.BreakJointsOnDeath = false
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.CollisionGroup = GROUP
+		end
+	end
+	-- a title like the ones players earn, a weekly rank
+	local titles = {}
+	for _, title in Config.Titles do
+		local need = title.Need or {}
+		if title.Id ~= "Newcomer" and need.Level and need.Level <= level then
+			table.insert(titles, title)
+		end
+	end
+	local title = if #titles > 0 and rng:NextNumber() < 0.6 then pick(titles) else nil
+	local rank = Config.Ranks[rng:NextInteger(1, math.min(3, #Config.Ranks))]
+	overhead(model, name, level, title, rank)
+	local spawnAt = World.HubSpawn.Position + Vector3.new(rng:NextNumber(-8, 8), 2, rng:NextNumber(-6, 6))
+	model:PivotTo(CFrame.new(spawnAt))
+	model.Parent = workspace
+	pcall(function()
+		root:SetNetworkOwner(nil)
+	end)
+	-- a pickaxe like everyone else's (a tier near the server's players)
+	local tier = math.clamp(peerTier + rng:NextInteger(0, 1), 1, #Config.Pickaxes)
+	local tool = Services.CharacterService.BuildPickaxe(tier)
+	tool.Parent = model
+	pcall(function()
+		humanoid:EquipTool(tool)
+	end)
+	-- 2-3 pets following (rendered by every client, like players' pets)
+	local pets = {}
+	local pool = Config.Eggs[Config.Shards.ZoneEggs[math.clamp(peerZone, 1, #Config.Shards.ZoneEggs)]].Pets
+	for _ = 1, rng:NextInteger(2, 3) do
+		local entry = pick(pool)
+		table.insert(pets, "|" .. entry[1] .. "|" .. rng:NextInteger(1, 8) .. "|0")
+	end
+	model:SetAttribute("Pets", HttpService:JSONEncode(pets))
+
+	local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
+	local tracks = {}
+	for animName, id in ANIMS do
+		local animation = Instance.new("Animation")
+		animation.AnimationId = id
+		local ok, track = pcall(animator.LoadAnimation, animator, animation)
+		if ok and track then
+			track.Priority = if animName == "Slash" then Enum.AnimationPriority.Action else Enum.AnimationPriority.Movement
+			track.Looped = animName == "Idle" or animName == "Run"
+			tracks[animName] = track
+		end
+	end
 	local record = {
 		Model = model,
+		Humanoid = humanoid,
 		Root = root,
-		Egg = egg,
-		Tag = tag,
+		Tracks = tracks,
 		Name = name,
 		Index = index,
-		Position = Vector3.new(dock.X, SETTINGS.HoverY, dock.Z),
-		Facing = -Vector3.zAxis,
-		Destination = dock,
-		Dock = dock,
-		Speed = SETTINGS.Speed,
+		Level = level,
+		Tier = tier,
 		StunnedUntil = 0,
 		NextHit = 0,
+		NextBonk = now() + rng:NextNumber(10, 30),
+		NextPlan = 0,
+		Aggression = rng:NextNumber(0.25, 0.7),
 		Carry = nil,
-		CarryUntil = 0,
-		TargetEgg = nil,
-		-- identity in the meteor ranking (looks enough like a player there)
-		-- (ids far below Studio's test players -1, -2, ...)
-		Entity = { DisplayName = "🤖 " .. name, Name = name, UserId = -1000000 - nextId, Parent = workspace, IsRival = true },
+		Task = "Idle",
+		-- identity in the meteor ranking
+		Entity = { DisplayName = name, Name = name, UserId = -1000000 - nextId, Parent = workspace, IsRival = true },
 	}
-	root.CFrame = CFrame.new(record.Position)
-	model.Parent = World:Folder("Shards")
+	humanoid.Running:Connect(function(speed)
+		if speed > 1 then
+			playAnim(record, "Run", math.clamp(speed / 16, 0.6, 1.4))
+		else
+			playAnim(record, "Idle")
+		end
+	end)
+	humanoid.StateChanged:Connect(function(_, new)
+		if new == Enum.HumanoidStateType.Jumping then
+			local track = tracks.Jump
+			if track then
+				track:Play(0.1)
+			end
+		end
+	end)
+	playAnim(record, "Idle")
 	rivals[model] = record
 	return record
 end
 
+local function setCarry(record, item)
+	if record.CarryModel then
+		record.CarryModel:Destroy()
+		record.CarryModel = nil
+	end
+	record.Carry = item
+	local shards = Services.ShardService
+	if item then
+		-- the egg above the head, like players carrying one
+		local head = record.Model:FindFirstChild("Head") :: BasePart
+		local egg = shards.BuildItemModel(item, 1)
+		for _, part in egg:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.Anchored = false
+				part.CanCollide = false
+				part.Massless = true
+				part.CollisionGroup = GROUP
+			end
+		end
+		egg:PivotTo(head.CFrame * CFrame.new(0, 3, 0))
+		for _, part in egg:GetDescendants() do
+			if part:IsA("BasePart") then
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = head
+				weld.Part1 = part
+				weld.Parent = part
+			end
+		end
+		egg.Parent = record.Model
+		record.CarryModel = egg
+		record.Model:SetAttribute("Carrying", true)
+		local def = Config.Shards.Rarities[item.Rarity]
+		record.Humanoid.WalkSpeed = SETTINGS.Speed * (if def then def.Speed else 0.85)
+	else
+		record.Model:SetAttribute("Carrying", nil)
+		record.Humanoid.WalkSpeed = SETTINGS.Speed
+	end
+end
+
 local function despawn(record)
 	rivals[record.Model] = nil
+	usedNames[record.Name] = nil
 	if record.Carry then
-		-- (never take an egg with you when leaving: drop it)
-		local spot = clampTo(areaBounds(record.GrabSpot or record.Position), flat(record.Position))
-		Services.ShardService:SpawnGround(record.Carry, spot, nil, { Beacon = true, RivalBlockSeconds = 20 })
-		record.Carry = nil
+		-- (never take an egg away when leaving: drop it)
+		local item = record.Carry
+		setCarry(record, nil)
+		Services.ShardService:SpawnGround(item, flat(record.Root.Position), nil, { Beacon = true, RivalBlockSeconds = 20 })
 	end
 	Services.MeteorService:Forget(record.Entity)
 	if record.Model.Parent then
@@ -215,31 +370,93 @@ local function count(): number
 	return n
 end
 
-local function setCarry(record, item)
-	record.Carry = item
-	if item then
-		record.Egg.Color = Services.ShardService.ItemColor(item)
-		record.Egg.Transparency = 0
-		record.CarryUntil = now() + SETTINGS.EscapeSeconds
-		record.Model:SetAttribute("Carrying", true)
-		World.SetText(record.Tag, "🤖 %s 🥚!", record.Name)
-	else
-		record.Egg.Transparency = 1
-		record.Model:SetAttribute("Carrying", nil)
-		World.SetText(record.Tag, "🤖 %s", record.Name)
-	end
-	-- taps go through robots unless they carry an egg (then: bonk it!)
-	for _, part in record.Model:GetDescendants() do
-		if part:IsA("BasePart") and part ~= record.Root then
-			part.CanQuery = item ~= nil and part.Transparency < 1
+---------------------------------------------------------------------------
+-- walking: pathfinding, area changes ("teleport" like the GO / zone buttons)
+---------------------------------------------------------------------------
+local function teleport(record, position: Vector3)
+	record.Model:PivotTo(CFrame.new(position + Vector3.new(0, 3, 0)))
+	record.Waypoints = nil
+	record.Goal = nil
+	record.Stuck = 0
+end
+
+local function walkTo(record, goal: Vector3, allowTeleport: boolean?)
+	local root = record.Root
+	local here = root.Position
+	local hereArea, goalArea = areaOf(here), areaOf(goal)
+	-- far away in another area: take the shortcut (players use GO / the zone teleport)
+	if allowTeleport ~= false and not record.Carry and hereArea ~= goalArea and (flat(goal - here)).Magnitude > 140 then
+		if not record.TeleportAt then
+			record.TeleportAt = os.clock() + rng:NextNumber(0.6, 2.5) -- (a human needs a moment to press it)
+		elseif os.clock() >= record.TeleportAt then
+			record.TeleportAt = nil
+			teleport(record, areaEntrance(goalArea or 0))
 		end
+		return
+	end
+	record.TeleportAt = nil
+	if not record.Goal or (record.Goal - goal).Magnitude > 6 or os.clock() - (record.PathAt or 0) > 4 then
+		record.Goal = goal
+		record.PathAt = os.clock()
+		record.Waypoints = nil
+		local path = PathfindingService:CreatePath({ AgentRadius = 2, AgentHeight = 5, AgentCanJump = true, WaypointSpacing = 6 })
+		local ok = pcall(path.ComputeAsync, path, here, goal)
+		if ok and path.Status == Enum.PathStatus.Success then
+			record.Waypoints = path:GetWaypoints()
+			record.WaypointIndex = 2
+		end
+	end
+	local target = goal
+	if record.Waypoints then
+		local waypoint = record.Waypoints[record.WaypointIndex]
+		while waypoint and (flat(waypoint.Position - here)).Magnitude < 3 do
+			record.WaypointIndex += 1
+			waypoint = record.Waypoints[record.WaypointIndex]
+		end
+		if waypoint then
+			target = waypoint.Position
+			if waypoint.Action == Enum.PathWaypointAction.Jump then
+				record.Humanoid.Jump = true
+			end
+		end
+	end
+	record.Humanoid:MoveTo(target)
+	-- stuck? jump, then re-plan, then hop closer
+	local moved = if record.LastPos then (flat(here - record.LastPos)).Magnitude else 99
+	if os.clock() - (record.LastCheck or 0) > 1.5 then
+		record.LastCheck = os.clock()
+		record.LastPos = here
+		if moved < 1.2 and (flat(goal - here)).Magnitude > 5 then
+			record.Stuck = (record.Stuck or 0) + 1
+			record.Humanoid.Jump = true
+			record.PathAt = 0
+			if record.Stuck >= 4 and not record.Carry then
+				teleport(record, goal + Vector3.new(rng:NextNumber(-4, 4), 0, rng:NextNumber(-4, 4)))
+			end
+		else
+			record.Stuck = 0
+		end
+	end
+end
+
+local function stop(record)
+	record.Humanoid:MoveTo(record.Root.Position)
+	record.Goal = nil
+	record.Waypoints = nil
+end
+
+local function face(record, position: Vector3)
+	local root = record.Root
+	local look = flat(position - root.Position)
+	if look.Magnitude > 0.5 then
+		root.CFrame = CFrame.lookAt(root.Position, root.Position + look)
 	end
 end
 
 ---------------------------------------------------------------------------
 -- brains
 ---------------------------------------------------------------------------
--- how a robot smashes: a bit slower than the average real player here
+-- how a rival smashes: a bit slower than the average real player here
 local function rivalPace(): (number, number)
 	local damage, cooldown, n = 0, 0, 0
 	for _, player in Data:LoadedPlayers() do
@@ -256,84 +473,112 @@ local function rivalPace(): (number, number)
 	return damage / n, (cooldown / n) / SETTINGS.Pace
 end
 
-local function nearestRealPlayer(position: Vector3): (Player?, number)
-	local best, bestDistance = nil, math.huge
+-- a real player carrying an egg that this rival could try to bonk
+local function bonkTarget(record): Player?
+	if record.Carry or now() < record.NextBonk then
+		return nil
+	end
+	local best, bestDistance = nil, SETTINGS.Bonk.ChaseRange
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
-		if root and root:IsA("BasePart") then
-			local distance = (flat(root.Position) - flat(position)).Magnitude
-			if distance < bestDistance then
+		if root and root:IsA("BasePart") and Services.ShardService:IsCarrying(player) then
+			local distance = (root.Position - record.Root.Position).Magnitude
+			if distance < bestDistance and Services.MiningService:CanNpcBonk(player) then
 				best, bestDistance = player, distance
 			end
 		end
 	end
-	return best, bestDistance
+	return best
 end
 
 local function think(record)
 	local t = now()
+	local root = record.Root
+	if not root.Parent then
+		return
+	end
 	if record.StunnedUntil > t then
-		record.Destination = flat(record.Position)
+		stop(record)
 		return
 	end
 	local meteor = Services.MeteorService
+	local shards = Services.ShardService
 	local current = meteor:Current()
 	local state = workspace:GetAttribute("MeteorState")
 
-	-- 1) carrying an egg: fly away from the closest player, beam up in time
+	-- 1) carrying an egg: run home with it (like everybody)
 	if record.Carry then
-		if t >= record.CarryUntil then
+		record.Task = "Home"
+		local home = record.Home or homeSpot()
+		record.Home = home
+		walkTo(record, home, false)
+		if (flat(home - root.Position)).Magnitude <= 8 then
 			local item = record.Carry
 			setCarry(record, nil)
-			Net:Broadcast("RivalEscape", record.Position)
-			Net:Announce(
-				"🤖 %s flew away with a %s! Bonk robots before they escape!",
-				Color3.fromRGB(150, 235, 255),
-				record.Name,
-				Services.ShardService.ItemName(item)
-			)
-			record.Destination = record.Dock
-			return
-		end
-		local player = nearestRealPlayer(record.Position)
-		local away = -Vector3.zAxis
-		if player and player.Character and player.Character.PrimaryPart then
-			local diff = flat(record.Position - player.Character.PrimaryPart.Position)
-			if diff.Magnitude > 0.5 then
-				away = diff.Unit
+			record.Home = nil
+			if Util.ShardIndex(Config, item.Rarity) >= 4 then
+				Net:Announce("🌟 %s brought a %s home!", shards.ItemColor(item), record.Name, shards.ItemName(item))
 			end
 		end
-		-- stay in the area where it grabbed the egg (slides along walls,
-		-- never through gates into locked zones / out over the void)
-		local bounds = areaBounds(record.GrabSpot or record.Position)
-		local destination = clampTo(bounds, flat(record.Position) + away * 20)
-		if Util.InBases(Config, destination + Vector3.new(0, 3, 0)) then
-			destination = flat(record.GrabSpot or record.Dock)
-		end
-		record.Destination = destination
-		record.Speed = SETTINGS.CarrySpeed
 		return
 	end
-	record.Speed = SETTINGS.Speed
 
-	-- 2) a meteor is coming / being smashed: go there and help... themselves
+	-- 2) chasing a player who carries an egg (now and then)
+	local chase = record.ChaseTarget
+	if chase and (not chase.Parent or t > record.ChaseUntil or not shards:IsCarrying(chase)) then
+		record.ChaseTarget = nil
+		chase = nil
+	end
+	if not chase then
+		local target = bonkTarget(record)
+		if target and rng:NextNumber() < record.Aggression then
+			record.ChaseTarget = target
+			record.ChaseUntil = t + SETTINGS.Bonk.ChaseSeconds
+			chase = target
+		elseif target then
+			record.NextBonk = t + 6 -- (decided not to, this time)
+		end
+	end
+	if chase then
+		record.Task = "Chase"
+		local victimRoot = chase.Character and chase.Character:FindFirstChild("HumanoidRootPart")
+		if victimRoot and victimRoot:IsA("BasePart") then
+			walkTo(record, victimRoot.Position, false)
+			if (victimRoot.Position - root.Position).Magnitude <= SETTINGS.Bonk.Range then
+				face(record, victimRoot.Position)
+				playAnim(record, "Slash")
+				Services.MiningService:NpcBonk(root, record.Name, chase)
+				record.ChaseTarget = nil
+				record.NextBonk = t + SETTINGS.Bonk.Cooldown
+			end
+		end
+		return
+	end
+
+	-- 3) a meteor is coming / being smashed: go there and smash it
 	if current and (state == "Warning" or state == "Falling" or state == "Active") then
+		record.Task = "Meteor"
 		local radius = current.Size.Radius
 		local angle = record.Index * 2.4 + 0.6
-		local spot = current.Position + Vector3.new(math.cos(angle), 0, math.sin(angle)) * (radius + 3.5)
-		record.Destination = spot
-		if state == "Active" and (flat(record.Position) - flat(current.Position)).Magnitude <= radius + 7 and t >= record.NextHit then
-			local damage, cooldown = rivalPace()
-			record.NextHit = t + cooldown
-			meteor:Hit(record.Entity, damage, cooldown)
-			record.Bob = 0.25
+		local spot = current.Position + Vector3.new(math.cos(angle), 0, math.sin(angle)) * (radius + 3)
+		local close = (flat(root.Position) - flat(current.Position)).Magnitude <= radius + 7
+		if close and state == "Active" then
+			stop(record)
+			face(record, current.Position)
+			if t >= record.NextHit then
+				local damage, cooldown = rivalPace()
+				record.NextHit = t + cooldown * rng:NextNumber(0.85, 1.2)
+				playAnim(record, "Slash")
+				meteor:Hit(record.Entity, damage, cooldown)
+			end
+		else
+			walkTo(record, spot)
 		end
 		return
 	end
 
-	-- 3) star eggs nobody picked up: go get one
-	local shards = Services.ShardService
+	-- 4) star eggs nobody picked up: go get one
 	local target = record.TargetEgg
 	if target and not shards:IsOnGround(target) then
 		target = nil
@@ -348,7 +593,7 @@ local function think(record)
 		local best, bestDistance = nil, SETTINGS.SearchRange
 		for _, entry in shards:RivalTargets(record.Entity.UserId, SETTINGS.GrabDelay) do
 			if not taken[entry.Model] and not Util.InBases(Config, entry.Position + Vector3.new(0, 3, 0)) then
-				local distance = (flat(entry.Position) - flat(record.Position)).Magnitude
+				local distance = (flat(entry.Position) - flat(root.Position)).Magnitude
 				if distance < bestDistance then
 					best, bestDistance = entry.Model, distance
 				end
@@ -360,12 +605,12 @@ local function think(record)
 	if target then
 		local position = shards:GroundPosition(target)
 		if position then
-			record.Destination = flat(position)
-			if (flat(position) - flat(record.Position)).Magnitude <= SETTINGS.GrabRange then
+			record.Task = "Egg"
+			walkTo(record, position, false)
+			if (flat(position) - flat(root.Position)).Magnitude <= SETTINGS.GrabRange then
 				local item = shards:TakeForRival(target)
 				record.TargetEgg = nil
 				if item then
-					record.GrabSpot = flat(position)
 					setCarry(record, item)
 				end
 			end
@@ -373,38 +618,45 @@ local function think(record)
 		end
 	end
 
-	-- 4) nothing to do: hover at the dock in the hub
-	record.Destination = record.Dock
-end
-
-local function move(record, dt: number)
-	local target = Vector3.new(record.Destination.X, SETTINGS.HoverY, record.Destination.Z)
-	local diff = flat(target - record.Position)
-	local distance = diff.Magnitude
-	local stunned = record.StunnedUntil > now()
-	local moved = false
-	if distance > 0.3 and not stunned then
-		local step = math.min(distance, record.Speed * dt)
-		record.Facing = diff.Unit
-		record.Position += record.Facing * step
-		moved = true
+	-- 5) between meteors: mine for a while, sometimes hang around the hub
+	if t >= record.NextPlan then
+		record.NextPlan = t + rng:NextNumber(40, 90)
+		local _, _, maxZone = serverPeers()
+		if rng:NextNumber() < 0.75 then
+			record.Task = "Mine"
+			record.MineZone = rng:NextInteger(1, math.min(maxZone, 3))
+		else
+			record.Task = "Hub"
+			record.HubSpot = World.HubSpawn.Position + Vector3.new(rng:NextNumber(-40, 40), 0, rng:NextNumber(10, 50))
+		end
+		record.Ore = nil
 	end
-	local dip = 0
-	if record.Bob and record.Bob > 0 then
-		record.Bob -= dt
-		dip = -0.4 -- a little "smash" dip
-		moved = true
+	if record.Task == "Mine" and record.MineZone then
+		local ore = record.Ore
+		if not ore or not ore.Parent then
+			ore = Services.MiningService:NearestOreIn(record.MineZone, root.Position)
+			record.Ore = ore
+		end
+		if not ore then
+			walkTo(record, areaEntrance(record.MineZone))
+			return
+		end
+		local reach = Config.World.Reach + ore.Size.Magnitude / 2 - 1
+		if (ore.Position - root.Position).Magnitude <= reach then
+			stop(record)
+			face(record, ore.Position)
+			if t >= record.NextHit then
+				local damage = rivalPace()
+				record.NextHit = t + rng:NextNumber(0.7, 1.2)
+				playAnim(record, "Slash")
+				Services.MiningService:NpcHit(ore, damage)
+			end
+		else
+			walkTo(record, ore.Position)
+		end
+		return
 	end
-	if not moved and not stunned and not record.Dirty then
-		return -- hovering still: nothing to send
-	end
-	record.Dirty = stunned or dip ~= 0 -- (one more update after a wobble / dip)
-	local at = Vector3.new(record.Position.X, SETTINGS.HoverY + dip, record.Position.Z)
-	local cf = CFrame.lookAt(at, at + record.Facing)
-	if stunned then
-		cf *= CFrame.Angles(0, 0, math.sin(os.clock() * 20) * 0.25) -- dizzy
-	end
-	record.Root.CFrame = cf
+	walkTo(record, record.HubSpot or World.HubSpawn.Position)
 end
 
 ---------------------------------------------------------------------------
@@ -414,12 +666,12 @@ function Rival:IsRival(model: Instance?): boolean
 	return model ~= nil and rivals[model] ~= nil
 end
 
--- the closest robot carrying an egg within range of a position
+-- the closest rival carrying an egg within range of a position
 function Rival:NearestCarrying(position: Vector3, range: number): Model?
 	local best, bestDistance = nil, range
 	for model, record in rivals do
 		if record.Carry then
-			local distance = (record.Position - position).Magnitude
+			local distance = (record.Root.Position - position).Magnitude
 			if distance <= bestDistance then
 				best, bestDistance = model, distance
 			end
@@ -428,7 +680,7 @@ function Rival:NearestCarrying(position: Vector3, range: number): Model?
 	return best
 end
 
--- a player swung at a robot: stun it; if it carried an egg, the egg drops
+-- a player swung at a rival: knock them back; if they carried an egg it drops
 function Rival:Bonk(player: Player, model: Model): boolean
 	local record = rivals[model]
 	local character = player.Character
@@ -436,7 +688,7 @@ function Rival:Bonk(player: Player, model: Model): boolean
 	if not record or not root or not root:IsA("BasePart") then
 		return false
 	end
-	if (root.Position - record.Position).Magnitude > Config.PvP.BonkRange + 3 then
+	if (root.Position - record.Root.Position).Magnitude > Config.PvP.BonkRange + 3 then
 		return false
 	end
 	local t = now()
@@ -444,43 +696,50 @@ function Rival:Bonk(player: Player, model: Model): boolean
 		return false
 	end
 	record.StunnedUntil = t + SETTINGS.StunSeconds
-	local push = flat(record.Position - root.Position)
+	local push = flat(record.Root.Position - root.Position)
 	push = if push.Magnitude > 0.1 then push.Unit else Vector3.zAxis
-	local pushed = clampTo(areaBounds(record.GrabSpot or record.Position), record.Position + push * 5)
-	record.Position = Vector3.new(pushed.X, record.Position.Y, pushed.Z)
-	Net:Send(player, "BonkHit", record.Position)
+	record.Root.AssemblyLinearVelocity = push * 45 + Vector3.new(0, 30, 0)
+	Net:Send(player, "BonkHit", record.Root.Position)
 	local item = record.Carry
 	if not item then
-		Net:Notify(player, "💥 %s is dizzy!", Color3.fromRGB(150, 235, 255), record.Name)
 		return true
 	end
 	setCarry(record, nil)
-	-- the egg drops: the bonker gets the first grab, robots keep off it for a while
-	Services.ShardService:SpawnGround(item, flat(record.Position), nil, {
+	record.Home = nil
+	-- the egg drops: the bonker gets the first grab, rivals keep off it for a while
+	Services.ShardService:SpawnGround(item, flat(record.Root.Position), nil, {
 		Beacon = true,
 		PriorityUser = player.UserId,
 		PriorityUntil = t + 4,
 		RivalBlockSeconds = SETTINGS.DropBlockSeconds,
 	})
-	-- reward only the first time an egg is knocked off a robot (no farming)
 	local data = Data:Get(player)
 	if not data or item.RivalBonked then
-		Net:Notify(player, "💥 You bonked %s! It dropped the egg - grab it!", Color3.fromRGB(150, 235, 255), record.Name)
+		Net:Notify(
+			player,
+			"💥 %s dropped a %s - grab it!",
+			Color3.fromRGB(255, 170, 80),
+			record.Name,
+			Services.ShardService.ItemName(item)
+		)
 		return true
 	end
+	-- (a reward only the first time an egg is knocked loose: no farming)
 	item.RivalBonked = true
 	local coins = math.max(SETTINGS.BonkMinCoins, math.floor(Services.BaseService:IncomeRate(player, data) * SETTINGS.BonkIncomeSeconds))
 	data.Coins += coins
 	data.Stats.LifetimeCoins += coins
-	data.Stats.ThievesCaught = (data.Stats.ThievesCaught or 0) + 1
+	data.Stats.Bonks += 1
 	Services.Analytics:Economy(player, "Source", "Coins", coins, data.Coins, "Gameplay", "RivalBonk")
+	Services.ProgressionService:AddQuest(player, "Bonk", 1)
 	Net:Send(player, "Sold", coins)
 	Data:MarkDirty(player)
 	Net:Notify(
 		player,
-		"💥 You bonked %s! It dropped the egg - grab it! +💰%s",
-		Color3.fromRGB(150, 235, 255),
+		"💥 %s dropped a %s - grab it! +💰%s",
+		Color3.fromRGB(255, 170, 80),
 		record.Name,
+		Services.ShardService.ItemName(item),
 		Util.Format(coins)
 	)
 	return true
@@ -514,8 +773,7 @@ end
 
 function Rival:PlaceForTest(record, position: Vector3)
 	assert(not RunService:IsRunning(), "test hook used on a live server")
-	record.Position = Vector3.new(position.X, SETTINGS.HoverY, position.Z)
-	record.Root.CFrame = CFrame.new(record.Position)
+	teleport(record, Vector3.new(position.X, 0, position.Z))
 end
 
 ---------------------------------------------------------------------------
@@ -526,7 +784,22 @@ function Rival:Init(services)
 end
 
 function Rival:Start()
-	-- decisions 4x a second
+	-- rivals walk through the zone gates (they "unlocked" them); players
+	-- still see and bump into the gates of zones they haven't unlocked
+	pcall(function()
+		PhysicsService:RegisterCollisionGroup(GROUP)
+		PhysicsService:RegisterCollisionGroup(GATE_GROUP)
+		PhysicsService:CollisionGroupSetCollidable(GROUP, GATE_GROUP, false)
+	end)
+	for _, zone in World.Zones do
+		if zone.Gate then
+			zone.Gate.CollisionGroup = GATE_GROUP
+			local modifier = Instance.new("PathfindingModifier")
+			modifier.PassThrough = true
+			modifier.Parent = zone.Gate
+		end
+	end
+
 	task.spawn(function()
 		while true do
 			task.wait(0.25)
@@ -535,12 +808,6 @@ function Rival:Start()
 				local wanted = self:Wanted()
 				local idle = workspace:GetAttribute("MeteorState") == "Idle"
 				if count() < wanted and idle then
-					if count() == 0 then
-						Net:Announce(
-							"🤖 Rival robots are here! Beat them to the meteor - and don't let them fly off with your eggs!",
-							Color3.fromRGB(150, 235, 255)
-						)
-					end
 					local used = {}
 					for _, record in rivals do
 						used[record.Index] = true
@@ -557,31 +824,15 @@ function Rival:Start()
 						end
 					end
 				end
-				for _, record in rivals do
-					think(record)
-				end
 			end)
 			if not ok then
 				warn("[Rival] " .. tostring(err))
 			end
-		end
-	end)
-	-- movement ~20 times a second (only while robots exist, only when they move)
-	local acc = 0
-	RunService.Heartbeat:Connect(function(dt)
-		if next(rivals) == nil then
-			return
-		end
-		acc += dt
-		if acc < 0.05 then
-			return
-		end
-		local step = acc
-		acc = 0
-		for _, record in rivals do
-			local ok, err = pcall(move, record, step)
-			if not ok then
-				warn("[Rival] move: " .. tostring(err))
+			for _, record in rivals do
+				local okThink, errThink = pcall(think, record)
+				if not okThink then
+					warn("[Rival] think: " .. tostring(errThink))
+				end
 			end
 		end
 	end)

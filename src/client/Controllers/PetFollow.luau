@@ -21,7 +21,7 @@ folder.Parent = workspace
 
 local owners = {} -- [player] = { Models = { Model }, Key = string }
 
-local function clear(player: Player)
+local function clear(player: any)
 	local entry = owners[player]
 	if entry then
 		for _, model in entry.Models do
@@ -31,7 +31,7 @@ local function clear(player: Player)
 	owners[player] = nil
 end
 
-local function rebuild(player: Player)
+local function rebuild(player: any)
 	local raw = player:GetAttribute("Pets")
 	local key = if type(raw) == "string" then raw else "[]"
 	local entry = owners[player]
@@ -46,12 +46,14 @@ local function rebuild(player: Player)
 	local models = {}
 	for i, entry in names do
 		if type(entry) == "string" then
-			-- entries look like "Golden|Fox" or "|Fox"
-			local variant, name = string.match(entry, "^(.-)|(.+)$")
+			-- entries look like "Golden|Fox|7|1" (variant|name|level|stars) or "|Fox"
+			local parts = string.split(entry, "|")
+			local variant, name = parts[1] or "", parts[2]
 			if not name then
 				variant, name = "", entry
 			end
-			local model = PetModel.Build(name, if variant ~= "" then variant else nil)
+			local growth = { Level = tonumber(parts[3]) or 1, Stars = tonumber(parts[4]) or 0 }
+			local model = PetModel.Build(name, if variant ~= "" then variant else nil, growth)
 			model.Name = player.Name .. "_" .. i
 			model.Parent = folder
 			table.insert(models, model)
@@ -60,7 +62,7 @@ local function rebuild(player: Player)
 	owners[player] = { Models = models, Key = key, Positions = {}, Hops = {} }
 end
 
-local function track(player: Player)
+local function track(player: any)
 	player:GetAttributeChangedSignal("Pets"):Connect(function()
 		rebuild(player)
 	end)
@@ -73,13 +75,36 @@ for _, player in Players:GetPlayers() do
 	track(player)
 end
 
+-- rival players (server game characters) have pets following them too
+local function trackRival(model: Instance)
+	if model:IsA("Model") and model:GetAttribute("Rival") == true then
+		track(model)
+		model.AncestryChanged:Connect(function()
+			if not model.Parent then
+				clear(model)
+			end
+		end)
+	end
+end
+workspace.ChildAdded:Connect(function(child)
+	task.defer(trackRival, child)
+end)
+for _, child in workspace:GetChildren() do
+	trackRival(child)
+end
+
+local function rootOf(owner: any): BasePart?
+	local character = if owner:IsA("Player") then owner.Character else owner
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	return if root and root:IsA("BasePart") then root else nil
+end
+
 RunService.RenderStepped:Connect(function(dt)
 	local t = os.clock()
 	local rainbow = Color3.fromHSV((t * 0.3) % 1, 0.7, 1)
 	local alpha = 1 - math.exp(-dt * 9)
 	for player, entry in owners do
-		local character = player.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart
+		local root = rootOf(player)
 		if root then
 			local base = root.CFrame
 			for i, model in entry.Models do

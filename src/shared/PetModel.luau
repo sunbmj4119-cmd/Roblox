@@ -110,7 +110,99 @@ local function custom(petName: string): Model?
 	return clone
 end
 
-function PetModel.Build(petName: string, variant: string?): Model
+-- uniform scale (ScaleTo, with a manual fallback)
+local function scaleModel(model: Model, factor: number)
+	if math.abs(factor - 1) < 0.001 then
+		return
+	end
+	local ok = pcall(function()
+		model:ScaleTo(model:GetScale() * factor)
+	end)
+	if not ok then
+		local origin = model:GetPivot().Position
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.Size *= factor
+				local offset = d.Position - origin
+				d.CFrame = CFrame.new(origin + offset * factor) * (d.CFrame - d.Position)
+			end
+		end
+	end
+end
+
+-- 🌱 growth: babies are small, legends big; ★ evolved pets get a star halo
+local function applyGrowth(model: Model, growth)
+	local body = model.PrimaryPart
+	if not growth or not body then
+		return
+	end
+	local level = math.max(1, tonumber(growth.Level) or 1)
+	local stars = math.max(0, tonumber(growth.Stars) or 0)
+	local stage = Util.PetStage(Config, level)
+	local _, size = model:GetBoundingBox()
+	local top = body.Position.Y - body.Size.Y / 2 + size.Y
+	if stage.Id == "Legend" then
+		-- a little golden crown
+		local crownY = top + 0.15
+		for i = 1, 5 do
+			local angle = i / 5 * math.pi * 2
+			part(
+				model,
+				"Crown",
+				Vector3.new(0.22, 0.45, 0.22),
+				CFrame.new(body.Position.X + math.cos(angle) * 0.42, crownY, body.Position.Z + math.sin(angle) * 0.42),
+				Color3.fromRGB(255, 205, 60),
+				Enum.Material.SmoothPlastic
+			)
+		end
+	end
+	if stars > 0 then
+		local color = Config.Growth.StarColors[math.clamp(stars, 1, #Config.Growth.StarColors)]
+		local halo = part(
+			model,
+			"StarHalo",
+			Vector3.new(0.14, 1.5 + stars * 0.25, 1.5 + stars * 0.25),
+			CFrame.new(body.Position.X, top + 0.7, body.Position.Z) * CFrame.Angles(0, 0, math.rad(90)),
+			color,
+			Enum.Material.Neon,
+			Enum.PartType.Cylinder
+		)
+		halo.Transparency = 0.25
+		sparkles(body, color, 4 + stars * 4, 0.3 + stars * 0.05)
+	end
+	scaleModel(model, stage.Scale * (1 + Config.Growth.Evolve.StarScale * stars))
+end
+
+-- ☄️ meteor pets: a glowing crack + a little comet tail
+local function applyMeteorLook(model: Model, info)
+	local body = model.PrimaryPart
+	if not info.Meteor or not body then
+		return
+	end
+	local glow = info.Color:Lerp(Color3.fromRGB(255, 200, 80), 0.5)
+	for i = 1, 3 do
+		local crack = part(
+			model,
+			"MeteorCrack",
+			Vector3.new(0.12, body.Size.Y * 0.5, 0.12),
+			body.CFrame * CFrame.new((i - 2) * body.Size.X * 0.22, 0, body.Size.Z * 0.49) * CFrame.Angles(0, 0, math.rad((i - 2) * 25)),
+			glow,
+			Enum.Material.Neon
+		)
+		crack.CanQuery = false
+	end
+	local tail = Instance.new("ParticleEmitter")
+	tail.Texture = "rbxasset://textures/particles/fire_main.dds"
+	tail.Color = ColorSequence.new(glow, info.Color)
+	tail.Size = NumberSequence.new(0.5, 0)
+	tail.Lifetime = NumberRange.new(0.3, 0.6)
+	tail.Rate = 8
+	tail.Speed = NumberRange.new(0.5, 1.5)
+	tail.LightEmission = 0.6
+	tail.Parent = body
+end
+
+function PetModel.Build(petName: string, variant: string?, growth): Model
 	local customModel = custom(petName)
 	if customModel then
 		return customModel
@@ -410,6 +502,8 @@ function PetModel.Build(petName: string, variant: string?): Model
 		end
 	end
 
+	applyMeteorLook(model, info)
+	applyGrowth(model, growth)
 	return model
 end
 

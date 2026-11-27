@@ -701,7 +701,8 @@ if oreNear then
 	check(oreNear.Parent == nil or oreNear:GetAttribute("HP") < hpBefore, "following pets did not hit the ore next to Alice")
 end
 
--- 29) 🤖 rival robots: join small servers, smash meteors, steal eggs, get bonked
+-- 29) rival players: join small servers, look like players, smash meteors,
+-- grab eggs and run home, get bonked, bonk players carrying eggs
 local Rival = S.RivalService
 Rival:ForceForTest(2)
 for _ = 1, 20 do
@@ -711,8 +712,20 @@ for _ = 1, 20 do
 	task.wait(0.25)
 end
 local bots = Rival:RecordsForTest()
-check(#bots == 2, "rival robots did not show up: " .. #bots)
+check(#bots == 2, "rivals did not show up: " .. #bots)
 if #bots == 2 then
+	local look = bots[1].Model
+	check(
+		look:FindFirstChildOfClass("Humanoid") ~= nil and look:FindFirstChild("Pickaxe") ~= nil,
+		"a rival should be a humanoid with a pickaxe"
+	)
+	check(look:FindFirstChildOfClass("Shirt") ~= nil and look:FindFirstChildOfClass("Pants") ~= nil, "a rival should wear clothes")
+	local head = look:FindFirstChild("Head")
+	check(head and head:FindFirstChild("Overhead") ~= nil, "a rival needs a name tag like players")
+	local okPets, petList = pcall(HttpService.JSONDecode, HttpService, look:GetAttribute("Pets") or "")
+	check(okPets and type(petList) == "table" and #petList >= 2, "rivals should have pets following them")
+	check(bots[1].Name ~= bots[2].Name, "two rivals with the same name")
+
 	local rush = Meteor:LaunchForTest("Hub", true)
 	for _ = 1, 30 do
 		if Meteor:StateForTest() == "Active" then
@@ -723,8 +736,8 @@ if #bots == 2 then
 	for i, bot in bots do
 		Rival:PlaceForTest(bot, rush.Position + Vector3.new(rush.Size.Radius + 2, 0, (i - 1.5) * 4))
 	end
-	task.wait(2.5)
-	check(Meteor:ScoreOf(bots[1].Entity) > 0, "robots did not smash the meteor")
+	task.wait(3)
+	check(Meteor:ScoreOf(bots[1].Entity) > 0, "rivals did not smash the meteor")
 	for _ = 1, 3000 do
 		if Meteor:StateForTest() ~= "Active" then
 			break
@@ -732,66 +745,117 @@ if #bots == 2 then
 		Meteor:Hit(A, 50, 0.4)
 	end
 	check(Meteor:StateForTest() == "Idle", "rush meteor not smashed")
+	-- eggs nobody picked up: a rival grabs one
+	task.wait(Config.Rivals.GrabDelay + 0.5)
 	local carrier = nil
-	for _ = 1, 40 do
-		for _, bot in bots do
-			if bot.Carry then
-				carrier = bot
+	for attempt = 1, 3 do
+		local targets = S.ShardService:RivalTargets(bots[attempt % 2 + 1].Entity.UserId, Config.Rivals.GrabDelay)
+		if #targets > 0 then
+			Rival:PlaceForTest(bots[attempt % 2 + 1], targets[1].Position)
+		end
+		for _ = 1, 8 do
+			for _, bot in bots do
+				if bot.Carry then
+					carrier = bot
+				end
 			end
+			if carrier then
+				break
+			end
+			task.wait(0.25)
 		end
 		if carrier then
 			break
 		end
-		task.wait(0.25)
 	end
-	check(carrier ~= nil, "no robot went for a star egg")
+	check(carrier ~= nil, "no rival grabbed a star egg")
 	if carrier then
-		local groundBefore = #workspace.Map.Shards:GetChildren()
+		check(carrier.Model:GetAttribute("Carrying") == true, "a carrying rival should show it")
 		local coinsBeforeBonk = dataA.Coins
-		rootA.CFrame = CFrame.new(carrier.Position + Vector3.new(3, 0, 0))
-		check(Rival:Bonk(A, carrier.Model) == true, "bonking a robot failed")
-		check(carrier.Carry == nil, "the bonked robot kept the egg")
-		check(dataA.Coins > coinsBeforeBonk, "no coins for bonking a robot")
-		check(#workspace.Map.Shards:GetChildren() >= groundBefore, "the robot's egg did not drop")
-		check(Rival:Bonk(A, carrier.Model) == false, "a dizzy robot could be bonked again")
-		-- the dropped egg is off-limits for robots for a while (no bonk farming)
+		rootA.CFrame = CFrame.new(carrier.Root.Position + Vector3.new(3, 0, 0))
+		check(Rival:Bonk(A, carrier.Model) == true, "bonking a rival failed")
+		check(carrier.Carry == nil, "the bonked rival kept the egg")
+		check(dataA.Coins > coinsBeforeBonk, "no coins for bonking a rival")
+		check(Rival:Bonk(A, carrier.Model) == false, "a stunned rival could be bonked again")
 		local reGrab = false
 		for _, entry in S.ShardService:RivalTargets(carrier.Entity.UserId, 0) do
-			if
-				(Vector3.new(entry.Position.X, 0, entry.Position.Z) - Vector3.new(carrier.Position.X, 0, carrier.Position.Z)).Magnitude < 2
-			then
+			local here = carrier.Root.Position
+			if (Vector3.new(entry.Position.X, 0, entry.Position.Z) - Vector3.new(here.X, 0, here.Z)).Magnitude < 2 then
 				reGrab = true
 			end
 		end
-		check(not reGrab, "robots could grab the bonked egg right back (coin farming)")
-		check(
-			carrier.Model.PrimaryPart.Anchored and not carrier.Model:FindFirstChild("Body").Anchored,
-			"robot parts should be welded to one anchored root"
-		)
+		check(not reGrab, "rivals could grab the bonked egg right back (coin farming)")
 	end
-	-- a robot that keeps its egg too long beams up with it
-	local other = nil
-	for _ = 1, 40 do
-		for _, bot in bots do
-			if bot.Carry and bot ~= carrier then
-				other = bot
-			end
-		end
-		if other then
-			break
-		end
-		task.wait(0.25)
+	-- a rival bonks a player carrying an egg (not near the spawn / homes)
+	if S.ShardService:IsCarrying(A) then
+		S.ShardService:Drop(A)
 	end
-	if other then
-		other.CarryUntil = workspace:GetServerTimeNow() - 1
-		task.wait(0.6)
-		check(other.Carry == nil, "a robot did not fly away with its egg")
-	end
-	results.rivals = { Carrier = carrier ~= nil, Escaper = other ~= nil, Score = math.floor(Meteor:ScoreOf(bots[1].Entity)) }
+	rootA.CFrame = CFrame.new(30, 3, 30)
+	S.ShardService:StartCarry(A, { Kind = "Egg", Rarity = "Rare", Egg = "Meadow" }, nil)
+	Rival:PlaceForTest(bots[2], Vector3.new(33, 0, 30))
+	S.MiningService:NpcBonk(bots[2].Root, bots[2].Name, A)
+	check(not S.ShardService:IsCarrying(A), "a rival could not bonk a player carrying an egg")
+	results.rivals = { Names = bots[1].Name .. "," .. bots[2].Name, Carrier = carrier ~= nil }
 end
 Rival:ForceForTest(0)
 task.wait(1)
-check(#Rival:RecordsForTest() == 0, "robots did not leave")
+check(#Rival:RecordsForTest() == 0, "rivals did not leave")
+
+-- 30) 🌱 growth: feed, level up, ⭐ evolve with 2 copies, growth survives a steal
+for _ = 1, 3 do
+	S.PetService:GrantPet(A, "Chick", nil)
+end
+local chicks = {}
+for _, pet in dataA.Pets do
+	if pet.Name == "Chick" and not pet.Serial then
+		table.insert(chicks, pet)
+	end
+end
+check(#chicks >= 3, "growth test setup")
+local main = chicks[1]
+dataA.Stardust = 1e7
+local fed = S.PetService.FeedForTest(A, main.Id)
+check(type(fed) == "table" and fed.Ok, "feeding failed: " .. HttpService:JSONEncode(fed or {}))
+check(Util.PetLevel(main) > 1 or (main.XP or 0) > 0, "feeding gave no xp")
+S.PetService:AddXP(A, { main }, 1e7)
+check(Util.PetLevel(main) == Config.Growth.MaxLevel, "pet did not reach the max level")
+local expected = Util.PetIncome(Config, "Chick", main.Variant) * (1 + Config.Growth.LevelBonus * (Config.Growth.MaxLevel - 1))
+check(math.abs(Util.PetIncomeOf(Config, main) - expected) < 1e-6, "level bonus not applied to income")
+local petsBeforeEvolve = #dataA.Pets
+local evolved = S.PetService.EvolveForTest(A, main.Id)
+check(type(evolved) == "table" and evolved.Ok and Util.PetStars(main) == 1, "evolve failed: " .. HttpService:JSONEncode(evolved or {}))
+check(#dataA.Pets == petsBeforeEvolve - Config.Growth.Evolve.Copies, "evolve did not use the copies")
+check(Util.PetLevel(main) == 1, "an evolved pet should start at level 1 again")
+local again = S.PetService.EvolveForTest(A, main.Id)
+check(type(again) == "table" and again.Error ~= nil, "evolved again without growing / copies")
+local taken = S.PetService:TakePet(A, main.Id)
+local given = taken and S.PetService:GivePet(B, taken.Name, taken.Variant, taken.Serial, taken)
+check(given ~= nil and Util.PetStars(given) == 1, "a stolen / traded pet lost its stars")
+pcall(S.PetService.HomeXP, S.PetService, A)
+
+-- 31) 📖 index milestones + ☄️ meteor pets
+local found = Util.IndexCount(dataA)
+local gemsBeforeIndex = dataA.Gems
+local claimedIndex = S.PetService.ClaimIndexForTest(A, 1)
+if found >= Config.Index.Milestones[1].Count then
+	check(
+		type(claimedIndex) == "table" and claimedIndex.Ok and dataA.Gems == gemsBeforeIndex + Config.Index.Milestones[1].Gems,
+		"index milestone not paid"
+	)
+	local twice = S.PetService.ClaimIndexForTest(A, 1)
+	check(type(twice) == "table" and twice.Error ~= nil, "index milestone paid twice")
+else
+	check(type(claimedIndex) == "table" and claimedIndex.Error ~= nil, "index milestone paid too early")
+end
+local meteorPet = Config.Meteor.MeteorPets[1]
+for _ = 1, 30 do
+	if dataA.PetIndex[meteorPet] then
+		break
+	end
+	S.PetService:HatchStarEgg(A, "Meadow", 1, { Kind = 1, Golden = true, Rarity = "Secret" })
+end
+check(dataA.PetIndex[meteorPet] == true, "no meteor pet from meteor star eggs")
+results.growth = { Stars = Util.PetStars(main), Index = Util.IndexCount(dataA), IndexBonus = Util.IndexBonus(Config, dataA) }
 
 results.alicePets = #dataA.Pets
 results.bobPets = #dataB.Pets

@@ -33,7 +33,7 @@ function Stats:PetPower(_player, data): number
 	local total = 0
 	for _, pet in data.Pets do
 		if equipped[pet.Id] then
-			total += Util.PetPower(Config, pet.Name, pet.Variant)
+			total += Util.PetPowerOf(Config, pet)
 		end
 	end
 	return total

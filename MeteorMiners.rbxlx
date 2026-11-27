@@ -214,6 +214,51 @@ Config.Rebirth = {
 ---------------------------------------------------------------------------
 Config.BasePetSlots = 3
 Config.MaxPetSlots = 12
+-- 🌱 PET GROWTH (like Adopt Me aging / Grow a Garden pet levels): pets level
+-- up while they help you (following + mining / smashing), while they stand in
+-- your home, and when you feed them ✨ stardust. Every level = more income
+-- and power; they visibly grow (🍼 baby -> 🐣 junior -> ⭐ adult -> 👑 legend).
+-- ⭐ EVOLVE (like Neon pets / PS99 fusing): a level-10 pet + 2 copies of the
+-- same pet -> ★ evolved (x2 income & power per star, max ★3), back to level 1.
+Config.Growth = {
+	MaxLevel = 10,
+	LevelBonus = 0.15, -- +15% income & power per level above 1 (Lv10 = x2.35)
+	XPBase = 20, -- xp to the next level = XPBase * level^XPPow * (1 + XPRarity * (rarity - 1))
+	XPPow = 1.6,
+	XPRarity = 0.35,
+	HelpXP = 2, -- each pet-help hit (following pets)
+	MeteorXP = 30, -- following pets, when you help smash a meteor
+	DeliverXP = 15, -- following pets, when you bring a star egg home
+	HomeXPPerMinute = 1, -- pets standing in your home (while you're in the game)
+	FeedShare = 0.25, -- one feed = 25% of the level
+	FeedCost = 3, -- ✨ stardust per xp
+	Stages = {
+		{ Min = 1, Id = "Baby", Icon = "🍼", Scale = 0.72 },
+		{ Min = 4, Id = "Junior", Icon = "🐣", Scale = 0.86 },
+		{ Min = 7, Id = "Adult", Icon = "⭐", Scale = 1 },
+		{ Min = 10, Id = "Legend", Icon = "👑", Scale = 1.12 },
+	},
+	Evolve = { MaxStars = 3, Copies = 2, StarMult = 2, StarScale = 0.08 },
+	StarColors = { Color3.fromRGB(150, 220, 255), Color3.fromRGB(255, 210, 70), Color3.fromRGB(255, 110, 220) },
+}
+
+-- 📖 COLLECTION INDEX (the strongest retention tool of pet games): every pet
+-- you discover counts; milestones pay gems and a PERMANENT home income bonus,
+-- completing all pets of an egg ("set") adds a little more.
+Config.Index = {
+	Milestones = {
+		{ Count = 5, Gems = 50 },
+		{ Count = 10, Gems = 100, Bonus = 0.05 },
+		{ Count = 15, Gems = 200 },
+		{ Count = 20, Gems = 300, Bonus = 0.05 },
+		{ Count = 25, Gems = 500 },
+		{ Count = 30, Gems = 800, Bonus = 0.1 },
+		{ Count = 35, Gems = 1200 },
+		{ Count = 40, Gems = 2000, Bonus = 0.15 },
+	},
+	SetBonus = 0.03, -- per completed egg set
+}
+
 Config.MaxPets = 60 -- pet storage (the best ones go on your pedestals)
 Config.PetSellSeconds = 60 -- selling a pet pays this many seconds of its income
 
@@ -360,6 +405,54 @@ Config.Pets = {
 		Color = Color3.fromRGB(255, 230, 120),
 		Shape = "Ball",
 		Horns = true,
+	},
+	-- ☄️ METEOR PETS: only born from a meteor's star eggs (one per meteor kind)
+	["Comet Bunny"] = {
+		Rarity = "Rare",
+		Power = 1.2,
+		Income = 8,
+		Color = Color3.fromRGB(150, 255, 170),
+		Shape = "Ball",
+		Ears = true,
+		Meteor = true,
+	},
+	["Aurora Fox"] = {
+		Rarity = "Epic",
+		Power = 9,
+		Income = 400,
+		Color = Color3.fromRGB(140, 220, 255),
+		Shape = "Block",
+		Ears = true,
+		Meteor = true,
+	},
+	["Meteor Drake"] = {
+		Rarity = "Legendary",
+		Power = 140,
+		Income = 25000,
+		Color = Color3.fromRGB(255, 120, 40),
+		Shape = "Block",
+		Wings = true,
+		Horns = true,
+		Meteor = true,
+	},
+	["Nebula Wisp"] = {
+		Rarity = "Mythic",
+		Power = 1800,
+		Income = 800000,
+		Color = Color3.fromRGB(190, 110, 255),
+		Shape = "Ball",
+		Wings = true,
+		Meteor = true,
+	},
+	["Starfall Titan"] = {
+		Rarity = "Secret",
+		Power = 7000,
+		Income = 3000000,
+		Color = Color3.fromRGB(255, 120, 230),
+		Shape = "Block",
+		Horns = true,
+		Wings = true,
+		Meteor = true,
 	},
 	-- Rewards-only pets
 	["Starter Dino"] = { Rarity = "Epic", Power = 4, Income = 160, Color = Color3.fromRGB(90, 220, 120), Shape = "Block", Horns = true },
@@ -687,6 +780,10 @@ Config.Meteor = {
 		{ Id = "Giant", Name = "Giant", Weight = 12, Radius = 12, HP = 1.6, Eggs = 3 },
 	},
 	GoldenChance = 0.08, -- ✨ golden meteor: 2x egg luck, 3x coin chunks
+	-- ☄️ a meteor's star eggs can hatch its METEOR PET (by star egg rarity;
+	-- x2 from a golden meteor). Kind index -> pet.
+	MeteorPets = { "Comet Bunny", "Aurora Fox", "Meteor Drake", "Nebula Wisp", "Starfall Titan" },
+	MeteorPetChance = { Common = 0.02, Rare = 0.04, Epic = 0.07, Legendary = 0.12, Mythic = 0.2, Secret = 0.35 },
 	Spill = { Base = 3, PerParticipant = 1, Max = 10, Luck = 2.5, GoldenLuck = 2, Guardians = 2, LuckyChance = 0.3 },
 	Chunks = { Count = 8, Seconds = 12, Min = 150, GoldenMult = 3, Lifetime = 60 },
 	FirstCrackGems = 50, -- first time you crack each meteor kind (meteor index)
@@ -715,32 +812,88 @@ Config.PetHelp = {
 	MeteorShare = 0.25, -- each pet adds 25% of a hit's meteor score
 }
 
--- 🤖 rival robots: with only 1-2 players in a server, two hover robots join
--- the meteor race (they smash too, steal unclaimed eggs and try to fly away;
--- bonk them to make them drop the egg)
+-- rivals: with only 1-2 players in a server, two rival players join (game
+-- characters with regular avatars made from official Roblox catalog items).
+-- They mine, race to meteors, smash them, grab unclaimed eggs and run home,
+-- and sometimes bonk a player carrying an egg. Bonk them back!
 Config.Rivals = {
 	MaxRealPlayers = 2,
 	Count = 2,
-	Names = { "Rocky", "Zip", "Bolt", "Nova", "Pip", "Dex", "Sparky", "Comet" },
-	Colors = {
-		Color3.fromRGB(255, 120, 90),
-		Color3.fromRGB(110, 170, 255),
-		Color3.fromRGB(170, 120, 255),
-		Color3.fromRGB(255, 190, 70),
+	Names = {
+		"Minjun",
+		"Seoyeon",
+		"Jiho",
+		"Yuna",
+		"Haneul",
+		"Jayden",
+		"Mia",
+		"Leo",
+		"Noah",
+		"Chloe",
+		"Ethan",
+		"Lily",
+		"Lucas",
+		"Zoe",
+		"Ryan",
+		"Sora",
 	},
-	Dock = Vector3.new(-40, 0, 52), -- where they hover in the hub between meteors
-	HoverY = 3,
 	Speed = 18, -- (players walk 22: you can beat them to the meteor)
-	CarrySpeed = 11, -- slow while carrying: you can catch them
 	Pace = 0.6, -- they smash at 60% of the average player's pace
-	GrabDelay = 5, -- an egg must lie there this long before a robot takes it
-	GrabRange = 3,
+	GrabDelay = 5, -- an egg must lie there this long before a rival takes it
+	GrabRange = 4,
 	SearchRange = 120,
-	EscapeSeconds = 14, -- then it beams up with the egg
-	StunSeconds = 3,
-	DropBlockSeconds = 20, -- robots keep off an egg knocked out of their hands
+	StunSeconds = 2.5,
+	DropBlockSeconds = 20, -- rivals keep off an egg knocked out of their hands
 	BonkMinCoins = 50,
 	BonkIncomeSeconds = 8, -- reward: 8s of your home income
+	-- they try to bonk a player carrying an egg now and then
+	Bonk = { ChaseRange = 26, ChaseSeconds = 6, Range = 7, Cooldown = 20 },
+	-- avatar pieces: free items made by Roblox (catalog search, checked in game)
+	Look = {
+		Skins = {
+			Color3.fromRGB(234, 184, 146),
+			Color3.fromRGB(255, 204, 153),
+			Color3.fromRGB(204, 142, 105),
+			Color3.fromRGB(124, 92, 70),
+			Color3.fromRGB(245, 205, 48),
+			Color3.fromRGB(253, 234, 141),
+		},
+		Hair = {
+			63690008,
+			2956239660,
+			451221329,
+			1103003368,
+			376526888,
+			376524487,
+			376548738,
+			376527350,
+			451220849,
+			3814474927,
+			3814476174,
+			62234425,
+			7193442167,
+			6993754725,
+			7193448258,
+			9244111257,
+		},
+		HatChance = 0.3,
+		Hats = { 607702162, 417457461, 2646473721, 607700713 },
+		Shirts = {
+			144076358,
+			607785314,
+			398633584,
+			144076436,
+			398634295,
+			3670737444,
+			382538059,
+			398635081,
+			382537702,
+			382537085,
+			382538295,
+			4047886060,
+		},
+		Pants = { 144076760, 398634487, 398633812, 398635338, 382537806, 382538503, 382537569, 382537950 },
+	},
 }
 
 -- bonking: only players carrying a star shard can be bonked (they drop it)
@@ -792,6 +945,8 @@ Config.Titles = {
 	{ Id = "Tycoon", Name = "💰 Tycoon", Color = Color3.fromRGB(255, 215, 60), Need = { LifetimeCoins = 1000000000 } },
 	{ Id = "MeteorHunter", Name = "☄️ Meteor Hunter", Color = Color3.fromRGB(255, 150, 70), Need = { Meteors = 25 } },
 	{ Id = "StarRunner", Name = "🌠 Star Runner", Color = Color3.fromRGB(140, 210, 255), Need = { Delivered = 25 } },
+	{ Id = "StarChild", Name = "☄️ Star Child", Color = Color3.fromRGB(255, 150, 80), Need = { MeteorPets = 1 } },
+	{ Id = "Evolver", Name = "⭐ Evolver", Color = Color3.fromRGB(150, 220, 255), Need = { Evolved = 3 } },
 	{ Id = "Lucky", Name = "🍀 Lucky Charm", Color = Color3.fromRGB(120, 255, 140), Need = { Lucky = 25 } },
 	{ Id = "Prankster", Name = "🎭 Prankster", Color = Color3.fromRGB(255, 170, 90), Need = { Pranks = 10 } },
 	{ Id = "Titanic", Name = "🗿 Titanic Owner", Color = Color3.fromRGB(255, 120, 60), Need = { Titanic = 1 } },
@@ -3451,6 +3606,60 @@ return {
 	["🤖 Rival robots are here! Beat them to the meteor - and don't let them fly off with your eggs!"] = "🤖 라이벌 로봇 등장! 운석은 먼저 부수고, 별알을 뺏기지 마세요!",
 	["⭐ Your %d strongest pets follow you and help you mine & smash meteors (+%s%% power)"] = "⭐ 가장 강한 펫 %d마리가 따라다니며 채굴과 운석 부수기를 도와요 (힘 +%s%%)",
 	["💥 You bonked %s! It dropped the egg - grab it!"] = "💥 %s을(를) 때렸어요! 별알을 떨어뜨렸어요 - 주워요!",
+	-- 🌱 growth / 📖 index / ☄️ meteor pets
+	["%s %s  •  Level %d/%d"] = "%s %s  •  레벨 %d/%d",
+	["%s %s  •  more 💰 and ⚡"] = "%s %s  •  💰와 ⚡가 늘었어요",
+	["%s %s grew up!"] = "%s %s이(가) 자랐어요!",
+	["Already claimed!"] = "이미 받았어요!",
+	["Aurora Fox"] = "오로라 여우",
+	["Comet Bunny"] = "혜성 토끼",
+	["Discover %d different pets first"] = "먼저 서로 다른 펫 %d마리를 발견하세요",
+	["Finish your trade first."] = "먼저 교환을 끝내세요.",
+	["Grow it to level %d first 👑"] = "먼저 레벨 %d까지 키우세요 👑",
+	["Hatch %d ☄️ meteor pet"] = "☄️ 운석 펫 %d마리 부화",
+	["Index"] = "도감",
+	["METEOR PET"] = "운석 펫",
+	["Meteor Drake"] = "운석 드레이크",
+	["Nebula Wisp"] = "성운 위습",
+	["Not enough ✨ stardust (%s) - smash meteors!"] = "✨ 별가루가 부족해요 (%s) - 운석을 부숴요!",
+	["Starfall Titan"] = "별똥별 타이탄",
+	["That pet isn't here right now."] = "그 펫은 지금 여기 없어요.",
+	["This pet is fully evolved! ★★★"] = "이 펫은 최대로 진화했어요! ★★★",
+	["You need %d more %s to evolve"] = "진화하려면 %d마리의 %s이(가) 더 필요해요",
+	["x%d income & power - grow it again to level %d!"] = "수입과 힘 x%d - 다시 레벨 %d까지 키워요!",
+	["☄️ %s hatched a METEOR PET: %s! (only from meteors)"] = "☄️ %s님이 운석 펫 %s을(를) 부화했어요! (운석에서만 나와요)",
+	["☄️ Meteor pets (only from meteors)"] = "☄️ 운석 펫 (운석에서만)",
+	["☄️ Star Child"] = "☄️ 별의 아이",
+	["★★★ Fully evolved! The best version of this pet."] = "★★★ 최대 진화! 이 펫의 최고 버전이에요.",
+	["✅ claimed"] = "✅ 받음",
+	["⭐ EVOLVED! %s %s"] = "⭐ 진화! %s %s",
+	["⭐ Evolve"] = "⭐ 진화",
+	["⭐ Evolve %d pets"] = "⭐ 펫 %d마리 진화",
+	["⭐ Evolve (%d/%d)"] = "⭐ 진화 (%d/%d)",
+	["⭐ Evolve: this pet + %d more %s (you have %d) -> ★%d, x%d income! (back to level 1)"] = "⭐ 진화: 이 펫 + %d마리 더 (%s, 지금 %d마리) → ★%d, 수입 x%d! (레벨 1부터 다시)",
+	["⭐ Evolver"] = "⭐ 진화의 달인",
+	["🌟 %s evolved a %s %s!"] = "🌟 %s님이 %s %s(으)로 진화시켰어요!",
+	["🌱 Grows while it follows you and helps, while it stands in your home, and when you feed it ✨ stardust. At level %d it can ⭐ evolve."] = "🌱 나를 따라다니며 도울 때, 집에 서 있을 때, ✨ 별가루를 먹일 때 자라요. 레벨 %d이 되면 ⭐ 진화할 수 있어요.",
+	["🌱 Level up! %s"] = "🌱 레벨 업! %s",
+	["🍖 +%d XP  ✨%s"] = "🍖 +%d XP  ✨%s",
+	["🍖 Feed"] = "🍖 먹이 주기",
+	["🐾 %d pets"] = "🐾 %d마리",
+	["👆 CLAIM!"] = "👆 받기!",
+	["👑 MAX LEVEL"] = "👑 최고 레벨",
+	["👑 Max"] = "👑 최고",
+	["👑 Max level! Evolve it with %d copies ⭐"] = "👑 최고 레벨! 같은 펫 %d마리로 진화시켜요 ⭐",
+	["💥 %s dropped a %s - grab it! +💰%s"] = "💥 %s이(가) %s을(를) 떨어뜨렸어요 - 주워요! +💰%s",
+	["📖 %d/%d pets discovered  •  🏠 +%d%% income forever"] = "📖 펫 %d/%d 발견  •  🏠 영구 수입 +%d%%",
+	["📖 +%s 💎 and +%d%% home income forever!"] = "📖 +%s 💎, 집 수입 영구 +%d%%!",
+	["📖 INDEX"] = "📖 도감",
+	["📖 Index"] = "📖 도감",
+	["🔒 This pet may go into a vault again (safe)"] = "🔒 이 펫은 다시 금고에 들어갈 수 있어요 (안전)",
+	["📖 +%s 💎!"] = "📖 +%s 💎!",
+	["Baby"] = "아기",
+	["Junior"] = "어린이",
+	["Adult"] = "어른",
+	["Legend"] = "전설",
+	["💰 %s/s  •  ⚡ x%s"] = "💰 %s/초  •  ⚡ x%s",
 }
 ]]></string>
         </Properties>
@@ -3570,7 +3779,99 @@ local function custom(petName: string): Model?
 	return clone
 end
 
-function PetModel.Build(petName: string, variant: string?): Model
+-- uniform scale (ScaleTo, with a manual fallback)
+local function scaleModel(model: Model, factor: number)
+	if math.abs(factor - 1) < 0.001 then
+		return
+	end
+	local ok = pcall(function()
+		model:ScaleTo(model:GetScale() * factor)
+	end)
+	if not ok then
+		local origin = model:GetPivot().Position
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.Size *= factor
+				local offset = d.Position - origin
+				d.CFrame = CFrame.new(origin + offset * factor) * (d.CFrame - d.Position)
+			end
+		end
+	end
+end
+
+-- 🌱 growth: babies are small, legends big; ★ evolved pets get a star halo
+local function applyGrowth(model: Model, growth)
+	local body = model.PrimaryPart
+	if not growth or not body then
+		return
+	end
+	local level = math.max(1, tonumber(growth.Level) or 1)
+	local stars = math.max(0, tonumber(growth.Stars) or 0)
+	local stage = Util.PetStage(Config, level)
+	local _, size = model:GetBoundingBox()
+	local top = body.Position.Y - body.Size.Y / 2 + size.Y
+	if stage.Id == "Legend" then
+		-- a little golden crown
+		local crownY = top + 0.15
+		for i = 1, 5 do
+			local angle = i / 5 * math.pi * 2
+			part(
+				model,
+				"Crown",
+				Vector3.new(0.22, 0.45, 0.22),
+				CFrame.new(body.Position.X + math.cos(angle) * 0.42, crownY, body.Position.Z + math.sin(angle) * 0.42),
+				Color3.fromRGB(255, 205, 60),
+				Enum.Material.SmoothPlastic
+			)
+		end
+	end
+	if stars > 0 then
+		local color = Config.Growth.StarColors[math.clamp(stars, 1, #Config.Growth.StarColors)]
+		local halo = part(
+			model,
+			"StarHalo",
+			Vector3.new(0.14, 1.5 + stars * 0.25, 1.5 + stars * 0.25),
+			CFrame.new(body.Position.X, top + 0.7, body.Position.Z) * CFrame.Angles(0, 0, math.rad(90)),
+			color,
+			Enum.Material.Neon,
+			Enum.PartType.Cylinder
+		)
+		halo.Transparency = 0.25
+		sparkles(body, color, 4 + stars * 4, 0.3 + stars * 0.05)
+	end
+	scaleModel(model, stage.Scale * (1 + Config.Growth.Evolve.StarScale * stars))
+end
+
+-- ☄️ meteor pets: a glowing crack + a little comet tail
+local function applyMeteorLook(model: Model, info)
+	local body = model.PrimaryPart
+	if not info.Meteor or not body then
+		return
+	end
+	local glow = info.Color:Lerp(Color3.fromRGB(255, 200, 80), 0.5)
+	for i = 1, 3 do
+		local crack = part(
+			model,
+			"MeteorCrack",
+			Vector3.new(0.12, body.Size.Y * 0.5, 0.12),
+			body.CFrame * CFrame.new((i - 2) * body.Size.X * 0.22, 0, body.Size.Z * 0.49) * CFrame.Angles(0, 0, math.rad((i - 2) * 25)),
+			glow,
+			Enum.Material.Neon
+		)
+		crack.CanQuery = false
+	end
+	local tail = Instance.new("ParticleEmitter")
+	tail.Texture = "rbxasset://textures/particles/fire_main.dds"
+	tail.Color = ColorSequence.new(glow, info.Color)
+	tail.Size = NumberSequence.new(0.5, 0)
+	tail.Lifetime = NumberRange.new(0.3, 0.6)
+	tail.Rate = 8
+	tail.Speed = NumberRange.new(0.5, 1.5)
+	tail.LightEmission = 0.6
+	tail.Parent = body
+end
+
+function PetModel.Build(petName: string, variant: string?, growth): Model
 	local customModel = custom(petName)
 	if customModel then
 		return customModel
@@ -3870,6 +4171,8 @@ function PetModel.Build(petName: string, variant: string?): Model
 		end
 	end
 
+	applyMeteorLook(model, info)
+	applyGrowth(model, growth)
 	return model
 end
 
@@ -4253,6 +4556,135 @@ function Util.PetIncome(config, petName: string, variant: string?): number
 	return (info.Income or 0) * (if def then def.IncomeMult or 1 else 1)
 end
 
+---------------------------------------------------------------------------
+-- 🌱 pet growth: level 1..MaxLevel, ★ stars from evolving (Config.Growth)
+---------------------------------------------------------------------------
+function Util.PetLevel(pet): number
+	return math.max(1, math.floor(tonumber(pet and pet.Level) or 1))
+end
+
+function Util.PetStars(pet): number
+	return math.max(0, math.floor(tonumber(pet and pet.Stars) or 0))
+end
+
+-- income / power multiplier from level + stars
+function Util.PetGrowthMult(config, pet): number
+	local growth = config.Growth
+	if not growth or not pet then
+		return 1
+	end
+	local level = math.min(Util.PetLevel(pet), growth.MaxLevel)
+	return (1 + growth.LevelBonus * (level - 1)) * growth.Evolve.StarMult ^ Util.PetStars(pet)
+end
+
+-- a pet's real income per second (species x mutation x growth)
+function Util.PetIncomeOf(config, pet): number
+	return Util.PetIncome(config, pet.Name, pet.Variant) * Util.PetGrowthMult(config, pet)
+end
+
+function Util.PetPowerOf(config, pet): number
+	return Util.PetPower(config, pet.Name, pet.Variant) * Util.PetGrowthMult(config, pet)
+end
+
+-- xp needed to go from the pet's level to the next (rarer pets take longer)
+function Util.PetXPNeed(config, pet): number
+	local growth = config.Growth
+	local info = config.Pets[pet.Name]
+	local rarity = info and config.Rarities[info.Rarity]
+	local order = if rarity then rarity.Order else 1
+	local level = Util.PetLevel(pet)
+	return math.floor(growth.XPBase * level ^ growth.XPPow * (1 + growth.XPRarity * (order - 1)))
+end
+
+function Util.PetStage(config, level: number)
+	local stages = config.Growth.Stages
+	local best = stages[1]
+	for _, stage in stages do
+		if level >= stage.Min then
+			best = stage
+		end
+	end
+	return best
+end
+
+-- "👑10 ★★" / "🍼3" (shown on cards, pedestals and follow pets)
+function Util.PetBadge(config, pet): string
+	local level = Util.PetLevel(pet)
+	local stage = Util.PetStage(config, level)
+	local stars = Util.PetStars(pet)
+	return stage.Icon .. level .. (if stars > 0 then " " .. string.rep("★", stars) else "")
+end
+
+-- stardust cost of one feed, and the xp it gives
+function Util.PetFeed(config, pet): (number, number)
+	local growth = config.Growth
+	local xp = math.max(5, math.floor(Util.PetXPNeed(config, pet) * growth.FeedShare))
+	return math.ceil(xp * growth.FeedCost), xp
+end
+
+---------------------------------------------------------------------------
+-- 📖 collection index (Config.Index)
+---------------------------------------------------------------------------
+function Util.IndexCount(data): number
+	local n = 0
+	for _ in data.PetIndex or {} do
+		n += 1
+	end
+	return n
+end
+
+-- egg sets: every pet of the egg discovered (Robux / reward-only eggs don't count)
+function Util.IndexSets(config, data)
+	local sets = {}
+	for _, eggId in config.EggOrder do
+		local egg = config.Eggs[eggId]
+		if egg and egg.Pets and egg.Currency ~= "Robux" then
+			local have, total = 0, 0
+			for _, entry in egg.Pets do
+				local name = entry[1]
+				total += 1
+				if data.PetIndex and data.PetIndex[name] then
+					have += 1
+				end
+			end
+			table.insert(sets, { Egg = eggId, Have = have, Total = total, Done = total > 0 and have >= total })
+		end
+	end
+	-- ☄️ meteor pets are a set of their own
+	local meteor = config.Meteor and config.Meteor.MeteorPets
+	if meteor then
+		local have = 0
+		for _, name in meteor do
+			if data.PetIndex and data.PetIndex[name] then
+				have += 1
+			end
+		end
+		table.insert(sets, { Egg = "Meteor", Have = have, Total = #meteor, Done = have >= #meteor })
+	end
+	return sets
+end
+
+-- permanent home income bonus from claimed milestones + completed sets
+function Util.IndexBonus(config, data): number
+	local index = config.Index
+	if not index then
+		return 0
+	end
+	local bonus = 0
+	local claimed = data.IndexClaimed or {}
+	for i, milestone in index.Milestones do
+		if claimed[tostring(i)] and milestone.Bonus then
+			bonus += milestone.Bonus
+		end
+	end
+	for _, set in Util.IndexSets(config, data) do
+		if set.Done then
+			bonus += index.SetBonus
+		end
+	end
+	return bonus
+end
+
 -- the egg shop restocks every RestockSeconds; slot = which restock we're in
 function Util.ShopSlot(config, serverTime: number): number
 	return math.floor(serverTime / config.Shop.RestockSeconds)
@@ -4442,7 +4874,7 @@ end
 function Util.PetWorth(config, data): number
 	local total = 0
 	for _, pet in data.Pets do
-		total += Util.PetIncome(config, pet.Name, pet.Variant)
+		total += Util.PetIncomeOf(config, pet)
 	end
 	return total
 end
@@ -4479,8 +4911,8 @@ function Util.ArrangePets(config, data)
 		end
 	end
 	table.sort(list, function(a, b)
-		local ia = Util.PetIncome(config, a.Name, a.Variant)
-		local ib = Util.PetIncome(config, b.Name, b.Variant)
+		local ia = Util.PetIncomeOf(config, a)
+		local ib = Util.PetIncomeOf(config, b)
 		if ia == ib then
 			return a.Id < b.Id
 		end
@@ -4595,6 +5027,12 @@ function Util.TitleUnlocked(config, title, data, hasPass): boolean
 		return false
 	end
 	if need.Meteors and (stats.MeteorJoins or 0) < need.Meteors then
+		return false
+	end
+	if need.MeteorPets and (stats.MeteorPets or 0) < need.MeteorPets then
+		return false
+	end
+	if need.Evolved and (stats.Evolved or 0) < need.Evolved then
 		return false
 	end
 	if need.Delivered and (stats.ShardsDelivered or 0) < need.Delivered then
@@ -5460,11 +5898,12 @@ end
 
 -- coins per second of one pet for its owner (boosts included)
 function Base:PetRate(player: Player, data, pet, inVault: boolean?): number
-	local rate = Util.PetIncome(Config, pet.Name, pet.Variant) * Services.StatsService:CoinMultiplier(player, data)
+	local rate = Util.PetIncomeOf(Config, pet) * Services.StatsService:CoinMultiplier(player, data)
 	if Services.MonetizationService:HasPass(player, "DoubleBase") then
 		rate *= 2
 	end
 	rate *= 1 + Util.SetBonus(Config, data.Base.Items)
+	rate *= 1 + Util.IndexBonus(Config, data) -- 📖 collection milestones + egg sets
 	if inVault then
 		rate *= SETTINGS.VaultIncome
 	end
@@ -5538,7 +5977,7 @@ function Base:RenderDisplays(player: Player)
 		local info = Config.Pets[pet.Name]
 		local rarity = Config.Rarities[info.Rarity] or Config.Rarities.Common
 		local exclusive = info.Exclusive == true
-		local petModel = PetModel.Build(pet.Name, pet.Variant)
+		local petModel = PetModel.Build(pet.Name, pet.Variant, { Level = Util.PetLevel(pet), Stars = Util.PetStars(pet) })
 		petModel.Name = "Pet_" .. pet.Id
 		petModel:PivotTo(CFrame.new(top.Position + Vector3.new(0, 1.6, 0)) * (top.CFrame - top.Position))
 		-- big (huge) pets stand on the pedestal instead of sinking into it
@@ -5557,10 +5996,11 @@ function Base:RenderDisplays(player: Player)
 		local rate = Util.Format(self:PetRate(player, data, pet, inVault))
 		local icon = if inVault then "🔒" elseif exclusive then "💎" else "🌠"
 		local serial = if pet.Serial then " #" .. tostring(pet.Serial) else ""
+		local badge = Util.PetBadge(Config, pet)
 		if pet.Variant then
-			World.SetText(label, "%s %s %s%s\n💰 %s/s", icon, pet.Variant, pet.Name, serial, rate)
+			World.SetText(label, "%s %s %s%s\n%s  💰 %s/s", icon, pet.Variant, pet.Name, serial, badge, rate)
 		else
-			World.SetText(label, "%s %s%s\n💰 %s/s", icon, pet.Name, serial, rate)
+			World.SetText(label, "%s %s%s\n%s  💰 %s/s", icon, pet.Name, serial, badge, rate)
 		end
 		local petId = pet.Id
 		if not inVault and not exclusive then
@@ -5625,7 +6065,7 @@ function Base:RenderDisplays(player: Player)
 		end
 	end
 	table.sort(storage, function(a, b)
-		return Util.PetIncome(Config, a.Name, a.Variant) > Util.PetIncome(Config, b.Name, b.Variant)
+		return Util.PetIncomeOf(Config, a) > Util.PetIncomeOf(Config, b)
 	end)
 	for i = 1, math.min(SETTINGS.YardPets, #storage) do
 		table.insert(yard, (storage[i].Variant or "") .. "|" .. storage[i].Name)
@@ -6113,7 +6553,7 @@ function Base:StealDelivered(owner: Player, thief: Player, meta, pet)
 		-- serial thieves get a bounty
 		local before = self:Bounty(thief)
 		thefts[thief] = thefts[thief] or {}
-		local value = Util.PetIncome(Config, pet.Name, pet.Variant) * SETTINGS.Bounty.IncomeSeconds
+		local value = Util.PetIncomeOf(Config, pet) * SETTINGS.Bounty.IncomeSeconds
 		table.insert(thefts[thief], { Victim = owner.UserId, Time = now(), Value = value })
 		local after = self:Bounty(thief)
 		if after > 0 then
@@ -7354,6 +7794,8 @@ function CharacterService:GivePickaxe(player: Player)
 	end
 end
 
+CharacterService.BuildPickaxe = buildPickaxe -- (rival players hold one too)
+
 local padUntil = {} -- [player] = os.clock() when the dash pad boost ends
 local stunnedUntil = {} -- [player] = os.clock() when a trap/guardian stun ends
 local DEFAULT_JUMP = 7.2
@@ -7684,8 +8126,11 @@ local TEMPLATE = {
 	Equipped = {}, -- { petId, ... }
 	NextPetUid = 1,
 	PetIndex = {}, -- [petName] = true
+	IndexClaimed = {}, -- ["milestone index"] = true (📖 collection rewards)
 	Boosts = { Coins2x = 0, Luck2x = 0, Power2x = 0 }, -- remaining seconds
 	Stats = {
+		Evolved = 0, -- ⭐ pets evolved
+		MeteorPets = 0, -- ☄️ meteor pets hatched
 		BlocksMined = 0,
 		LifetimeCoins = 0,
 		EggsHatched = 0,
@@ -9844,6 +10289,10 @@ local function finish(destroyed: boolean)
 			data.Stardust += stardust
 			data.Gems += gems
 			data.Stats.MeteorJoins += 1
+			if destroyed then
+				-- 🌱 the pets that helped grow
+				Services.PetService:AddFollowXP(player, Config.Growth.MeteorXP)
+			end
 			if place == 1 and destroyed then
 				data.Stats.MeteorWins += 1
 			end
@@ -9889,6 +10338,8 @@ local function finish(destroyed: boolean)
 		local ok, err = pcall(function()
 			Services.ShardService:SpillMeteor(Vector3.new(ground.X, 0, ground.Z), list, {
 				Egg = kind.Egg,
+				Kind = current.Kind,
+				Golden = current.Golden,
 				Luck = spill.Luck * (if current.Golden then spill.GoldenLuck else 1),
 				Extra = current.Size.Eggs,
 				Narrow = current.Type == "Avenue",
@@ -10954,6 +11405,7 @@ local function petHelpFor(player: Player)
 	local meteor = Services.MeteorService
 	if meteor:IsActive() and meteor:InRange(root.Position) then
 		if meteor:PetHit(player, pets, damage) then
+			Services.PetService:AddFollowXP(player, Config.Growth.HelpXP)
 			local at = meteor:Position()
 			if at then
 				sendPetHelp(player, root.Position, { at })
@@ -10989,8 +11441,77 @@ local function petHelpFor(player: Player)
 	end
 	if #targets > 0 then
 		sendPetHelp(player, root.Position, targets)
+		Services.PetService:AddFollowXP(player, Config.Growth.HelpXP)
 		Data:MarkDirty(player)
 	end
+end
+
+---------------------------------------------------------------------------
+-- rival players (RivalService)
+---------------------------------------------------------------------------
+-- the closest ore in a zone (where a rival goes mining)
+function Mining:NearestOreIn(zone: number, position: Vector3): BasePart?
+	local best, bestDistance = nil, math.huge
+	for part in zoneBlocks[zone] or {} do
+		local distance = (part.Position - position).Magnitude
+		if distance < bestDistance then
+			best, bestDistance = part, distance
+		end
+	end
+	return best
+end
+
+-- a rival hits an ore (no rewards; the ore breaks and respawns like any other)
+function Mining:NpcHit(part: BasePart, damage: number): boolean
+	local info = blockInfo[part]
+	if not info then
+		return false
+	end
+	info.HP -= damage
+	if info.HP > 0 then
+		part:SetAttribute("HP", info.HP)
+		return true
+	end
+	removeBlock(part, info)
+	return true
+end
+
+-- may a rival bonk this player? (same safety rules as players, plus: never a
+-- new player's first egg, never in the base district)
+function Mining:CanNpcBonk(victim: Player): boolean
+	local data = Data:Get(victim)
+	local root = victim.Character and victim.Character:FindFirstChild("HumanoidRootPart")
+	if not data or not root or not root:IsA("BasePart") or not Services.ShardService:IsCarrying(victim) then
+		return false
+	end
+	local tutorial = data.Tutorial
+	if tutorial and not tutorial.Done and tutorial.Step <= 3 then
+		return false
+	end
+	if (root.Position - World.HubSpawn.Position).Magnitude <= Config.World.SpawnSafeRadius then
+		return false
+	end
+	if Util.InBases(Config, root.Position) then
+		return false
+	end
+	return (immunity[victim] or 0) <= os.clock()
+end
+
+function Mining:NpcBonk(attackerRoot: BasePart, attackerName: string, victim: Player): boolean
+	if not self:CanNpcBonk(victim) then
+		return false
+	end
+	local vRoot = victim.Character and victim.Character:FindFirstChild("HumanoidRootPart") :: BasePart
+	if not vRoot or (vRoot.Position - attackerRoot.Position).Magnitude > Config.PvP.BonkRange then
+		return false
+	end
+	immunity[victim] = os.clock() + Config.PvP.ImmunitySeconds
+	Services.ShardService:Drop(victim, nil)
+	local direction = (vRoot.Position - attackerRoot.Position) * Vector3.new(1, 0, 1)
+	direction = if direction.Magnitude > 0.01 then direction.Unit else Vector3.zAxis
+	Net:Send(victim, "Knockback", direction * Config.PvP.Knockback + Vector3.new(0, 35, 0))
+	Net:Send(victim, "Bonked", attackerName)
+	return true
 end
 
 -- cloud tests: one pet-help tick for a player now
@@ -11635,6 +12156,7 @@ local Util = require(Shared.Util)
 local Net = require(script.Parent.Net)
 
 local PetService = {}
+local rng = Random.new()
 local Services
 local Data
 
@@ -11661,16 +12183,21 @@ end
 PetService.LuckFn = luckFn
 
 local function power(pet): number
-	return Util.PetPower(Config, pet.Name, pet.Variant)
+	return Util.PetPowerOf(Config, pet)
 end
 
 local function income(pet): number
-	return Util.PetIncome(Config, pet.Name, pet.Variant)
+	return Util.PetIncomeOf(Config, pet)
 end
 PetService.Income = income
 
 function PetService:SellValue(name: string, variant: string?): number
 	return math.max(1, math.floor(Util.PetIncome(Config, name, variant) * Config.PetSellSeconds))
+end
+
+-- (grown / evolved pets are worth more)
+function PetService:SellValueOf(pet): number
+	return math.max(1, math.floor(Util.PetIncomeOf(Config, pet) * Config.PetSellSeconds))
 end
 
 local function activeEventId(): string?
@@ -11714,8 +12241,9 @@ function PetService:RefreshEquipped(player: Player)
 	local ids, names = {}, {}
 	for i = 1, math.min(slots, #sorted) do
 		table.insert(ids, sorted[i].Id)
-		-- "Variant|Name" so every client can render golden/rainbow pets
-		table.insert(names, (sorted[i].Variant or "") .. "|" .. sorted[i].Name)
+		-- "Variant|Name|Level|Stars" so every client can render golden / grown pets
+		local pet = sorted[i]
+		table.insert(names, (pet.Variant or "") .. "|" .. pet.Name .. "|" .. Util.PetLevel(pet) .. "|" .. Util.PetStars(pet))
 	end
 	data.Equipped = ids
 	player:SetAttribute("Pets", HttpService:JSONEncode(names))
@@ -11752,6 +12280,9 @@ local function describe(player: Player, data, pet, isNew: boolean?)
 		Rate = rate,
 		New = isNew == true,
 		Follow = table.find(data.Equipped, pet.Id) ~= nil,
+		Level = Util.PetLevel(pet),
+		Stars = Util.PetStars(pet),
+		Meteor = (Config.Pets[pet.Name] or {}).Meteor == true,
 	}
 end
 
@@ -11765,8 +12296,13 @@ local function findPet(data, petId)
 end
 PetService.FindPet = findPet
 
-local function addPet(data, name: string, variant: string?, serial: number?)
+local function addPet(data, name: string, variant: string?, serial: number?, growth)
 	local pet = { Id = data.NextPetUid, Name = name, Variant = variant, Serial = serial }
+	if growth then
+		pet.Level = growth.Level
+		pet.XP = growth.XP
+		pet.Stars = growth.Stars
+	end
 	data.NextPetUid += 1
 	table.insert(data.Pets, pet)
 	data.PetIndex[name] = true
@@ -11822,7 +12358,7 @@ local function makeRoom(player: Player, data, name: string, variant: string?): (
 		end
 	end
 	if weakest and Util.PetIncome(Config, name, variant) > income(weakest) then
-		local coins = PetService:SellValue(weakest.Name, weakest.Variant)
+		local coins = PetService:SellValueOf(weakest)
 		table.remove(data.Pets, weakestIndex)
 		data.Coins += coins
 		data.Stats.LifetimeCoins += coins
@@ -11969,10 +12505,39 @@ function PetService:PaidHatch(player: Player, eggId: string, count: number)
 end
 
 -- a star egg carried home hatches (luck from the star's rarity)
-function PetService:HatchStarEgg(player: Player, eggId: string, luck: number)
+-- meteor = { Kind = 1..5, Golden = bool, Rarity = "Epic" } for eggs from a meteor:
+-- they can hatch that meteor's ☄️ METEOR PET
+function PetService:HatchStarEgg(player: Player, eggId: string, luck: number, meteor)
 	local data = Data:Get(player)
 	if not data or not Config.Eggs[eggId] then
 		return nil
+	end
+	local settings = Config.Meteor
+	local meteorPet = meteor and settings.MeteorPets[meteor.Kind]
+	if meteorPet and Config.Pets[meteorPet] then
+		local chance = (settings.MeteorPetChance[meteor.Rarity] or 0) * (if meteor.Golden then 2 else 1)
+		if rng:NextNumber() < chance then
+			local variant = rollVariant(Services.StatsService:Luck(player, data) * luck)
+			local isNew = not data.PetIndex[meteorPet]
+			local ok, coins = makeRoom(player, data, meteorPet, variant)
+			local pet = if ok then addPet(data, meteorPet, variant) else nil
+			data.Stats.EggsHatched += 1
+			data.Stats.MeteorPets = (data.Stats.MeteorPets or 0) + 1
+			self:Changed(player)
+			local card = if pet
+				then describe(player, data, pet, isNew)
+				else { Name = meteorPet, Variant = variant, Where = "Sold", Coins = coins, New = isNew }
+			card.Meteor = true
+			Net:Send(player, "HatchResult", { card }, eggId)
+			Net:Broadcast("BigHatch", player.UserId, "Meteor")
+			Net:Announce(
+				"☄️ %s hatched a METEOR PET: %s! (only from meteors)",
+				Color3.fromRGB(255, 150, 80),
+				player.DisplayName,
+				meteorPet
+			)
+			return card
+		end
 	end
 	local results = roll(player, data, eggId, 1, luck)
 	Net:Send(player, "HatchResult", results, eggId)
@@ -11991,11 +12556,11 @@ function PetService:TakePet(player: Player, petId: number)
 	end
 	table.remove(data.Pets, index)
 	self:Changed(player)
-	return { Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial }
+	return { Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial, Level = pet.Level, XP = pet.XP, Stars = pet.Stars }
 end
 
 -- numbered pets keep their number when they change owners
-function PetService:GivePet(player: Player, name: string, variant: string?, serial: number?)
+function PetService:GivePet(player: Player, name: string, variant: string?, serial: number?, growth)
 	local data = Data:Get(player)
 	if not data or not Config.Pets[name] then
 		return
@@ -12003,7 +12568,7 @@ function PetService:GivePet(player: Player, name: string, variant: string?, seri
 	local isNew = not data.PetIndex[name]
 	local pet = nil
 	if makeRoom(player, data, name, variant) then
-		pet = addPet(data, name, variant, serial)
+		pet = addPet(data, name, variant, serial, growth)
 	end
 	self:Changed(player)
 	return pet, isNew
@@ -12109,6 +12674,224 @@ local function migrate(player: Player, data)
 	Net:Notify(player, "Your star shards hatched into pets! 🐾", Color3.fromRGB(150, 230, 255))
 end
 
+---------------------------------------------------------------------------
+-- 🌱 growth: levels, feeding, ★ evolving
+---------------------------------------------------------------------------
+local GROWTH = Config.Growth
+
+-- add xp to one pet; true when it reached a new level
+local function grow(pet, amount: number): boolean
+	if amount <= 0 or not Config.Pets[pet.Name] then
+		return false
+	end
+	local level = Util.PetLevel(pet)
+	if level >= GROWTH.MaxLevel then
+		pet.XP = nil
+		return false
+	end
+	pet.XP = (tonumber(pet.XP) or 0) + amount
+	local leveled = false
+	local guard = 0
+	while level < GROWTH.MaxLevel and pet.XP >= Util.PetXPNeed(Config, pet) and guard < 20 do
+		guard += 1
+		pet.XP -= Util.PetXPNeed(Config, pet)
+		level += 1
+		pet.Level = level
+		leveled = true
+	end
+	if level >= GROWTH.MaxLevel then
+		pet.XP = nil
+	end
+	return leveled
+end
+
+-- give xp to some pets; level-ups are celebrated and the pets re-rendered
+function PetService:AddXP(player: Player, pets, amount: number)
+	local data = Data:Get(player)
+	if not data or amount <= 0 then
+		return {}
+	end
+	local ups = {}
+	for _, pet in pets do
+		if not pet.Away then
+			local before = Util.PetStage(Config, Util.PetLevel(pet))
+			if grow(pet, amount) then
+				local stage = Util.PetStage(Config, Util.PetLevel(pet))
+				table.insert(ups, {
+					Id = pet.Id,
+					Name = pet.Name,
+					Variant = pet.Variant,
+					Level = Util.PetLevel(pet),
+					Stars = Util.PetStars(pet),
+					Stage = stage.Id,
+					Grew = stage ~= before,
+				})
+			end
+		end
+	end
+	Data:MarkDirty(player)
+	if #ups > 0 then
+		Net:Send(player, "PetLevelUp", ups)
+		self:Changed(player) -- (bigger pets, new income labels)
+	end
+	return ups
+end
+
+function PetService:FollowingPets(data)
+	local list = {}
+	for _, id in data.Equipped do
+		local pet = findPet(data, id)
+		if pet then
+			table.insert(list, pet)
+		end
+	end
+	return list
+end
+
+-- xp for the pets following you (pet help, meteors, deliveries)
+function PetService:AddFollowXP(player: Player, amount: number)
+	local data = Data:Get(player)
+	if data then
+		return self:AddXP(player, self:FollowingPets(data), amount)
+	end
+	return {}
+end
+
+-- pets standing in your home grow slowly (while you're in the game)
+function PetService:HomeXP(player: Player)
+	local data = Data:Get(player)
+	if not data then
+		return
+	end
+	local vault, display = Util.ArrangePets(Config, data)
+	local list = table.clone(vault)
+	for _, pet in display do
+		table.insert(list, pet)
+	end
+	self:AddXP(player, list, GROWTH.HomeXPPerMinute)
+end
+
+local function feed(player: Player, petId)
+	local data = Data:Get(player)
+	local pet = data and type(petId) == "number" and findPet(data, petId)
+	if not pet or pet.Away then
+		return { Error = Net:L(player, "That pet isn't here right now.") }
+	end
+	if Util.PetLevel(pet) >= GROWTH.MaxLevel then
+		return { Error = Net:L(player, "👑 Max level! Evolve it with %d copies ⭐", GROWTH.Evolve.Copies) }
+	end
+	local cost, xp = Util.PetFeed(Config, pet)
+	if data.Stardust < cost then
+		return { Error = Net:L(player, "Not enough ✨ stardust (%s) - smash meteors!", Util.Format(cost)) }
+	end
+	data.Stardust -= cost
+	Services.Analytics:Economy(player, "Sink", "Stardust", cost, data.Stardust, "Gameplay", "PetFeed")
+	local ups = PetService:AddXP(player, { pet }, xp)
+	Data:MarkDirty(player)
+	if #ups == 0 then
+		PetService:Changed(player) -- (sync the xp bar)
+	end
+	return { Ok = true, Level = Util.PetLevel(pet), Up = #ups > 0 }
+end
+
+-- the copies an evolve would use: same species, not numbered / away
+local function evolveFodder(data, pet)
+	local list = {}
+	for _, other in data.Pets do
+		if other ~= pet and other.Name == pet.Name and not other.Away and not other.Serial and not other.SerialPending then
+			table.insert(list, other)
+		end
+	end
+	-- use the least grown copies first (plain before mutated)
+	table.sort(list, function(a, b)
+		local ga, gb = Util.PetGrowthMult(Config, a), Util.PetGrowthMult(Config, b)
+		if ga ~= gb then
+			return ga < gb
+		end
+		local va = Util.PetIncome(Config, a.Name, a.Variant)
+		local vb = Util.PetIncome(Config, b.Name, b.Variant)
+		if va ~= vb then
+			return va < vb
+		end
+		return a.Id < b.Id
+	end)
+	return list
+end
+PetService.EvolveFodder = evolveFodder
+
+local function evolve(player: Player, petId)
+	local data = Data:Get(player)
+	local pet = data and type(petId) == "number" and findPet(data, petId)
+	if not pet or pet.Away or pet.SerialPending then
+		return { Error = Net:L(player, "That pet isn't here right now.") }
+	end
+	if Services.TradeService and Services.TradeService:IsTrading(player) then
+		return { Error = Net:L(player, "Finish your trade first.") }
+	end
+	local settings = GROWTH.Evolve
+	if Util.PetStars(pet) >= settings.MaxStars then
+		return { Error = Net:L(player, "This pet is fully evolved! ★★★") }
+	end
+	if Util.PetLevel(pet) < GROWTH.MaxLevel then
+		return { Error = Net:L(player, "Grow it to level %d first 👑", GROWTH.MaxLevel) }
+	end
+	local fodder = evolveFodder(data, pet)
+	if #fodder < settings.Copies then
+		return { Error = Net:L(player, "You need %d more %s to evolve", settings.Copies - #fodder, pet.Name) }
+	end
+	for i = 1, settings.Copies do
+		local index = table.find(data.Pets, fodder[i])
+		if index then
+			table.remove(data.Pets, index)
+		end
+	end
+	pet.Stars = Util.PetStars(pet) + 1
+	pet.Level = 1
+	pet.XP = nil
+	data.Stats.Evolved = (data.Stats.Evolved or 0) + 1
+	PetService:Changed(player)
+	Data:MarkDirty(player)
+	local card = describe(player, data, pet, false)
+	card.Evolved = true
+	Net:Send(player, "PetEvolved", card)
+	Net:Broadcast("BigHatch", player.UserId, "Evolve")
+	if pet.Stars >= settings.MaxStars or (Config.Rarities[Config.Pets[pet.Name].Rarity].Order >= Config.AnnounceRarity) then
+		Net:Announce("🌟 %s evolved a %s %s!", Color3.fromRGB(255, 210, 90), player.DisplayName, string.rep("★", pet.Stars), pet.Name)
+	end
+	return { Ok = true, Stars = pet.Stars }
+end
+
+-- 📖 index milestones: claim gems (+ a permanent home income bonus)
+local function claimIndex(player: Player, index)
+	local data = Data:Get(player)
+	local milestone = data and type(index) == "number" and Config.Index.Milestones[index]
+	if not milestone then
+		return { Error = "?" }
+	end
+	data.IndexClaimed = data.IndexClaimed or {}
+	local key = tostring(index)
+	if data.IndexClaimed[key] then
+		return { Error = Net:L(player, "Already claimed!") }
+	end
+	if Util.IndexCount(data) < milestone.Count then
+		return { Error = Net:L(player, "Discover %d different pets first", milestone.Count) }
+	end
+	data.IndexClaimed[key] = true
+	data.Gems += milestone.Gems or 0
+	Services.Analytics:Economy(player, "Source", "Gems", milestone.Gems or 0, data.Gems, "Gameplay", "IndexMilestone")
+	Data:MarkDirty(player)
+	if Services.BaseService then
+		Services.BaseService:RefreshLabels(player, true)
+	end
+	Net:Send(player, "Sold", 0)
+	return { Ok = true, Gems = milestone.Gems or 0, Bonus = milestone.Bonus or 0 }
+end
+
+-- cloud tests: call the request handlers directly
+PetService.FeedForTest = feed
+PetService.EvolveForTest = evolve
+PetService.ClaimIndexForTest = claimIndex
+
 function PetService:Init(services)
 	Services = services
 	Data = services.DataService
@@ -12131,6 +12914,21 @@ function PetService:Start()
 	end)
 
 	Net:OnRequest("Hatch", 0.35, hatch)
+	Net:OnRequest("PetFeed", 0.2, feed)
+	Net:OnRequest("PetEvolve", 1, evolve)
+	Net:OnRequest("IndexClaim", 0.5, claimIndex)
+	-- pets at home grow a little every minute
+	task.spawn(function()
+		while true do
+			task.wait(60)
+			for _, player in Data:LoadedPlayers() do
+				local ok, err = pcall(PetService.HomeXP, PetService, player)
+				if not ok then
+					warn("[Pets] home xp: " .. tostring(err))
+				end
+			end
+		end
+	end)
 
 	-- restock announcements (every server sees the same stock at the same time)
 	task.spawn(function()
@@ -12169,7 +12967,7 @@ function PetService:Start()
 		if not pet or pet.Away or pet.SerialPending then
 			return
 		end
-		local coins = self:SellValue(pet.Name, pet.Variant)
+		local coins = self:SellValueOf(pet)
 		table.remove(data.Pets, index)
 		data.Coins += coins
 		data.Stats.LifetimeCoins += coins
@@ -12187,9 +12985,10 @@ function PetService:Start()
 		for _, pet in data.Pets do
 			local info = Config.Pets[pet.Name]
 			-- mutated pets are never bulk-sold
-			if info and info.Rarity == rarity and not pet.Variant and not pet.Away then
+			local grown = Util.PetLevel(pet) > 1 or Util.PetStars(pet) > 0
+			if info and info.Rarity == rarity and not pet.Variant and not pet.Away and not grown then
 				removed += 1
-				coins += self:SellValue(pet.Name, nil)
+				coins += self:SellValueOf(pet)
 			else
 				table.insert(kept, pet)
 			end
@@ -12862,24 +13661,28 @@ return Progression
           <Properties>
             <string name="Name">RivalService</string>
             <string name="Source"><![CDATA[--[[
-	RivalService: 🤖 rival robots for small servers (solo play).
+	RivalService: rival players for small servers (solo play).
 
-	With only 1-2 real players a server feels empty, so two cheeky hover
-	robots join in:
-	  * when a meteor warning starts they race to the landing spot,
-	  * they smash the meteor too (a bit slower than a real player) and show
-	    up in the live ranking - beat them for 1st place!
-	  * after the burst they go for star eggs nobody has picked up yet and
-	    try to fly away with them (they beam up after a few seconds),
-	  * bonk a robot (swing at it) to stun it: if it carries an egg, the egg
-	    drops and you get a few coins.
-	They never take eggs reserved for someone (tutorial / top 3), guarded
-	ones or eggs in the base district, never flee out of the area they grabbed
-	the egg in (no escaping through walls / into locked zones), and leave
-	once the server fills up.
-	(Only the root part is anchored and moved - the rest is welded to it, so
-	one CFrame per robot replicates, ~20 times a second.)
+	With only 1-2 real players a server feels empty, so two rivals join in -
+	regular-looking avatars (official Roblox catalog items), with a name,
+	level, title, pickaxe and pets following them, who play the game like
+	anybody else:
+	  * between meteors they mine ores in the mines (or hang around the hub),
+	  * a meteor warning sends them running to the landing spot (far away:
+	    they "teleport" to the area entrance, like the GO button),
+	  * they smash the meteor (a bit slower than a real player) and show up
+	    in the live ranking - beat them for 1st place!
+	  * after the burst they grab star eggs nobody picked up and run home
+	    with them (to the base district) - bonk them to make them drop it,
+	  * now and then they try to bonk YOU when you carry an egg (never a new
+	    player's first egg, never near the spawn or in the base district).
+	They never take reserved eggs (tutorial / top 3) or guarded ones, never
+	enter people's homes, and leave once the server fills up. They are game
+	characters: no fake chat, no fake join messages, no real user accounts.
 ]]
+local HttpService = game:GetService("HttpService")
+local PathfindingService = game:GetService("PathfindingService")
+local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -12895,9 +13698,21 @@ local Data
 local World
 
 local SETTINGS = Config.Rivals
+local rng = Random.new()
 local rivals = {} -- [model] = record
 local forcedCount: number? = nil -- cloud tests
 local nextId = 0
+local usedNames = {}
+
+local GROUP = "Rivals"
+local GATE_GROUP = "ZoneGates"
+local ANIMS = {
+	Idle = "rbxassetid://507766388",
+	Run = "rbxassetid://913376220",
+	Jump = "rbxassetid://507765000",
+	Fall = "rbxassetid://507767968",
+	Slash = "rbxassetid://522635514",
+}
 
 local function now(): number
 	return workspace:GetServerTimeNow()
@@ -12907,162 +13722,301 @@ local function flat(v: Vector3): Vector3
 	return Vector3.new(v.X, 0, v.Z)
 end
 
--- the walkable area around a position: the hub or one mine zone (x/z limits)
-local function areaBounds(position: Vector3)
-	local zone = Util.ZoneAt(Config, Vector3.new(position.X, 3, position.Z))
-	local layout = Config.World.Layout
-	local margin = 6
-	if zone and zone > 0 and World.Zones[zone] then
-		local info = World.Zones[zone]
-		local half = layout.ZoneWidth / 2 - margin
-		return { MinX = -half, MaxX = half, MinZ = info.ZStart + margin, MaxZ = info.ZEnd - margin }
-	end
-	local half = layout.HubHalf - margin
-	return { MinX = -half, MaxX = half, MinZ = -half, MaxZ = half }
+local function pick(list)
+	return list[rng:NextInteger(1, #list)]
 end
 
-local function clampTo(bounds, position: Vector3): Vector3
-	return Vector3.new(math.clamp(position.X, bounds.MinX, bounds.MaxX), position.Y, math.clamp(position.Z, bounds.MinZ, bounds.MaxZ))
+-- which area a position is in: 0 = hub, 1..n = mine zone, -1 = bases, nil = elsewhere
+local function areaOf(position: Vector3): number?
+	local probe = Vector3.new(position.X, 3, position.Z)
+	if Util.InBases(Config, probe) then
+		return -1
+	end
+	return Util.ZoneAt(Config, probe)
+end
+
+local function areaEntrance(area: number): Vector3
+	if area > 0 and World.Zones[area] then
+		return World:SpawnFor(area).Position
+	elseif area == -1 then
+		return Vector3.new(0, 4, Config.World.Bases.ZStart - 12)
+	end
+	return World.HubSpawn.Position + Vector3.new(rng:NextNumber(-6, 6), 0, rng:NextNumber(-4, 4))
+end
+
+local function homeSpot(): Vector3
+	return Vector3.new(rng:NextNumber(-6, 6), 3, Util.AvenueZ(Config))
 end
 
 ---------------------------------------------------------------------------
--- the robot
+-- the character
 ---------------------------------------------------------------------------
-local function buildRobot(name: string, color: Color3): (Model, BasePart, BasePart, TextLabel)
-	local model = Instance.new("Model")
-	model.Name = "RivalBot"
-	local root = Instance.new("Part")
-	root.Name = "HumanoidRootPart"
-	root.Size = Vector3.new(2.6, 3, 2.6)
-	root.Transparency = 1
-	root.Anchored = true
-	root.CanCollide = false
-	root.CanQuery = false
-	root.CanTouch = false
-	root.Parent = model
-	local function piece(partName: string, size: Vector3, offset: CFrame, partColor: Color3, material: Enum.Material, shape)
-		local p = Instance.new("Part")
-		p.Name = partName
-		p.Size = size
-		p.CFrame = root.CFrame * offset
-		p.Color = partColor
-		p.Material = material
-		p.Anchored = false -- welded to the anchored root (one CFrame replicates)
-		p.Massless = true
-		p.CanCollide = false
-		p.CanQuery = false -- (only a robot carrying an egg can be tapped)
-		p.CanTouch = false
-		p.CastShadow = false
-		p.TopSurface = Enum.SurfaceType.Smooth
-		p.BottomSurface = Enum.SurfaceType.Smooth
-		if shape then
-			p.Shape = shape
-		end
-		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = root
-		weld.Part1 = p
-		weld.Parent = p
-		p.Parent = model
-		return p
+local function describe()
+	local look = SETTINGS.Look
+	local desc = Instance.new("HumanoidDescription")
+	local skin = pick(look.Skins)
+	desc.HeadColor = skin
+	desc.TorsoColor = skin
+	desc.LeftArmColor = skin
+	desc.RightArmColor = skin
+	desc.LeftLegColor = skin
+	desc.RightLegColor = skin
+	desc.HairAccessory = tostring(pick(look.Hair))
+	if rng:NextNumber() < look.HatChance then
+		desc.HatAccessory = tostring(pick(look.Hats))
 	end
-	piece("Body", Vector3.new(2.4, 1.9, 2), CFrame.new(0, 0, 0), color, Enum.Material.SmoothPlastic)
-	piece("Head", Vector3.one * 2, CFrame.new(0, 1.55, 0), Color3.fromRGB(225, 230, 240), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
-	piece("Visor", Vector3.new(1.5, 0.5, 0.3), CFrame.new(0, 1.6, -0.85), Color3.fromRGB(40, 45, 60), Enum.Material.SmoothPlastic)
-	for _, x in { -0.35, 0.35 } do
-		piece("Eye", Vector3.new(0.28, 0.28, 0.1), CFrame.new(x, 1.62, -1.02), Color3.fromRGB(120, 255, 230), Enum.Material.Neon)
-	end
-	piece("Antenna", Vector3.new(0.12, 0.9, 0.12), CFrame.new(0, 2.85, 0), Color3.fromRGB(90, 95, 110), Enum.Material.Metal)
-	piece("AntennaTip", Vector3.one * 0.38, CFrame.new(0, 3.35, 0), color, Enum.Material.Neon, Enum.PartType.Ball)
-	for _, x in { -1.45, 1.45 } do
-		piece(
-			"Arm",
-			Vector3.new(0.45, 1.2, 0.45),
-			CFrame.new(x, -0.1, 0) * CFrame.Angles(0, 0, math.rad(x * 12)),
-			color,
-			Enum.Material.SmoothPlastic
-		)
-	end
-	local ring = piece(
-		"Hover",
-		Vector3.new(0.2, 2.6, 2.6),
-		CFrame.new(0, -1.3, 0) * CFrame.Angles(0, 0, math.rad(90)),
-		Color3.fromRGB(120, 230, 255),
-		Enum.Material.Neon,
-		Enum.PartType.Cylinder
-	)
-	ring.Transparency = 0.45
-	local egg = piece(
-		"CarriedEgg",
-		Vector3.new(1.2, 1.5, 1.2),
-		CFrame.new(0, 4.3, 0),
-		Color3.new(1, 1, 1),
-		Enum.Material.SmoothPlastic,
-		Enum.PartType.Ball
-	)
-	egg.Transparency = 1
-	model.PrimaryPart = root
+	desc.Shirt = pick(look.Shirts)
+	desc.Pants = pick(look.Pants)
+	return desc
+end
 
+-- the same overhead tag players have (title / name / level + rank)
+local function overhead(model: Model, name: string, level: number, title, rank)
+	local head = model:FindFirstChild("Head")
+	if not head then
+		return
+	end
 	local gui = Instance.new("BillboardGui")
-	gui.Name = "Tag"
-	gui.Size = UDim2.new(7, 0, 1.4, 0)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, 4.2, 0)
+	gui.Name = "Overhead"
+	gui.Size = UDim2.new(7, 0, 2.6, 0)
+	gui.StudsOffset = Vector3.new(0, 3.4, 0)
+	gui.MaxDistance = 90
 	gui.LightInfluence = 0
-	gui.MaxDistance = 140
-	local text = Instance.new("TextLabel")
-	text.BackgroundTransparency = 1
-	text.Size = UDim2.fromScale(1, 1)
-	text.Font = Enum.Font.FredokaOne
-	text.TextScaled = true
-	text.TextColor3 = Color3.fromRGB(150, 235, 255)
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 2
-	stroke.Parent = text
-	text.Parent = gui
-	gui.Parent = root
-	World.SetText(text, "🤖 %s", name)
-	return model, root, egg, text
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = Enum.FillDirection.Vertical
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = gui
+	for i, row in { "Bounty", "Title", "Tags", "Name", "Rank" } do
+		local label = Instance.new("TextLabel")
+		label.Name = row
+		label.LayoutOrder = i
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.new(1, 0, if row == "Name" then 0.26 else 0.18, 0)
+		label.Font = Enum.Font.FredokaOne
+		label.TextScaled = true
+		label.RichText = true
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.Visible = row == "Name" or row == "Rank" or (row == "Title" and title ~= nil)
+		local stroke = Instance.new("UIStroke")
+		stroke.Thickness = 2
+		stroke.Parent = label
+		label.Parent = gui
+	end
+	(gui:FindFirstChild("Name") :: TextLabel).Text = name
+	local rankLabel = gui:FindFirstChild("Rank") :: TextLabel
+	rankLabel.Text = string.format("Lv.%d %s", level, rank.Icon or "")
+	rankLabel.TextColor3 = rank.Color
+	if title then
+		local titleLabel = gui:FindFirstChild("Title") :: TextLabel
+		titleLabel.Text = title.Name
+		titleLabel.TextColor3 = title.Color
+		titleLabel:SetAttribute("LangFmt", "%s")
+		titleLabel:SetAttribute("LangArgs", HttpService:JSONEncode({ title.Name }))
+	end
+	gui.Parent = head
+end
+
+local function serverPeers()
+	local level, tier, zone, n = 0, 0, 1, 0
+	for _, player in Data:LoadedPlayers() do
+		local data = Data:Get(player)
+		if data then
+			level += data.Level or 1
+			tier += data.PickaxeTier or 1
+			zone = math.max(zone, data.ZoneLevel or 1)
+			n += 1
+		end
+	end
+	if n == 0 then
+		return 3, 2, 1
+	end
+	return math.floor(level / n + 0.5), math.floor(tier / n + 0.5), zone
+end
+
+local function playAnim(record, name: string, speed: number?)
+	local track = record.Tracks[name]
+	if not track then
+		return
+	end
+	if name == "Slash" then
+		track:Play(0.05)
+		return
+	end
+	if record.Playing ~= name then
+		if record.Playing and record.Tracks[record.Playing] then
+			record.Tracks[record.Playing]:Stop(0.2)
+		end
+		record.Playing = name
+		track:Play(0.2)
+	end
+	if speed then
+		track:AdjustSpeed(speed)
+	end
 end
 
 local function spawnRival(index: number)
 	nextId += 1
-	local name = SETTINGS.Names[((nextId - 1) % #SETTINGS.Names) + 1]
-	local color = SETTINGS.Colors[((nextId - 1) % #SETTINGS.Colors) + 1]
-	local model, root, egg, tag = buildRobot(name, color)
-	local dock = SETTINGS.Dock + Vector3.new((index - 1.5) * 6, 0, 0)
+	local name
+	for _ = 1, 20 do
+		name = pick(SETTINGS.Names)
+		if not usedNames[name] then
+			break
+		end
+	end
+	usedNames[name] = true
+	local peerLevel, peerTier, peerZone = serverPeers()
+	local level = math.max(1, peerLevel + rng:NextInteger(-2, 3))
+	local model = Players:CreateHumanoidModelFromDescription(describe(), Enum.HumanoidRigType.R15)
+	model.Name = name
+	model:SetAttribute("Rival", true)
+	local animate = model:FindFirstChild("Animate")
+	if animate then
+		animate:Destroy() -- (animations are played by the server)
+	end
+	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	humanoid.WalkSpeed = SETTINGS.Speed
+	humanoid.BreakJointsOnDeath = false
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.CollisionGroup = GROUP
+		end
+	end
+	-- a title like the ones players earn, a weekly rank
+	local titles = {}
+	for _, title in Config.Titles do
+		local need = title.Need or {}
+		if title.Id ~= "Newcomer" and need.Level and need.Level <= level then
+			table.insert(titles, title)
+		end
+	end
+	local title = if #titles > 0 and rng:NextNumber() < 0.6 then pick(titles) else nil
+	local rank = Config.Ranks[rng:NextInteger(1, math.min(3, #Config.Ranks))]
+	overhead(model, name, level, title, rank)
+	local spawnAt = World.HubSpawn.Position + Vector3.new(rng:NextNumber(-8, 8), 2, rng:NextNumber(-6, 6))
+	model:PivotTo(CFrame.new(spawnAt))
+	model.Parent = workspace
+	pcall(function()
+		root:SetNetworkOwner(nil)
+	end)
+	-- a pickaxe like everyone else's (a tier near the server's players)
+	local tier = math.clamp(peerTier + rng:NextInteger(0, 1), 1, #Config.Pickaxes)
+	local tool = Services.CharacterService.BuildPickaxe(tier)
+	tool.Parent = model
+	pcall(function()
+		humanoid:EquipTool(tool)
+	end)
+	-- 2-3 pets following (rendered by every client, like players' pets)
+	local pets = {}
+	local pool = Config.Eggs[Config.Shards.ZoneEggs[math.clamp(peerZone, 1, #Config.Shards.ZoneEggs)]].Pets
+	for _ = 1, rng:NextInteger(2, 3) do
+		local entry = pick(pool)
+		table.insert(pets, "|" .. entry[1] .. "|" .. rng:NextInteger(1, 8) .. "|0")
+	end
+	model:SetAttribute("Pets", HttpService:JSONEncode(pets))
+
+	local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
+	local tracks = {}
+	for animName, id in ANIMS do
+		local animation = Instance.new("Animation")
+		animation.AnimationId = id
+		local ok, track = pcall(animator.LoadAnimation, animator, animation)
+		if ok and track then
+			track.Priority = if animName == "Slash" then Enum.AnimationPriority.Action else Enum.AnimationPriority.Movement
+			track.Looped = animName == "Idle" or animName == "Run"
+			tracks[animName] = track
+		end
+	end
 	local record = {
 		Model = model,
+		Humanoid = humanoid,
 		Root = root,
-		Egg = egg,
-		Tag = tag,
+		Tracks = tracks,
 		Name = name,
 		Index = index,
-		Position = Vector3.new(dock.X, SETTINGS.HoverY, dock.Z),
-		Facing = -Vector3.zAxis,
-		Destination = dock,
-		Dock = dock,
-		Speed = SETTINGS.Speed,
+		Level = level,
+		Tier = tier,
 		StunnedUntil = 0,
 		NextHit = 0,
+		NextBonk = now() + rng:NextNumber(10, 30),
+		NextPlan = 0,
+		Aggression = rng:NextNumber(0.25, 0.7),
 		Carry = nil,
-		CarryUntil = 0,
-		TargetEgg = nil,
-		-- identity in the meteor ranking (looks enough like a player there)
-		-- (ids far below Studio's test players -1, -2, ...)
-		Entity = { DisplayName = "🤖 " .. name, Name = name, UserId = -1000000 - nextId, Parent = workspace, IsRival = true },
+		Task = "Idle",
+		-- identity in the meteor ranking
+		Entity = { DisplayName = name, Name = name, UserId = -1000000 - nextId, Parent = workspace, IsRival = true },
 	}
-	root.CFrame = CFrame.new(record.Position)
-	model.Parent = World:Folder("Shards")
+	humanoid.Running:Connect(function(speed)
+		if speed > 1 then
+			playAnim(record, "Run", math.clamp(speed / 16, 0.6, 1.4))
+		else
+			playAnim(record, "Idle")
+		end
+	end)
+	humanoid.StateChanged:Connect(function(_, new)
+		if new == Enum.HumanoidStateType.Jumping then
+			local track = tracks.Jump
+			if track then
+				track:Play(0.1)
+			end
+		end
+	end)
+	playAnim(record, "Idle")
 	rivals[model] = record
 	return record
 end
 
+local function setCarry(record, item)
+	if record.CarryModel then
+		record.CarryModel:Destroy()
+		record.CarryModel = nil
+	end
+	record.Carry = item
+	local shards = Services.ShardService
+	if item then
+		-- the egg above the head, like players carrying one
+		local head = record.Model:FindFirstChild("Head") :: BasePart
+		local egg = shards.BuildItemModel(item, 1)
+		for _, part in egg:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.Anchored = false
+				part.CanCollide = false
+				part.Massless = true
+				part.CollisionGroup = GROUP
+			end
+		end
+		egg:PivotTo(head.CFrame * CFrame.new(0, 3, 0))
+		for _, part in egg:GetDescendants() do
+			if part:IsA("BasePart") then
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = head
+				weld.Part1 = part
+				weld.Parent = part
+			end
+		end
+		egg.Parent = record.Model
+		record.CarryModel = egg
+		record.Model:SetAttribute("Carrying", true)
+		local def = Config.Shards.Rarities[item.Rarity]
+		record.Humanoid.WalkSpeed = SETTINGS.Speed * (if def then def.Speed else 0.85)
+	else
+		record.Model:SetAttribute("Carrying", nil)
+		record.Humanoid.WalkSpeed = SETTINGS.Speed
+	end
+end
+
 local function despawn(record)
 	rivals[record.Model] = nil
+	usedNames[record.Name] = nil
 	if record.Carry then
-		-- (never take an egg with you when leaving: drop it)
-		local spot = clampTo(areaBounds(record.GrabSpot or record.Position), flat(record.Position))
-		Services.ShardService:SpawnGround(record.Carry, spot, nil, { Beacon = true, RivalBlockSeconds = 20 })
-		record.Carry = nil
+		-- (never take an egg away when leaving: drop it)
+		local item = record.Carry
+		setCarry(record, nil)
+		Services.ShardService:SpawnGround(item, flat(record.Root.Position), nil, { Beacon = true, RivalBlockSeconds = 20 })
 	end
 	Services.MeteorService:Forget(record.Entity)
 	if record.Model.Parent then
@@ -13078,31 +14032,93 @@ local function count(): number
 	return n
 end
 
-local function setCarry(record, item)
-	record.Carry = item
-	if item then
-		record.Egg.Color = Services.ShardService.ItemColor(item)
-		record.Egg.Transparency = 0
-		record.CarryUntil = now() + SETTINGS.EscapeSeconds
-		record.Model:SetAttribute("Carrying", true)
-		World.SetText(record.Tag, "🤖 %s 🥚!", record.Name)
-	else
-		record.Egg.Transparency = 1
-		record.Model:SetAttribute("Carrying", nil)
-		World.SetText(record.Tag, "🤖 %s", record.Name)
-	end
-	-- taps go through robots unless they carry an egg (then: bonk it!)
-	for _, part in record.Model:GetDescendants() do
-		if part:IsA("BasePart") and part ~= record.Root then
-			part.CanQuery = item ~= nil and part.Transparency < 1
+---------------------------------------------------------------------------
+-- walking: pathfinding, area changes ("teleport" like the GO / zone buttons)
+---------------------------------------------------------------------------
+local function teleport(record, position: Vector3)
+	record.Model:PivotTo(CFrame.new(position + Vector3.new(0, 3, 0)))
+	record.Waypoints = nil
+	record.Goal = nil
+	record.Stuck = 0
+end
+
+local function walkTo(record, goal: Vector3, allowTeleport: boolean?)
+	local root = record.Root
+	local here = root.Position
+	local hereArea, goalArea = areaOf(here), areaOf(goal)
+	-- far away in another area: take the shortcut (players use GO / the zone teleport)
+	if allowTeleport ~= false and not record.Carry and hereArea ~= goalArea and (flat(goal - here)).Magnitude > 140 then
+		if not record.TeleportAt then
+			record.TeleportAt = os.clock() + rng:NextNumber(0.6, 2.5) -- (a human needs a moment to press it)
+		elseif os.clock() >= record.TeleportAt then
+			record.TeleportAt = nil
+			teleport(record, areaEntrance(goalArea or 0))
 		end
+		return
+	end
+	record.TeleportAt = nil
+	if not record.Goal or (record.Goal - goal).Magnitude > 6 or os.clock() - (record.PathAt or 0) > 4 then
+		record.Goal = goal
+		record.PathAt = os.clock()
+		record.Waypoints = nil
+		local path = PathfindingService:CreatePath({ AgentRadius = 2, AgentHeight = 5, AgentCanJump = true, WaypointSpacing = 6 })
+		local ok = pcall(path.ComputeAsync, path, here, goal)
+		if ok and path.Status == Enum.PathStatus.Success then
+			record.Waypoints = path:GetWaypoints()
+			record.WaypointIndex = 2
+		end
+	end
+	local target = goal
+	if record.Waypoints then
+		local waypoint = record.Waypoints[record.WaypointIndex]
+		while waypoint and (flat(waypoint.Position - here)).Magnitude < 3 do
+			record.WaypointIndex += 1
+			waypoint = record.Waypoints[record.WaypointIndex]
+		end
+		if waypoint then
+			target = waypoint.Position
+			if waypoint.Action == Enum.PathWaypointAction.Jump then
+				record.Humanoid.Jump = true
+			end
+		end
+	end
+	record.Humanoid:MoveTo(target)
+	-- stuck? jump, then re-plan, then hop closer
+	local moved = if record.LastPos then (flat(here - record.LastPos)).Magnitude else 99
+	if os.clock() - (record.LastCheck or 0) > 1.5 then
+		record.LastCheck = os.clock()
+		record.LastPos = here
+		if moved < 1.2 and (flat(goal - here)).Magnitude > 5 then
+			record.Stuck = (record.Stuck or 0) + 1
+			record.Humanoid.Jump = true
+			record.PathAt = 0
+			if record.Stuck >= 4 and not record.Carry then
+				teleport(record, goal + Vector3.new(rng:NextNumber(-4, 4), 0, rng:NextNumber(-4, 4)))
+			end
+		else
+			record.Stuck = 0
+		end
+	end
+end
+
+local function stop(record)
+	record.Humanoid:MoveTo(record.Root.Position)
+	record.Goal = nil
+	record.Waypoints = nil
+end
+
+local function face(record, position: Vector3)
+	local root = record.Root
+	local look = flat(position - root.Position)
+	if look.Magnitude > 0.5 then
+		root.CFrame = CFrame.lookAt(root.Position, root.Position + look)
 	end
 end
 
 ---------------------------------------------------------------------------
 -- brains
 ---------------------------------------------------------------------------
--- how a robot smashes: a bit slower than the average real player here
+-- how a rival smashes: a bit slower than the average real player here
 local function rivalPace(): (number, number)
 	local damage, cooldown, n = 0, 0, 0
 	for _, player in Data:LoadedPlayers() do
@@ -13119,84 +14135,112 @@ local function rivalPace(): (number, number)
 	return damage / n, (cooldown / n) / SETTINGS.Pace
 end
 
-local function nearestRealPlayer(position: Vector3): (Player?, number)
-	local best, bestDistance = nil, math.huge
+-- a real player carrying an egg that this rival could try to bonk
+local function bonkTarget(record): Player?
+	if record.Carry or now() < record.NextBonk then
+		return nil
+	end
+	local best, bestDistance = nil, SETTINGS.Bonk.ChaseRange
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
-		if root and root:IsA("BasePart") then
-			local distance = (flat(root.Position) - flat(position)).Magnitude
-			if distance < bestDistance then
+		if root and root:IsA("BasePart") and Services.ShardService:IsCarrying(player) then
+			local distance = (root.Position - record.Root.Position).Magnitude
+			if distance < bestDistance and Services.MiningService:CanNpcBonk(player) then
 				best, bestDistance = player, distance
 			end
 		end
 	end
-	return best, bestDistance
+	return best
 end
 
 local function think(record)
 	local t = now()
+	local root = record.Root
+	if not root.Parent then
+		return
+	end
 	if record.StunnedUntil > t then
-		record.Destination = flat(record.Position)
+		stop(record)
 		return
 	end
 	local meteor = Services.MeteorService
+	local shards = Services.ShardService
 	local current = meteor:Current()
 	local state = workspace:GetAttribute("MeteorState")
 
-	-- 1) carrying an egg: fly away from the closest player, beam up in time
+	-- 1) carrying an egg: run home with it (like everybody)
 	if record.Carry then
-		if t >= record.CarryUntil then
+		record.Task = "Home"
+		local home = record.Home or homeSpot()
+		record.Home = home
+		walkTo(record, home, false)
+		if (flat(home - root.Position)).Magnitude <= 8 then
 			local item = record.Carry
 			setCarry(record, nil)
-			Net:Broadcast("RivalEscape", record.Position)
-			Net:Announce(
-				"🤖 %s flew away with a %s! Bonk robots before they escape!",
-				Color3.fromRGB(150, 235, 255),
-				record.Name,
-				Services.ShardService.ItemName(item)
-			)
-			record.Destination = record.Dock
-			return
-		end
-		local player = nearestRealPlayer(record.Position)
-		local away = -Vector3.zAxis
-		if player and player.Character and player.Character.PrimaryPart then
-			local diff = flat(record.Position - player.Character.PrimaryPart.Position)
-			if diff.Magnitude > 0.5 then
-				away = diff.Unit
+			record.Home = nil
+			if Util.ShardIndex(Config, item.Rarity) >= 4 then
+				Net:Announce("🌟 %s brought a %s home!", shards.ItemColor(item), record.Name, shards.ItemName(item))
 			end
 		end
-		-- stay in the area where it grabbed the egg (slides along walls,
-		-- never through gates into locked zones / out over the void)
-		local bounds = areaBounds(record.GrabSpot or record.Position)
-		local destination = clampTo(bounds, flat(record.Position) + away * 20)
-		if Util.InBases(Config, destination + Vector3.new(0, 3, 0)) then
-			destination = flat(record.GrabSpot or record.Dock)
-		end
-		record.Destination = destination
-		record.Speed = SETTINGS.CarrySpeed
 		return
 	end
-	record.Speed = SETTINGS.Speed
 
-	-- 2) a meteor is coming / being smashed: go there and help... themselves
+	-- 2) chasing a player who carries an egg (now and then)
+	local chase = record.ChaseTarget
+	if chase and (not chase.Parent or t > record.ChaseUntil or not shards:IsCarrying(chase)) then
+		record.ChaseTarget = nil
+		chase = nil
+	end
+	if not chase then
+		local target = bonkTarget(record)
+		if target and rng:NextNumber() < record.Aggression then
+			record.ChaseTarget = target
+			record.ChaseUntil = t + SETTINGS.Bonk.ChaseSeconds
+			chase = target
+		elseif target then
+			record.NextBonk = t + 6 -- (decided not to, this time)
+		end
+	end
+	if chase then
+		record.Task = "Chase"
+		local victimRoot = chase.Character and chase.Character:FindFirstChild("HumanoidRootPart")
+		if victimRoot and victimRoot:IsA("BasePart") then
+			walkTo(record, victimRoot.Position, false)
+			if (victimRoot.Position - root.Position).Magnitude <= SETTINGS.Bonk.Range then
+				face(record, victimRoot.Position)
+				playAnim(record, "Slash")
+				Services.MiningService:NpcBonk(root, record.Name, chase)
+				record.ChaseTarget = nil
+				record.NextBonk = t + SETTINGS.Bonk.Cooldown
+			end
+		end
+		return
+	end
+
+	-- 3) a meteor is coming / being smashed: go there and smash it
 	if current and (state == "Warning" or state == "Falling" or state == "Active") then
+		record.Task = "Meteor"
 		local radius = current.Size.Radius
 		local angle = record.Index * 2.4 + 0.6
-		local spot = current.Position + Vector3.new(math.cos(angle), 0, math.sin(angle)) * (radius + 3.5)
-		record.Destination = spot
-		if state == "Active" and (flat(record.Position) - flat(current.Position)).Magnitude <= radius + 7 and t >= record.NextHit then
-			local damage, cooldown = rivalPace()
-			record.NextHit = t + cooldown
-			meteor:Hit(record.Entity, damage, cooldown)
-			record.Bob = 0.25
+		local spot = current.Position + Vector3.new(math.cos(angle), 0, math.sin(angle)) * (radius + 3)
+		local close = (flat(root.Position) - flat(current.Position)).Magnitude <= radius + 7
+		if close and state == "Active" then
+			stop(record)
+			face(record, current.Position)
+			if t >= record.NextHit then
+				local damage, cooldown = rivalPace()
+				record.NextHit = t + cooldown * rng:NextNumber(0.85, 1.2)
+				playAnim(record, "Slash")
+				meteor:Hit(record.Entity, damage, cooldown)
+			end
+		else
+			walkTo(record, spot)
 		end
 		return
 	end
 
-	-- 3) star eggs nobody picked up: go get one
-	local shards = Services.ShardService
+	-- 4) star eggs nobody picked up: go get one
 	local target = record.TargetEgg
 	if target and not shards:IsOnGround(target) then
 		target = nil
@@ -13211,7 +14255,7 @@ local function think(record)
 		local best, bestDistance = nil, SETTINGS.SearchRange
 		for _, entry in shards:RivalTargets(record.Entity.UserId, SETTINGS.GrabDelay) do
 			if not taken[entry.Model] and not Util.InBases(Config, entry.Position + Vector3.new(0, 3, 0)) then
-				local distance = (flat(entry.Position) - flat(record.Position)).Magnitude
+				local distance = (flat(entry.Position) - flat(root.Position)).Magnitude
 				if distance < bestDistance then
 					best, bestDistance = entry.Model, distance
 				end
@@ -13223,12 +14267,12 @@ local function think(record)
 	if target then
 		local position = shards:GroundPosition(target)
 		if position then
-			record.Destination = flat(position)
-			if (flat(position) - flat(record.Position)).Magnitude <= SETTINGS.GrabRange then
+			record.Task = "Egg"
+			walkTo(record, position, false)
+			if (flat(position) - flat(root.Position)).Magnitude <= SETTINGS.GrabRange then
 				local item = shards:TakeForRival(target)
 				record.TargetEgg = nil
 				if item then
-					record.GrabSpot = flat(position)
 					setCarry(record, item)
 				end
 			end
@@ -13236,38 +14280,45 @@ local function think(record)
 		end
 	end
 
-	-- 4) nothing to do: hover at the dock in the hub
-	record.Destination = record.Dock
-end
-
-local function move(record, dt: number)
-	local target = Vector3.new(record.Destination.X, SETTINGS.HoverY, record.Destination.Z)
-	local diff = flat(target - record.Position)
-	local distance = diff.Magnitude
-	local stunned = record.StunnedUntil > now()
-	local moved = false
-	if distance > 0.3 and not stunned then
-		local step = math.min(distance, record.Speed * dt)
-		record.Facing = diff.Unit
-		record.Position += record.Facing * step
-		moved = true
+	-- 5) between meteors: mine for a while, sometimes hang around the hub
+	if t >= record.NextPlan then
+		record.NextPlan = t + rng:NextNumber(40, 90)
+		local _, _, maxZone = serverPeers()
+		if rng:NextNumber() < 0.75 then
+			record.Task = "Mine"
+			record.MineZone = rng:NextInteger(1, math.min(maxZone, 3))
+		else
+			record.Task = "Hub"
+			record.HubSpot = World.HubSpawn.Position + Vector3.new(rng:NextNumber(-40, 40), 0, rng:NextNumber(10, 50))
+		end
+		record.Ore = nil
 	end
-	local dip = 0
-	if record.Bob and record.Bob > 0 then
-		record.Bob -= dt
-		dip = -0.4 -- a little "smash" dip
-		moved = true
+	if record.Task == "Mine" and record.MineZone then
+		local ore = record.Ore
+		if not ore or not ore.Parent then
+			ore = Services.MiningService:NearestOreIn(record.MineZone, root.Position)
+			record.Ore = ore
+		end
+		if not ore then
+			walkTo(record, areaEntrance(record.MineZone))
+			return
+		end
+		local reach = Config.World.Reach + ore.Size.Magnitude / 2 - 1
+		if (ore.Position - root.Position).Magnitude <= reach then
+			stop(record)
+			face(record, ore.Position)
+			if t >= record.NextHit then
+				local damage = rivalPace()
+				record.NextHit = t + rng:NextNumber(0.7, 1.2)
+				playAnim(record, "Slash")
+				Services.MiningService:NpcHit(ore, damage)
+			end
+		else
+			walkTo(record, ore.Position)
+		end
+		return
 	end
-	if not moved and not stunned and not record.Dirty then
-		return -- hovering still: nothing to send
-	end
-	record.Dirty = stunned or dip ~= 0 -- (one more update after a wobble / dip)
-	local at = Vector3.new(record.Position.X, SETTINGS.HoverY + dip, record.Position.Z)
-	local cf = CFrame.lookAt(at, at + record.Facing)
-	if stunned then
-		cf *= CFrame.Angles(0, 0, math.sin(os.clock() * 20) * 0.25) -- dizzy
-	end
-	record.Root.CFrame = cf
+	walkTo(record, record.HubSpot or World.HubSpawn.Position)
 end
 
 ---------------------------------------------------------------------------
@@ -13277,12 +14328,12 @@ function Rival:IsRival(model: Instance?): boolean
 	return model ~= nil and rivals[model] ~= nil
 end
 
--- the closest robot carrying an egg within range of a position
+-- the closest rival carrying an egg within range of a position
 function Rival:NearestCarrying(position: Vector3, range: number): Model?
 	local best, bestDistance = nil, range
 	for model, record in rivals do
 		if record.Carry then
-			local distance = (record.Position - position).Magnitude
+			local distance = (record.Root.Position - position).Magnitude
 			if distance <= bestDistance then
 				best, bestDistance = model, distance
 			end
@@ -13291,7 +14342,7 @@ function Rival:NearestCarrying(position: Vector3, range: number): Model?
 	return best
 end
 
--- a player swung at a robot: stun it; if it carried an egg, the egg drops
+-- a player swung at a rival: knock them back; if they carried an egg it drops
 function Rival:Bonk(player: Player, model: Model): boolean
 	local record = rivals[model]
 	local character = player.Character
@@ -13299,7 +14350,7 @@ function Rival:Bonk(player: Player, model: Model): boolean
 	if not record or not root or not root:IsA("BasePart") then
 		return false
 	end
-	if (root.Position - record.Position).Magnitude > Config.PvP.BonkRange + 3 then
+	if (root.Position - record.Root.Position).Magnitude > Config.PvP.BonkRange + 3 then
 		return false
 	end
 	local t = now()
@@ -13307,43 +14358,50 @@ function Rival:Bonk(player: Player, model: Model): boolean
 		return false
 	end
 	record.StunnedUntil = t + SETTINGS.StunSeconds
-	local push = flat(record.Position - root.Position)
+	local push = flat(record.Root.Position - root.Position)
 	push = if push.Magnitude > 0.1 then push.Unit else Vector3.zAxis
-	local pushed = clampTo(areaBounds(record.GrabSpot or record.Position), record.Position + push * 5)
-	record.Position = Vector3.new(pushed.X, record.Position.Y, pushed.Z)
-	Net:Send(player, "BonkHit", record.Position)
+	record.Root.AssemblyLinearVelocity = push * 45 + Vector3.new(0, 30, 0)
+	Net:Send(player, "BonkHit", record.Root.Position)
 	local item = record.Carry
 	if not item then
-		Net:Notify(player, "💥 %s is dizzy!", Color3.fromRGB(150, 235, 255), record.Name)
 		return true
 	end
 	setCarry(record, nil)
-	-- the egg drops: the bonker gets the first grab, robots keep off it for a while
-	Services.ShardService:SpawnGround(item, flat(record.Position), nil, {
+	record.Home = nil
+	-- the egg drops: the bonker gets the first grab, rivals keep off it for a while
+	Services.ShardService:SpawnGround(item, flat(record.Root.Position), nil, {
 		Beacon = true,
 		PriorityUser = player.UserId,
 		PriorityUntil = t + 4,
 		RivalBlockSeconds = SETTINGS.DropBlockSeconds,
 	})
-	-- reward only the first time an egg is knocked off a robot (no farming)
 	local data = Data:Get(player)
 	if not data or item.RivalBonked then
-		Net:Notify(player, "💥 You bonked %s! It dropped the egg - grab it!", Color3.fromRGB(150, 235, 255), record.Name)
+		Net:Notify(
+			player,
+			"💥 %s dropped a %s - grab it!",
+			Color3.fromRGB(255, 170, 80),
+			record.Name,
+			Services.ShardService.ItemName(item)
+		)
 		return true
 	end
+	-- (a reward only the first time an egg is knocked loose: no farming)
 	item.RivalBonked = true
 	local coins = math.max(SETTINGS.BonkMinCoins, math.floor(Services.BaseService:IncomeRate(player, data) * SETTINGS.BonkIncomeSeconds))
 	data.Coins += coins
 	data.Stats.LifetimeCoins += coins
-	data.Stats.ThievesCaught = (data.Stats.ThievesCaught or 0) + 1
+	data.Stats.Bonks += 1
 	Services.Analytics:Economy(player, "Source", "Coins", coins, data.Coins, "Gameplay", "RivalBonk")
+	Services.ProgressionService:AddQuest(player, "Bonk", 1)
 	Net:Send(player, "Sold", coins)
 	Data:MarkDirty(player)
 	Net:Notify(
 		player,
-		"💥 You bonked %s! It dropped the egg - grab it! +💰%s",
-		Color3.fromRGB(150, 235, 255),
+		"💥 %s dropped a %s - grab it! +💰%s",
+		Color3.fromRGB(255, 170, 80),
 		record.Name,
+		Services.ShardService.ItemName(item),
 		Util.Format(coins)
 	)
 	return true
@@ -13377,8 +14435,7 @@ end
 
 function Rival:PlaceForTest(record, position: Vector3)
 	assert(not RunService:IsRunning(), "test hook used on a live server")
-	record.Position = Vector3.new(position.X, SETTINGS.HoverY, position.Z)
-	record.Root.CFrame = CFrame.new(record.Position)
+	teleport(record, Vector3.new(position.X, 0, position.Z))
 end
 
 ---------------------------------------------------------------------------
@@ -13389,7 +14446,22 @@ function Rival:Init(services)
 end
 
 function Rival:Start()
-	-- decisions 4x a second
+	-- rivals walk through the zone gates (they "unlocked" them); players
+	-- still see and bump into the gates of zones they haven't unlocked
+	pcall(function()
+		PhysicsService:RegisterCollisionGroup(GROUP)
+		PhysicsService:RegisterCollisionGroup(GATE_GROUP)
+		PhysicsService:CollisionGroupSetCollidable(GROUP, GATE_GROUP, false)
+	end)
+	for _, zone in World.Zones do
+		if zone.Gate then
+			zone.Gate.CollisionGroup = GATE_GROUP
+			local modifier = Instance.new("PathfindingModifier")
+			modifier.PassThrough = true
+			modifier.Parent = zone.Gate
+		end
+	end
+
 	task.spawn(function()
 		while true do
 			task.wait(0.25)
@@ -13398,12 +14470,6 @@ function Rival:Start()
 				local wanted = self:Wanted()
 				local idle = workspace:GetAttribute("MeteorState") == "Idle"
 				if count() < wanted and idle then
-					if count() == 0 then
-						Net:Announce(
-							"🤖 Rival robots are here! Beat them to the meteor - and don't let them fly off with your eggs!",
-							Color3.fromRGB(150, 235, 255)
-						)
-					end
 					local used = {}
 					for _, record in rivals do
 						used[record.Index] = true
@@ -13420,31 +14486,15 @@ function Rival:Start()
 						end
 					end
 				end
-				for _, record in rivals do
-					think(record)
-				end
 			end)
 			if not ok then
 				warn("[Rival] " .. tostring(err))
 			end
-		end
-	end)
-	-- movement ~20 times a second (only while robots exist, only when they move)
-	local acc = 0
-	RunService.Heartbeat:Connect(function(dt)
-		if next(rivals) == nil then
-			return
-		end
-		acc += dt
-		if acc < 0.05 then
-			return
-		end
-		local step = acc
-		acc = 0
-		for _, record in rivals do
-			local ok, err = pcall(move, record, step)
-			if not ok then
-				warn("[Rival] move: " .. tostring(err))
+			for _, record in rivals do
+				local okThink, errThink = pcall(think, record)
+				if not okThink then
+					warn("[Rival] think: " .. tostring(errThink))
+				end
 			end
 		end
 	end)
@@ -13909,6 +14959,7 @@ end
 -- 🤖 rival robots (RivalService) -------------------------------------------
 Shards.ItemColor = itemColor
 Shards.ItemName = itemName
+Shards.BuildItemModel = buildItemModel
 
 function Shards:IsOnGround(model: Model): boolean
 	return ground[model] ~= nil
@@ -14061,7 +15112,7 @@ local function deliver(player: Player)
 			Net:Notify(player, "The owner left - the pet vanished!")
 			return
 		end
-		local given, isNew = pets:GivePet(player, taken.Name, taken.Variant, taken.Serial)
+		local given, isNew = pets:GivePet(player, taken.Name, taken.Variant, taken.Serial, taken)
 		-- a freshly stolen pet can't hide in the thief's vault yet: revenge can win it back
 		if given and not (meta.Revenge and meta.Thief == player) then
 			given.HotUntil = os.time() + Config.Base.HotSeconds
@@ -14077,7 +15128,7 @@ local function deliver(player: Player)
 		local repeatPair = os.clock() - (nightBonusPaid[pairKey] or -1e9) < 600
 		if bonusSeconds > 0 and data and not meta.Revenge and not repeatPair then
 			nightBonusPaid[pairKey] = os.clock()
-			local bonus = math.floor(Util.PetIncome(Config, taken.Name, taken.Variant) * bonusSeconds)
+			local bonus = math.floor(Util.PetIncomeOf(Config, taken) * bonusSeconds)
 			if bonus > 0 then
 				data.Coins += bonus
 				data.Stats.LifetimeCoins += bonus
@@ -14105,7 +15156,9 @@ local function deliver(player: Player)
 	else
 		-- a star egg: it hatches right here
 		local def = SETTINGS.Rarities[item.Rarity]
-		local result = pets:HatchStarEgg(player, item.Egg, if def then def.Luck or 1 else 1)
+		local meteorInfo = if item.MeteorKind then { Kind = item.MeteorKind, Golden = item.Golden, Rarity = item.Rarity } else nil
+		local result = pets:HatchStarEgg(player, item.Egg, if def then def.Luck or 1 else 1, meteorInfo)
+		pets:AddFollowXP(player, Config.Growth.DeliverXP)
 		if data then
 			data.Stats.ShardsDelivered = (data.Stats.ShardsDelivered or 0) + 1
 		end
@@ -14245,7 +15298,7 @@ function Shards:SpillMeteor(position: Vector3, ranking, info)
 			opts.PriorityUser = entry.Reserved.UserId
 			opts.PriorityUntil = now() + (if entry.Place == 1 then priority else priority - 1)
 		end
-		self:SpawnGround({ Kind = "Egg", Rarity = entry.Id, Egg = egg }, spot, nil, opts)
+		self:SpawnGround({ Kind = "Egg", Rarity = entry.Id, Egg = egg, MeteorKind = info.Kind, Golden = info.Golden }, spot, nil, opts)
 		if entry.Reserved and typeof(entry.Reserved) == "Instance" then -- (robots get no messages)
 			local medal = ({ "🥇", "🥈", "🥉" })[entry.Place]
 			Net:Notify(entry.Reserved, "%s Your %s is waiting - grab it first!", Color3.fromRGB(255, 220, 90), medal, rarityName(entry.Id))
@@ -14494,7 +15547,7 @@ function Stats:PetPower(_player, data): number
 	local total = 0
 	for _, pet in data.Pets do
 		if equipped[pet.Id] then
-			total += Util.PetPower(Config, pet.Name, pet.Variant)
+			total += Util.PetPowerOf(Config, pet)
 		end
 	end
 	return total
@@ -14847,7 +15900,15 @@ local function complete(session)
 	end
 	local function add(data, pets)
 		for _, pet in pets do
-			local copy = { Id = data.NextPetUid, Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial }
+			local copy = {
+				Id = data.NextPetUid,
+				Name = pet.Name,
+				Variant = pet.Variant,
+				Serial = pet.Serial,
+				Level = pet.Level,
+				XP = pet.XP,
+				Stars = pet.Stars,
+			}
 			data.NextPetUid += 1
 			table.insert(data.Pets, copy)
 			data.PetIndex[pet.Name] = true
@@ -18027,6 +19088,15 @@ local MENU = {
 	},
 	{ "Rewards", "🎁", "Rewards", C.Pink, tutorialDone },
 	{
+		"Index",
+		"📖",
+		"Index",
+		Color3.fromRGB(110, 190, 255),
+		function(d)
+			return tutorialAt(d, 4)
+		end,
+	},
+	{
 		"Pass",
 		"🎫",
 		"Pass",
@@ -18660,6 +19730,15 @@ function HUD.Refresh()
 	badges.Rewards.Visible = ready.Quests or ready.Gifts or ready.Spin
 	badges.Pass.Visible = anyTierClaimable(data)
 	badges.Rebirth.Visible = data.Coins >= (derived.RebirthCost or math.huge)
+	-- 📖 an index milestone is ready to claim
+	local indexReady = false
+	local found = Util.IndexCount(data)
+	for i, milestone in Config.Index.Milestones do
+		if found >= milestone.Count and not (data.IndexClaimed or {})[tostring(i)] then
+			indexReady = true
+		end
+	end
+	badges.Index.Visible = indexReady
 	local hiddenBadge = false
 	for id, badge in badges do
 		if not PRIMARY[id] and id ~= "More" and badge.Visible and menuButtons[id].Visible then
@@ -18941,6 +20020,46 @@ end)
 Net.On("RankUp", function(rankName)
 	Lib.PlaySound("RankUp")
 	celebrate(T("🏅 %s RANK!", tostring(rankName)), T("Weekly ranked - keep climbing!"), C.Cyan)
+end)
+-- 🌱 pets growing up / ⭐ evolving
+Net.On("PetLevelUp", function(ups)
+	if type(ups) ~= "table" or #ups == 0 then
+		return
+	end
+	local grew = nil
+	local names = {}
+	for _, up in ups do
+		if type(up) == "table" then
+			if up.Grew then
+				grew = up
+			end
+			table.insert(names, T(up.Name) .. " " .. Util.PetBadge(Config, up))
+		end
+	end
+	if grew then
+		Lib.PlaySound("LevelUp")
+		local stage = Util.PetStage(Config, grew.Level)
+		celebrate(
+			T("%s %s grew up!", stage.Icon, T(grew.Name)),
+			T("%s %s  •  more 💰 and ⚡", T(stage.Id), Util.PetBadge(Config, grew)),
+			C.Green,
+			false
+		)
+	else
+		Lib.PlaySound("Reward", 0.6)
+		HUD.Toast(T("🌱 Level up! %s", table.concat(names, "  •  ")), C.Green)
+	end
+end)
+Net.On("PetEvolved", function(card)
+	if type(card) ~= "table" then
+		return
+	end
+	Lib.PlaySound("Fanfare")
+	celebrate(
+		T("⭐ EVOLVED! %s %s", string.rep("★", card.Stars or 1), T(card.Name)),
+		T("x%d income & power - grow it again to level %d!", Config.Growth.Evolve.StarMult, Config.Growth.MaxLevel),
+		C.Purple
+	)
 end)
 Net.On("TutorialStep", function(_, rewardText)
 	Lib.PlaySound("Reward")
@@ -19799,7 +20918,9 @@ local function classify(hit: Instance?)
 	local model = hit:FindFirstAncestorOfClass("Model")
 	if model then
 		local other = Players:GetPlayerFromCharacter(model)
-		if other and other ~= player then
+		-- (rivals: only worth a swing while they carry an egg)
+		local rivalWithEgg = model:GetAttribute("Rival") == true and model:GetAttribute("Carrying") == true
+		if (other and other ~= player) or rivalWithEgg then
 			local otherRoot = model:FindFirstChild("HumanoidRootPart")
 			if otherRoot and otherRoot:IsA("BasePart") then
 				return { Kind = "Player", Part = otherRoot }
@@ -19807,8 +20928,7 @@ local function classify(hit: Instance?)
 		end
 		local map = workspace:FindFirstChild("Map")
 		local shardFolder = map and map:FindFirstChild("Shards")
-		local robotWithEgg = model.Name == "RivalBot" and model:GetAttribute("Carrying") == true
-		if shardFolder and model.Parent == shardFolder and (model.Name == "StarGuardian" or robotWithEgg) then
+		if shardFolder and model.Parent == shardFolder and model.Name == "StarGuardian" then
 			local guardianRoot = model:FindFirstChild("HumanoidRootPart")
 			if guardianRoot and guardianRoot:IsA("BasePart") then
 				return { Kind = "Player", Part = guardianRoot } -- walk up and bonk it
@@ -19901,8 +21021,7 @@ local function nearestGuardian(root: BasePart): BasePart?
 	end
 	local best, bestDistance = nil, Config.PvP.BonkRange + 6
 	for _, model in folder:GetChildren() do
-		-- guardians, and 🤖 robots running off with an egg
-		if model.Name == "StarGuardian" or (model.Name == "RivalBot" and model:GetAttribute("Carrying")) then
+		if model.Name == "StarGuardian" then
 			local guardianRoot = model:FindFirstChild("HumanoidRootPart")
 			if guardianRoot and guardianRoot:IsA("BasePart") then
 				local distance = (guardianRoot.Position - root.Position).Magnitude
@@ -19920,6 +21039,18 @@ local function nearestCarrier(root: BasePart): BasePart?
 	for _, other in Players:GetPlayers() do
 		if other ~= player and other:GetAttribute("Carrying") then
 			local otherRoot = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+			if otherRoot and otherRoot:IsA("BasePart") then
+				local distance = (otherRoot.Position - root.Position).Magnitude
+				if distance < bestDistance then
+					best, bestDistance = otherRoot, distance
+				end
+			end
+		end
+	end
+	-- rivals running home with an egg
+	for _, model in workspace:GetChildren() do
+		if model:IsA("Model") and model:GetAttribute("Rival") == true and model:GetAttribute("Carrying") == true then
+			local otherRoot = model:FindFirstChild("HumanoidRootPart")
 			if otherRoot and otherRoot:IsA("BasePart") then
 				local distance = (otherRoot.Position - root.Position).Magnitude
 				if distance < bestDistance then
@@ -20481,7 +21612,7 @@ folder.Parent = workspace
 
 local owners = {} -- [player] = { Models = { Model }, Key = string }
 
-local function clear(player: Player)
+local function clear(player: any)
 	local entry = owners[player]
 	if entry then
 		for _, model in entry.Models do
@@ -20491,7 +21622,7 @@ local function clear(player: Player)
 	owners[player] = nil
 end
 
-local function rebuild(player: Player)
+local function rebuild(player: any)
 	local raw = player:GetAttribute("Pets")
 	local key = if type(raw) == "string" then raw else "[]"
 	local entry = owners[player]
@@ -20506,12 +21637,14 @@ local function rebuild(player: Player)
 	local models = {}
 	for i, entry in names do
 		if type(entry) == "string" then
-			-- entries look like "Golden|Fox" or "|Fox"
-			local variant, name = string.match(entry, "^(.-)|(.+)$")
+			-- entries look like "Golden|Fox|7|1" (variant|name|level|stars) or "|Fox"
+			local parts = string.split(entry, "|")
+			local variant, name = parts[1] or "", parts[2]
 			if not name then
 				variant, name = "", entry
 			end
-			local model = PetModel.Build(name, if variant ~= "" then variant else nil)
+			local growth = { Level = tonumber(parts[3]) or 1, Stars = tonumber(parts[4]) or 0 }
+			local model = PetModel.Build(name, if variant ~= "" then variant else nil, growth)
 			model.Name = player.Name .. "_" .. i
 			model.Parent = folder
 			table.insert(models, model)
@@ -20520,7 +21653,7 @@ local function rebuild(player: Player)
 	owners[player] = { Models = models, Key = key, Positions = {}, Hops = {} }
 end
 
-local function track(player: Player)
+local function track(player: any)
 	player:GetAttributeChangedSignal("Pets"):Connect(function()
 		rebuild(player)
 	end)
@@ -20533,13 +21666,36 @@ for _, player in Players:GetPlayers() do
 	track(player)
 end
 
+-- rival players (server game characters) have pets following them too
+local function trackRival(model: Instance)
+	if model:IsA("Model") and model:GetAttribute("Rival") == true then
+		track(model)
+		model.AncestryChanged:Connect(function()
+			if not model.Parent then
+				clear(model)
+			end
+		end)
+	end
+end
+workspace.ChildAdded:Connect(function(child)
+	task.defer(trackRival, child)
+end)
+for _, child in workspace:GetChildren() do
+	trackRival(child)
+end
+
+local function rootOf(owner: any): BasePart?
+	local character = if owner:IsA("Player") then owner.Character else owner
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	return if root and root:IsA("BasePart") then root else nil
+end
+
 RunService.RenderStepped:Connect(function(dt)
 	local t = os.clock()
 	local rainbow = Color3.fromHSV((t * 0.3) % 1, 0.7, 1)
 	local alpha = 1 - math.exp(-dt * 9)
 	for player, entry in owners do
-		local character = player.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart
+		local root = rootOf(player)
 		if root then
 			local base = root.CFrame
 			for i, model in entry.Models do
@@ -21140,6 +22296,8 @@ Net.On("BigHatch", function(userId, kind)
 	local color = if kind == "Titanic"
 		then Color3.fromRGB(255, 120, 60)
 		elseif kind == "Huge" then Color3.fromRGB(255, 210, 80)
+		elseif kind == "Meteor" then Color3.fromRGB(255, 150, 70)
+		elseif kind == "Evolve" then Color3.fromRGB(150, 220, 255)
 		else Color3.fromRGB(200, 120, 255)
 	local pillar = Instance.new("Part")
 	pillar.Anchored = true
@@ -21166,31 +22324,6 @@ end)
 
 Net.On("Party", function()
 	Lib.PlaySound("Cheer")
-end)
-
--- 🤖 a rival robot beams up with an egg
-Net.On("RivalEscape", function(position)
-	if typeof(position) ~= "Vector3" then
-		return
-	end
-	local beam = Instance.new("Part")
-	beam.Anchored = true
-	beam.CanCollide = false
-	beam.CanQuery = false
-	beam.CanTouch = false
-	beam.Shape = Enum.PartType.Cylinder
-	beam.Material = Enum.Material.Neon
-	beam.Color = Color3.fromRGB(120, 230, 255)
-	beam.Transparency = 0.4
-	beam.Size = Vector3.new(160, 4, 4)
-	beam.CFrame = CFrame.new(position + Vector3.new(0, 80, 0)) * CFrame.Angles(0, 0, math.rad(90))
-	beam.Parent = workspace
-	TweenService:Create(beam, TweenInfo.new(1.2), { Transparency = 1, Size = Vector3.new(160, 0.5, 0.5) }):Play()
-	Debris:AddItem(beam, 1.3)
-	local volume = nearVolume(position)
-	if volume > 0 then
-		Lib.PlaySound("Whoosh", volume)
-	end
 end)
 
 -- 🌙 Thief Night is coming (20s): a short alarm so everyone runs home
@@ -22097,8 +23230,10 @@ local function slot(entry, eggColor: Color3?)
 	table.insert(
 		labels,
 		Lib.Text({
-			Text = (if variant then "✨ " .. string.upper(T(variant)) .. " ✨  " else "") .. string.upper(T(info.Rarity)),
-			TextColor3 = variantColor or rarity.Color,
+			Text = (if entry.Meteor then "☄️ " .. T("METEOR PET") .. "  " else "") .. (if variant
+				then "✨ " .. string.upper(T(variant)) .. " ✨  "
+				else "") .. string.upper(T(info.Rarity)) .. (if (entry.Stars or 0) > 0 then "  " .. string.rep("★", entry.Stars) else ""),
+			TextColor3 = if entry.Meteor then Color3.fromRGB(255, 160, 80) else variantColor or rarity.Color,
 			Size = UDim2.new(1, 0, 0, 30),
 			Position = UDim2.fromOffset(0, 280),
 			MaxTextSize = 26,
@@ -23514,6 +24649,245 @@ return Houses
             </Item>
             <Item class="ModuleScript" referent="64">
               <Properties>
+                <string name="Name">Index</string>
+                <string name="Source"><![CDATA[--[[
+	📖 Index: every pet in the game, egg by egg. Discovered pets show their
+	colour and name, missing ones are "?" - so you always know what to hunt.
+	Milestones (5, 10, 15 ... pets) pay gems and a PERMANENT home income
+	bonus; completing an egg's set adds a little more.
+]]
+local Index = { Title = "📖 INDEX", Color = Color3.fromRGB(110, 190, 255) }
+
+local EGG_ICONS = {
+	Meadow = "🌿",
+	Gem = "💎",
+	Cosmic = "🌌",
+	Frost = "❄️",
+	Lava = "🔥",
+	Void = "🔮",
+	Meteor = "☄️",
+}
+
+function Index.Build(content, ctx)
+	local Lib, State, Net, Config, Util = ctx.Lib, ctx.State, ctx.Net, ctx.Config, ctx.Util
+	local New, C, T = Lib.New, Lib.Colors, Lib.T
+
+	local header = Lib.Text({
+		Text = "",
+		Size = UDim2.new(1, 0, 0, 26),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		MaxTextSize = 20,
+		Parent = content,
+	})
+	-- milestones: a row of reward chips
+	local milestones = Lib.Scroll({
+		Horizontal = true,
+		Position = UDim2.fromOffset(0, 30),
+		Size = UDim2.new(1, 0, 0, 74),
+		Parent = content,
+	})
+	Lib.List(Enum.FillDirection.Horizontal, 8, Enum.HorizontalAlignment.Left).Parent = milestones
+	local list = Lib.Scroll({ Position = UDim2.fromOffset(0, 110), Size = UDim2.new(1, 0, 1, -110), Parent = content })
+	Lib.List(Enum.FillDirection.Vertical, 10).Parent = list
+	Lib.Padding(4).Parent = list
+
+	local function claim(index: number)
+		local result = Net.Invoke("IndexClaim", index)
+		if type(result) == "table" and result.Ok then
+			Lib.PlaySound("Fanfare")
+			ctx.Toast(
+				if (result.Bonus or 0) > 0
+					then T("📖 +%s 💎 and +%d%% home income forever!", Util.Format(result.Gems), math.floor(result.Bonus * 100))
+					else T("📖 +%s 💎!", Util.Format(result.Gems)),
+				C.Gold
+			)
+		elseif type(result) == "table" and result.Error then
+			Lib.PlaySound("Error")
+			ctx.Toast(result.Error, C.Red)
+		end
+	end
+
+	local function setPets(eggId: string): { string }
+		if eggId == "Meteor" then
+			return Config.Meteor.MeteorPets
+		end
+		local names = {}
+		for _, entry in Config.Eggs[eggId].Pets do
+			table.insert(names, entry[1])
+		end
+		return names
+	end
+
+	local signature = ""
+	local function refresh()
+		local data = State.Data
+		if not data then
+			return
+		end
+		local count = Util.IndexCount(data)
+		local claimed = data.IndexClaimed or {}
+		local sets = Util.IndexSets(Config, data)
+		local parts = { tostring(count) }
+		for key in claimed do
+			table.insert(parts, key)
+		end
+		for name in data.PetIndex do
+			table.insert(parts, name)
+		end
+		table.sort(parts)
+		local sig = table.concat(parts, ",")
+		if sig == signature then
+			return
+		end
+		signature = sig
+		local total = 0
+		for _ in Config.Pets do
+			total += 1
+		end
+		header.Text = T(
+			"📖 %d/%d pets discovered  •  🏠 +%d%% income forever",
+			count,
+			total,
+			math.floor(Util.IndexBonus(Config, data) * 100 + 0.5)
+		)
+
+		Lib.Clear(milestones)
+		for i, milestone in Config.Index.Milestones do
+			local done = claimed[tostring(i)] == true
+			local ready = not done and count >= milestone.Count
+			local chip = New("Frame", {
+				BackgroundColor3 = if done then Color3.fromRGB(40, 70, 55) elseif ready then Color3.fromRGB(90, 70, 20) else C.Card,
+				Size = UDim2.fromOffset(122, 68),
+				LayoutOrder = i,
+				Parent = milestones,
+			}, { Lib.Corner(12), Lib.Stroke(if ready then C.Gold elseif done then C.Green else C.Sub, 2, if ready then 0 else 0.5) })
+			Lib.Text({
+				Text = T("🐾 %d pets", milestone.Count),
+				Size = UDim2.new(1, -8, 0, 22),
+				Position = UDim2.fromOffset(4, 4),
+				MaxTextSize = 16,
+				Parent = chip,
+			})
+			Lib.Text({
+				Text = "💎" .. Util.Format(milestone.Gems or 0) .. (if milestone.Bonus
+					then "  🏠+" .. math.floor(milestone.Bonus * 100) .. "%"
+					else ""),
+				TextColor3 = C.Gold,
+				Size = UDim2.new(1, -8, 0, 18),
+				Position = UDim2.fromOffset(4, 26),
+				MaxTextSize = 14,
+				Parent = chip,
+			})
+			if ready then
+				local button = New("TextButton", {
+					Text = "",
+					BackgroundTransparency = 1,
+					Size = UDim2.fromScale(1, 1),
+					Parent = chip,
+				})
+				button.Activated:Connect(function()
+					claim(i)
+				end)
+			end
+			Lib.Text({
+				Text = if done
+					then T("✅ claimed")
+					elseif ready then T("👆 CLAIM!")
+					else string.format("%d/%d", math.min(count, milestone.Count), milestone.Count),
+				TextColor3 = if done then C.Green elseif ready then C.Gold else C.Sub,
+				Size = UDim2.new(1, -8, 0, 18),
+				Position = UDim2.fromOffset(4, 46),
+				MaxTextSize = 14,
+				Parent = chip,
+			})
+		end
+
+		Lib.Clear(list)
+		for order, set in sets do
+			local section = New("Frame", {
+				BackgroundColor3 = C.Card,
+				BackgroundTransparency = 0.2,
+				Size = UDim2.new(1, -8, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				LayoutOrder = order,
+				Parent = list,
+			}, { Lib.Corner(12), Lib.Padding(6) })
+			Lib.List(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Left).Parent = section
+			local eggName = if set.Egg == "Meteor" then T("☄️ Meteor pets (only from meteors)") else T(Config.Eggs[set.Egg].Name)
+			Lib.Text({
+				Text = string.format("%s %s  %d/%d", EGG_ICONS[set.Egg] or "🥚", eggName, set.Have, set.Total)
+					.. (if set.Done then "  ✅ +" .. math.floor(Config.Index.SetBonus * 100) .. "%" else ""),
+				TextColor3 = if set.Done then C.Green else C.Text,
+				Size = UDim2.new(1, 0, 0, 24),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				MaxTextSize = 18,
+				LayoutOrder = 1,
+				Parent = section,
+			})
+			local grid = New("Frame", {
+				BackgroundTransparency = 1,
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				LayoutOrder = 2,
+				Parent = section,
+			})
+			local layout = Lib.Grid(UDim2.fromOffset(92, 78), 6)
+			layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+			layout.Parent = grid
+			for i, name in setPets(set.Egg) do
+				local info = Config.Pets[name]
+				local found = data.PetIndex[name] == true
+				local rarity = info and Config.Rarities[info.Rarity]
+				local tile = New("Frame", {
+					BackgroundColor3 = if found then Color3.fromRGB(34, 38, 54) else Color3.fromRGB(22, 24, 32),
+					LayoutOrder = i,
+					Parent = grid,
+				}, { Lib.Corner(10), Lib.Stroke(if found and rarity then rarity.Color else Color3.fromRGB(70, 70, 85), 2, 0) })
+				New("Frame", {
+					Size = UDim2.fromOffset(34, 34),
+					Position = UDim2.new(0.5, 0, 0, 6),
+					AnchorPoint = Vector2.new(0.5, 0),
+					BackgroundColor3 = if found and info then info.Color else Color3.fromRGB(45, 45, 55),
+					Parent = tile,
+				}, {
+					Lib.Corner(17),
+					Lib.Text({ Text = if found then "" else "?", Size = UDim2.fromScale(1, 1), MaxTextSize = 22 }),
+				})
+				Lib.Text({
+					Text = if found then T(name) else "???",
+					Size = UDim2.new(1, -6, 0, 16),
+					Position = UDim2.fromOffset(3, 42),
+					MaxTextSize = 12,
+					Parent = tile,
+				})
+				Lib.Text({
+					Text = if info then T(info.Rarity) else "",
+					Font = Lib.BodyFont,
+					TextColor3 = if rarity then rarity.Color else C.Sub,
+					Size = UDim2.new(1, -6, 0, 14),
+					Position = UDim2.fromOffset(3, 58),
+					MaxTextSize = 11,
+					Parent = tile,
+				})
+			end
+		end
+	end
+
+	return {
+		Refresh = refresh,
+		OnOpen = function()
+			signature = ""
+			refresh()
+		end,
+	}
+end
+
+return Index
+]]></string>
+              </Properties>
+            </Item>
+            <Item class="ModuleScript" referent="65">
+              <Properties>
                 <string name="Name">Pass</string>
                 <string name="Source"><![CDATA[-- Season pass: free + premium tracks, XP bar, premium / skip upsells
 local Pass = { Title = "🎫 SEASON PASS", Color = Color3.fromRGB(255, 120, 60) }
@@ -23694,7 +25068,7 @@ return Pass
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="65">
+            <Item class="ModuleScript" referent="66">
               <Properties>
                 <string name="Name">Pets</string>
                 <string name="Source"><![CDATA[--[[
@@ -23704,6 +25078,7 @@ return Pass
 	💎 = exclusive (never stolen)   ⭐ = following you   📦 = storage
 	Tap 🔒/🏠 on a card to choose: keep it safe in a vault, or show it off.
 	Tap 💰 twice to sell a pet (pays one minute of its income).
+	Tap a card: 🌱 grow it (level, ✨ feed) and ⭐ evolve it (Lv10 + 2 copies).
 ]]
 local PetModel = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("PetModel"))
 
@@ -23711,7 +25086,7 @@ local Pets = { Title = "🐾 PETS", Color = Color3.fromRGB(120, 200, 90) }
 
 local MAX_VIEWPORTS = 24 -- 3D previews for the best pets (keeps phones smooth)
 
-local function viewport(parent: GuiObject, petName: string, variant: string?)
+local function viewport(parent: GuiObject, petName: string, variant: string?, growth)
 	local frame = Instance.new("ViewportFrame")
 	frame.BackgroundTransparency = 1
 	frame.Size = UDim2.fromOffset(64, 56)
@@ -23720,7 +25095,7 @@ local function viewport(parent: GuiObject, petName: string, variant: string?)
 	frame.Ambient = Color3.fromRGB(200, 200, 210)
 	frame.LightColor = Color3.new(1, 1, 1)
 	frame.Parent = parent
-	local model = PetModel.Build(petName, variant)
+	local model = PetModel.Build(petName, variant, growth)
 	model.Parent = frame
 	local camera = Instance.new("Camera")
 	local _, size = model:GetBoundingBox()
@@ -23759,7 +25134,7 @@ function Pets.Build(content, ctx)
 		button = Lib.Button({
 			Text = text,
 			Color = C.Gold,
-			Size = UDim2.fromOffset(170, 38),
+			Size = UDim2.fromOffset(150, 38),
 			LayoutOrder = order,
 			TextSize = 16,
 			Parent = actions,
@@ -23785,9 +25160,20 @@ function Pets.Build(content, ctx)
 	bulkButton("Common", "💰 Sell Commons", 1)
 	bulkButton("Uncommon", "💰 Sell Uncommons", 2)
 	Lib.Button({
+		Text = "📖 Index",
+		Color = Color3.fromRGB(110, 190, 255),
+		Size = UDim2.fromOffset(104, 38),
+		LayoutOrder = 5,
+		TextSize = 16,
+		Parent = actions,
+		OnClick = function()
+			ctx.Panels.Open("Index")
+		end,
+	})
+	Lib.Button({
 		Text = "🤝 Trade",
 		Color = C.Cyan,
-		Size = UDim2.fromOffset(120, 38),
+		Size = UDim2.fromOffset(104, 38),
 		LayoutOrder = 4,
 		TextSize = 16,
 		Parent = actions,
@@ -23828,7 +25214,195 @@ function Pets.Build(content, ctx)
 	local confirmSell = {} -- [petId] = os.clock()
 
 	local function income(pet)
-		return Util.PetIncome(Config, pet.Name, pet.Variant)
+		return Util.PetIncomeOf(Config, pet)
+	end
+
+	-- 🌱 pet detail: grow (feed ✨) and ⭐ evolve -------------------------------
+	local selectedId = nil
+	local detail = New("TextButton", {
+		Text = "",
+		AutoButtonColor = false,
+		BackgroundColor3 = Color3.fromRGB(16, 18, 28),
+		BackgroundTransparency = 0.05,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 30,
+		Visible = false,
+		Parent = content,
+	}, { Lib.Corner(14) })
+	local detailView = Instance.new("Frame")
+	detailView.BackgroundTransparency = 1
+	detailView.Size = UDim2.fromOffset(170, 170)
+	detailView.Position = UDim2.fromOffset(10, 10)
+	detailView.ZIndex = 31
+	detailView.Parent = detail
+	local function line(y: number, height: number, size: number, color: Color3?)
+		return Lib.Text({
+			Text = "",
+			TextColor3 = color or C.Text,
+			Size = UDim2.new(1, -200, 0, height),
+			Position = UDim2.fromOffset(190, y),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			MaxTextSize = size,
+			ZIndex = 31,
+			Parent = detail,
+		})
+	end
+	local dName = line(10, 30, 26)
+	local dStage = line(42, 24, 20, C.Gold)
+	local dIncome = line(68, 22, 18, C.Coins)
+	local xpBack = New("Frame", {
+		BackgroundColor3 = Color3.fromRGB(40, 44, 60),
+		Size = UDim2.new(1, -200, 0, 16),
+		Position = UDim2.fromOffset(190, 96),
+		ZIndex = 31,
+		Parent = detail,
+	}, { Lib.Corner(8) })
+	local xpFill = New("Frame", {
+		BackgroundColor3 = C.Green,
+		Size = UDim2.fromScale(0, 1),
+		ZIndex = 32,
+		Parent = xpBack,
+	}, { Lib.Corner(8) })
+	local xpText = Lib.Text({ Text = "", Size = UDim2.fromScale(1, 1), MaxTextSize = 12, ZIndex = 33, Parent = xpBack })
+	local dHelp = Lib.Text({
+		Text = "",
+		Font = Lib.BodyFont,
+		TextColor3 = C.Sub,
+		TextWrapped = true,
+		Size = UDim2.new(1, -200, 0, 54),
+		Position = UDim2.fromOffset(190, 116),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		MaxTextSize = 13,
+		ZIndex = 31,
+		Parent = detail,
+	})
+	local feedButton, evolveButton
+	local function act(name: string)
+		if not selectedId then
+			return
+		end
+		local result = Net.Invoke(name, selectedId)
+		if type(result) == "table" and result.Error then
+			Lib.PlaySound("Error")
+			ctx.Toast(result.Error, C.Red)
+		elseif type(result) == "table" and result.Ok then
+			Lib.PlaySound(if name == "PetEvolve" then "Fanfare" elseif result.Up then "LevelUp" else "Pop")
+		end
+	end
+	feedButton = Lib.Button({
+		Text = "🍖 Feed",
+		Color = C.Green,
+		Size = UDim2.new(0.5, -110, 0, 46),
+		Position = UDim2.new(0, 190, 1, -58),
+		TextSize = 17,
+		ZIndex = 31,
+		Parent = detail,
+		OnClick = function()
+			act("PetFeed")
+		end,
+	})
+	evolveButton = Lib.Button({
+		Text = "⭐ Evolve",
+		Color = C.Purple,
+		Size = UDim2.new(0.5, -110, 0, 46),
+		Position = UDim2.new(0.5, 90, 1, -58),
+		TextSize = 17,
+		ZIndex = 31,
+		Parent = detail,
+		OnClick = function()
+			act("PetEvolve")
+		end,
+	})
+	Lib.Button({
+		Text = "✕",
+		Color = C.Gray,
+		Size = UDim2.fromOffset(40, 40),
+		Position = UDim2.new(1, -46, 0, 6),
+		TextSize = 20,
+		ZIndex = 32,
+		Parent = detail,
+		OnClick = function()
+			selectedId = nil
+			detail.Visible = false
+		end,
+	})
+	local detailKey = ""
+	local function showDetail(data)
+		local pet = nil
+		for _, p in data.Pets do
+			if p.Id == selectedId then
+				pet = p
+			end
+		end
+		if not pet or not Config.Pets[pet.Name] then
+			detail.Visible = false
+			selectedId = nil
+			return
+		end
+		detail.Visible = true
+		local growth = Config.Growth
+		local level, stars = Util.PetLevel(pet), Util.PetStars(pet)
+		local stage = Util.PetStage(Config, level)
+		local key = pet.Id .. "|" .. level .. "|" .. stars .. "|" .. tostring(pet.Variant)
+		if key ~= detailKey then
+			detailKey = key
+			Lib.Clear(detailView)
+			local vp = viewport(detailView, pet.Name, pet.Variant, { Level = level, Stars = stars })
+			vp.Size = UDim2.fromScale(1, 1)
+			vp.Position = UDim2.fromScale(0.5, 0)
+			vp.ZIndex = 31
+		end
+		local name = T(pet.Name)
+		if pet.Variant then
+			name = T(pet.Variant) .. " " .. name
+		end
+		dName.Text = name .. (if stars > 0 then "  " .. string.rep("★", stars) else "")
+		dStage.Text = T("%s %s  •  Level %d/%d", stage.Icon, T(stage.Id), level, growth.MaxLevel)
+		dIncome.Text = T("💰 %s/s  •  ⚡ x%s", Util.Format(income(pet)), string.format("%.2f", Util.PetGrowthMult(Config, pet)))
+		local maxed = level >= growth.MaxLevel
+		if maxed then
+			xpFill.Size = UDim2.fromScale(1, 1)
+			xpText.Text = T("👑 MAX LEVEL")
+		else
+			local need = Util.PetXPNeed(Config, pet)
+			local xp = tonumber(pet.XP) or 0
+			xpFill.Size = UDim2.fromScale(math.clamp(xp / need, 0, 1), 1)
+			xpText.Text = string.format("%d / %d XP", xp, need)
+		end
+		-- copies available for evolving
+		local copies = 0
+		for _, other in data.Pets do
+			if other ~= pet and other.Name == pet.Name and not other.Away and not other.Serial then
+				copies += 1
+			end
+		end
+		local need = growth.Evolve.Copies
+		if stars >= growth.Evolve.MaxStars then
+			dHelp.Text = T("★★★ Fully evolved! The best version of this pet.")
+		elseif maxed then
+			dHelp.Text = T(
+				"⭐ Evolve: this pet + %d more %s (you have %d) -> ★%d, x%d income! (back to level 1)",
+				need,
+				T(pet.Name),
+				copies,
+				stars + 1,
+				growth.Evolve.StarMult
+			)
+		else
+			dHelp.Text = T(
+				"🌱 Grows while it follows you and helps, while it stands in your home, and when you feed it ✨ stardust. At level %d it can ⭐ evolve.",
+				growth.MaxLevel
+			)
+		end
+		local cost, xp = Util.PetFeed(Config, pet)
+		Lib.SetButton(feedButton, if maxed then T("👑 Max") else T("🍖 +%d XP  ✨%s", xp, Util.Format(cost)))
+		Lib.SetButton(
+			evolveButton,
+			if stars >= growth.Evolve.MaxStars then "★★★" else T("⭐ Evolve (%d/%d)", math.min(copies, need), need)
+		)
+		evolveButton.BackgroundColor3 = if maxed and copies >= need and stars < growth.Evolve.MaxStars then C.Purple else C.Gray
+		feedButton.BackgroundColor3 = if maxed then C.Gray elseif (data.Stardust or 0) >= cost then C.Green else C.Gray
 	end
 
 	local function pedestalKey(data): string
@@ -23864,7 +25438,10 @@ function Pets.Build(content, ctx)
 		for _, pet in displayPets do
 			where[pet.Id] = "display"
 		end
-		local mult = (derived.CoinMult or 1) * (if State.HasPass("DoubleBase") then 2 else 1) * (1 + Util.SetBonus(Config, data.Base.Items))
+		local mult = (derived.CoinMult or 1)
+			* (if State.HasPass("DoubleBase") then 2 else 1)
+			* (1 + Util.SetBonus(Config, data.Base.Items))
+			* (1 + Util.IndexBonus(Config, data))
 		for order, pet in pets do
 			local info = Config.Pets[pet.Name]
 			local rarity = Config.Rarities[info.Rarity]
@@ -23882,8 +25459,21 @@ function Pets.Build(content, ctx)
 				Lib.Corner(12),
 				Lib.Stroke(if pet.Variant then Color3.fromRGB(255, 210, 60) else rarity.Color, if pet.Variant then 4 else 3, 0),
 			})
+			-- tap the card: grow / evolve this pet
+			local open = New("TextButton", {
+				Text = "",
+				BackgroundTransparency = 1,
+				Size = UDim2.fromScale(1, 1),
+				Parent = card,
+			})
+			open.Activated:Connect(function()
+				Lib.PlaySound("UI")
+				selectedId = pet.Id
+				detailKey = ""
+				showDetail(State.Data)
+			end)
 			if order <= MAX_VIEWPORTS then
-				viewport(card, pet.Name, pet.Variant)
+				viewport(card, pet.Name, pet.Variant, { Level = Util.PetLevel(pet), Stars = Util.PetStars(pet) })
 			else
 				New("Frame", {
 					Size = UDim2.fromOffset(44, 44),
@@ -23907,6 +25497,39 @@ function Pets.Build(content, ctx)
 				MaxTextSize = 14,
 				Parent = card,
 			})
+			-- 🌱 level / ★ badge + xp bar
+			New("Frame", {
+				BackgroundColor3 = Color3.fromRGB(20, 22, 34),
+				BackgroundTransparency = 0.2,
+				Size = UDim2.fromOffset(58, 20),
+				Position = UDim2.new(1, -62, 0, 34),
+				ZIndex = 2,
+				Parent = card,
+			}, {
+				Lib.Corner(10),
+				Lib.Text({
+					Text = Util.PetBadge(Config, pet),
+					TextColor3 = C.Gold,
+					Size = UDim2.fromScale(1, 1),
+					MaxTextSize = 13,
+					ZIndex = 3,
+				}),
+			})
+			local level = Util.PetLevel(pet)
+			local xpShare = if level >= Config.Growth.MaxLevel
+				then 1
+				else math.clamp((tonumber(pet.XP) or 0) / Util.PetXPNeed(Config, pet), 0, 1)
+			local bar = New("Frame", {
+				BackgroundColor3 = Color3.fromRGB(40, 44, 60),
+				Size = UDim2.new(1, -10, 0, 4),
+				Position = UDim2.fromOffset(5, 104),
+				Parent = card,
+			}, { Lib.Corner(2) })
+			New("Frame", {
+				BackgroundColor3 = if level >= Config.Growth.MaxLevel then C.Gold else C.Green,
+				Size = UDim2.fromScale(xpShare, 1),
+				Parent = bar,
+			}, { Lib.Corner(2) })
 			local petMult = if place == "vault" then mult * Config.Base.VaultIncome else mult
 			Lib.Text({
 				Text = "💰" .. Util.Format(income(pet) * petMult) .. "/s",
@@ -23967,7 +25590,7 @@ function Pets.Build(content, ctx)
 					Net.Fire("PetShow", pet.Id, not pet.Show)
 					ctx.Toast(
 						if pet.Show
-							then T("🔒 This pet may go into a vault again (safe, half income)")
+							then T("🔒 This pet may go into a vault again (safe)")
 							else T("🏠 This pet stays on display: full income, but it can be stolen!"),
 						if pet.Show then C.Blue else C.Gold
 					)
@@ -23989,7 +25612,10 @@ function Pets.Build(content, ctx)
 					else
 						confirmSell[pet.Id] = os.clock()
 						sell.Text = "?"
-						ctx.Toast(T("Tap again to sell for 💰%s", Util.Format(math.floor(income(pet) * Config.PetSellSeconds))), C.Gold)
+						ctx.Toast(
+							T("Tap again to sell for 💰%s", Util.Format(math.max(1, math.floor(income(pet) * Config.PetSellSeconds)))),
+							C.Gold
+						)
 						task.delay(2.5, function()
 							if sell.Parent then
 								sell.Text = "💰"
@@ -24039,6 +25665,12 @@ function Pets.Build(content, ctx)
 					.. (if pet.Show then "s" else "")
 					.. (pet.Serial or "")
 					.. (if type(pet.HotUntil) == "number" and pet.HotUntil > os.time() then "h" else "")
+					.. "L"
+					.. Util.PetLevel(pet)
+					.. "x"
+					.. tostring(pet.XP or 0)
+					.. "s"
+					.. Util.PetStars(pet)
 			)
 		end
 		local newCount = 0
@@ -24062,6 +25694,9 @@ function Pets.Build(content, ctx)
 			signature = sig
 			rebuild(data, derived)
 		end
+		if selectedId then
+			showDetail(data)
+		end
 	end
 
 	return { Refresh = refresh }
@@ -24071,7 +25706,7 @@ return Pets
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="66">
+            <Item class="ModuleScript" referent="67">
               <Properties>
                 <string name="Name">Quests</string>
                 <string name="Source"><![CDATA[-- Daily login streak, daily quests, weekly ranked ladder, VIP chest, group reward
@@ -24379,7 +26014,7 @@ return Quests
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="67">
+            <Item class="ModuleScript" referent="68">
               <Properties>
                 <string name="Name">Rebirth</string>
                 <string name="Source"><![CDATA[-- Rebirth: reset coins/upgrades for a permanent coin multiplier + gems
@@ -24469,7 +26104,7 @@ return Rebirth
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="68">
+            <Item class="ModuleScript" referent="69">
               <Properties>
                 <string name="Name">Rewards</string>
                 <string name="Source"><![CDATA[-- One place for every free reward (instead of 4 separate menu buttons)
@@ -24554,7 +26189,7 @@ return Rewards
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="69">
+            <Item class="ModuleScript" referent="70">
               <Properties>
                 <string name="Name">Settings</string>
                 <string name="Source"><![CDATA[-- Settings: language (auto / 한국어 / English), sound, how to play
@@ -24676,7 +26311,7 @@ return Settings
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="70">
+            <Item class="ModuleScript" referent="71">
               <Properties>
                 <string name="Name">Shop</string>
                 <string name="Source"><![CDATA[-- Pickaxe + running-speed upgrades (coins sink, sequential tiers)
@@ -24813,7 +26448,7 @@ return Shop
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="71">
+            <Item class="ModuleScript" referent="72">
               <Properties>
                 <string name="Name">Spin</string>
                 <string name="Source"><![CDATA[-- Free prize wheel: one spin every few hours (VIP: faster). The server picks
@@ -25038,7 +26673,7 @@ return Spin
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="72">
+            <Item class="ModuleScript" referent="73">
               <Properties>
                 <string name="Name">Store</string>
                 <string name="Source"><![CDATA[-- Robux store: game passes, consumables (gems/boosts/server luck/meteor),
@@ -25303,7 +26938,7 @@ return Store
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="73">
+            <Item class="ModuleScript" referent="74">
               <Properties>
                 <string name="Name">Teleport</string>
                 <string name="Source"><![CDATA[-- Zone list: teleport to unlocked zones, unlock the next one
@@ -25385,7 +27020,7 @@ return Teleport
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="74">
+            <Item class="ModuleScript" referent="75">
               <Properties>
                 <string name="Name">Titles</string>
                 <string name="Source"><![CDATA[--[[
@@ -25460,6 +27095,13 @@ function Titles.Build(content, ctx)
 		elseif need.Delivered then
 			local have = stats.ShardsDelivered or 0
 			return T("Bring %d star eggs home", need.Delivered), string.format("%d/%d", math.min(have, need.Delivered), need.Delivered)
+		elseif need.MeteorPets then
+			local have = stats.MeteorPets or 0
+			return T("Hatch %d ☄️ meteor pet", need.MeteorPets),
+				string.format("%d/%d", math.min(have, need.MeteorPets), need.MeteorPets)
+		elseif need.Evolved then
+			local have = stats.Evolved or 0
+			return T("⭐ Evolve %d pets", need.Evolved), string.format("%d/%d", math.min(have, need.Evolved), need.Evolved)
 		elseif need.Pass then
 			return T("Own the VIP pass"), ""
 		end
@@ -25578,7 +27220,7 @@ return Titles
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="75">
+            <Item class="ModuleScript" referent="76">
               <Properties>
                 <string name="Name">Trade</string>
                 <string name="Source"><![CDATA[--[[
@@ -25864,7 +27506,7 @@ return Trade
               </Properties>
             </Item>
           </Item>
-          <Item class="ModuleScript" referent="76">
+          <Item class="ModuleScript" referent="77">
             <Properties>
               <string name="Name">Root</string>
               <string name="Source"><![CDATA[--[[
@@ -25950,7 +27592,7 @@ return Root
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="77">
+          <Item class="ModuleScript" referent="78">
             <Properties>
               <string name="Name">Upsell</string>
               <string name="Source"><![CDATA[--[[
@@ -26084,13 +27726,13 @@ return Upsell
       </Item>
     </Item>
   </Item>
-  <Item class="TextChatService" referent="78">
+  <Item class="TextChatService" referent="79">
     <Properties>
       <string name="Name">TextChatService</string>
       <token name="ChatVersion">1</token>
     </Properties>
   </Item>
-  <Item class="Workspace" referent="79">
+  <Item class="Workspace" referent="80">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>

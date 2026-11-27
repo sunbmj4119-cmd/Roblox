@@ -254,6 +254,135 @@ function Util.PetIncome(config, petName: string, variant: string?): number
 	return (info.Income or 0) * (if def then def.IncomeMult or 1 else 1)
 end
 
+---------------------------------------------------------------------------
+-- 🌱 pet growth: level 1..MaxLevel, ★ stars from evolving (Config.Growth)
+---------------------------------------------------------------------------
+function Util.PetLevel(pet): number
+	return math.max(1, math.floor(tonumber(pet and pet.Level) or 1))
+end
+
+function Util.PetStars(pet): number
+	return math.max(0, math.floor(tonumber(pet and pet.Stars) or 0))
+end
+
+-- income / power multiplier from level + stars
+function Util.PetGrowthMult(config, pet): number
+	local growth = config.Growth
+	if not growth or not pet then
+		return 1
+	end
+	local level = math.min(Util.PetLevel(pet), growth.MaxLevel)
+	return (1 + growth.LevelBonus * (level - 1)) * growth.Evolve.StarMult ^ Util.PetStars(pet)
+end
+
+-- a pet's real income per second (species x mutation x growth)
+function Util.PetIncomeOf(config, pet): number
+	return Util.PetIncome(config, pet.Name, pet.Variant) * Util.PetGrowthMult(config, pet)
+end
+
+function Util.PetPowerOf(config, pet): number
+	return Util.PetPower(config, pet.Name, pet.Variant) * Util.PetGrowthMult(config, pet)
+end
+
+-- xp needed to go from the pet's level to the next (rarer pets take longer)
+function Util.PetXPNeed(config, pet): number
+	local growth = config.Growth
+	local info = config.Pets[pet.Name]
+	local rarity = info and config.Rarities[info.Rarity]
+	local order = if rarity then rarity.Order else 1
+	local level = Util.PetLevel(pet)
+	return math.floor(growth.XPBase * level ^ growth.XPPow * (1 + growth.XPRarity * (order - 1)))
+end
+
+function Util.PetStage(config, level: number)
+	local stages = config.Growth.Stages
+	local best = stages[1]
+	for _, stage in stages do
+		if level >= stage.Min then
+			best = stage
+		end
+	end
+	return best
+end
+
+-- "👑10 ★★" / "🍼3" (shown on cards, pedestals and follow pets)
+function Util.PetBadge(config, pet): string
+	local level = Util.PetLevel(pet)
+	local stage = Util.PetStage(config, level)
+	local stars = Util.PetStars(pet)
+	return stage.Icon .. level .. (if stars > 0 then " " .. string.rep("★", stars) else "")
+end
+
+-- stardust cost of one feed, and the xp it gives
+function Util.PetFeed(config, pet): (number, number)
+	local growth = config.Growth
+	local xp = math.max(5, math.floor(Util.PetXPNeed(config, pet) * growth.FeedShare))
+	return math.ceil(xp * growth.FeedCost), xp
+end
+
+---------------------------------------------------------------------------
+-- 📖 collection index (Config.Index)
+---------------------------------------------------------------------------
+function Util.IndexCount(data): number
+	local n = 0
+	for _ in data.PetIndex or {} do
+		n += 1
+	end
+	return n
+end
+
+-- egg sets: every pet of the egg discovered (Robux / reward-only eggs don't count)
+function Util.IndexSets(config, data)
+	local sets = {}
+	for _, eggId in config.EggOrder do
+		local egg = config.Eggs[eggId]
+		if egg and egg.Pets and egg.Currency ~= "Robux" then
+			local have, total = 0, 0
+			for _, entry in egg.Pets do
+				local name = entry[1]
+				total += 1
+				if data.PetIndex and data.PetIndex[name] then
+					have += 1
+				end
+			end
+			table.insert(sets, { Egg = eggId, Have = have, Total = total, Done = total > 0 and have >= total })
+		end
+	end
+	-- ☄️ meteor pets are a set of their own
+	local meteor = config.Meteor and config.Meteor.MeteorPets
+	if meteor then
+		local have = 0
+		for _, name in meteor do
+			if data.PetIndex and data.PetIndex[name] then
+				have += 1
+			end
+		end
+		table.insert(sets, { Egg = "Meteor", Have = have, Total = #meteor, Done = have >= #meteor })
+	end
+	return sets
+end
+
+-- permanent home income bonus from claimed milestones + completed sets
+function Util.IndexBonus(config, data): number
+	local index = config.Index
+	if not index then
+		return 0
+	end
+	local bonus = 0
+	local claimed = data.IndexClaimed or {}
+	for i, milestone in index.Milestones do
+		if claimed[tostring(i)] and milestone.Bonus then
+			bonus += milestone.Bonus
+		end
+	end
+	for _, set in Util.IndexSets(config, data) do
+		if set.Done then
+			bonus += index.SetBonus
+		end
+	end
+	return bonus
+end
+
 -- the egg shop restocks every RestockSeconds; slot = which restock we're in
 function Util.ShopSlot(config, serverTime: number): number
 	return math.floor(serverTime / config.Shop.RestockSeconds)
@@ -443,7 +572,7 @@ end
 function Util.PetWorth(config, data): number
 	local total = 0
 	for _, pet in data.Pets do
-		total += Util.PetIncome(config, pet.Name, pet.Variant)
+		total += Util.PetIncomeOf(config, pet)
 	end
 	return total
 end
@@ -480,8 +609,8 @@ function Util.ArrangePets(config, data)
 		end
 	end
 	table.sort(list, function(a, b)
-		local ia = Util.PetIncome(config, a.Name, a.Variant)
-		local ib = Util.PetIncome(config, b.Name, b.Variant)
+		local ia = Util.PetIncomeOf(config, a)
+		local ib = Util.PetIncomeOf(config, b)
 		if ia == ib then
 			return a.Id < b.Id
 		end
@@ -596,6 +725,12 @@ function Util.TitleUnlocked(config, title, data, hasPass): boolean
 		return false
 	end
 	if need.Meteors and (stats.MeteorJoins or 0) < need.Meteors then
+		return false
+	end
+	if need.MeteorPets and (stats.MeteorPets or 0) < need.MeteorPets then
+		return false
+	end
+	if need.Evolved and (stats.Evolved or 0) < need.Evolved then
 		return false
 	end
 	if need.Delivered and (stats.ShardsDelivered or 0) < need.Delivered then

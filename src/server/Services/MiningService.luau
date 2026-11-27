@@ -647,6 +647,7 @@ local function petHelpFor(player: Player)
 	local meteor = Services.MeteorService
 	if meteor:IsActive() and meteor:InRange(root.Position) then
 		if meteor:PetHit(player, pets, damage) then
+			Services.PetService:AddFollowXP(player, Config.Growth.HelpXP)
 			local at = meteor:Position()
 			if at then
 				sendPetHelp(player, root.Position, { at })
@@ -682,8 +683,77 @@ local function petHelpFor(player: Player)
 	end
 	if #targets > 0 then
 		sendPetHelp(player, root.Position, targets)
+		Services.PetService:AddFollowXP(player, Config.Growth.HelpXP)
 		Data:MarkDirty(player)
 	end
+end
+
+---------------------------------------------------------------------------
+-- rival players (RivalService)
+---------------------------------------------------------------------------
+-- the closest ore in a zone (where a rival goes mining)
+function Mining:NearestOreIn(zone: number, position: Vector3): BasePart?
+	local best, bestDistance = nil, math.huge
+	for part in zoneBlocks[zone] or {} do
+		local distance = (part.Position - position).Magnitude
+		if distance < bestDistance then
+			best, bestDistance = part, distance
+		end
+	end
+	return best
+end
+
+-- a rival hits an ore (no rewards; the ore breaks and respawns like any other)
+function Mining:NpcHit(part: BasePart, damage: number): boolean
+	local info = blockInfo[part]
+	if not info then
+		return false
+	end
+	info.HP -= damage
+	if info.HP > 0 then
+		part:SetAttribute("HP", info.HP)
+		return true
+	end
+	removeBlock(part, info)
+	return true
+end
+
+-- may a rival bonk this player? (same safety rules as players, plus: never a
+-- new player's first egg, never in the base district)
+function Mining:CanNpcBonk(victim: Player): boolean
+	local data = Data:Get(victim)
+	local root = victim.Character and victim.Character:FindFirstChild("HumanoidRootPart")
+	if not data or not root or not root:IsA("BasePart") or not Services.ShardService:IsCarrying(victim) then
+		return false
+	end
+	local tutorial = data.Tutorial
+	if tutorial and not tutorial.Done and tutorial.Step <= 3 then
+		return false
+	end
+	if (root.Position - World.HubSpawn.Position).Magnitude <= Config.World.SpawnSafeRadius then
+		return false
+	end
+	if Util.InBases(Config, root.Position) then
+		return false
+	end
+	return (immunity[victim] or 0) <= os.clock()
+end
+
+function Mining:NpcBonk(attackerRoot: BasePart, attackerName: string, victim: Player): boolean
+	if not self:CanNpcBonk(victim) then
+		return false
+	end
+	local vRoot = victim.Character and victim.Character:FindFirstChild("HumanoidRootPart") :: BasePart
+	if not vRoot or (vRoot.Position - attackerRoot.Position).Magnitude > Config.PvP.BonkRange then
+		return false
+	end
+	immunity[victim] = os.clock() + Config.PvP.ImmunitySeconds
+	Services.ShardService:Drop(victim, nil)
+	local direction = (vRoot.Position - attackerRoot.Position) * Vector3.new(1, 0, 1)
+	direction = if direction.Magnitude > 0.01 then direction.Unit else Vector3.zAxis
+	Net:Send(victim, "Knockback", direction * Config.PvP.Knockback + Vector3.new(0, 35, 0))
+	Net:Send(victim, "Bonked", attackerName)
+	return true
 end
 
 -- cloud tests: one pet-help tick for a player now

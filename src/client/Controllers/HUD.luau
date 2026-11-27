@@ -263,6 +263,15 @@ local MENU = {
 	},
 	{ "Rewards", "🎁", "Rewards", C.Pink, tutorialDone },
 	{
+		"Index",
+		"📖",
+		"Index",
+		Color3.fromRGB(110, 190, 255),
+		function(d)
+			return tutorialAt(d, 4)
+		end,
+	},
+	{
 		"Pass",
 		"🎫",
 		"Pass",
@@ -896,6 +905,15 @@ function HUD.Refresh()
 	badges.Rewards.Visible = ready.Quests or ready.Gifts or ready.Spin
 	badges.Pass.Visible = anyTierClaimable(data)
 	badges.Rebirth.Visible = data.Coins >= (derived.RebirthCost or math.huge)
+	-- 📖 an index milestone is ready to claim
+	local indexReady = false
+	local found = Util.IndexCount(data)
+	for i, milestone in Config.Index.Milestones do
+		if found >= milestone.Count and not (data.IndexClaimed or {})[tostring(i)] then
+			indexReady = true
+		end
+	end
+	badges.Index.Visible = indexReady
 	local hiddenBadge = false
 	for id, badge in badges do
 		if not PRIMARY[id] and id ~= "More" and badge.Visible and menuButtons[id].Visible then
@@ -1177,6 +1195,46 @@ end)
 Net.On("RankUp", function(rankName)
 	Lib.PlaySound("RankUp")
 	celebrate(T("🏅 %s RANK!", tostring(rankName)), T("Weekly ranked - keep climbing!"), C.Cyan)
+end)
+-- 🌱 pets growing up / ⭐ evolving
+Net.On("PetLevelUp", function(ups)
+	if type(ups) ~= "table" or #ups == 0 then
+		return
+	end
+	local grew = nil
+	local names = {}
+	for _, up in ups do
+		if type(up) == "table" then
+			if up.Grew then
+				grew = up
+			end
+			table.insert(names, T(up.Name) .. " " .. Util.PetBadge(Config, up))
+		end
+	end
+	if grew then
+		Lib.PlaySound("LevelUp")
+		local stage = Util.PetStage(Config, grew.Level)
+		celebrate(
+			T("%s %s grew up!", stage.Icon, T(grew.Name)),
+			T("%s %s  •  more 💰 and ⚡", T(stage.Id), Util.PetBadge(Config, grew)),
+			C.Green,
+			false
+		)
+	else
+		Lib.PlaySound("Reward", 0.6)
+		HUD.Toast(T("🌱 Level up! %s", table.concat(names, "  •  ")), C.Green)
+	end
+end)
+Net.On("PetEvolved", function(card)
+	if type(card) ~= "table" then
+		return
+	end
+	Lib.PlaySound("Fanfare")
+	celebrate(
+		T("⭐ EVOLVED! %s %s", string.rep("★", card.Stars or 1), T(card.Name)),
+		T("x%d income & power - grow it again to level %d!", Config.Growth.Evolve.StarMult, Config.Growth.MaxLevel),
+		C.Purple
+	)
 end)
 Net.On("TutorialStep", function(_, rewardText)
 	Lib.PlaySound("Reward")

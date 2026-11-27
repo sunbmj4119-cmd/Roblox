@@ -390,6 +390,56 @@ do
 	check(Config.Events.RaidEvery >= 2, "raids must not be every event")
 end
 
+-- 🌱 growth / 📖 index / ☄️ meteor pets / rivals
+do
+	local growth = Config.Growth
+	check(growth.MaxLevel >= 5 and growth.LevelBonus > 0, "growth levels")
+	local last = 0
+	for _, stage in growth.Stages do
+		check(stage.Min > last and stage.Scale > 0, "growth stages must go up")
+		last = stage.Min
+	end
+	check(growth.Evolve.Copies >= 1 and growth.Evolve.MaxStars >= 1 and growth.Evolve.StarMult > 1, "evolve settings")
+	check(#growth.StarColors >= growth.Evolve.MaxStars, "a star colour per star")
+	local need = Util.PetXPNeed(Config, { Name = "Bunny", Level = 1 })
+	local needTop = Util.PetXPNeed(Config, { Name = "Black Hole Kitty", Level = growth.MaxLevel - 1 })
+	check(need > 0 and needTop > need, "xp needs must grow with level and rarity")
+	local cost, xp = Util.PetFeed(Config, { Name = "Bunny", Level = 1 })
+	check(cost > 0 and xp > 0, "feeding cost")
+	local total = 0
+	for level = 1, growth.MaxLevel - 1 do
+		total += Util.PetXPNeed(Config, { Name = "Fox", Level = level })
+	end
+	print(
+		string.format(
+			"Growth: a Rare pet needs %d xp for Lv%d (~%d min of pet help)",
+			total,
+			growth.MaxLevel,
+			math.floor(total / (growth.HelpXP / Config.PetHelp.Interval * 60))
+		)
+	)
+	local lastCount = 0
+	for _, milestone in Config.Index.Milestones do
+		check(milestone.Count > lastCount and (milestone.Gems or 0) >= 0, "index milestones must go up")
+		lastCount = milestone.Count
+	end
+	local petCount = 0
+	for _ in Config.Pets do
+		petCount += 1
+	end
+	check(lastCount <= petCount, "the last index milestone needs more pets than exist")
+	check(#Config.Meteor.MeteorPets == #Config.Meteor.Kinds, "one meteor pet per meteor kind")
+	for _, name in Config.Meteor.MeteorPets do
+		check(Config.Pets[name] ~= nil and Config.Pets[name].Meteor == true, "meteor pet " .. name .. " missing")
+	end
+	for id in Config.Meteor.MeteorPetChance do
+		check(Config.Shards.Rarities[id] ~= nil, "meteor pet chance for unknown star egg " .. id)
+	end
+	local look = Config.Rivals.Look
+	check(#look.Hair > 0 and #look.Shirts > 0 and #look.Pants > 0 and #look.Skins > 0, "rival looks")
+	check(#Config.Rivals.Names >= Config.Rivals.Count * 2, "enough rival names")
+end
+
 -- star shards + bases
 do
 	local shards = Config.Shards

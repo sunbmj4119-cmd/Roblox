@@ -196,6 +196,51 @@ Config.Rebirth = {
 ---------------------------------------------------------------------------
 Config.BasePetSlots = 3
 Config.MaxPetSlots = 12
+-- 🌱 PET GROWTH (like Adopt Me aging / Grow a Garden pet levels): pets level
+-- up while they help you (following + mining / smashing), while they stand in
+-- your home, and when you feed them ✨ stardust. Every level = more income
+-- and power; they visibly grow (🍼 baby -> 🐣 junior -> ⭐ adult -> 👑 legend).
+-- ⭐ EVOLVE (like Neon pets / PS99 fusing): a level-10 pet + 2 copies of the
+-- same pet -> ★ evolved (x2 income & power per star, max ★3), back to level 1.
+Config.Growth = {
+	MaxLevel = 10,
+	LevelBonus = 0.15, -- +15% income & power per level above 1 (Lv10 = x2.35)
+	XPBase = 20, -- xp to the next level = XPBase * level^XPPow * (1 + XPRarity * (rarity - 1))
+	XPPow = 1.6,
+	XPRarity = 0.35,
+	HelpXP = 2, -- each pet-help hit (following pets)
+	MeteorXP = 30, -- following pets, when you help smash a meteor
+	DeliverXP = 15, -- following pets, when you bring a star egg home
+	HomeXPPerMinute = 1, -- pets standing in your home (while you're in the game)
+	FeedShare = 0.25, -- one feed = 25% of the level
+	FeedCost = 3, -- ✨ stardust per xp
+	Stages = {
+		{ Min = 1, Id = "Baby", Icon = "🍼", Scale = 0.72 },
+		{ Min = 4, Id = "Junior", Icon = "🐣", Scale = 0.86 },
+		{ Min = 7, Id = "Adult", Icon = "⭐", Scale = 1 },
+		{ Min = 10, Id = "Legend", Icon = "👑", Scale = 1.12 },
+	},
+	Evolve = { MaxStars = 3, Copies = 2, StarMult = 2, StarScale = 0.08 },
+	StarColors = { Color3.fromRGB(150, 220, 255), Color3.fromRGB(255, 210, 70), Color3.fromRGB(255, 110, 220) },
+}
+
+-- 📖 COLLECTION INDEX (the strongest retention tool of pet games): every pet
+-- you discover counts; milestones pay gems and a PERMANENT home income bonus,
+-- completing all pets of an egg ("set") adds a little more.
+Config.Index = {
+	Milestones = {
+		{ Count = 5, Gems = 50 },
+		{ Count = 10, Gems = 100, Bonus = 0.05 },
+		{ Count = 15, Gems = 200 },
+		{ Count = 20, Gems = 300, Bonus = 0.05 },
+		{ Count = 25, Gems = 500 },
+		{ Count = 30, Gems = 800, Bonus = 0.1 },
+		{ Count = 35, Gems = 1200 },
+		{ Count = 40, Gems = 2000, Bonus = 0.15 },
+	},
+	SetBonus = 0.03, -- per completed egg set
+}
+
 Config.MaxPets = 60 -- pet storage (the best ones go on your pedestals)
 Config.PetSellSeconds = 60 -- selling a pet pays this many seconds of its income
 
@@ -342,6 +387,54 @@ Config.Pets = {
 		Color = Color3.fromRGB(255, 230, 120),
 		Shape = "Ball",
 		Horns = true,
+	},
+	-- ☄️ METEOR PETS: only born from a meteor's star eggs (one per meteor kind)
+	["Comet Bunny"] = {
+		Rarity = "Rare",
+		Power = 1.2,
+		Income = 8,
+		Color = Color3.fromRGB(150, 255, 170),
+		Shape = "Ball",
+		Ears = true,
+		Meteor = true,
+	},
+	["Aurora Fox"] = {
+		Rarity = "Epic",
+		Power = 9,
+		Income = 400,
+		Color = Color3.fromRGB(140, 220, 255),
+		Shape = "Block",
+		Ears = true,
+		Meteor = true,
+	},
+	["Meteor Drake"] = {
+		Rarity = "Legendary",
+		Power = 140,
+		Income = 25000,
+		Color = Color3.fromRGB(255, 120, 40),
+		Shape = "Block",
+		Wings = true,
+		Horns = true,
+		Meteor = true,
+	},
+	["Nebula Wisp"] = {
+		Rarity = "Mythic",
+		Power = 1800,
+		Income = 800000,
+		Color = Color3.fromRGB(190, 110, 255),
+		Shape = "Ball",
+		Wings = true,
+		Meteor = true,
+	},
+	["Starfall Titan"] = {
+		Rarity = "Secret",
+		Power = 7000,
+		Income = 3000000,
+		Color = Color3.fromRGB(255, 120, 230),
+		Shape = "Block",
+		Horns = true,
+		Wings = true,
+		Meteor = true,
 	},
 	-- Rewards-only pets
 	["Starter Dino"] = { Rarity = "Epic", Power = 4, Income = 160, Color = Color3.fromRGB(90, 220, 120), Shape = "Block", Horns = true },
@@ -669,6 +762,10 @@ Config.Meteor = {
 		{ Id = "Giant", Name = "Giant", Weight = 12, Radius = 12, HP = 1.6, Eggs = 3 },
 	},
 	GoldenChance = 0.08, -- ✨ golden meteor: 2x egg luck, 3x coin chunks
+	-- ☄️ a meteor's star eggs can hatch its METEOR PET (by star egg rarity;
+	-- x2 from a golden meteor). Kind index -> pet.
+	MeteorPets = { "Comet Bunny", "Aurora Fox", "Meteor Drake", "Nebula Wisp", "Starfall Titan" },
+	MeteorPetChance = { Common = 0.02, Rare = 0.04, Epic = 0.07, Legendary = 0.12, Mythic = 0.2, Secret = 0.35 },
 	Spill = { Base = 3, PerParticipant = 1, Max = 10, Luck = 2.5, GoldenLuck = 2, Guardians = 2, LuckyChance = 0.3 },
 	Chunks = { Count = 8, Seconds = 12, Min = 150, GoldenMult = 3, Lifetime = 60 },
 	FirstCrackGems = 50, -- first time you crack each meteor kind (meteor index)
@@ -697,32 +794,88 @@ Config.PetHelp = {
 	MeteorShare = 0.25, -- each pet adds 25% of a hit's meteor score
 }
 
--- 🤖 rival robots: with only 1-2 players in a server, two hover robots join
--- the meteor race (they smash too, steal unclaimed eggs and try to fly away;
--- bonk them to make them drop the egg)
+-- rivals: with only 1-2 players in a server, two rival players join (game
+-- characters with regular avatars made from official Roblox catalog items).
+-- They mine, race to meteors, smash them, grab unclaimed eggs and run home,
+-- and sometimes bonk a player carrying an egg. Bonk them back!
 Config.Rivals = {
 	MaxRealPlayers = 2,
 	Count = 2,
-	Names = { "Rocky", "Zip", "Bolt", "Nova", "Pip", "Dex", "Sparky", "Comet" },
-	Colors = {
-		Color3.fromRGB(255, 120, 90),
-		Color3.fromRGB(110, 170, 255),
-		Color3.fromRGB(170, 120, 255),
-		Color3.fromRGB(255, 190, 70),
+	Names = {
+		"Minjun",
+		"Seoyeon",
+		"Jiho",
+		"Yuna",
+		"Haneul",
+		"Jayden",
+		"Mia",
+		"Leo",
+		"Noah",
+		"Chloe",
+		"Ethan",
+		"Lily",
+		"Lucas",
+		"Zoe",
+		"Ryan",
+		"Sora",
 	},
-	Dock = Vector3.new(-40, 0, 52), -- where they hover in the hub between meteors
-	HoverY = 3,
 	Speed = 18, -- (players walk 22: you can beat them to the meteor)
-	CarrySpeed = 11, -- slow while carrying: you can catch them
 	Pace = 0.6, -- they smash at 60% of the average player's pace
-	GrabDelay = 5, -- an egg must lie there this long before a robot takes it
-	GrabRange = 3,
+	GrabDelay = 5, -- an egg must lie there this long before a rival takes it
+	GrabRange = 4,
 	SearchRange = 120,
-	EscapeSeconds = 14, -- then it beams up with the egg
-	StunSeconds = 3,
-	DropBlockSeconds = 20, -- robots keep off an egg knocked out of their hands
+	StunSeconds = 2.5,
+	DropBlockSeconds = 20, -- rivals keep off an egg knocked out of their hands
 	BonkMinCoins = 50,
 	BonkIncomeSeconds = 8, -- reward: 8s of your home income
+	-- they try to bonk a player carrying an egg now and then
+	Bonk = { ChaseRange = 26, ChaseSeconds = 6, Range = 7, Cooldown = 20 },
+	-- avatar pieces: free items made by Roblox (catalog search, checked in game)
+	Look = {
+		Skins = {
+			Color3.fromRGB(234, 184, 146),
+			Color3.fromRGB(255, 204, 153),
+			Color3.fromRGB(204, 142, 105),
+			Color3.fromRGB(124, 92, 70),
+			Color3.fromRGB(245, 205, 48),
+			Color3.fromRGB(253, 234, 141),
+		},
+		Hair = {
+			63690008,
+			2956239660,
+			451221329,
+			1103003368,
+			376526888,
+			376524487,
+			376548738,
+			376527350,
+			451220849,
+			3814474927,
+			3814476174,
+			62234425,
+			7193442167,
+			6993754725,
+			7193448258,
+			9244111257,
+		},
+		HatChance = 0.3,
+		Hats = { 607702162, 417457461, 2646473721, 607700713 },
+		Shirts = {
+			144076358,
+			607785314,
+			398633584,
+			144076436,
+			398634295,
+			3670737444,
+			382538059,
+			398635081,
+			382537702,
+			382537085,
+			382538295,
+			4047886060,
+		},
+		Pants = { 144076760, 398634487, 398633812, 398635338, 382537806, 382538503, 382537569, 382537950 },
+	},
 }
 
 -- bonking: only players carrying a star shard can be bonked (they drop it)
@@ -774,6 +927,8 @@ Config.Titles = {
 	{ Id = "Tycoon", Name = "💰 Tycoon", Color = Color3.fromRGB(255, 215, 60), Need = { LifetimeCoins = 1000000000 } },
 	{ Id = "MeteorHunter", Name = "☄️ Meteor Hunter", Color = Color3.fromRGB(255, 150, 70), Need = { Meteors = 25 } },
 	{ Id = "StarRunner", Name = "🌠 Star Runner", Color = Color3.fromRGB(140, 210, 255), Need = { Delivered = 25 } },
+	{ Id = "StarChild", Name = "☄️ Star Child", Color = Color3.fromRGB(255, 150, 80), Need = { MeteorPets = 1 } },
+	{ Id = "Evolver", Name = "⭐ Evolver", Color = Color3.fromRGB(150, 220, 255), Need = { Evolved = 3 } },
 	{ Id = "Lucky", Name = "🍀 Lucky Charm", Color = Color3.fromRGB(120, 255, 140), Need = { Lucky = 25 } },
 	{ Id = "Prankster", Name = "🎭 Prankster", Color = Color3.fromRGB(255, 170, 90), Need = { Pranks = 10 } },
 	{ Id = "Titanic", Name = "🗿 Titanic Owner", Color = Color3.fromRGB(255, 120, 60), Need = { Titanic = 1 } },

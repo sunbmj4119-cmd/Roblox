@@ -72,8 +72,11 @@ local TEMPLATE = {
 	Equipped = {}, -- { petId, ... }
 	NextPetUid = 1,
 	PetIndex = {}, -- [petName] = true
+	IndexClaimed = {}, -- ["milestone index"] = true (📖 collection rewards)
 	Boosts = { Coins2x = 0, Luck2x = 0, Power2x = 0 }, -- remaining seconds
 	Stats = {
+		Evolved = 0, -- ⭐ pets evolved
+		MeteorPets = 0, -- ☄️ meteor pets hatched
 		BlocksMined = 0,
 		LifetimeCoins = 0,
 		EggsHatched = 0,

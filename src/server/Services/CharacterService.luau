@@ -107,6 +107,8 @@ function CharacterService:GivePickaxe(player: Player)
 	end
 end
 
+CharacterService.BuildPickaxe = buildPickaxe -- (rival players hold one too)
+
 local padUntil = {} -- [player] = os.clock() when the dash pad boost ends
 local stunnedUntil = {} -- [player] = os.clock() when a trap/guardian stun ends
 local DEFAULT_JUMP = 7.2

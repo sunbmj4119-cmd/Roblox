@@ -466,6 +466,10 @@ local function finish(destroyed: boolean)
 			data.Stardust += stardust
 			data.Gems += gems
 			data.Stats.MeteorJoins += 1
+			if destroyed then
+				-- 🌱 the pets that helped grow
+				Services.PetService:AddFollowXP(player, Config.Growth.MeteorXP)
+			end
 			if place == 1 and destroyed then
 				data.Stats.MeteorWins += 1
 			end
@@ -511,6 +515,8 @@ local function finish(destroyed: boolean)
 		local ok, err = pcall(function()
 			Services.ShardService:SpillMeteor(Vector3.new(ground.X, 0, ground.Z), list, {
 				Egg = kind.Egg,
+				Kind = current.Kind,
+				Golden = current.Golden,
 				Luck = spill.Luck * (if current.Golden then spill.GoldenLuck else 1),
 				Extra = current.Size.Eggs,
 				Narrow = current.Type == "Avenue",

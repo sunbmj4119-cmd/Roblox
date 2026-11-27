@@ -133,7 +133,15 @@ local function complete(session)
 	end
 	local function add(data, pets)
 		for _, pet in pets do
-			local copy = { Id = data.NextPetUid, Name = pet.Name, Variant = pet.Variant, Serial = pet.Serial }
+			local copy = {
+				Id = data.NextPetUid,
+				Name = pet.Name,
+				Variant = pet.Variant,
+				Serial = pet.Serial,
+				Level = pet.Level,
+				XP = pet.XP,
+				Stars = pet.Stars,
+			}
 			data.NextPetUid += 1
 			table.insert(data.Pets, copy)
 			data.PetIndex[pet.Name] = true
