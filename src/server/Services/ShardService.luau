@@ -674,16 +674,32 @@ local function deliver(player: Player)
 			Net:Announce("🦹 %s stole a %s from %s!", itemColor(item), player.DisplayName, display, owner.DisplayName)
 		end
 	else
-		-- a star egg: it hatches right here
-		local def = SETTINGS.Rarities[item.Rarity]
-		local meteorInfo = if item.MeteorKind then { Kind = item.MeteorKind, Golden = item.Golden, Rarity = item.Rarity } else nil
-		local result = pets:HatchStarEgg(player, item.Egg, if def then def.Luck or 1 else 1, meteorInfo)
+		-- a star egg: into a home incubator (it grows, then you hatch it);
+		-- the tutorial egg / a full house hatches it right here
+		local incubators = Services.IncubatorService
+		local ok, incubating = pcall(function()
+			return incubators ~= nil and incubators:Add(player, item)
+		end)
 		pcall(pets.AddFollowXP, pets, player, Config.Growth.DeliverXP)
 		if data then
 			data.Stats.ShardsDelivered = (data.Stats.ShardsDelivered or 0) + 1
 		end
-		Services.Analytics:Custom(player, "StarEggHatched", tier)
-		Net:Send(player, "ShardDelivered", rarityName(item.Rarity), "Hatched", 0, result and result.Name)
+		if ok and incubating then
+			Services.Analytics:Custom(player, "StarEggIncubated", tier)
+			Net:Send(
+				player,
+				"ShardDelivered",
+				rarityName(item.Rarity),
+				"Incubating",
+				Util.IncubateSeconds(Config, item.Rarity, item.Golden)
+			)
+		else
+			local def = SETTINGS.Rarities[item.Rarity]
+			local meteorInfo = if item.MeteorKind then { Kind = item.MeteorKind, Golden = item.Golden, Rarity = item.Rarity } else nil
+			local result = pets:HatchStarEgg(player, item.Egg, if def then def.Luck or 1 else 1, meteorInfo)
+			Services.Analytics:Custom(player, "StarEggHatched", tier)
+			Net:Send(player, "ShardDelivered", rarityName(item.Rarity), "Hatched", 0, result and result.Name)
+		end
 		if tier >= 4 then
 			Net:Announce("🌟 %s brought a %s home!", itemColor(item), player.DisplayName, rarityName(item.Rarity))
 		end

@@ -176,13 +176,13 @@ end)
 local topLeft = Root.Cluster("TopLeft", Vector2.zero, UDim2.fromOffset(12, 12), UDim2.fromOffset(260, 520))
 Lib.List(Enum.FillDirection.Vertical, 5, Enum.HorizontalAlignment.Left).Parent = topLeft
 
-local function pill(order: number, icon: string, color: Color3)
+local function pill(order: number, icon: string, color: Color3, parent: Instance?, width: number?)
 	local frame = New("Frame", {
 		BackgroundColor3 = DARK,
 		BackgroundTransparency = 0.1,
-		Size = UDim2.fromOffset(210, 36),
+		Size = UDim2.fromOffset(width or 210, 36),
 		LayoutOrder = order,
-		Parent = topLeft,
+		Parent = parent or topLeft,
 	}, { Lib.Corner(18), Lib.Stroke(color, 2.5, 0) })
 	Lib.Text({
 		Text = icon,
@@ -206,7 +206,13 @@ end
 
 local coinPill, coinLabel = pill(1, "💰", C.Coins)
 local _, gemLabel = pill(2, "💎", C.Gems)
-local dustPill, dustLabel = pill(3, "✨", C.Stardust)
+-- ✨ stardust and 💪 strength share one row
+local statRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(210, 36), LayoutOrder = 3, Parent = topLeft }, {
+	Lib.List(Enum.FillDirection.Horizontal, 6, Enum.HorizontalAlignment.Left),
+})
+local dustPill, dustLabel = pill(1, "✨", C.Stardust, statRow, 102)
+local strengthPill, strengthLabel = pill(2, "💪", Color3.fromRGB(255, 150, 90), statRow, 102)
+HUD.StrengthPill = strengthPill
 
 local levelRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(210, 24), LayoutOrder = 4, Parent = topLeft })
 local levelBadge = Lib.Text({ Text = "Lv.1", TextColor3 = C.Gold, Size = UDim2.fromOffset(54, 24), MaxTextSize = 20, Parent = levelRow })
@@ -867,6 +873,7 @@ function HUD.Refresh()
 	gemLabel.Text = Util.Format(data.Gems)
 	dustLabel.Text = Util.Format(data.Stardust)
 	dustPill.Visible = data.Stardust > 0
+	strengthLabel.Text = Util.Format(math.max(data.Strength or 0, HUD.StrengthShown or 0))
 
 	local need = derived.XPNeeded or 1
 	levelBadge.Text = "Lv." .. (data.Level or 1)
@@ -1196,6 +1203,22 @@ Net.On("RankUp", function(rankName)
 	Lib.PlaySound("RankUp")
 	celebrate(T("🏅 %s RANK!", tostring(rankName)), T("Weekly ranked - keep climbing!"), C.Cyan)
 end)
+-- 💪 strength: the number climbs right away, a little "+N 💪" pops up
+local lastStrengthPop = 0
+Net.On("StrengthGain", function(amount, total)
+	if type(total) == "number" then
+		HUD.StrengthShown = total
+		strengthLabel.Text = Util.Format(total)
+		if State.Data then
+			State.Data.Strength = math.max(State.Data.Strength or 0, total)
+		end
+	end
+	if os.clock() - lastStrengthPop > 0.25 and type(amount) == "number" then
+		lastStrengthPop = os.clock()
+		Lib.Pop(strengthPill)
+	end
+end)
+
 -- 🌱 pets growing up / ⭐ evolving
 Net.On("PetLevelUp", function(ups)
 	if type(ups) ~= "table" or #ups == 0 then

@@ -23,6 +23,7 @@ local ORDER = {
 	"LuckyService",
 	"RivalService",
 	"RivalHomes",
+	"IncubatorService",
 	"ProgressionService",
 	"LeaderboardService",
 	"DevService",

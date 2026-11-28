@@ -51,6 +51,7 @@ Config.Zones = {
 	{
 		Name = "Frost Cavern",
 		Cost = 5000,
+		Strength = 150, -- 💪 needed to unlock
 		Floor = Enum.Material.Snow,
 		FloorColor = Color3.fromRGB(225, 240, 255),
 		Accent = Color3.fromRGB(130, 200, 255),
@@ -59,6 +60,7 @@ Config.Zones = {
 	{
 		Name = "Lava Depths",
 		Cost = 75000,
+		Strength = 3000, -- 💪 needed to unlock
 		Floor = Enum.Material.Basalt,
 		FloorColor = Color3.fromRGB(60, 45, 45),
 		Accent = Color3.fromRGB(255, 110, 40),
@@ -67,6 +69,7 @@ Config.Zones = {
 	{
 		Name = "Crystal Void",
 		Cost = 1200000,
+		Strength = 40000, -- 💪 needed to unlock
 		Floor = Enum.Material.Slate,
 		FloorColor = Color3.fromRGB(45, 35, 75),
 		Accent = Color3.fromRGB(180, 110, 255),
@@ -75,6 +78,7 @@ Config.Zones = {
 	{
 		Name = "Star Crater",
 		Cost = 15000000,
+		Strength = 250000, -- 💪 needed to unlock
 		Floor = Enum.Material.CrackedLava,
 		FloorColor = Color3.fromRGB(70, 30, 60),
 		Accent = Color3.fromRGB(255, 60, 120),
@@ -197,6 +201,42 @@ Config.Rebirth = {
 ---------------------------------------------------------------------------
 Config.BasePetSlots = 3
 Config.MaxPetSlots = 12
+-- 💪 STRENGTH: the grind (like lifting / training simulators). Every swing
+-- that hits something makes you stronger; heavier training rocks in the hub
+-- give more per swing (and can be trained AFK). Strength multiplies your
+-- damage and is needed to unlock deeper mines.
+Config.Strength = {
+	PerSwing = 1, -- per hit on an ore / meteor (x pickaxe tier x bonuses)
+	RebirthBonus = 0.5, -- +50% strength gain per rebirth
+	VipBonus = 0.25,
+	DamageScale = 30, -- damage x (1 + sqrt(strength) / DamageScale)
+	Rocks = {
+		{ Name = "Pebble", Need = 0, Gain = 1, Size = 4.5, Color = Color3.fromRGB(150, 142, 132) },
+		{ Name = "Boulder", Need = 400, Gain = 3, Size = 6, Color = Color3.fromRGB(125, 118, 110) },
+		{ Name = "Iron Rock", Need = 5000, Gain = 8, Size = 7.5, Color = Color3.fromRGB(150, 150, 165) },
+		{ Name = "Meteor Chunk", Need = 50000, Gain = 20, Size = 9, Color = Color3.fromRGB(90, 60, 50) },
+		{ Name = "Star Core", Need = 400000, Gain = 50, Size = 10.5, Color = Color3.fromRGB(255, 190, 90) },
+	},
+	-- the training ground in the hub (north-west)
+	RockSpots = {
+		Vector3.new(-66, 0, 66),
+		Vector3.new(-52, 0, 66),
+		Vector3.new(-38, 0, 68),
+		Vector3.new(-66, 0, 50),
+		Vector3.new(-52, 0, 48),
+	},
+}
+
+-- 🥚 INCUBATORS: star eggs you bring home grow in an incubator for a while
+-- before they hatch (rarer = longer, keeps going while you're offline).
+-- More incubators with every house level; skip the wait with 💎.
+Config.Incubator = {
+	Slots = { 3, 4, 5, 6, 8 }, -- by house level
+	Seconds = { Common = 15, Rare = 45, Epic = 120, Legendary = 300, Mythic = 900, Secret = 1800 },
+	GoldenMult = 0.5, -- eggs from a golden meteor hatch twice as fast
+	SkipGemsPerMinute = 4,
+}
+
 -- 🌱 PET GROWTH (like Adopt Me aging / Grow a Garden pet levels): pets level
 -- up while they help you (following + mining / smashing), while they stand in
 -- your home, and when you feed them ✨ stardust. Every level = more income

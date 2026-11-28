@@ -52,7 +52,7 @@ end
 
 function Stats:Damage(player, data): number
 	local pickaxe = Config.Pickaxes[data.PickaxeTier] or Config.Pickaxes[1]
-	local mult = 1 + self:PetPower(player, data)
+	local mult = (1 + self:PetPower(player, data)) * Util.StrengthMult(Config, data.Strength)
 	if has(player, "MegaPower") then
 		mult *= 2
 	end

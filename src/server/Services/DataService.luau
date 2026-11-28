@@ -73,6 +73,8 @@ local TEMPLATE = {
 	NextPetUid = 1,
 	PetIndex = {}, -- [petName] = true
 	IndexClaimed = {}, -- ["milestone index"] = true (📖 collection rewards)
+	Strength = 0, -- 💪 grows with every swing
+	Incubators = {}, -- { { Egg, Rarity, MeteorKind?, Golden?, Ready, Total }, ... }
 	Boosts = { Coins2x = 0, Luck2x = 0, Power2x = 0 }, -- remaining seconds
 	Stats = {
 		Evolved = 0, -- ⭐ pets evolved
@@ -231,6 +233,9 @@ local function setupLeaderstats(player: Player)
 	local rank = Instance.new("StringValue")
 	rank.Name = "Rank"
 	rank.Parent = folder
+	local strength = Instance.new("StringValue")
+	strength.Name = "💪"
+	strength.Parent = folder
 	folder.Parent = player
 end
 
@@ -251,6 +256,10 @@ local function updateLeaderstats(player: Player, data)
 	if rank then
 		local r = Util.RankFor(Config, data.Weekly.Points)
 		rank.Value = r.Name
+	end
+	local strength = folder:FindFirstChild("💪") :: StringValue
+	if strength then
+		strength.Value = Util.Format(data.Strength or 0)
 	end
 end
 
@@ -307,6 +316,11 @@ local function onPlayerAdded(player: Player)
 	Util.Reconcile(data, TEMPLATE)
 	if data.FirstJoin == 0 then
 		data.FirstJoin = os.time()
+	end
+	-- 💪 saves from before strength: zones already open count as trained
+	local zone = Config.Zones[math.min(data.ZoneLevel or 1, #Config.Zones)]
+	if zone and (data.Strength or 0) < (zone.Strength or 0) then
+		data.Strength = zone.Strength
 	end
 
 	profiles[player] = { Data = data, CanSave = canSave, Dirty = true, Saving = false, Released = false, SessionId = sessionId }

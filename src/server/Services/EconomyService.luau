@@ -34,6 +34,10 @@ function Economy:UnlockZone(player: Player, index: number)
 		Net:Notify(player, "Unlock %s first!", RED, Config.Zones[data.ZoneLevel + 1].Name)
 		return
 	end
+	if (data.Strength or 0) < (zone.Strength or 0) then
+		Net:Notify(player, "💪 You need %s strength for %s - train at the rocks in the hub!", RED, Util.Format(zone.Strength), zone.Name)
+		return
+	end
 	if data.Coins < zone.Cost then
 		notEnough(player, zone.Cost, data.Coins, "coins")
 		return

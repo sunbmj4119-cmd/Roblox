@@ -460,6 +460,76 @@ end
 ---------------------------------------------------------------------------
 -- hub
 ---------------------------------------------------------------------------
+-- 💪 the training ground: rocks to hit for strength (heavier = more per swing)
+local function buildTrainingGround(parent)
+	local ground = folder("Training", parent)
+	local settings = Config.Strength
+	local rng = Random.new(31)
+	for tier, rock in settings.Rocks do
+		local spot = settings.RockSpots[tier]
+		if spot then
+			local size = rock.Size
+			local core = newPart({
+				Name = "TrainingRock",
+				Size = Vector3.new(size * 0.8, size * 0.7, size * 0.8),
+				CFrame = CFrame.new(spot + Vector3.new(0, size * 0.3, 0)) * CFrame.Angles(0.15, rng:NextNumber(0, 6), 0.1),
+				Color = rock.Color,
+				Material = if tier >= 4 then Enum.Material.Basalt else Enum.Material.Rock,
+			}, ground)
+			core:SetAttribute("TrainTier", tier)
+			core:SetAttribute("Need", rock.Need)
+			core:SetAttribute("Gain", rock.Gain)
+			for i = 1, 5 do
+				local angle = i * 1.3
+				local piece = Instance.new("Part")
+				piece.Name = "RockPiece"
+				piece.Anchored = true
+				piece.CanCollide = false
+				piece.CanTouch = false
+				piece.Size = Vector3.new(size * 0.45, size * 0.4, size * 0.45) * rng:NextNumber(0.8, 1.2)
+				piece.CFrame = CFrame.new(
+					core.Position
+						+ Vector3.new(math.cos(angle) * size * 0.32, rng:NextNumber(-0.3, 0.5) * size * 0.4, math.sin(angle) * size * 0.32)
+				) * CFrame.Angles(rng:NextNumber(0, 3), rng:NextNumber(0, 3), rng:NextNumber(0, 3))
+				piece.Color = rock.Color:Lerp(Color3.new(0, 0, 0), rng:NextNumber(0, 0.25))
+				piece.Material = core.Material
+				piece.Parent = core
+			end
+			if tier >= 4 then
+				local glow = Instance.new("PointLight")
+				glow.Color = if tier == 5 then Color3.fromRGB(255, 200, 100) else Color3.fromRGB(255, 120, 60)
+				glow.Range = 12
+				glow.Brightness = 1
+				glow.Parent = core
+			end
+			billboard(
+				core,
+				"💪 %s\n+%s / swing  •  need %s",
+				Color3.fromRGB(255, 210, 120),
+				size * 0.5 + 2.5,
+				10,
+				2.6,
+				rock.Name,
+				tostring(rock.Gain),
+				Util.Format(rock.Need)
+			)
+			-- AFK training: stand here and let your character train
+			prompt(core, "Auto Train", rock.Name, function(player)
+				Services.MiningService:StartAutoTrain(player, core)
+			end).HoldDuration =
+				0.3
+		end
+	end
+	local sign = newPart({
+		Name = "TrainingSign",
+		Size = Vector3.new(12, 4, 0.6),
+		CFrame = CFrame.new(-52, 6, 76) * CFrame.Angles(0, math.pi, 0),
+		Color = Color3.fromRGB(40, 32, 28),
+		Material = Enum.Material.Wood,
+	}, ground)
+	billboard(sign, "💪 TRAINING GROUND\nhit the rocks to get stronger", Color3.fromRGB(255, 210, 120), 0, 14, 3)
+end
+
 local function buildHub()
 	local hub = folder("Hub", map)
 
@@ -675,6 +745,7 @@ local function buildHub()
 		lamp(Vector3.new(-11, 0, z), Color3.fromRGB(255, 220, 160), hub)
 		lamp(Vector3.new(11, 0, z), Color3.fromRGB(255, 220, 160), hub)
 	end
+	buildTrainingGround(hub)
 end
 
 ---------------------------------------------------------------------------

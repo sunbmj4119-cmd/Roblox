@@ -575,6 +575,99 @@ local function nearestCarrier(player: Player, root: BasePart): Player?
 end
 
 ---------------------------------------------------------------------------
+---------------------------------------------------------------------------
+-- 💪 strength
+---------------------------------------------------------------------------
+local STRENGTH = Config.Strength
+local autoTrain = {} -- [player] = training rock part (AFK training)
+
+local function strengthMult(player: Player, data): number
+	local mult = (data.PickaxeTier or 1) * (1 + STRENGTH.RebirthBonus * (data.Rebirths or 0))
+	if Services.MonetizationService:HasPass(player, "VIP") then
+		mult *= 1 + STRENGTH.VipBonus
+	end
+	if Services.BoostService:IsActive(player, "Power2x") then
+		mult *= 2
+	end
+	return mult
+end
+
+local function gainStrength(player: Player, data, base: number)
+	local amount = math.max(1, math.floor(base * strengthMult(player, data)))
+	data.Strength = (data.Strength or 0) + amount
+	Net:Send(player, "StrengthGain", amount, data.Strength)
+	Data:MarkDirty(player)
+	return amount
+end
+Mining.GainStrength = gainStrength
+
+-- the training rock a part belongs to (the core, or one of its pieces)
+local function trainingRock(part: Instance?): BasePart?
+	if part and part:IsA("BasePart") and part:GetAttribute("TrainTier") then
+		return part
+	end
+	local parent = part and part.Parent
+	if parent and parent:IsA("BasePart") and parent:GetAttribute("TrainTier") then
+		return parent
+	end
+	return nil
+end
+
+local function trainAt(player: Player, data, rock: BasePart, root: BasePart): boolean
+	if (rock.Position - root.Position).Magnitude > Config.World.Reach + rock.Size.Magnitude / 2 + 2 then
+		return false
+	end
+	local need = rock:GetAttribute("Need") or 0
+	if (data.Strength or 0) < need then
+		warnOnce(player, 3, "💪 You need %s strength for this rock - train on a lighter one!", Util.Format(need))
+		autoTrain[player] = nil
+		return true
+	end
+	gainStrength(player, data, rock:GetAttribute("Gain") or 1)
+	Net:Send(player, "TrainHit", rock)
+	return true
+end
+
+-- the heaviest rock we may use within reach
+local function nearestRock(root: BasePart, data): BasePart?
+	local best, bestGain = nil, -1
+	local map = workspace:FindFirstChild("Map")
+	local hub = map and map:FindFirstChild("Hub")
+	local ground = hub and hub:FindFirstChild("Training")
+	if not ground then
+		return nil
+	end
+	for _, rock in ground:GetChildren() do
+		if rock:IsA("BasePart") and rock:GetAttribute("TrainTier") then
+			local reach = Config.World.Reach + rock.Size.Magnitude / 2 + 2
+			local usable = (data.Strength or 0) >= (rock:GetAttribute("Need") or 0)
+			if usable and (rock.Position - root.Position).Magnitude <= reach and (rock:GetAttribute("Gain") or 0) > bestGain then
+				best, bestGain = rock, rock:GetAttribute("Gain") or 0
+			end
+		end
+	end
+	return best
+end
+
+-- AFK training: the client keeps swinging at this rock while you stand there
+function Mining:StartAutoTrain(player: Player, rock: BasePart)
+	local data = Data:Get(player)
+	if not data then
+		return
+	end
+	if (data.Strength or 0) < (rock:GetAttribute("Need") or 0) then
+		Net:Notify(
+			player,
+			"💪 You need %s strength for this rock - train on a lighter one!",
+			nil,
+			Util.Format(rock:GetAttribute("Need") or 0)
+		)
+		return
+	end
+	autoTrain[player] = rock
+	Net:Send(player, "AutoTrain", rock)
+end
+
 local function onSwing(player: Player, hint)
 	local data = Data:Get(player)
 	local character = player.Character
@@ -619,6 +712,10 @@ local function onSwing(player: Player, hint)
 			tryBonk(player, victim)
 			return
 		end
+		local rock = trainingRock(hintPart)
+		if rock and trainAt(player, data, rock, root) then
+			return
+		end
 		local shards = Services.ShardService
 		if model and Services.RivalService:IsRival(model) then
 			Services.RivalService:Bonk(player, model)
@@ -632,6 +729,7 @@ local function onSwing(player: Player, hint)
 		end
 		if blockInfo[hintPart] and withinReach(root, hintPart, 3) then
 			mineBlock(player, data, hintPart)
+			gainStrength(player, data, STRENGTH.PerSwing)
 			return
 		end
 	end
@@ -642,6 +740,7 @@ local function onSwing(player: Player, hint)
 	end
 	if meteor:IsActive() and meteor:InRange(root.Position) then
 		meteor:Hit(player, Services.StatsService:Damage(player, data), cooldown)
+		gainStrength(player, data, STRENGTH.PerSwing)
 		return
 	end
 
@@ -666,6 +765,13 @@ local function onSwing(player: Player, hint)
 	local target = nearestBlock(root)
 	if target then
 		mineBlock(player, data, target)
+		gainStrength(player, data, STRENGTH.PerSwing)
+		return
+	end
+	-- 5) at the training ground: the heaviest rock we can lift
+	local rock = autoTrain[player] or nearestRock(root, data)
+	if rock then
+		trainAt(player, data, rock, root)
 	end
 end
 
@@ -865,6 +971,7 @@ function Mining:Start()
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)
+		autoTrain[player] = nil
 		lastSwing[player] = nil
 		immunity[player] = nil
 		combos[player] = nil

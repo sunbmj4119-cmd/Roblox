@@ -128,6 +128,47 @@ local function baseTarget()
 	return pad and pad.Position + Vector3.new(0, 1, 0)
 end
 
+-- the heaviest training rock you're strong enough for
+local function trainingRock(strength: number): Vector3?
+	local map = workspace:FindFirstChild("Map")
+	local hub = map and map:FindFirstChild("Hub")
+	local ground = hub and hub:FindFirstChild("Training")
+	if not ground then
+		return nil
+	end
+	local best, bestTier = nil, 0
+	for _, rock in ground:GetChildren() do
+		local tier = rock:GetAttribute("TrainTier")
+		if rock:IsA("BasePart") and tier and tier > bestTier and strength >= (rock:GetAttribute("Need") or 0) then
+			best, bestTier = rock, tier
+		end
+	end
+	return best and best.Position + Vector3.new(0, 2, 0)
+end
+
+-- a ready egg in your home incubators
+local function incubatorTarget(): Vector3?
+	if (player:GetAttribute("EggsReady") or 0) <= 0 then
+		return nil
+	end
+	local index = player:GetAttribute("BaseIndex")
+	local map = workspace:FindFirstChild("Map")
+	local bases = map and map:FindFirstChild("Bases")
+	local plot = bases and index and bases:FindFirstChild("Plot_" .. tostring(index))
+	local folder = plot and plot:FindFirstChild("Incubators")
+	if not folder then
+		return nil
+	end
+	local now = workspace:GetServerTimeNow()
+	for _, pod in folder:GetChildren() do
+		local ready = pod:GetAttribute("Ready")
+		if pod:IsA("Model") and pod.PrimaryPart and ready and now >= ready then
+			return pod.PrimaryPart.Position + Vector3.new(0, 1, 0)
+		end
+	end
+	return nil
+end
+
 -- the closest shard lying around in a place we can reach
 local function shardTarget(root: BasePart, data)
 	local map = workspace:FindFirstChild("Map")
@@ -225,10 +266,18 @@ local function pickTarget(root: BasePart)
 	if shard then
 		return shard, T("🥚 GRAB THE STAR EGG")
 	end
+	local egg = incubatorTarget()
+	if egg then
+		return egg, T("🐣 HATCH YOUR EGG")
+	end
 	if (data.Level or 1) >= MAX_LEVEL or data.ZoneLevel >= 3 then
 		return nil
 	end
 	local zone = Config.Zones[data.ZoneLevel + 1]
+	if zone and data.Coins >= zone.Cost and (data.Strength or 0) < (zone.Strength or 0) then
+		local rock = trainingRock(data.Strength or 0)
+		return rock, T("💪 TRAIN HERE")
+	end
 	if zone and data.Coins >= zone.Cost then
 		local gate = part({ "Gates", "Gate_" .. (data.ZoneLevel + 1) })
 		return gate and gate.Position, T("🔓 UNLOCK %s", zone.Name)

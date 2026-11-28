@@ -75,6 +75,7 @@ Config.Zones = {
 	{
 		Name = "Frost Cavern",
 		Cost = 5000,
+		Strength = 150, -- 💪 needed to unlock
 		Floor = Enum.Material.Snow,
 		FloorColor = Color3.fromRGB(225, 240, 255),
 		Accent = Color3.fromRGB(130, 200, 255),
@@ -83,6 +84,7 @@ Config.Zones = {
 	{
 		Name = "Lava Depths",
 		Cost = 75000,
+		Strength = 3000, -- 💪 needed to unlock
 		Floor = Enum.Material.Basalt,
 		FloorColor = Color3.fromRGB(60, 45, 45),
 		Accent = Color3.fromRGB(255, 110, 40),
@@ -91,6 +93,7 @@ Config.Zones = {
 	{
 		Name = "Crystal Void",
 		Cost = 1200000,
+		Strength = 40000, -- 💪 needed to unlock
 		Floor = Enum.Material.Slate,
 		FloorColor = Color3.fromRGB(45, 35, 75),
 		Accent = Color3.fromRGB(180, 110, 255),
@@ -99,6 +102,7 @@ Config.Zones = {
 	{
 		Name = "Star Crater",
 		Cost = 15000000,
+		Strength = 250000, -- 💪 needed to unlock
 		Floor = Enum.Material.CrackedLava,
 		FloorColor = Color3.fromRGB(70, 30, 60),
 		Accent = Color3.fromRGB(255, 60, 120),
@@ -221,6 +225,42 @@ Config.Rebirth = {
 ---------------------------------------------------------------------------
 Config.BasePetSlots = 3
 Config.MaxPetSlots = 12
+-- 💪 STRENGTH: the grind (like lifting / training simulators). Every swing
+-- that hits something makes you stronger; heavier training rocks in the hub
+-- give more per swing (and can be trained AFK). Strength multiplies your
+-- damage and is needed to unlock deeper mines.
+Config.Strength = {
+	PerSwing = 1, -- per hit on an ore / meteor (x pickaxe tier x bonuses)
+	RebirthBonus = 0.5, -- +50% strength gain per rebirth
+	VipBonus = 0.25,
+	DamageScale = 30, -- damage x (1 + sqrt(strength) / DamageScale)
+	Rocks = {
+		{ Name = "Pebble", Need = 0, Gain = 1, Size = 4.5, Color = Color3.fromRGB(150, 142, 132) },
+		{ Name = "Boulder", Need = 400, Gain = 3, Size = 6, Color = Color3.fromRGB(125, 118, 110) },
+		{ Name = "Iron Rock", Need = 5000, Gain = 8, Size = 7.5, Color = Color3.fromRGB(150, 150, 165) },
+		{ Name = "Meteor Chunk", Need = 50000, Gain = 20, Size = 9, Color = Color3.fromRGB(90, 60, 50) },
+		{ Name = "Star Core", Need = 400000, Gain = 50, Size = 10.5, Color = Color3.fromRGB(255, 190, 90) },
+	},
+	-- the training ground in the hub (north-west)
+	RockSpots = {
+		Vector3.new(-66, 0, 66),
+		Vector3.new(-52, 0, 66),
+		Vector3.new(-38, 0, 68),
+		Vector3.new(-66, 0, 50),
+		Vector3.new(-52, 0, 48),
+	},
+}
+
+-- 🥚 INCUBATORS: star eggs you bring home grow in an incubator for a while
+-- before they hatch (rarer = longer, keeps going while you're offline).
+-- More incubators with every house level; skip the wait with 💎.
+Config.Incubator = {
+	Slots = { 3, 4, 5, 6, 8 }, -- by house level
+	Seconds = { Common = 15, Rare = 45, Epic = 120, Legendary = 300, Mythic = 900, Secret = 1800 },
+	GoldenMult = 0.5, -- eggs from a golden meteor hatch twice as fast
+	SkipGemsPerMinute = 4,
+}
+
 -- 🌱 PET GROWTH (like Adopt Me aging / Grow a Garden pet levels): pets level
 -- up while they help you (following + mining / smashing), while they stand in
 -- your home, and when you feed them ✨ stardust. Every level = more income
@@ -3578,7 +3618,7 @@ return {
 	["Grab a star egg 🥚 - carry it home and it hatches!"] = "별알 🥚을 주워요 - 집에 가져가면 부화해요!",
 	["Grab the star egg 🥚 that popped out!"] = "튀어나온 별알 🥚을 주워요!",
 	["Homes can be raided! 🔒 Vault pets stay safe."] = "집을 털 수 있어요! 🔒 금고 펫은 안전해요.",
-	["It hatches into a pet that earns 💰.\nRaids only on 🌙 Thief Night!"] = "부화하면 💰를 버는 펫이 돼요.\n집 털기는 🌙 도둑의 밤에만!",
+	["It grows in an 🥚 incubator into a pet\nthat earns 💰. Raids only on 🌙 Thief Night!"] = "🥚 부화기에서 자라 💰를 버는 펫이 돼요.\n집 털기는 🌙 도둑의 밤에만!",
 	["Mine ore for coins while you wait for meteors"] = "운석을 기다리는 동안 광석을 캐서 코인을 모아요",
 	["Mine until the next meteor: %s / %s coins for an upgrade"] = "다음 운석까지 채굴: 강화까지 %s / %s 코인",
 	["Run home 🏠 with it - it hatches there!"] = "들고 집 🏠으로 달려요 - 거기서 부화해요!",
@@ -3687,6 +3727,25 @@ return {
 	["🚨 %s is stealing your %s! Bonk them before they get home!"] = "🚨 %s이(가) 내 %s을(를) 훔쳐 가요! 집에 가기 전에 때려요!",
 	["💔 %s stole your %s! Get it back from their house - revenge for 5 minutes!"] = "💔 %s이(가) 내 %s을(를) 훔쳐 갔어요! 그 집에서 되찾아요 - 5분간 복수 가능!",
 	["That's someone else's pet - only its owner can take it back."] = "다른 사람의 펫이에요 - 주인만 되찾을 수 있어요.",
+	["Auto Train"] = "자동 훈련",
+	["Pebble"] = "조약돌",
+	["Boulder"] = "바위",
+	["Iron Rock"] = "철광석 바위",
+	["Meteor Chunk"] = "운석 덩어리",
+	["Star Core"] = "별의 핵",
+	["Hatch"] = "부화하기",
+	["⚡ Hatch now"] = "⚡ 바로 부화",
+	["Not enough 💎 (%s)"] = "💎이 부족해요 (%s)",
+	["🐣 HATCH YOUR EGG"] = "🐣 알을 부화시켜요",
+	["💪 TRAINING GROUND\nhit the rocks to get stronger"] = "💪 훈련장\n바위를 때려서 힘을 키워요",
+	["💪 %s\n+%s / swing  •  need %s"] = "💪 %s\n한 번에 +%s  •  필요 %s",
+	["💪 You need %s strength for %s - train at the rocks in the hub!"] = "💪 %s 힘이 있어야 %s에 들어갈 수 있어요 - 광장 훈련장 바위에서 훈련해요!",
+	["💪 You need %s strength for this rock - train on a lighter one!"] = "💪 이 바위는 힘 %s이(가) 필요해요 - 더 가벼운 바위부터 훈련해요!",
+	["🥚 All incubators are busy - this egg hatches right away!"] = "🥚 부화기가 모두 사용 중이라 이 알은 바로 부화해요!",
+	["🥚 Your %s is incubating - ready in %s!"] = "🥚 %s 알을 부화기에 넣었어요 - %s 뒤에 부화해요!",
+	["🥚 Your %s is ready to hatch! 🏠"] = "🥚 %s 알이 부화할 준비가 됐어요! 🏠",
+	["🥚 empty"] = "🥚 비어 있음",
+	["💪 TRAIN HERE"] = "💪 여기서 훈련해요",
 }
 ]]></string>
         </Properties>
@@ -4671,6 +4730,22 @@ function Util.EvolveCopies(config, data, pet)
 	return list
 end
 
+-- 💪 damage multiplier from strength
+function Util.StrengthMult(config, strength: number?): number
+	return 1 + math.sqrt(math.max(0, strength or 0)) / config.Strength.DamageScale
+end
+
+-- 🥚 incubator slots for a house level / seconds an egg needs
+function Util.IncubatorSlots(config, level: number): number
+	local slots = config.Incubator.Slots
+	return slots[math.clamp(level, 1, #slots)]
+end
+
+function Util.IncubateSeconds(config, rarity: string, golden: boolean?): number
+	local seconds = config.Incubator.Seconds[rarity] or 30
+	return math.max(5, math.floor(seconds * (if golden then config.Incubator.GoldenMult else 1)))
+end
+
 -- stardust cost of one feed, and the xp it gives
 function Util.PetFeed(config, pet): (number, number)
 	local growth = config.Growth
@@ -5167,6 +5242,7 @@ local ORDER = {
 	"LuckyService",
 	"RivalService",
 	"RivalHomes",
+	"IncubatorService",
 	"ProgressionService",
 	"LeaderboardService",
 	"DevService",
@@ -6432,6 +6508,10 @@ local function clearPlot(plot)
 	plot.ItemModels = {}
 	plot.Displays:ClearAllChildren()
 	plot.Shell:ClearAllChildren()
+	local incubators = plot.Model:FindFirstChild("Incubators")
+	if incubators then
+		incubators:Destroy()
+	end
 	plot.StyleKey = ""
 	local model = plot.Model
 	model:SetAttribute("OwnerId", 0)
@@ -7029,6 +7109,11 @@ function Base:Upgrade(player: Player): (boolean, string?)
 	self:RefreshLabels(player, true)
 	Net:Notify(player, "🏗️ Your house grew into a %s!", Color3.fromRGB(255, 220, 120), nextDef.Name)
 	Net:Send(player, "HouseUpgraded", level + 1)
+	-- a bigger house has more egg incubators
+	local incubators = Services.IncubatorService
+	if incubators then
+		task.spawn(pcall, incubators.Render, incubators, player)
+	end
 	if level + 1 >= 4 then
 		Net:Announce("🏰 %s upgraded their house to a %s!", Color3.fromRGB(210, 150, 255), player.DisplayName, nextDef.Name)
 	end
@@ -8253,6 +8338,8 @@ local TEMPLATE = {
 	NextPetUid = 1,
 	PetIndex = {}, -- [petName] = true
 	IndexClaimed = {}, -- ["milestone index"] = true (📖 collection rewards)
+	Strength = 0, -- 💪 grows with every swing
+	Incubators = {}, -- { { Egg, Rarity, MeteorKind?, Golden?, Ready, Total }, ... }
 	Boosts = { Coins2x = 0, Luck2x = 0, Power2x = 0 }, -- remaining seconds
 	Stats = {
 		Evolved = 0, -- ⭐ pets evolved
@@ -8411,6 +8498,9 @@ local function setupLeaderstats(player: Player)
 	local rank = Instance.new("StringValue")
 	rank.Name = "Rank"
 	rank.Parent = folder
+	local strength = Instance.new("StringValue")
+	strength.Name = "💪"
+	strength.Parent = folder
 	folder.Parent = player
 end
 
@@ -8431,6 +8521,10 @@ local function updateLeaderstats(player: Player, data)
 	if rank then
 		local r = Util.RankFor(Config, data.Weekly.Points)
 		rank.Value = r.Name
+	end
+	local strength = folder:FindFirstChild("💪") :: StringValue
+	if strength then
+		strength.Value = Util.Format(data.Strength or 0)
 	end
 end
 
@@ -8487,6 +8581,11 @@ local function onPlayerAdded(player: Player)
 	Util.Reconcile(data, TEMPLATE)
 	if data.FirstJoin == 0 then
 		data.FirstJoin = os.time()
+	end
+	-- 💪 saves from before strength: zones already open count as trained
+	local zone = Config.Zones[math.min(data.ZoneLevel or 1, #Config.Zones)]
+	if zone and (data.Strength or 0) < (zone.Strength or 0) then
+		data.Strength = zone.Strength
 	end
 
 	profiles[player] = { Data = data, CanSave = canSave, Dirty = true, Saving = false, Released = false, SessionId = sessionId }
@@ -8796,6 +8895,10 @@ function Economy:UnlockZone(player: Player, index: number)
 	end
 	if data.ZoneLevel + 1 < index then
 		Net:Notify(player, "Unlock %s first!", RED, Config.Zones[data.ZoneLevel + 1].Name)
+		return
+	end
+	if (data.Strength or 0) < (zone.Strength or 0) then
+		Net:Notify(player, "💪 You need %s strength for %s - train at the rocks in the hub!", RED, Util.Format(zone.Strength), zone.Name)
 		return
 	end
 	if data.Coins < zone.Cost then
@@ -9202,6 +9305,403 @@ return Events
           </Properties>
         </Item>
         <Item class="ModuleScript" referent="23">
+          <Properties>
+            <string name="Name">IncubatorService</string>
+            <string name="Source"><![CDATA[--[[
+	IncubatorService: 🥚 star eggs you bring home grow in an incubator before
+	they hatch (like Steal an Egg's growing eggs / Grow a Garden's timers):
+
+	  * rarer eggs take longer (15s ... 30 min), golden-meteor eggs are faster,
+	  * the clock keeps running while you're offline -> a reason to come back,
+	  * more incubators with every house level,
+	  * tap a ready incubator at home to hatch it (the usual reveal card),
+	    or skip the wait with 💎.
+	The tutorial's first egg (and any egg when every incubator is full)
+	still hatches right away, so nothing is ever lost.
+]]
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Util = require(Shared.Util)
+local ShardModel = require(Shared.ShardModel)
+local Net = require(script.Parent.Net)
+
+local Incubator = {}
+local Services
+local Data
+local World
+
+local SETTINGS = Config.Incubator
+
+-- pods in the front-left corner of the land (clear of the pads, the
+-- corner tower and every house level's build area)
+local SPOTS = {
+	{ -21, -32.6 },
+	{ -24.8, -32.6 },
+	{ -28.6, -32.6 },
+	{ -21, -28.8 },
+	{ -24.8, -28.8 },
+	{ -28.6, -28.8 },
+	{ -32.4, -32.6 },
+	{ -32.4, -28.8 },
+}
+
+local function now(): number
+	return os.time()
+end
+
+local function houseLevel(data): number
+	return Util.HouseLevel(Config, data)
+end
+
+function Incubator:Slots(data): number
+	return Util.IncubatorSlots(Config, houseLevel(data))
+end
+
+local function rarityName(id: string): string
+	local def = Config.Shards.Rarities[id]
+	return if def then def.Name else id
+end
+
+---------------------------------------------------------------------------
+-- the pods
+---------------------------------------------------------------------------
+local function podFolder(player: Player)
+	local plot = Services.BaseService:PlotOf(player)
+	if not plot then
+		return nil, nil
+	end
+	local folder = plot.Model:FindFirstChild("Incubators")
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = "Incubators"
+		folder.Parent = plot.Model
+	end
+	return folder, plot
+end
+
+local function buildPod(cf: CFrame, index: number): Model
+	local model = Instance.new("Model")
+	model.Name = "Incubator_" .. index
+	local function piece(name: string, size: Vector3, offset: CFrame, color: Color3, material: Enum.Material, shape)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = size
+		p.CFrame = cf * offset
+		p.Color = color
+		p.Material = material
+		p.Anchored = true
+		p.CanCollide = name == "Base"
+		p.CanQuery = name == "Base" or name == "Dome"
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		if shape then
+			p.Shape = shape
+		end
+		p.Parent = model
+		return p
+	end
+	local base = piece(
+		"Base",
+		Vector3.new(0.8, 3.6, 3.6),
+		CFrame.new(0, 0.4, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color3.fromRGB(70, 75, 95),
+		Enum.Material.Metal,
+		Enum.PartType.Cylinder
+	)
+	piece(
+		"Ring",
+		Vector3.new(0.25, 3.8, 3.8),
+		CFrame.new(0, 0.85, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color3.fromRGB(120, 220, 255),
+		Enum.Material.Neon,
+		Enum.PartType.Cylinder
+	)
+	local dome =
+		piece("Dome", Vector3.one * 3.2, CFrame.new(0, 2.3, 0), Color3.fromRGB(190, 235, 255), Enum.Material.Glass, Enum.PartType.Ball)
+	dome.Transparency = 0.6
+	model.PrimaryPart = base
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "Timer"
+	gui.Size = UDim2.new(5, 0, 1.4, 0)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 4.6, 0)
+	gui.MaxDistance = 60
+	gui.LightInfluence = 0
+	local label = Instance.new("TextLabel")
+	label.Name = "Text"
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.FredokaOne
+	label.TextScaled = true
+	label.TextColor3 = Color3.new(1, 1, 1)
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Parent = label
+	label.Parent = gui
+	gui.Parent = base
+	return model
+end
+
+-- (re)build the pods and the eggs inside them
+function Incubator:Render(player: Player)
+	local data = Data:Get(player)
+	local folder, plot = podFolder(player)
+	if not data or not folder or not plot then
+		return
+	end
+	folder:ClearAllChildren()
+	local slots = self:Slots(data)
+	for index = 1, slots do
+		local spot = SPOTS[index]
+		if spot then
+			local cf = plot.CFrame * CFrame.new(spot[1], 0.4, spot[2])
+			local pod = buildPod(cf, index)
+			pod:SetAttribute("Slot", index)
+			local entry = data.Incubators[index]
+			if entry then
+				local egg = ShardModel.Build(Config, entry.Rarity, 0.55)
+				egg.Name = "Egg"
+				ShardModel.SetAnchored(egg, true)
+				egg:PivotTo(cf * CFrame.new(0, 2.2, 0))
+				for _, part in egg:GetDescendants() do
+					if part:IsA("BasePart") then
+						part.CanQuery = false
+						part.CanCollide = false
+					end
+				end
+				egg.Parent = pod
+				pod:SetAttribute("Ready", entry.Ready)
+				-- hatch (when ready) / skip the wait with gems
+				local base = pod.PrimaryPart :: BasePart
+				local hatchPrompt = Instance.new("ProximityPrompt")
+				hatchPrompt.Name = "HatchPrompt"
+				hatchPrompt.ActionText = "Hatch"
+				hatchPrompt.ObjectText = rarityName(entry.Rarity)
+				hatchPrompt.HoldDuration = 0.3
+				hatchPrompt.MaxActivationDistance = 10
+				hatchPrompt.RequiresLineOfSight = false
+				hatchPrompt.Parent = base
+				hatchPrompt.Triggered:Connect(function(who)
+					if who == player then
+						self:Hatch(player, index, false)
+					end
+				end)
+				local skipPrompt = Instance.new("ProximityPrompt")
+				skipPrompt.Name = "SkipPrompt"
+				skipPrompt.ActionText = "⚡ Hatch now"
+				skipPrompt.ObjectText = "💎"
+				skipPrompt.HoldDuration = 0.8
+				skipPrompt.MaxActivationDistance = 10
+				skipPrompt.RequiresLineOfSight = false
+				skipPrompt.KeyboardKeyCode = Enum.KeyCode.F
+				skipPrompt.UIOffset = Vector2.new(0, 60)
+				skipPrompt.Parent = base
+				skipPrompt.Triggered:Connect(function(who)
+					if who == player then
+						self:Hatch(player, index, true)
+					end
+				end)
+			end
+			pod.Parent = folder
+		end
+	end
+	self:Refresh(player)
+end
+
+-- timers + egg growth + which prompt shows (every second)
+function Incubator:Refresh(player: Player)
+	local data = Data:Get(player)
+	local folder = podFolder(player)
+	if not data or not folder then
+		return
+	end
+	local t = now()
+	for _, pod in folder:GetChildren() do
+		local index = pod:GetAttribute("Slot")
+		local entry = index and data.Incubators[index]
+		local base = pod.PrimaryPart
+		local gui = base and base:FindFirstChild("Timer")
+		local label = gui and gui:FindFirstChild("Text")
+		if label then
+			if not entry then
+				World.SetText(label, "🥚 empty")
+				label.TextColor3 = Color3.fromRGB(170, 180, 200)
+			elseif t >= entry.Ready then
+				World.SetText(label, "✅ READY!")
+				label.TextColor3 = Color3.fromRGB(120, 255, 160)
+			else
+				World.SetText(label, "🥚 %s", Util.FormatTime(entry.Ready - t))
+				label.TextColor3 = Color3.fromRGB(255, 230, 150)
+			end
+		end
+		if entry and base then
+			local ready = t >= entry.Ready
+			local hatchPrompt = base:FindFirstChild("HatchPrompt")
+			local skipPrompt = base:FindFirstChild("SkipPrompt")
+			if hatchPrompt then
+				hatchPrompt.Enabled = ready
+			end
+			if skipPrompt and skipPrompt:IsA("ProximityPrompt") then
+				skipPrompt.Enabled = not ready
+				skipPrompt.ObjectText = "💎" .. tostring(self:SkipCost(entry))
+			end
+			-- the egg grows while it incubates
+			local egg = pod:FindFirstChild("Egg")
+			if egg and egg:IsA("Model") then
+				local progress = math.clamp(1 - (entry.Ready - t) / math.max(1, entry.Total), 0, 1)
+				local scale = 0.75 + progress * 0.45
+				if math.abs((egg:GetAttribute("Grown") or 0) - scale) > 0.02 then
+					egg:SetAttribute("Grown", scale)
+					pcall(function()
+						egg:ScaleTo(scale)
+					end)
+				end
+			end
+		end
+	end
+end
+
+function Incubator:SkipCost(entry): number
+	local left = math.max(0, entry.Ready - now())
+	return math.max(1, math.ceil(left / 60) * SETTINGS.SkipGemsPerMinute)
+end
+
+---------------------------------------------------------------------------
+-- public
+---------------------------------------------------------------------------
+-- a delivered star egg: into a free incubator (false = hatch it right away)
+function Incubator:Add(player: Player, item): boolean
+	local data = Data:Get(player)
+	if not data or item.Kind ~= "Egg" or not data.Tutorial.Done then
+		return false
+	end
+	data.Incubators = data.Incubators or {}
+	local slots = self:Slots(data)
+	if #data.Incubators >= slots then
+		Net:Notify(player, "🥚 All incubators are busy - this egg hatches right away!", Color3.fromRGB(255, 210, 120))
+		return false
+	end
+	local seconds = Util.IncubateSeconds(Config, item.Rarity, item.Golden)
+	table.insert(data.Incubators, {
+		Egg = item.Egg,
+		Rarity = item.Rarity,
+		MeteorKind = item.MeteorKind,
+		Golden = item.Golden,
+		Ready = now() + seconds,
+		Total = seconds,
+	})
+	Data:MarkDirty(player)
+	self:Render(player)
+	Net:Notify(
+		player,
+		"🥚 Your %s is incubating - ready in %s!",
+		Color3.fromRGB(150, 230, 255),
+		rarityName(item.Rarity),
+		Util.FormatTime(seconds)
+	)
+	Net:Send(player, "EggIncubating", item.Rarity, seconds)
+	return true
+end
+
+function Incubator:Hatch(player: Player, index: number, skip: boolean): boolean
+	local data = Data:Get(player)
+	local entry = data and data.Incubators and data.Incubators[index]
+	if not entry then
+		return false
+	end
+	if now() < entry.Ready then
+		if not skip then
+			return false
+		end
+		local cost = self:SkipCost(entry)
+		if data.Gems < cost then
+			Net:Notify(player, "Not enough 💎 (%s)", Color3.fromRGB(255, 110, 110), Util.Format(cost))
+			return false
+		end
+		data.Gems -= cost
+		Services.Analytics:Economy(player, "Sink", "Gems", cost, data.Gems, "Gameplay", "IncubatorSkip")
+	end
+	table.remove(data.Incubators, index)
+	local def = Config.Shards.Rarities[entry.Rarity]
+	local meteorInfo = if entry.MeteorKind then { Kind = entry.MeteorKind, Golden = entry.Golden, Rarity = entry.Rarity } else nil
+	Services.PetService:HatchStarEgg(player, entry.Egg, if def then def.Luck or 1 else 1, meteorInfo)
+	Data:MarkDirty(player)
+	self:Render(player)
+	return true
+end
+
+-- how many eggs are ready (for the HUD)
+function Incubator:ReadyCount(data): number
+	local count = 0
+	for _, entry in data.Incubators or {} do
+		if now() >= entry.Ready then
+			count += 1
+		end
+	end
+	return count
+end
+
+-- cloud tests: make an egg ready now
+function Incubator:FinishForTest(player: Player, index: number)
+	assert(not RunService:IsRunning(), "test hook used on a live server")
+	local data = Data:Get(player)
+	local entry = data and data.Incubators[index]
+	if entry then
+		entry.Ready = now() - 1
+	end
+end
+
+function Incubator:Init(services)
+	Services = services
+	Data = services.DataService
+	World = services.WorldService
+end
+
+function Incubator:Start()
+	Data:OnLoaded(function(player)
+		task.delay(3, function()
+			if player.Parent then
+				pcall(self.Render, self, player)
+			end
+		end)
+	end)
+	-- timers tick; "ready!" once per egg
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			for _, player in Data:LoadedPlayers() do
+				local data = Data:Get(player)
+				if data and data.Incubators and #data.Incubators > 0 then
+					pcall(self.Refresh, self, player)
+					local ready = self:ReadyCount(data)
+					player:SetAttribute("EggsReady", ready)
+					for _, entry in data.Incubators do
+						if now() >= entry.Ready and not entry.Told then
+							entry.Told = true
+							Net:Notify(
+								player,
+								"🥚 Your %s is ready to hatch! 🏠",
+								Color3.fromRGB(120, 255, 160),
+								rarityName(entry.Rarity)
+							)
+							Net:Send(player, "EggReady", entry.Rarity)
+						end
+					end
+				elseif player:GetAttribute("EggsReady") then
+					player:SetAttribute("EggsReady", nil)
+				end
+			end
+		end
+	end)
+end
+
+return Incubator
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="24">
           <Properties>
             <string name="Name">LeaderboardService</string>
             <string name="Source"><![CDATA[--[[
@@ -9668,7 +10168,7 @@ return Leaderboards
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="24">
+        <Item class="ModuleScript" referent="25">
           <Properties>
             <string name="Name">LuckyService</string>
             <string name="Source"><![CDATA[--[[
@@ -9952,7 +10452,7 @@ return Lucky
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="25">
+        <Item class="ModuleScript" referent="26">
           <Properties>
             <string name="Name">MeteorService</string>
             <string name="Source"><![CDATA[--[[
@@ -11034,7 +11534,7 @@ return Meteor
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="26">
+        <Item class="ModuleScript" referent="27">
           <Properties>
             <string name="Name">MiningService</string>
             <string name="Source"><![CDATA[--[[
@@ -11614,6 +12114,99 @@ local function nearestCarrier(player: Player, root: BasePart): Player?
 end
 
 ---------------------------------------------------------------------------
+---------------------------------------------------------------------------
+-- 💪 strength
+---------------------------------------------------------------------------
+local STRENGTH = Config.Strength
+local autoTrain = {} -- [player] = training rock part (AFK training)
+
+local function strengthMult(player: Player, data): number
+	local mult = (data.PickaxeTier or 1) * (1 + STRENGTH.RebirthBonus * (data.Rebirths or 0))
+	if Services.MonetizationService:HasPass(player, "VIP") then
+		mult *= 1 + STRENGTH.VipBonus
+	end
+	if Services.BoostService:IsActive(player, "Power2x") then
+		mult *= 2
+	end
+	return mult
+end
+
+local function gainStrength(player: Player, data, base: number)
+	local amount = math.max(1, math.floor(base * strengthMult(player, data)))
+	data.Strength = (data.Strength or 0) + amount
+	Net:Send(player, "StrengthGain", amount, data.Strength)
+	Data:MarkDirty(player)
+	return amount
+end
+Mining.GainStrength = gainStrength
+
+-- the training rock a part belongs to (the core, or one of its pieces)
+local function trainingRock(part: Instance?): BasePart?
+	if part and part:IsA("BasePart") and part:GetAttribute("TrainTier") then
+		return part
+	end
+	local parent = part and part.Parent
+	if parent and parent:IsA("BasePart") and parent:GetAttribute("TrainTier") then
+		return parent
+	end
+	return nil
+end
+
+local function trainAt(player: Player, data, rock: BasePart, root: BasePart): boolean
+	if (rock.Position - root.Position).Magnitude > Config.World.Reach + rock.Size.Magnitude / 2 + 2 then
+		return false
+	end
+	local need = rock:GetAttribute("Need") or 0
+	if (data.Strength or 0) < need then
+		warnOnce(player, 3, "💪 You need %s strength for this rock - train on a lighter one!", Util.Format(need))
+		autoTrain[player] = nil
+		return true
+	end
+	gainStrength(player, data, rock:GetAttribute("Gain") or 1)
+	Net:Send(player, "TrainHit", rock)
+	return true
+end
+
+-- the heaviest rock we may use within reach
+local function nearestRock(root: BasePart, data): BasePart?
+	local best, bestGain = nil, -1
+	local map = workspace:FindFirstChild("Map")
+	local hub = map and map:FindFirstChild("Hub")
+	local ground = hub and hub:FindFirstChild("Training")
+	if not ground then
+		return nil
+	end
+	for _, rock in ground:GetChildren() do
+		if rock:IsA("BasePart") and rock:GetAttribute("TrainTier") then
+			local reach = Config.World.Reach + rock.Size.Magnitude / 2 + 2
+			local usable = (data.Strength or 0) >= (rock:GetAttribute("Need") or 0)
+			if usable and (rock.Position - root.Position).Magnitude <= reach and (rock:GetAttribute("Gain") or 0) > bestGain then
+				best, bestGain = rock, rock:GetAttribute("Gain") or 0
+			end
+		end
+	end
+	return best
+end
+
+-- AFK training: the client keeps swinging at this rock while you stand there
+function Mining:StartAutoTrain(player: Player, rock: BasePart)
+	local data = Data:Get(player)
+	if not data then
+		return
+	end
+	if (data.Strength or 0) < (rock:GetAttribute("Need") or 0) then
+		Net:Notify(
+			player,
+			"💪 You need %s strength for this rock - train on a lighter one!",
+			nil,
+			Util.Format(rock:GetAttribute("Need") or 0)
+		)
+		return
+	end
+	autoTrain[player] = rock
+	Net:Send(player, "AutoTrain", rock)
+end
+
 local function onSwing(player: Player, hint)
 	local data = Data:Get(player)
 	local character = player.Character
@@ -11658,6 +12251,10 @@ local function onSwing(player: Player, hint)
 			tryBonk(player, victim)
 			return
 		end
+		local rock = trainingRock(hintPart)
+		if rock and trainAt(player, data, rock, root) then
+			return
+		end
 		local shards = Services.ShardService
 		if model and Services.RivalService:IsRival(model) then
 			Services.RivalService:Bonk(player, model)
@@ -11671,6 +12268,7 @@ local function onSwing(player: Player, hint)
 		end
 		if blockInfo[hintPart] and withinReach(root, hintPart, 3) then
 			mineBlock(player, data, hintPart)
+			gainStrength(player, data, STRENGTH.PerSwing)
 			return
 		end
 	end
@@ -11681,6 +12279,7 @@ local function onSwing(player: Player, hint)
 	end
 	if meteor:IsActive() and meteor:InRange(root.Position) then
 		meteor:Hit(player, Services.StatsService:Damage(player, data), cooldown)
+		gainStrength(player, data, STRENGTH.PerSwing)
 		return
 	end
 
@@ -11705,6 +12304,13 @@ local function onSwing(player: Player, hint)
 	local target = nearestBlock(root)
 	if target then
 		mineBlock(player, data, target)
+		gainStrength(player, data, STRENGTH.PerSwing)
+		return
+	end
+	-- 5) at the training ground: the heaviest rock we can lift
+	local rock = autoTrain[player] or nearestRock(root, data)
+	if rock then
+		trainAt(player, data, rock, root)
 	end
 end
 
@@ -11904,6 +12510,7 @@ function Mining:Start()
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)
+		autoTrain[player] = nil
 		lastSwing[player] = nil
 		immunity[player] = nil
 		combos[player] = nil
@@ -11917,7 +12524,7 @@ return Mining
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="27">
+        <Item class="ModuleScript" referent="28">
           <Properties>
             <string name="Name">MonetizationService</string>
             <string name="Source"><![CDATA[--[[
@@ -12337,7 +12944,7 @@ return Monetization
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="28">
+        <Item class="ModuleScript" referent="29">
           <Properties>
             <string name="Name">Net</string>
             <string name="Source"><![CDATA[--[[
@@ -12469,7 +13076,7 @@ return Net
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="29">
+        <Item class="ModuleScript" referent="30">
           <Properties>
             <string name="Name">PetService</string>
             <string name="Source"><![CDATA[--[[
@@ -13351,7 +13958,7 @@ return PetService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="30">
+        <Item class="ModuleScript" referent="31">
           <Properties>
             <string name="Name">ProgressionService</string>
             <string name="Source"><![CDATA[--[[
@@ -14003,7 +14610,7 @@ return Progression
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="31">
+        <Item class="ModuleScript" referent="32">
           <Properties>
             <string name="Name">RivalHomes</string>
             <string name="Source"><![CDATA[--[[
@@ -14539,7 +15146,7 @@ return Homes
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="32">
+        <Item class="ModuleScript" referent="33">
           <Properties>
             <string name="Name">RivalService</string>
             <string name="Source"><![CDATA[--[[
@@ -15531,7 +16138,7 @@ return Rival
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="33">
+        <Item class="ModuleScript" referent="34">
           <Properties>
             <string name="Name">ShardService</string>
             <string name="Source"><![CDATA[--[[
@@ -16210,16 +16817,32 @@ local function deliver(player: Player)
 			Net:Announce("🦹 %s stole a %s from %s!", itemColor(item), player.DisplayName, display, owner.DisplayName)
 		end
 	else
-		-- a star egg: it hatches right here
-		local def = SETTINGS.Rarities[item.Rarity]
-		local meteorInfo = if item.MeteorKind then { Kind = item.MeteorKind, Golden = item.Golden, Rarity = item.Rarity } else nil
-		local result = pets:HatchStarEgg(player, item.Egg, if def then def.Luck or 1 else 1, meteorInfo)
+		-- a star egg: into a home incubator (it grows, then you hatch it);
+		-- the tutorial egg / a full house hatches it right here
+		local incubators = Services.IncubatorService
+		local ok, incubating = pcall(function()
+			return incubators ~= nil and incubators:Add(player, item)
+		end)
 		pcall(pets.AddFollowXP, pets, player, Config.Growth.DeliverXP)
 		if data then
 			data.Stats.ShardsDelivered = (data.Stats.ShardsDelivered or 0) + 1
 		end
-		Services.Analytics:Custom(player, "StarEggHatched", tier)
-		Net:Send(player, "ShardDelivered", rarityName(item.Rarity), "Hatched", 0, result and result.Name)
+		if ok and incubating then
+			Services.Analytics:Custom(player, "StarEggIncubated", tier)
+			Net:Send(
+				player,
+				"ShardDelivered",
+				rarityName(item.Rarity),
+				"Incubating",
+				Util.IncubateSeconds(Config, item.Rarity, item.Golden)
+			)
+		else
+			local def = SETTINGS.Rarities[item.Rarity]
+			local meteorInfo = if item.MeteorKind then { Kind = item.MeteorKind, Golden = item.Golden, Rarity = item.Rarity } else nil
+			local result = pets:HatchStarEgg(player, item.Egg, if def then def.Luck or 1 else 1, meteorInfo)
+			Services.Analytics:Custom(player, "StarEggHatched", tier)
+			Net:Send(player, "ShardDelivered", rarityName(item.Rarity), "Hatched", 0, result and result.Name)
+		end
 		if tier >= 4 then
 			Net:Announce("🌟 %s brought a %s home!", itemColor(item), player.DisplayName, rarityName(item.Rarity))
 		end
@@ -16565,7 +17188,7 @@ return Shards
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="34">
+        <Item class="ModuleScript" referent="35">
           <Properties>
             <string name="Name">StatsService</string>
             <string name="Source"><![CDATA[--[[
@@ -16622,7 +17245,7 @@ end
 
 function Stats:Damage(player, data): number
 	local pickaxe = Config.Pickaxes[data.PickaxeTier] or Config.Pickaxes[1]
-	local mult = 1 + self:PetPower(player, data)
+	local mult = (1 + self:PetPower(player, data)) * Util.StrengthMult(Config, data.Strength)
 	if has(player, "MegaPower") then
 		mult *= 2
 	end
@@ -16818,7 +17441,7 @@ return Stats
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="35">
+        <Item class="ModuleScript" referent="36">
           <Properties>
             <string name="Name">TradeService</string>
             <string name="Source"><![CDATA[--[[
@@ -17116,7 +17739,7 @@ return Trade
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="36">
+        <Item class="ModuleScript" referent="37">
           <Properties>
             <string name="Name">WorldService</string>
             <string name="Source"><![CDATA[--[[
@@ -17581,6 +18204,76 @@ end
 ---------------------------------------------------------------------------
 -- hub
 ---------------------------------------------------------------------------
+-- 💪 the training ground: rocks to hit for strength (heavier = more per swing)
+local function buildTrainingGround(parent)
+	local ground = folder("Training", parent)
+	local settings = Config.Strength
+	local rng = Random.new(31)
+	for tier, rock in settings.Rocks do
+		local spot = settings.RockSpots[tier]
+		if spot then
+			local size = rock.Size
+			local core = newPart({
+				Name = "TrainingRock",
+				Size = Vector3.new(size * 0.8, size * 0.7, size * 0.8),
+				CFrame = CFrame.new(spot + Vector3.new(0, size * 0.3, 0)) * CFrame.Angles(0.15, rng:NextNumber(0, 6), 0.1),
+				Color = rock.Color,
+				Material = if tier >= 4 then Enum.Material.Basalt else Enum.Material.Rock,
+			}, ground)
+			core:SetAttribute("TrainTier", tier)
+			core:SetAttribute("Need", rock.Need)
+			core:SetAttribute("Gain", rock.Gain)
+			for i = 1, 5 do
+				local angle = i * 1.3
+				local piece = Instance.new("Part")
+				piece.Name = "RockPiece"
+				piece.Anchored = true
+				piece.CanCollide = false
+				piece.CanTouch = false
+				piece.Size = Vector3.new(size * 0.45, size * 0.4, size * 0.45) * rng:NextNumber(0.8, 1.2)
+				piece.CFrame = CFrame.new(
+					core.Position
+						+ Vector3.new(math.cos(angle) * size * 0.32, rng:NextNumber(-0.3, 0.5) * size * 0.4, math.sin(angle) * size * 0.32)
+				) * CFrame.Angles(rng:NextNumber(0, 3), rng:NextNumber(0, 3), rng:NextNumber(0, 3))
+				piece.Color = rock.Color:Lerp(Color3.new(0, 0, 0), rng:NextNumber(0, 0.25))
+				piece.Material = core.Material
+				piece.Parent = core
+			end
+			if tier >= 4 then
+				local glow = Instance.new("PointLight")
+				glow.Color = if tier == 5 then Color3.fromRGB(255, 200, 100) else Color3.fromRGB(255, 120, 60)
+				glow.Range = 12
+				glow.Brightness = 1
+				glow.Parent = core
+			end
+			billboard(
+				core,
+				"💪 %s\n+%s / swing  •  need %s",
+				Color3.fromRGB(255, 210, 120),
+				size * 0.5 + 2.5,
+				10,
+				2.6,
+				rock.Name,
+				tostring(rock.Gain),
+				Util.Format(rock.Need)
+			)
+			-- AFK training: stand here and let your character train
+			prompt(core, "Auto Train", rock.Name, function(player)
+				Services.MiningService:StartAutoTrain(player, core)
+			end).HoldDuration =
+				0.3
+		end
+	end
+	local sign = newPart({
+		Name = "TrainingSign",
+		Size = Vector3.new(12, 4, 0.6),
+		CFrame = CFrame.new(-52, 6, 76) * CFrame.Angles(0, math.pi, 0),
+		Color = Color3.fromRGB(40, 32, 28),
+		Material = Enum.Material.Wood,
+	}, ground)
+	billboard(sign, "💪 TRAINING GROUND\nhit the rocks to get stronger", Color3.fromRGB(255, 210, 120), 0, 14, 3)
+end
+
 local function buildHub()
 	local hub = folder("Hub", map)
 
@@ -17796,6 +18489,7 @@ local function buildHub()
 		lamp(Vector3.new(-11, 0, z), Color3.fromRGB(255, 220, 160), hub)
 		lamp(Vector3.new(11, 0, z), Color3.fromRGB(255, 220, 160), hub)
 	end
+	buildTrainingGround(hub)
 end
 
 ---------------------------------------------------------------------------
@@ -18507,23 +19201,23 @@ return World
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="37">
+  <Item class="StarterPlayer" referent="38">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="38">
+    <Item class="StarterPlayerScripts" referent="39">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="39">
+      <Item class="Folder" referent="40">
         <Properties>
           <string name="Name">Client</string>
         </Properties>
-        <Item class="Folder" referent="40">
+        <Item class="Folder" referent="41">
           <Properties>
             <string name="Name">Controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="41">
+          <Item class="ModuleScript" referent="42">
             <Properties>
               <string name="Name">Ambience</string>
               <string name="Source"><![CDATA[--[[
@@ -18748,7 +19442,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="42">
+          <Item class="ModuleScript" referent="43">
             <Properties>
               <string name="Name">Build</string>
               <string name="Source"><![CDATA[--[[
@@ -19783,7 +20477,7 @@ return Build
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="43">
+          <Item class="ModuleScript" referent="44">
             <Properties>
               <string name="Name">DevTools</string>
               <string name="Source"><![CDATA[--[[
@@ -19865,7 +20559,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="44">
+          <Item class="ModuleScript" referent="45">
             <Properties>
               <string name="Name">Guide</string>
               <string name="Source"><![CDATA[--[[
@@ -19998,6 +20692,47 @@ local function baseTarget()
 	return pad and pad.Position + Vector3.new(0, 1, 0)
 end
 
+-- the heaviest training rock you're strong enough for
+local function trainingRock(strength: number): Vector3?
+	local map = workspace:FindFirstChild("Map")
+	local hub = map and map:FindFirstChild("Hub")
+	local ground = hub and hub:FindFirstChild("Training")
+	if not ground then
+		return nil
+	end
+	local best, bestTier = nil, 0
+	for _, rock in ground:GetChildren() do
+		local tier = rock:GetAttribute("TrainTier")
+		if rock:IsA("BasePart") and tier and tier > bestTier and strength >= (rock:GetAttribute("Need") or 0) then
+			best, bestTier = rock, tier
+		end
+	end
+	return best and best.Position + Vector3.new(0, 2, 0)
+end
+
+-- a ready egg in your home incubators
+local function incubatorTarget(): Vector3?
+	if (player:GetAttribute("EggsReady") or 0) <= 0 then
+		return nil
+	end
+	local index = player:GetAttribute("BaseIndex")
+	local map = workspace:FindFirstChild("Map")
+	local bases = map and map:FindFirstChild("Bases")
+	local plot = bases and index and bases:FindFirstChild("Plot_" .. tostring(index))
+	local folder = plot and plot:FindFirstChild("Incubators")
+	if not folder then
+		return nil
+	end
+	local now = workspace:GetServerTimeNow()
+	for _, pod in folder:GetChildren() do
+		local ready = pod:GetAttribute("Ready")
+		if pod:IsA("Model") and pod.PrimaryPart and ready and now >= ready then
+			return pod.PrimaryPart.Position + Vector3.new(0, 1, 0)
+		end
+	end
+	return nil
+end
+
 -- the closest shard lying around in a place we can reach
 local function shardTarget(root: BasePart, data)
 	local map = workspace:FindFirstChild("Map")
@@ -20095,10 +20830,18 @@ local function pickTarget(root: BasePart)
 	if shard then
 		return shard, T("🥚 GRAB THE STAR EGG")
 	end
+	local egg = incubatorTarget()
+	if egg then
+		return egg, T("🐣 HATCH YOUR EGG")
+	end
 	if (data.Level or 1) >= MAX_LEVEL or data.ZoneLevel >= 3 then
 		return nil
 	end
 	local zone = Config.Zones[data.ZoneLevel + 1]
+	if zone and data.Coins >= zone.Cost and (data.Strength or 0) < (zone.Strength or 0) then
+		local rock = trainingRock(data.Strength or 0)
+		return rock, T("💪 TRAIN HERE")
+	end
 	if zone and data.Coins >= zone.Cost then
 		local gate = part({ "Gates", "Gate_" .. (data.ZoneLevel + 1) })
 		return gate and gate.Position, T("🔓 UNLOCK %s", zone.Name)
@@ -20155,7 +20898,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="45">
+          <Item class="ModuleScript" referent="46">
             <Properties>
               <string name="Name">HUD</string>
               <string name="Source"><![CDATA[--[[
@@ -20336,13 +21079,13 @@ end)
 local topLeft = Root.Cluster("TopLeft", Vector2.zero, UDim2.fromOffset(12, 12), UDim2.fromOffset(260, 520))
 Lib.List(Enum.FillDirection.Vertical, 5, Enum.HorizontalAlignment.Left).Parent = topLeft
 
-local function pill(order: number, icon: string, color: Color3)
+local function pill(order: number, icon: string, color: Color3, parent: Instance?, width: number?)
 	local frame = New("Frame", {
 		BackgroundColor3 = DARK,
 		BackgroundTransparency = 0.1,
-		Size = UDim2.fromOffset(210, 36),
+		Size = UDim2.fromOffset(width or 210, 36),
 		LayoutOrder = order,
-		Parent = topLeft,
+		Parent = parent or topLeft,
 	}, { Lib.Corner(18), Lib.Stroke(color, 2.5, 0) })
 	Lib.Text({
 		Text = icon,
@@ -20366,7 +21109,13 @@ end
 
 local coinPill, coinLabel = pill(1, "💰", C.Coins)
 local _, gemLabel = pill(2, "💎", C.Gems)
-local dustPill, dustLabel = pill(3, "✨", C.Stardust)
+-- ✨ stardust and 💪 strength share one row
+local statRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(210, 36), LayoutOrder = 3, Parent = topLeft }, {
+	Lib.List(Enum.FillDirection.Horizontal, 6, Enum.HorizontalAlignment.Left),
+})
+local dustPill, dustLabel = pill(1, "✨", C.Stardust, statRow, 102)
+local strengthPill, strengthLabel = pill(2, "💪", Color3.fromRGB(255, 150, 90), statRow, 102)
+HUD.StrengthPill = strengthPill
 
 local levelRow = New("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(210, 24), LayoutOrder = 4, Parent = topLeft })
 local levelBadge = Lib.Text({ Text = "Lv.1", TextColor3 = C.Gold, Size = UDim2.fromOffset(54, 24), MaxTextSize = 20, Parent = levelRow })
@@ -21027,6 +21776,7 @@ function HUD.Refresh()
 	gemLabel.Text = Util.Format(data.Gems)
 	dustLabel.Text = Util.Format(data.Stardust)
 	dustPill.Visible = data.Stardust > 0
+	strengthLabel.Text = Util.Format(math.max(data.Strength or 0, HUD.StrengthShown or 0))
 
 	local need = derived.XPNeeded or 1
 	levelBadge.Text = "Lv." .. (data.Level or 1)
@@ -21356,6 +22106,22 @@ Net.On("RankUp", function(rankName)
 	Lib.PlaySound("RankUp")
 	celebrate(T("🏅 %s RANK!", tostring(rankName)), T("Weekly ranked - keep climbing!"), C.Cyan)
 end)
+-- 💪 strength: the number climbs right away, a little "+N 💪" pops up
+local lastStrengthPop = 0
+Net.On("StrengthGain", function(amount, total)
+	if type(total) == "number" then
+		HUD.StrengthShown = total
+		strengthLabel.Text = Util.Format(total)
+		if State.Data then
+			State.Data.Strength = math.max(State.Data.Strength or 0, total)
+		end
+	end
+	if os.clock() - lastStrengthPop > 0.25 and type(amount) == "number" then
+		lastStrengthPop = os.clock()
+		Lib.Pop(strengthPill)
+	end
+end)
+
 -- 🌱 pets growing up / ⭐ evolving
 Net.On("PetLevelUp", function(ups)
 	if type(ups) ~= "table" or #ups == 0 then
@@ -21459,7 +22225,7 @@ return HUD
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="46">
+          <Item class="ModuleScript" referent="47">
             <Properties>
               <string name="Name">HowTo</string>
               <string name="Source"><![CDATA[--[[
@@ -21496,7 +22262,7 @@ local STEPS = {
 	{
 		Icon = "🏠",
 		Title = "YOUR SAFE HOME",
-		Text = "It hatches into a pet that earns 💰.\nRaids only on 🌙 Thief Night!",
+		Text = "It grows in an 🥚 incubator into a pet\nthat earns 💰. Raids only on 🌙 Thief Night!",
 		Color = Color3.fromRGB(120, 220, 120),
 	},
 }
@@ -21633,7 +22399,7 @@ return HowTo
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="47">
+          <Item class="ModuleScript" referent="48">
             <Properties>
               <string name="Name">MeteorUI</string>
               <string name="Source"><![CDATA[--[[
@@ -22003,7 +22769,7 @@ return MeteorUI
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="48">
+          <Item class="ModuleScript" referent="49">
             <Properties>
               <string name="Name">Mining</string>
               <string name="Source"><![CDATA[--[[
@@ -22289,6 +23055,14 @@ end
 local function classify(hit: Instance?)
 	if not hit or not hit:IsA("BasePart") then
 		return nil
+	end
+	-- 💪 a training rock (or one of its pieces)
+	local rock = if hit:GetAttribute("TrainTier") then hit else nil
+	if not rock and hit.Parent and hit.Parent:IsA("BasePart") and hit.Parent:GetAttribute("TrainTier") then
+		rock = hit.Parent :: BasePart
+	end
+	if rock then
+		return { Kind = "Ore", Part = rock }
 	end
 	local ores = getOres()
 	if ores then
@@ -22657,7 +23431,13 @@ RunService.Heartbeat:Connect(function()
 		autoWalk = false -- the player took over
 	end
 
-	local wantsMore = (holdMouse or holdButton or (State.AutoMine and State.HasPass("AutoMine"))) and not carrying
+	-- 💪 AFK training: keeps going while you stand at the rock
+	local trainRock = State.AutoTrainRock
+	if trainRock and (not trainRock.Parent or flatDistance(trainRock.Position, root.Position) > 20) then
+		State.AutoTrainRock = nil
+		trainRock = nil
+	end
+	local wantsMore = (holdMouse or holdButton or trainRock ~= nil or (State.AutoMine and State.HasPass("AutoMine"))) and not carrying
 	if not target and wantsMore and os.clock() - lastSearch > 0.12 then
 		lastSearch = os.clock()
 		local meteorActive = workspace:GetAttribute("MeteorState") == "Active"
@@ -22678,6 +23458,8 @@ RunService.Heartbeat:Connect(function()
 			local ore = nearestOre(root)
 			if ore then
 				setTarget({ Kind = "Ore", Part = ore }, true)
+			elseif trainRock then
+				setTarget({ Kind = "Ore", Part = trainRock }, false)
 			end
 		end
 	end
@@ -22748,6 +23530,29 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- server feedback ----------------------------------------------------------
+-- 💪 training
+Net.On("AutoTrain", function(rock)
+	if typeof(rock) == "Instance" and rock:IsA("BasePart") then
+		State.AutoTrainRock = rock
+		Lib.PlaySound("Reward", 0.6)
+	end
+end)
+Net.On("TrainHit", function(rock)
+	if typeof(rock) == "Instance" and rock:IsA("BasePart") then
+		burst(rock.Position + Vector3.new(0, rock.Size.Y * 0.5, 0), rock.Color, 5)
+		Lib.PlaySound("HitStone", 0.7)
+	end
+end)
+local lastStrengthText = 0
+Net.On("StrengthGain", function(amount)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if type(amount) ~= "number" or not root or not root:IsA("BasePart") or os.clock() - lastStrengthText < 0.2 then
+		return
+	end
+	lastStrengthText = os.clock()
+	floatText(root.Position + Vector3.new(0, 4, 0), "+" .. Util.Format(amount) .. " 💪", Color3.fromRGB(255, 160, 90), 22, 3)
+end)
+
 Net.On("MineHit", function(part, ratio, crit, damage, isSplash)
 	if typeof(part) ~= "Instance" or not part:IsA("BasePart") then
 		return
@@ -22977,7 +23782,7 @@ return Mining
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="49">
+          <Item class="ModuleScript" referent="50">
             <Properties>
               <string name="Name">PetFollow</string>
               <string name="Source"><![CDATA[--[[
@@ -23146,7 +23951,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="50">
+          <Item class="ModuleScript" referent="51">
             <Properties>
               <string name="Name">Shards</string>
               <string name="Source"><![CDATA[--[[
@@ -23582,7 +24387,7 @@ return Shards
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="51">
+          <Item class="ModuleScript" referent="52">
             <Properties>
               <string name="Name">Spectacle</string>
               <string name="Source"><![CDATA[--[[
@@ -23766,7 +24571,7 @@ return Spectacle
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="52">
+          <Item class="ModuleScript" referent="53">
             <Properties>
               <string name="Name">TradeUI</string>
               <string name="Source"><![CDATA[--[[
@@ -23882,7 +24687,7 @@ return TradeUI
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="53">
+          <Item class="ModuleScript" referent="54">
             <Properties>
               <string name="Name">WorldFX</string>
               <string name="Source"><![CDATA[--[[
@@ -24041,7 +24846,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="54">
+          <Item class="ModuleScript" referent="55">
             <Properties>
               <string name="Name">YardPets</string>
               <string name="Source"><![CDATA[--[[
@@ -24281,7 +25086,7 @@ return YardPets
             </Properties>
           </Item>
         </Item>
-        <Item class="LocalScript" referent="55">
+        <Item class="LocalScript" referent="56">
           <Properties>
             <string name="Name">Main</string>
             <string name="Source"><![CDATA[--[[
@@ -24355,7 +25160,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="56">
+        <Item class="ModuleScript" referent="57">
           <Properties>
             <string name="Name">Net</string>
             <string name="Source"><![CDATA[local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -24399,7 +25204,7 @@ return Net
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="57">
+        <Item class="ModuleScript" referent="58">
           <Properties>
             <string name="Name">State</string>
             <string name="Source"><![CDATA[--[[
@@ -24462,11 +25267,11 @@ return State
 ]]></string>
           </Properties>
         </Item>
-        <Item class="Folder" referent="58">
+        <Item class="Folder" referent="59">
           <Properties>
             <string name="Name">UI</string>
           </Properties>
-          <Item class="ModuleScript" referent="59">
+          <Item class="ModuleScript" referent="60">
             <Properties>
               <string name="Name">Hatch</string>
               <string name="Source"><![CDATA[--[[
@@ -24853,7 +25658,7 @@ return Hatch
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="60">
+          <Item class="ModuleScript" referent="61">
             <Properties>
               <string name="Name">Lib</string>
               <string name="Source"><![CDATA[--[[
@@ -25218,7 +26023,7 @@ return Lib
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="61">
+          <Item class="ModuleScript" referent="62">
             <Properties>
               <string name="Name">Panels</string>
               <string name="Source"><![CDATA[--[[
@@ -25454,7 +26259,7 @@ end
 return Panels
 ]]></string>
             </Properties>
-            <Item class="ModuleScript" referent="62">
+            <Item class="ModuleScript" referent="63">
               <Properties>
                 <string name="Name">Codes</string>
                 <string name="Source"><![CDATA[-- Promo codes: free rewards for players who find codes on YouTube / TikTok /
@@ -25555,7 +26360,7 @@ return Codes
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="63">
+            <Item class="ModuleScript" referent="64">
               <Properties>
                 <string name="Name">Egg</string>
                 <string name="Source"><![CDATA[-- Egg shop: shows exact odds (incl. your luck) and what each pet earns
@@ -25818,7 +26623,7 @@ return Egg
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="64">
+            <Item class="ModuleScript" referent="65">
               <Properties>
                 <string name="Name">Gifts</string>
                 <string name="Source"><![CDATA[-- Playtime gifts: claimable after N minutes in this session (session length)
@@ -25900,7 +26705,7 @@ return Gifts
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="65">
+            <Item class="ModuleScript" referent="66">
               <Properties>
                 <string name="Name">Houses</string>
                 <string name="Source"><![CDATA[--[[
@@ -26047,7 +26852,7 @@ return Houses
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="66">
+            <Item class="ModuleScript" referent="67">
               <Properties>
                 <string name="Name">Index</string>
                 <string name="Source"><![CDATA[--[[
@@ -26286,7 +27091,7 @@ return Index
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="67">
+            <Item class="ModuleScript" referent="68">
               <Properties>
                 <string name="Name">Pass</string>
                 <string name="Source"><![CDATA[-- Season pass: free + premium tracks, XP bar, premium / skip upsells
@@ -26468,7 +27273,7 @@ return Pass
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="68">
+            <Item class="ModuleScript" referent="69">
               <Properties>
                 <string name="Name">Pets</string>
                 <string name="Source"><![CDATA[--[[
@@ -27116,7 +27921,7 @@ return Pets
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="69">
+            <Item class="ModuleScript" referent="70">
               <Properties>
                 <string name="Name">Quests</string>
                 <string name="Source"><![CDATA[-- Daily login streak, daily quests, weekly ranked ladder, VIP chest, group reward
@@ -27424,7 +28229,7 @@ return Quests
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="70">
+            <Item class="ModuleScript" referent="71">
               <Properties>
                 <string name="Name">Rebirth</string>
                 <string name="Source"><![CDATA[-- Rebirth: reset coins/upgrades for a permanent coin multiplier + gems
@@ -27514,7 +28319,7 @@ return Rebirth
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="71">
+            <Item class="ModuleScript" referent="72">
               <Properties>
                 <string name="Name">Rewards</string>
                 <string name="Source"><![CDATA[-- One place for every free reward (instead of 4 separate menu buttons)
@@ -27599,7 +28404,7 @@ return Rewards
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="72">
+            <Item class="ModuleScript" referent="73">
               <Properties>
                 <string name="Name">Settings</string>
                 <string name="Source"><![CDATA[-- Settings: language (auto / 한국어 / English), sound, how to play
@@ -27721,7 +28526,7 @@ return Settings
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="73">
+            <Item class="ModuleScript" referent="74">
               <Properties>
                 <string name="Name">Shop</string>
                 <string name="Source"><![CDATA[-- Pickaxe + running-speed upgrades (coins sink, sequential tiers)
@@ -27858,7 +28663,7 @@ return Shop
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="74">
+            <Item class="ModuleScript" referent="75">
               <Properties>
                 <string name="Name">Spin</string>
                 <string name="Source"><![CDATA[-- Free prize wheel: one spin every few hours (VIP: faster). The server picks
@@ -28083,7 +28888,7 @@ return Spin
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="75">
+            <Item class="ModuleScript" referent="76">
               <Properties>
                 <string name="Name">Store</string>
                 <string name="Source"><![CDATA[-- Robux store: game passes, consumables (gems/boosts/server luck/meteor),
@@ -28348,7 +29153,7 @@ return Store
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="76">
+            <Item class="ModuleScript" referent="77">
               <Properties>
                 <string name="Name">Teleport</string>
                 <string name="Source"><![CDATA[-- Zone list: teleport to unlocked zones, unlock the next one
@@ -28430,7 +29235,7 @@ return Teleport
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="77">
+            <Item class="ModuleScript" referent="78">
               <Properties>
                 <string name="Name">Titles</string>
                 <string name="Source"><![CDATA[--[[
@@ -28630,7 +29435,7 @@ return Titles
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="78">
+            <Item class="ModuleScript" referent="79">
               <Properties>
                 <string name="Name">Trade</string>
                 <string name="Source"><![CDATA[--[[
@@ -28916,7 +29721,7 @@ return Trade
               </Properties>
             </Item>
           </Item>
-          <Item class="ModuleScript" referent="79">
+          <Item class="ModuleScript" referent="80">
             <Properties>
               <string name="Name">Root</string>
               <string name="Source"><![CDATA[--[[
@@ -29002,7 +29807,7 @@ return Root
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="80">
+          <Item class="ModuleScript" referent="81">
             <Properties>
               <string name="Name">Upsell</string>
               <string name="Source"><![CDATA[--[[
@@ -29136,13 +29941,13 @@ return Upsell
       </Item>
     </Item>
   </Item>
-  <Item class="TextChatService" referent="81">
+  <Item class="TextChatService" referent="82">
     <Properties>
       <string name="Name">TextChatService</string>
       <token name="ChatVersion">1</token>
     </Properties>
   </Item>
-  <Item class="Workspace" referent="82">
+  <Item class="Workspace" referent="83">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>

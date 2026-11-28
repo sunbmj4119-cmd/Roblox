@@ -32,7 +32,7 @@ local STEPS = {
 	{
 		Icon = "🏠",
 		Title = "YOUR SAFE HOME",
-		Text = "It hatches into a pet that earns 💰.\nRaids only on 🌙 Thief Night!",
+		Text = "It grows in an 🥚 incubator into a pet\nthat earns 💰. Raids only on 🌙 Thief Night!",
 		Color = Color3.fromRGB(120, 220, 120),
 	},
 }

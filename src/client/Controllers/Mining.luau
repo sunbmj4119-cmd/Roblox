@@ -282,6 +282,14 @@ local function classify(hit: Instance?)
 	if not hit or not hit:IsA("BasePart") then
 		return nil
 	end
+	-- 💪 a training rock (or one of its pieces)
+	local rock = if hit:GetAttribute("TrainTier") then hit else nil
+	if not rock and hit.Parent and hit.Parent:IsA("BasePart") and hit.Parent:GetAttribute("TrainTier") then
+		rock = hit.Parent :: BasePart
+	end
+	if rock then
+		return { Kind = "Ore", Part = rock }
+	end
 	local ores = getOres()
 	if ores then
 		if hit.Parent == ores then
@@ -649,7 +657,13 @@ RunService.Heartbeat:Connect(function()
 		autoWalk = false -- the player took over
 	end
 
-	local wantsMore = (holdMouse or holdButton or (State.AutoMine and State.HasPass("AutoMine"))) and not carrying
+	-- 💪 AFK training: keeps going while you stand at the rock
+	local trainRock = State.AutoTrainRock
+	if trainRock and (not trainRock.Parent or flatDistance(trainRock.Position, root.Position) > 20) then
+		State.AutoTrainRock = nil
+		trainRock = nil
+	end
+	local wantsMore = (holdMouse or holdButton or trainRock ~= nil or (State.AutoMine and State.HasPass("AutoMine"))) and not carrying
 	if not target and wantsMore and os.clock() - lastSearch > 0.12 then
 		lastSearch = os.clock()
 		local meteorActive = workspace:GetAttribute("MeteorState") == "Active"
@@ -670,6 +684,8 @@ RunService.Heartbeat:Connect(function()
 			local ore = nearestOre(root)
 			if ore then
 				setTarget({ Kind = "Ore", Part = ore }, true)
+			elseif trainRock then
+				setTarget({ Kind = "Ore", Part = trainRock }, false)
 			end
 		end
 	end
@@ -740,6 +756,29 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- server feedback ----------------------------------------------------------
+-- 💪 training
+Net.On("AutoTrain", function(rock)
+	if typeof(rock) == "Instance" and rock:IsA("BasePart") then
+		State.AutoTrainRock = rock
+		Lib.PlaySound("Reward", 0.6)
+	end
+end)
+Net.On("TrainHit", function(rock)
+	if typeof(rock) == "Instance" and rock:IsA("BasePart") then
+		burst(rock.Position + Vector3.new(0, rock.Size.Y * 0.5, 0), rock.Color, 5)
+		Lib.PlaySound("HitStone", 0.7)
+	end
+end)
+local lastStrengthText = 0
+Net.On("StrengthGain", function(amount)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if type(amount) ~= "number" or not root or not root:IsA("BasePart") or os.clock() - lastStrengthText < 0.2 then
+		return
+	end
+	lastStrengthText = os.clock()
+	floatText(root.Position + Vector3.new(0, 4, 0), "+" .. Util.Format(amount) .. " 💪", Color3.fromRGB(255, 160, 90), 22, 3)
+end)
+
 Net.On("MineHit", function(part, ratio, crit, damage, isSplash)
 	if typeof(part) ~= "Instance" or not part:IsA("BasePart") then
 		return

@@ -44,6 +44,7 @@ local ORDER = {
 	"LuckyService",
 	"RivalService",
 	"RivalHomes",
+	"IncubatorService",
 	"ProgressionService",
 	"LeaderboardService",
 	"DevService",
@@ -348,7 +349,69 @@ check(S.ShardService:IsCarrying(A), "star egg carry failed")
 rootA.CFrame = Base:HomeCFrame(A) * CFrame.new(0, 0, 6)
 task.wait(0.6)
 check(not S.ShardService:IsCarrying(A), "star egg not delivered")
-check(#dataA.Pets == alicePets + 1, "star egg did not hatch a pet")
+-- 🥚 it goes into a home incubator first, then hatches
+local Incubator = S.IncubatorService
+check(#dataA.Incubators == 1 and #dataA.Pets == alicePets, "star egg did not go into an incubator")
+local pods = plotA.Model:FindFirstChild("Incubators")
+check(pods ~= nil and #pods:GetChildren() == Incubator:Slots(dataA), "incubator pods not built for the house level")
+local firstPod = pods and pods:FindFirstChild("Incubator_1")
+check(firstPod ~= nil and firstPod:FindFirstChild("Egg") ~= nil, "no egg inside the incubator")
+local entry = dataA.Incubators[1]
+check(entry ~= nil and entry.Ready - os.time() >= Config.Incubator.Seconds.Epic - 2, "incubator timer is not the Epic time")
+check(not Incubator:Hatch(A, 1, false), "an unready egg hatched")
+check(#dataA.Incubators == 1, "a failed hatch removed the egg")
+Incubator:FinishForTest(A, 1)
+check(Incubator:ReadyCount(dataA) == 1, "finished egg not counted as ready")
+check(Incubator:Hatch(A, 1, false), "a ready egg did not hatch")
+check(#dataA.Pets == alicePets + 1 and #dataA.Incubators == 0, "the incubated egg did not hatch a pet")
+-- skip the wait with gems
+check(Incubator:Add(A, { Kind = "Egg", Rarity = "Legendary", Egg = "Meadow" }), "incubator Add failed")
+local gemsBefore = dataA.Gems
+local skipCost = Incubator:SkipCost(dataA.Incubators[1])
+check(Incubator:Hatch(A, 1, true), "gem skip did not hatch")
+check(dataA.Gems == gemsBefore - skipCost and skipCost > 0, "gem skip did not cost gems")
+check(#dataA.Pets == alicePets + 2, "gem skip gave no pet")
+-- a full house: the egg hatches right away instead
+for _ = 1, Incubator:Slots(dataA) do
+	Incubator:Add(A, { Kind = "Egg", Rarity = "Common", Egg = "Meadow" })
+end
+check(#dataA.Incubators == Incubator:Slots(dataA), "incubators did not fill up")
+check(not Incubator:Add(A, { Kind = "Egg", Rarity = "Common", Egg = "Meadow" }), "a full incubator took another egg")
+local petsFull = #dataA.Pets
+S.ShardService:StartCarry(A, { Kind = "Egg", Rarity = "Rare", Egg = "Meadow" }, nil)
+rootA.CFrame = Base:HomeCFrame(A) * CFrame.new(0, 0, 6)
+task.wait(0.6)
+check(#dataA.Pets == petsFull + 1, "with full incubators the egg did not hatch right away")
+-- offline progress: the timers are absolute times, so they keep running
+for index = #dataA.Incubators, 1, -1 do
+	Incubator:FinishForTest(A, index)
+	Incubator:Hatch(A, index, false)
+end
+check(#dataA.Incubators == 0, "could not empty the incubators")
+results.incubatedPets = #dataA.Pets - alicePets
+
+-- 💪 strength: training rocks + zones that need strength
+local strengthBefore = dataA.Strength or 0
+local gained = S.MiningService.GainStrength(A, dataA, 5)
+check(gained >= 5 and dataA.Strength == strengthBefore + gained, "GainStrength did not add strength")
+local rocks = workspace.Map.Hub:FindFirstChild("Training")
+check(rocks ~= nil and #rocks:GetChildren() >= #Config.Strength.Rocks, "training rocks missing")
+do
+	local saved = { dataC.ZoneLevel, dataC.Coins, dataC.Strength }
+	local zone2 = Config.Zones[2]
+	dataC.ZoneLevel = 1
+	dataC.Coins = zone2.Cost + 10
+	dataC.Strength = 0
+	S.EconomyService:UnlockZone(Cp, 2)
+	check(dataC.ZoneLevel == 1 and dataC.Coins == zone2.Cost + 10, "zone 2 unlocked without strength")
+	dataC.Strength = zone2.Strength
+	S.EconomyService:UnlockZone(Cp, 2)
+	check(dataC.ZoneLevel == 2, "zone 2 did not unlock with enough strength")
+	dataC.ZoneLevel, dataC.Coins, dataC.Strength = saved[1], saved[2], saved[3]
+end
+local strongMult = Util.StrengthMult(Config, 10000)
+check(strongMult > 1.5, "strength barely changes damage")
+results.strengthMult = strongMult
 
 -- 8) trade: Alice gives one pet (numbered), Bob gives one pet
 S.PetService:GrantPet(B, "Puppy", nil) -- (Bob lost his pet to Alice's revenge)
@@ -760,6 +823,13 @@ if #bots == 2 then
 			if not Util.InBases(Config, entry.Position + Vector3.new(0, 3, 0)) and not tried[entry.Model] then
 				spot = entry.Position
 				tried[entry.Model] = true
+				-- (it would keep "walking" to the egg it picked before the teleport)
+				for _, other in bots do
+					if other.TargetEgg == entry.Model then
+						other.TargetEgg = nil
+					end
+				end
+				bot.TargetEgg = entry.Model
 				break
 			end
 		end

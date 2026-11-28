@@ -342,6 +342,22 @@ function Util.EvolveCopies(config, data, pet)
 	return list
 end
 
+-- 💪 damage multiplier from strength
+function Util.StrengthMult(config, strength: number?): number
+	return 1 + math.sqrt(math.max(0, strength or 0)) / config.Strength.DamageScale
+end
+
+-- 🥚 incubator slots for a house level / seconds an egg needs
+function Util.IncubatorSlots(config, level: number): number
+	local slots = config.Incubator.Slots
+	return slots[math.clamp(level, 1, #slots)]
+end
+
+function Util.IncubateSeconds(config, rarity: string, golden: boolean?): number
+	local seconds = config.Incubator.Seconds[rarity] or 30
+	return math.max(5, math.floor(seconds * (if golden then config.Incubator.GoldenMult else 1)))
+end
+
 -- stardust cost of one feed, and the xp it gives
 function Util.PetFeed(config, pet): (number, number)
 	local growth = config.Growth

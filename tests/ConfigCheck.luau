@@ -633,6 +633,40 @@ do
 end
 check(Config.Fever.Combo > 1 and Config.Fever.Duration > 0 and Config.Fever.MaxDuration >= Config.Fever.Duration, "Fever config")
 
+-- 💪 strength grind + 🥚 incubators
+do
+	local strength = Config.Strength
+	check(strength and strength.PerSwing > 0 and strength.DamageScale > 0, "Strength config")
+	local lastNeed = -1
+	for i, rock in strength.Rocks do
+		check(rock.Need > lastNeed, "training rocks must need more strength in order (" .. tostring(rock.Name) .. ")")
+		check(rock.Gain > 0 and rock.Size > 0, "training rock " .. tostring(rock.Name) .. " needs Gain/Size")
+		check(i == 1 or rock.Gain > strength.Rocks[i - 1].Gain, "heavier rocks must give more strength")
+		lastNeed = rock.Need
+	end
+	check(strength.Rocks[1].Need == 0, "the first training rock must be free")
+	check(#strength.RockSpots >= #strength.Rocks, "not enough RockSpots for the rocks")
+	local lastStrength = -1
+	for index, zone in Config.Zones do
+		local need = zone.Strength or 0
+		check(index == 1 or need > lastStrength, "zone strength must increase (" .. zone.Name .. ")")
+		lastStrength = need
+	end
+	check(Util.StrengthMult(Config, 0) == 1, "StrengthMult(0) must be 1")
+	check(Util.StrengthMult(Config, 10000) > Util.StrengthMult(Config, 100), "StrengthMult must grow")
+	local incubator = Config.Incubator
+	check(#incubator.Slots == #Config.Base.Levels, "one incubator slot count per house level")
+	for i = 2, #incubator.Slots do
+		check(incubator.Slots[i] >= incubator.Slots[i - 1], "incubator slots must not shrink")
+	end
+	check(incubator.Slots[#incubator.Slots] <= 8, "at most 8 incubator pods fit in a yard")
+	for _, id in Config.Shards.Order do
+		check(type(incubator.Seconds[id]) == "number", "incubator seconds missing for " .. id)
+	end
+	check(Util.IncubateSeconds(Config, "Mythic", true) < Util.IncubateSeconds(Config, "Mythic"), "golden eggs must be faster")
+	check(incubator.SkipGemsPerMinute > 0, "incubator skip cost")
+end
+
 -- economy pacing printout
 local costs = {}
 for r = 0, 9 do

@@ -1165,6 +1165,10 @@ local function clearPlot(plot)
 	plot.ItemModels = {}
 	plot.Displays:ClearAllChildren()
 	plot.Shell:ClearAllChildren()
+	local incubators = plot.Model:FindFirstChild("Incubators")
+	if incubators then
+		incubators:Destroy()
+	end
 	plot.StyleKey = ""
 	local model = plot.Model
 	model:SetAttribute("OwnerId", 0)
@@ -1762,6 +1766,11 @@ function Base:Upgrade(player: Player): (boolean, string?)
 	self:RefreshLabels(player, true)
 	Net:Notify(player, "🏗️ Your house grew into a %s!", Color3.fromRGB(255, 220, 120), nextDef.Name)
 	Net:Send(player, "HouseUpgraded", level + 1)
+	-- a bigger house has more egg incubators
+	local incubators = Services.IncubatorService
+	if incubators then
+		task.spawn(pcall, incubators.Render, incubators, player)
+	end
 	if level + 1 >= 4 then
 		Net:Announce("🏰 %s upgraded their house to a %s!", Color3.fromRGB(210, 150, 255), player.DisplayName, nextDef.Name)
 	end
