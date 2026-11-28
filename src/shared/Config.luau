@@ -157,11 +157,12 @@ Config.World = {
 	Layout = { HubHalf = 80, ZoneWidth = 100, ZoneLength = 100, Gap = 10, FirstZ = 90 },
 	OreRespawnSeconds = 4,
 	OreSize = 5,
-	OreSpacing = 7,
+	OreSpacing = 6, -- minimum gap between ore nodes
+	OreClusters = 12, -- ore veins per mine (up to 8 nodes each)
 	Reach = 13, -- studs from character to the target
 	WalkSpeed = 22,
 	-- base district south of the hub (see BaseService)
-	Bases = { ZStart = -88, ZEnd = -278, HalfX = 200 },
+	Bases = { ZStart = -88, ZEnd = -298, HalfX = 246 },
 	SpawnSafeRadius = 24, -- nobody can be bonked near the spawn
 }
 
@@ -829,6 +830,9 @@ Config.Rivals = {
 	DropBlockSeconds = 20, -- rivals keep off an egg knocked out of their hands
 	BonkMinCoins = 50,
 	BonkIncomeSeconds = 8, -- reward: 8s of your home income
+	RaidChance = 0.03, -- 🌙 per think (4x a second) on Thief Night: plan a raid on a player's home
+	RaidsPerNight = 1,
+	DefendSeconds = 20, -- chasing a thief who took a pet from their home
 	-- they try to bonk a player carrying an egg now and then
 	Bonk = { ChaseRange = 26, ChaseSeconds = 6, Range = 7, Cooldown = 20 },
 	-- avatar pieces: free items made by Roblox (catalog search, checked in game)
@@ -1242,7 +1246,8 @@ Config.Base = {
 	Plots = 8,
 	PlotSize = 72, -- studs: the whole territory (fence to fence)
 	-- territories: two rows facing a central avenue, wide gardens in between
-	Layout = { Columns = 4, Gap = 26, EntranceGap = 44, Avenue = 30, Margin = 8 },
+	-- (wide gardens between neighbours: every home is its own estate)
+	Layout = { Columns = 4, Gap = 56, EntranceGap = 64, Avenue = 42, Margin = 10 },
 	StartPedestals = 3, -- placed for free in every new base
 	MaxPedestals = 12,
 	-- price of the Nth pedestal (first 3 are free)

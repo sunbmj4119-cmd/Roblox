@@ -79,51 +79,110 @@ local function addCrystals(part: BasePart, color: Color3, material: Enum.Materia
 	end
 end
 
--- rock chunks around the base + ore "veins" so blocks read as rocks, not cubes
-local function decorate(part: BasePart, ore, size: number)
-	local function chunk(cf: CFrame, chunkSize: Vector3, color: Color3, material: Enum.Material, name: string)
-		local p = Instance.new("Part")
-		p.Name = name
-		p.Anchored = true
-		p.CanCollide = false
-		p.CanQuery = false
-		p.CanTouch = false
-		p.CastShadow = false
-		p.Size = chunkSize
-		p.CFrame = cf
-		p.Color = color
-		p.Material = material
-		p.TopSurface = Enum.SurfaceType.Smooth
-		p.BottomSurface = Enum.SurfaceType.Smooth
-		p.Parent = part
+-- 🪨 an ore node reads as a natural boulder: a rough rock shell (the zone's
+-- stone) around a core of the ore, with crystals (gems) or nuggets (metals)
+-- growing out of it. Only the core part is the hit target.
+local GEM_MATERIALS = {
+	[Enum.Material.Glass] = true,
+	[Enum.Material.Neon] = true,
+	[Enum.Material.Ice] = true,
+}
+local METAL_MATERIALS = {
+	[Enum.Material.Metal] = true,
+	[Enum.Material.Foil] = true,
+	[Enum.Material.DiamondPlate] = true,
+}
+
+local function piece(parent: BasePart, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material, shape)
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = material
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	if shape then
+		p.Shape = shape
 	end
-	local dark = part.Color:Lerp(Color3.new(0, 0, 0), 0.3)
-	local base = part.CFrame
-	chunk(
-		base * CFrame.new(size * 0.42, -size * 0.28, size * 0.36) * CFrame.Angles(0.3, oreRng:NextNumber(0, 3), 0.2),
-		Vector3.new(size * 0.5, size * 0.42, size * 0.48),
-		dark,
-		part.Material,
-		"Rock"
-	)
-	chunk(
-		base * CFrame.new(-size * 0.4, -size * 0.3, -size * 0.34) * CFrame.Angles(-0.2, oreRng:NextNumber(0, 3), 0.3),
-		Vector3.new(size * 0.44, size * 0.38, size * 0.42),
-		dark,
-		part.Material,
-		"Rock"
-	)
-	if ore.Value >= 2 then
-		local vein = part.Color:Lerp(Color3.new(1, 1, 1), 0.2)
-		local material = if ore.Glow then Enum.Material.Neon else part.Material
-		for i = 1, 2 do
-			local side = if i == 1 then 1 else -1
-			chunk(
-				base * CFrame.new(side * size * 0.5, size * (0.05 + i * 0.12), side * size * 0.12) * CFrame.Angles(0.6, 0.7 * i, 0.4),
-				Vector3.new(1.1, 1.1, 1.1) * (0.8 + i * 0.25),
-				vein,
-				material,
-				"Vein"
+	p.Parent = parent
+	return p
+end
+
+local function rockColorFor(zone: number): Color3
+	local def = Config.Zones[zone]
+	local base = if def and def.FloorColor then def.FloorColor else Color3.fromRGB(120, 115, 110)
+	return base:Lerp(Color3.fromRGB(95, 92, 90), 0.55)
+end
+
+local function decorate(part: BasePart, ore, _size: number, zone: number)
+	local rock = rockColorFor(zone)
+	local center = part.CFrame
+	-- rough shell: rotated slabs hugging the core
+	for i = 1, 4 do
+		local angle = i * (math.pi / 2) + oreRng:NextNumber(-0.4, 0.4)
+		local w = oreRng:NextNumber(2.2, 3.4)
+		piece(
+			part,
+			"Rock",
+			Vector3.new(w, oreRng:NextNumber(2, 3.2), w * oreRng:NextNumber(0.8, 1.2)),
+			CFrame.new(center.Position + Vector3.new(math.cos(angle) * 1.5, -0.6, math.sin(angle) * 1.5))
+				* CFrame.Angles(oreRng:NextNumber(-0.5, 0.5), oreRng:NextNumber(0, 6.2), oreRng:NextNumber(-0.5, 0.5)),
+			rock:Lerp(Color3.new(0, 0, 0), oreRng:NextNumber(0, 0.2)),
+			if i % 2 == 0 then Enum.Material.Slate else Enum.Material.Rock
+		)
+	end
+	if GEM_MATERIALS[ore.Material] or ore.Glow then
+		-- crystals growing out of the rock
+		local material = if ore.Glow then Enum.Material.Neon else Enum.Material.Glass
+		for i = 1, oreRng:NextInteger(4, 6) do
+			local angle = i * 1.25 + oreRng:NextNumber(-0.3, 0.3)
+			local h = oreRng:NextNumber(2.2, 4.6)
+			local w = oreRng:NextNumber(0.7, 1.15)
+			local tilt = oreRng:NextNumber(0.25, 0.6)
+			local crystal = piece(
+				part,
+				"Crystal",
+				Vector3.new(w, h, w),
+				CFrame.new(center.Position + Vector3.new(math.cos(angle) * 1.1, 1 + h * 0.3, math.sin(angle) * 1.1))
+					* CFrame.Angles(math.sin(angle) * tilt, angle, -math.cos(angle) * tilt)
+					* CFrame.Angles(0, math.rad(45), 0),
+				ore.Color:Lerp(Color3.new(1, 1, 1), oreRng:NextNumber(0, 0.25)),
+				material
+			)
+			crystal.Transparency = if material == Enum.Material.Glass then 0.15 else 0
+		end
+	elseif METAL_MATERIALS[ore.Material] then
+		-- shiny nuggets in the stone
+		for i = 1, oreRng:NextInteger(4, 7) do
+			local angle = i * 1.1 + oreRng:NextNumber(-0.4, 0.4)
+			local sizeN = oreRng:NextNumber(0.8, 1.5)
+			piece(
+				part,
+				"Nugget",
+				Vector3.one * sizeN,
+				CFrame.new(center.Position + Vector3.new(math.cos(angle) * 1.9, oreRng:NextNumber(-0.4, 1.4), math.sin(angle) * 1.9)),
+				ore.Color,
+				ore.Material,
+				Enum.PartType.Ball
+			)
+		end
+	elseif ore.Value >= 2 then
+		-- coal / plain rock: dark lumps
+		for i = 1, 4 do
+			local angle = i * 1.6
+			piece(
+				part,
+				"Vein",
+				Vector3.one * oreRng:NextNumber(0.9, 1.4),
+				CFrame.new(center.Position + Vector3.new(math.cos(angle) * 1.9, oreRng:NextNumber(-0.3, 1), math.sin(angle) * 1.9))
+					* CFrame.Angles(oreRng:NextNumber(0, 3), oreRng:NextNumber(0, 3), 0),
+				ore.Color,
+				ore.Material
 			)
 		end
 	end
@@ -140,18 +199,14 @@ local function spawnBlock(slot, forcedLucky)
 	local size = Config.World.OreSize
 	local part = Instance.new("Part")
 	part.Name = oreId
-	part.Size = Vector3.new(size, size, size)
+	part.Size = Vector3.new(size * 0.8, size * 0.7, size * 0.8)
 	part.Anchored = true
 	part.Material = ore.Material
-	part.Color = ore.Color
+	part.Color = ore.Color:Lerp(rockColorFor(slot.Zone), if ore.Glow then 0 else 0.2)
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
-	part.CFrame = CFrame.new(slot.Position)
-		* CFrame.Angles(
-			math.rad(oreRng:NextNumber(-6, 6)),
-			math.rad(oreRng:NextInteger(0, 3) * 90 + oreRng:NextNumber(-14, 14)),
-			math.rad(oreRng:NextNumber(-6, 6))
-		)
+	part.CFrame = CFrame.new(slot.Position - Vector3.new(0, 0.6, 0))
+		* CFrame.Angles(math.rad(oreRng:NextNumber(-20, 20)), math.rad(oreRng:NextNumber(0, 360)), math.rad(oreRng:NextNumber(-20, 20)))
 	part:SetAttribute("Ore", oreId)
 	part:SetAttribute("HP", hp)
 	part:SetAttribute("MaxHP", hp)
@@ -179,9 +234,9 @@ local function spawnBlock(slot, forcedLucky)
 		light.Range = 8
 		light.Brightness = 0.8
 		light.Parent = part
-		addCrystals(part, ore.Color, Enum.Material.Neon)
+		-- (glowing ores already grow neon crystals in decorate)
 	end
-	decorate(part, ore, size)
+	decorate(part, ore, size, slot.Zone)
 	part.Parent = oreFolder
 	slot.Part = part
 	blockInfo[part] = { Slot = slot, Ore = oreId, HP = hp, MaxHP = hp, Zone = slot.Zone, Lucky = lucky }
@@ -720,7 +775,8 @@ end
 
 -- may a rival bonk this player? (same safety rules as players, plus: never a
 -- new player's first egg, never in the base district)
-function Mining:CanNpcBonk(victim: Player): boolean
+-- (rivalId: a rival may chase a thief carrying ITS pet even into the base district)
+function Mining:CanNpcBonk(victim: Player, rivalId: number?): boolean
 	local data = Data:Get(victim)
 	local root = victim.Character and victim.Character:FindFirstChild("HumanoidRootPart")
 	if not data or not root or not root:IsA("BasePart") or not Services.ShardService:IsCarrying(victim) then
@@ -733,14 +789,16 @@ function Mining:CanNpcBonk(victim: Player): boolean
 	if (root.Position - World.HubSpawn.Position).Magnitude <= Config.World.SpawnSafeRadius then
 		return false
 	end
-	if Util.InBases(Config, root.Position) then
+	local meta = Services.ShardService:CarryMeta(victim)
+	local ownPet = rivalId ~= nil and meta ~= nil and meta.RivalFrom == rivalId
+	if Util.InBases(Config, root.Position) and not ownPet then
 		return false
 	end
 	return (immunity[victim] or 0) <= os.clock()
 end
 
-function Mining:NpcBonk(attackerRoot: BasePart, attackerName: string, victim: Player): boolean
-	if not self:CanNpcBonk(victim) then
+function Mining:NpcBonk(attackerRoot: BasePart, attackerName: string, victim: Player, rivalId: number?): boolean
+	if not self:CanNpcBonk(victim, rivalId) then
 		return false
 	end
 	local vRoot = victim.Character and victim.Character:FindFirstChild("HumanoidRootPart") :: BasePart

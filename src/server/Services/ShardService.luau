@@ -184,7 +184,7 @@ function Shards:StartCarry(player: Player, item, meta)
 	carrying[player] = { Item = item, Meta = meta or {}, Model = model }
 	player:SetAttribute("Carrying", itemName(item))
 	player:SetAttribute("CarryTier", itemTier(item))
-	player:SetAttribute("CarryStolen", meta ~= nil and meta.From ~= nil)
+	player:SetAttribute("CarryStolen", meta ~= nil and (meta.From ~= nil or meta.RivalFrom ~= nil))
 	Services.CharacterService:ApplyWalkSpeed(player)
 	local fromName = if meta and meta.From then meta.From.DisplayName else nil
 	Net:Send(player, "CarryStart", itemName(item), fromName, itemTier(item))
@@ -193,6 +193,11 @@ end
 
 -- a stolen pet runs back to the base it was taken from
 local function returnHome(meta, message: boolean)
+	if meta and meta.RivalFrom then
+		-- a pet stolen from a rival player's home runs back there
+		Services.RivalHomes:PetBack(meta.RivalFrom, meta.RivalSlot)
+		return
+	end
 	local owner = meta and meta.From
 	if not owner or not owner.Parent or not meta.PetId then
 		return
@@ -434,7 +439,7 @@ function Shards:SpawnGround(item, position: Vector3, meta, opts)
 	end)
 
 	-- stolen shards fly home if nobody grabs them; others fade out eventually
-	local lifetime = if meta and meta.From then SETTINGS.ReturnSeconds else (opts.Lifetime or SETTINGS.GroundLifetime)
+	local lifetime = if meta and (meta.From or meta.RivalFrom) then SETTINGS.ReturnSeconds else (opts.Lifetime or SETTINGS.GroundLifetime)
 	task.delay(lifetime, function()
 		if ground[model] then
 			destroyGround(model)
@@ -569,7 +574,7 @@ function Shards:Drop(player: Player, attacker: Player?)
 	end
 	local angle = rng:NextNumber(0, math.pi * 2)
 	local spot = Vector3.new(position.X + math.cos(angle) * 5, 0, position.Z + math.sin(angle) * 5)
-	local meta = if info.Meta and info.Meta.From then info.Meta else nil
+	local meta = if info.Meta and (info.Meta.From or info.Meta.RivalFrom) then info.Meta else nil
 	self:SpawnGround(info.Item, spot, meta, {
 		Beacon = true,
 		BlockUser = player.UserId,
@@ -595,6 +600,22 @@ local function deliver(player: Player)
 	local data = Data:Get(player)
 	local tier = itemTier(item)
 	local pets = Services.PetService
+	if item.Kind == "Pet" and meta and meta.RivalFrom then
+		-- a pet stolen from a rival player's home
+		local given, isNew = pets:GivePet(player, item.Name, item.Variant, nil, meta.Growth)
+		Services.RivalHomes:PetGone(meta.RivalFrom, meta.RivalSlot)
+		if data then
+			data.Stats.ShardsStolen += 1
+		end
+		Services.ProgressionService:AddQuest(player, "Steal", 1)
+		Net:Send(player, "ShardDelivered", item.Name, "Stolen", 0)
+		local card = given and pets:Describe(player, given, isNew)
+		if card then
+			card.Stolen = true
+			Net:Send(player, "HatchResult", { card }, nil, "Stolen")
+		end
+		return
+	end
 	if item.Kind == "Pet" then
 		-- a stolen pet: it leaves the owner's base and joins ours
 		local owner = meta and meta.From

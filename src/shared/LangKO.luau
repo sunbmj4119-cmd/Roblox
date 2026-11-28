@@ -1143,4 +1143,8 @@ return {
 	["Legend"] = "전설",
 	["💰 %s/s  •  ⚡ x%s"] = "💰 %s/초  •  ⚡ x%s",
 	["⭐ Tap again to evolve - it uses %d plain copies of this pet"] = "⭐ 한 번 더 누르면 진화해요 - 같은 펫(변이 없는) %d마리가 사용돼요",
+	["🛡️ %s left - your %s came back home!"] = "🛡️ %s님이 떠나서 %s이(가) 집으로 돌아왔어요!",
+	["🦹 You grabbed %s's %s - run home!"] = "🦹 %s의 %s을(를) 훔쳤어요 - 집으로 달려요!",
+	["🚨 %s is stealing your %s! Bonk them before they get home!"] = "🚨 %s이(가) 내 %s을(를) 훔쳐 가요! 집에 가기 전에 때려요!",
+	["💔 %s stole your %s! Get it back from their house - revenge for 5 minutes!"] = "💔 %s이(가) 내 %s을(를) 훔쳐 갔어요! 그 집에서 되찾아요 - 5분간 복수 가능!",
 }

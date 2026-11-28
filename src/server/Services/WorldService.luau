@@ -219,22 +219,34 @@ local function wall(cf: CFrame, size: Vector3, color: Color3, parent)
 	}, parent)
 end
 
-local function tree(position: Vector3, parent)
+-- a fuller tree: trunk + a few overlapping leaf clumps (varied size / colour)
+local treeRng = Random.new(77)
+local function tree(position: Vector3, parent, scale: number?)
+	local k = (scale or 1) * treeRng:NextNumber(0.85, 1.25)
+	local trunkH = 7 * k
 	newPart({
 		Name = "Trunk",
-		Size = Vector3.new(2, 8, 2),
-		CFrame = CFrame.new(position + Vector3.new(0, 4, 0)),
-		Color = Color3.fromRGB(110, 75, 45),
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(trunkH, 1.6 * k, 1.6 * k),
+		CFrame = CFrame.new(position + Vector3.new(0, trunkH / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(105, 72, 48),
 		Material = Enum.Material.Wood,
 	}, parent)
-	newPart({
-		Name = "Leaves",
-		Shape = Enum.PartType.Ball,
-		Size = Vector3.one * 9,
-		CFrame = CFrame.new(position + Vector3.new(0, 10, 0)),
-		Color = Color3.fromRGB(70, 160, 70),
-		Material = Enum.Material.LeafyGrass,
-	}, parent)
+	local green = Color3.fromRGB(70, 150, 70):Lerp(Color3.fromRGB(110, 180, 80), treeRng:NextNumber())
+	for i = 1, 4 do
+		local angle = i * 1.7 + treeRng:NextNumber(0, 1)
+		local r = if i == 1 then 0 else 2.2 * k
+		local size = (if i == 1 then 8 else 5.5) * k * treeRng:NextNumber(0.9, 1.1)
+		newPart({
+			Name = "Leaves",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * size,
+			CFrame = CFrame.new(position + Vector3.new(math.cos(angle) * r, trunkH + (if i == 1 then 1.5 else 0) * k, math.sin(angle) * r)),
+			Color = green:Lerp(Color3.new(0, 0, 0), if i == 1 then 0 else 0.08 * i),
+			Material = Enum.Material.Grass,
+			CanCollide = false,
+		}, parent)
+	end
 end
 
 local function lamp(position: Vector3, color: Color3, parent)
@@ -248,10 +260,11 @@ local function lamp(position: Vector3, color: Color3, parent)
 	local bulb = newPart({
 		Name = "Bulb",
 		Shape = Enum.PartType.Ball,
-		Size = Vector3.one * 2,
-		CFrame = CFrame.new(position + Vector3.new(0, 10.5, 0)),
+		Size = Vector3.one * 1.6,
+		CFrame = CFrame.new(position + Vector3.new(0, 10.3, 0)),
 		Color = color,
-		Material = Enum.Material.Neon,
+		Material = Enum.Material.Glass,
+		Transparency = 0.2,
 		CanCollide = false,
 	}, parent)
 	local light = Instance.new("PointLight")
@@ -747,12 +760,22 @@ local function buildBaseDistrict()
 		lamp(Vector3.new(x, 0, avenueZ + layout.Avenue / 2 + 1.5), Color3.fromRGB(255, 220, 160), district)
 	end
 
-	-- gardens between neighbours: a row of trees in every gap
+	-- gardens between neighbours: two staggered tree lines in every gap
 	local gapX = layout.EntranceGap / 2 + half * 2 + layout.Gap / 2
 	for _, rowZ in { northZ, southZ } do
 		for _, x in { -gapX, gapX } do
-			for dz = -half + 6, half - 6, 12 do
-				tree(Vector3.new(x, 0, rowZ + dz), district)
+			for dz = -half + 6, half - 6, 13 do
+				tree(Vector3.new(x - 9, 0, rowZ + dz), district, 1.1)
+				tree(Vector3.new(x + 9, 0, rowZ + dz + 6), district, 1.1)
+			end
+		end
+	end
+	-- and along the outer edges of the far houses
+	local outerX = layout.EntranceGap / 2 + half * 4 + layout.Gap + 8
+	for _, rowZ in { northZ, southZ } do
+		for _, x in { -outerX, outerX } do
+			for dz = -half + 8, half - 8, 16 do
+				tree(Vector3.new(x, 0, rowZ + dz), district, 1.2)
 			end
 		end
 	end
@@ -1027,24 +1050,198 @@ local function buildZones()
 			end
 		end
 
-		-- ore slots
+		-- ore slots: natural clusters (veins) with paths between them, instead
+		-- of a dense grid of blocks
 		local slots = {}
 		local rng = Random.new(1000 + index)
-		local spacing = Config.World.OreSpacing
 		local half = Config.World.OreSize / 2
-		for x = -42, 42, spacing do
-			if math.abs(x) > 4 then
-				for z = zStart + 14, zEnd - 8, spacing do
-					if rng:NextNumber() > 0.12 then
-						table.insert(slots, {
-							Zone = index,
-							Position = Vector3.new(x, half, z),
-						})
-					end
+		local minGap = Config.World.OreSpacing
+		local function free(position: Vector3): boolean
+			if math.abs(position.X) < 6 or math.abs(position.X) > ZONE_W / 2 - 7 then
+				return false
+			end
+			if position.Z < zStart + 16 or position.Z > zEnd - 7 then
+				return false
+			end
+			for _, other in slots do
+				if (other.Position - position).Magnitude < minGap then
+					return false
+				end
+			end
+			return true
+		end
+		for _ = 1, Config.World.OreClusters do
+			local center = Vector3.new(rng:NextNumber(-34, 34), half, rng:NextNumber(zStart + 24, zEnd - 14))
+			local placed = 0
+			for _ = 1, 24 do
+				local angle = rng:NextNumber(0, math.pi * 2)
+				local position = center + Vector3.new(math.cos(angle), 0, math.sin(angle)) * rng:NextNumber(0, 13)
+				if placed < 8 and free(position) then
+					placed += 1
+					table.insert(slots, { Zone = index, Position = position })
 				end
 			end
 		end
 		World.OreSlots[index] = slots
+	end
+end
+
+---------------------------------------------------------------------------
+-- 🌄 landscape: real terrain instead of flat plates - grass / snow / basalt /
+-- slate / lava ground, rocky cliffs instead of walls, hills on the horizon
+---------------------------------------------------------------------------
+local TERRAIN = {
+	[Enum.Material.Grass] = Enum.Material.Grass,
+	[Enum.Material.LeafyGrass] = Enum.Material.LeafyGrass,
+	[Enum.Material.Snow] = Enum.Material.Snow,
+	[Enum.Material.Ice] = Enum.Material.Glacier,
+	[Enum.Material.Basalt] = Enum.Material.Basalt,
+	[Enum.Material.Slate] = Enum.Material.Slate,
+	[Enum.Material.CrackedLava] = Enum.Material.CrackedLava,
+	[Enum.Material.Cobblestone] = Enum.Material.Cobblestone,
+	[Enum.Material.Sand] = Enum.Material.Sand,
+	[Enum.Material.Rock] = Enum.Material.Rock,
+	[Enum.Material.Ground] = Enum.Material.Ground,
+	[Enum.Material.Pavement] = Enum.Material.Pavement,
+}
+-- cliff rock per zone (hub = grassy rock)
+local CLIFF = {
+	[0] = { Rock = Enum.Material.Rock, Top = Enum.Material.Grass },
+	[1] = { Rock = Enum.Material.Rock, Top = Enum.Material.Grass },
+	[2] = { Rock = Enum.Material.Glacier, Top = Enum.Material.Snow },
+	[3] = { Rock = Enum.Material.Basalt, Top = Enum.Material.CrackedLava },
+	[4] = { Rock = Enum.Material.Slate, Top = Enum.Material.Slate },
+	[5] = { Rock = Enum.Material.Basalt, Top = Enum.Material.Rock },
+}
+
+local function landscape()
+	local terrain = workspace.Terrain
+	local rng = Random.new(2024)
+	pcall(function()
+		terrain.Decoration = true -- (animated grass where supported)
+	end)
+	pcall(function()
+		terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(106, 170, 82))
+		terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(96, 156, 74))
+		terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(128, 122, 114))
+		terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(122, 96, 70))
+		terrain:SetMaterialColor(Enum.Material.Cobblestone, Color3.fromRGB(186, 172, 150))
+	end)
+	if not terrain:FindFirstChildOfClass("Clouds") then
+		local clouds = Instance.new("Clouds")
+		clouds.Cover = 0.55
+		clouds.Density = 0.6
+		clouds.Color = Color3.fromRGB(255, 255, 255)
+		clouds.Parent = terrain
+	end
+
+	local function zoneOf(position: Vector3): number
+		return Util.ZoneAt(Config, Vector3.new(position.X, 3, position.Z)) or 0
+	end
+
+	-- floors and corridors become terrain (the parts stay as invisible floors)
+	for _, part in map:GetDescendants() do
+		if part:IsA("BasePart") and (part.Name == "Floor" or part.Name == "Corridor") and part.Size.Y >= 2 then
+			local material = TERRAIN[part.Material] or Enum.Material.Ground
+			-- (a hair lower, so paths / plazas lying on the floor stay visible)
+			terrain:FillBlock(part.CFrame * CFrame.new(0, -0.3, 0), part.Size, material)
+			terrain:FillBlock(
+				part.CFrame * CFrame.new(0, -part.Size.Y / 2 - 4, 0),
+				Vector3.new(part.Size.X, 8, part.Size.Z),
+				Enum.Material.Rock
+			)
+			part.Transparency = 1
+		end
+	end
+
+	-- walls become rocky cliffs (the wall parts stay as invisible borders)
+	for _, part in map:GetDescendants() do
+		if part:IsA("BasePart") and part.Name == "Wall" then
+			local cliff = CLIFF[zoneOf(part.Position)] or CLIFF[0]
+			local size = part.Size
+			local long = if size.X >= size.Z then Vector3.xAxis else Vector3.zAxis
+			local length = math.max(size.X, size.Z)
+			local height = size.Y + 6
+			terrain:FillBlock(
+				CFrame.new(part.Position + Vector3.new(0, 3, 0)),
+				Vector3.new(math.max(size.X, 8), height, math.max(size.Z, 8)),
+				cliff.Rock
+			)
+			-- an uneven top: boulders along the ridge
+			for d = -length / 2, length / 2, 9 do
+				local center = part.Position + long * (d + rng:NextNumber(-2, 2)) + Vector3.new(0, size.Y / 2 + rng:NextNumber(2, 6), 0)
+				terrain:FillBall(center, rng:NextNumber(5, 8), cliff.Rock)
+				if rng:NextNumber() < 0.5 then
+					terrain:FillBall(center + Vector3.new(0, 3, 0), rng:NextNumber(3, 5), cliff.Top)
+				end
+			end
+			part.Transparency = 1
+		end
+	end
+
+	-- the horizon: rolling grassy hills around the hub and the homes
+	local layout = Config.World.Layout
+	local half = layout.HubHalf
+	for _ = 1, 26 do
+		local angle = rng:NextNumber(0, math.pi * 2)
+		local distance = half + rng:NextNumber(30, 70)
+		local center = Vector3.new(math.cos(angle) * distance, rng:NextNumber(-10, 4), math.sin(angle) * distance)
+		if math.abs(center.X) > layout.ZoneWidth / 2 + 20 or center.Z < 0 then
+			terrain:FillBall(center, rng:NextNumber(24, 40), Enum.Material.Grass)
+		end
+	end
+	local bases = Config.World.Bases
+	for x = -bases.HalfX - 30, bases.HalfX + 30, 45 do
+		terrain:FillBall(Vector3.new(x, -8, bases.ZEnd - 40 - rng:NextNumber(0, 20)), rng:NextNumber(26, 40), Enum.Material.Grass)
+	end
+	for _, side in { -1, 1 } do
+		for z = bases.ZStart - 20, bases.ZEnd, -45 do
+			terrain:FillBall(
+				Vector3.new(side * (bases.HalfX + 40 + rng:NextNumber(0, 15)), -8, z),
+				rng:NextNumber(26, 38),
+				Enum.Material.Grass
+			)
+		end
+	end
+	-- low grassy mounds in the gardens between homes (estates, not a grid)
+	local baseLayout = Config.Base.Layout
+	local plotHalf = Config.Base.PlotSize / 2
+	local avenueZ = Util.AvenueZ(Config)
+	local northZ = bases.ZStart - baseLayout.Margin - plotHalf
+	local southZ = avenueZ - baseLayout.Avenue / 2 - plotHalf
+	local gapX = baseLayout.EntranceGap / 2 + plotHalf * 2 + baseLayout.Gap / 2
+	for _, rowZ in { northZ, southZ } do
+		for _, x in { -gapX, gapX } do
+			for dz = -plotHalf + 4, plotHalf - 4, 10 do
+				terrain:FillBall(Vector3.new(x + rng:NextNumber(-3, 3), -3.5, rowZ + dz), rng:NextNumber(6, 8), Enum.Material.Grass)
+			end
+		end
+	end
+	-- mines: rock spires beyond the cliffs
+	for index in Config.Zones do
+		local info = World.Zones[index]
+		local cliff = CLIFF[index] or CLIFF[0]
+		if info then
+			for _, side in { -1, 1 } do
+				for z = info.ZStart + 10, info.ZEnd - 10, 22 do
+					local center = Vector3.new(side * (layout.ZoneWidth / 2 + rng:NextNumber(14, 26)), rng:NextNumber(4, 14), z)
+					terrain:FillBall(center, rng:NextNumber(10, 16), cliff.Rock)
+				end
+			end
+		end
+	end
+	-- trees on the hills outside the hub
+	local nature = folder("Nature", map)
+	for _ = 1, 40 do
+		local angle = rng:NextNumber(0, math.pi * 2)
+		local distance = half + rng:NextNumber(8, 40)
+		local position = Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
+		if math.abs(position.X) > CORRIDOR_W and math.abs(position.X) < half + 60 and position.Z > -half - 4 then
+			local hit = workspace:Raycast(position + Vector3.new(0, 80, 0), Vector3.new(0, -160, 0))
+			if hit and hit.Instance == terrain then
+				tree(hit.Position - Vector3.new(0, 0.5, 0), nature, rng:NextNumber(1, 1.5))
+			end
+		end
 	end
 end
 
@@ -1101,6 +1298,10 @@ function World:Init(services)
 	folder("Bases", map)
 	map.Parent = workspace
 	setupLighting()
+	local ok, err = pcall(landscape)
+	if not ok then
+		warn("[World] landscape failed: " .. tostring(err))
+	end
 end
 
 function World:Folder(name: string): Folder

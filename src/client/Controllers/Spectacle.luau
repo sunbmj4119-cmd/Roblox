@@ -130,6 +130,15 @@ Net.On("Party", function()
 	Lib.PlaySound("Cheer")
 end)
 
+-- 🚨 a rival is stealing from my home
+Net.On("RaidAlarm", function()
+	for i = 0, 2 do
+		task.delay(i * 0.5, function()
+			Lib.PlaySound("Alarm", 0.9)
+		end)
+	end
+end)
+
 -- 🌙 Thief Night is coming (20s): a short alarm so everyone runs home
 Net.On("RaidWarning", function()
 	for i = 0, 1 do

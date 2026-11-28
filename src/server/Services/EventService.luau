@@ -230,6 +230,14 @@ local function stop()
 	setAttributes()
 end
 
+-- cloud tests: end the current event now
+function Events:EndForTest()
+	assert(not RunService:IsRunning(), "test hook used on a live server")
+	stop()
+	raidAt = 0
+	setAttributes()
+end
+
 function Events:Init(services)
 	Services = services
 end

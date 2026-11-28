@@ -323,10 +323,16 @@ local function spawnRival(index: number)
 	playAnim(record, "Idle")
 	usedNames[name] = true
 	rivals[model] = record
+	-- 🏠 a home of their own in the base district (pets on display)
+	local okHome, homeErr = pcall(Services.RivalHomes.Claim, Services.RivalHomes, record)
+	if not okHome then
+		warn("[Rival] home failed: " .. tostring(homeErr))
+	end
 	return record
 end
 
-local function setCarry(record, item)
+local function setCarry(record, item, meta)
+	record.CarryMeta = if item then meta else nil
 	if record.CarryModel then
 		record.CarryModel:Destroy()
 		record.CarryModel = nil
@@ -370,11 +376,12 @@ local function despawn(record)
 	rivals[record.Model] = nil
 	usedNames[record.Name] = nil
 	if record.Carry then
-		-- (never take an egg away when leaving: drop it)
-		local item = record.Carry
+		-- (never take an egg / a stolen pet away when leaving: drop it)
+		local item, meta = record.Carry, record.CarryMeta
 		setCarry(record, nil)
-		Services.ShardService:SpawnGround(item, flat(record.Root.Position), nil, { Beacon = true, RivalBlockSeconds = 20 })
+		Services.ShardService:SpawnGround(item, flat(record.Root.Position), meta, { Beacon = true, RivalBlockSeconds = 20 })
 	end
+	pcall(Services.RivalHomes.Release, Services.RivalHomes, record)
 	Services.MeteorService:Forget(record.Entity)
 	if record.Model.Parent then
 		record.Model:Destroy()
@@ -544,25 +551,32 @@ local function think(record)
 	local current = meteor:Current()
 	local state = workspace:GetAttribute("MeteorState")
 
-	-- 1) carrying an egg: run home with it (like everybody)
+	-- 1) carrying an egg / a stolen pet: run home with it (like everybody)
+	local homes = Services.RivalHomes
 	if record.Carry and os.clock() > (record.CarryUntil or math.huge) then
-		-- couldn't make it home in time: drop the egg here
-		local item = record.Carry
+		-- couldn't make it home in time: drop it here
+		local item, meta = record.Carry, record.CarryMeta
 		setCarry(record, nil)
 		record.Home = nil
-		shards:SpawnGround(item, flat(root.Position), nil, { Beacon = true, RivalBlockSeconds = SETTINGS.DropBlockSeconds })
+		shards:SpawnGround(item, flat(root.Position), meta, { Beacon = true, RivalBlockSeconds = SETTINGS.DropBlockSeconds })
 	end
 	if record.Carry then
 		record.Task = "Home"
-		local home = record.Home or homeSpot()
+		local home = record.Home or homes:HomeSpot(record) or homeSpot()
 		record.Home = home
 		walkTo(record, home, false)
-		if (flat(home - root.Position)).Magnitude <= 8 then
-			local item = record.Carry
+		local arrived = (flat(home - root.Position)).Magnitude <= 8 or homes:IsHomeOf(record, root.Position)
+		if arrived then
+			local item, meta = record.Carry, record.CarryMeta
 			setCarry(record, nil)
 			record.Home = nil
-			if Util.ShardIndex(Config, item.Rarity) >= 4 then
-				Net:Announce("🌟 %s brought a %s home!", shards.ItemColor(item), record.Name, shards.ItemName(item))
+			if item.Kind == "Pet" then
+				homes:Delivered(record, meta)
+			else
+				homes:EggHome(record, item)
+				if Util.ShardIndex(Config, item.Rarity) >= 4 then
+					Net:Announce("🌟 %s brought a %s home!", shards.ItemColor(item), record.Name, shards.ItemName(item))
+				end
 			end
 		end
 		return
@@ -571,8 +585,10 @@ local function think(record)
 	-- 2) chasing a player who carries an egg (now and then)
 	local chase = record.ChaseTarget
 	-- (gives up at once near the spawn / in the base district / on a new player)
-	if chase and (not chase.Parent or t > record.ChaseUntil or not Services.MiningService:CanNpcBonk(chase)) then
+	local defendId = if record.Defending then record.Entity.UserId else nil
+	if chase and (not chase.Parent or t > record.ChaseUntil or not Services.MiningService:CanNpcBonk(chase, defendId)) then
 		record.ChaseTarget = nil
+		record.Defending = nil
 		chase = nil
 	end
 	if not chase then
@@ -593,12 +609,42 @@ local function think(record)
 			if (victimRoot.Position - root.Position).Magnitude <= SETTINGS.Bonk.Range then
 				face(record, victimRoot.Position)
 				playAnim(record, "Slash")
-				Services.MiningService:NpcBonk(root, record.Name, chase)
+				Services.MiningService:NpcBonk(root, record.Name, chase, defendId)
 				record.ChaseTarget = nil
+				record.Defending = nil
 				record.NextBonk = t + SETTINGS.Bonk.Cooldown
 			end
 		end
 		return
+	end
+
+	-- 🌙 Thief Night: sneak into a player's home and grab a pet from display
+	if workspace:GetAttribute("RaidActive") == true and record.HomeIndex then
+		if not record.RaidPlan and (record.RaidsTonight or 0) < SETTINGS.RaidsPerNight and rng:NextNumber() < SETTINGS.RaidChance then
+			record.RaidPlan = homes:RaidTarget(record)
+		end
+		local plan = record.RaidPlan
+		if plan then
+			if not plan.Owner.Parent or plan.Pet.Away then
+				record.RaidPlan = nil
+			else
+				record.Task = "Raid"
+				walkTo(record, plan.Position)
+				if (flat(plan.Position - root.Position)).Magnitude <= 6 then
+					face(record, plan.Position)
+					local item, meta = homes:TakeFromPlayer(record, plan.Owner, plan.Pet.Id)
+					record.RaidPlan = nil
+					record.RaidsTonight = (record.RaidsTonight or 0) + 1
+					if item then
+						setCarry(record, item, meta)
+					end
+				end
+				return
+			end
+		end
+	else
+		record.RaidPlan = nil
+		record.RaidsTonight = 0
 	end
 
 	-- 3) a meteor is coming / being smashed: go there and smash it
@@ -746,13 +792,14 @@ function Rival:Bonk(player: Player, model: Model): boolean
 	record.Root.AssemblyLinearVelocity = push * 45 + Vector3.new(0, 30, 0)
 	Net:Send(player, "BonkHit", record.Root.Position)
 	local item = record.Carry
+	local carriedMeta = record.CarryMeta
 	if not item then
 		return true
 	end
 	setCarry(record, nil)
 	record.Home = nil
 	-- the egg drops: the bonker gets the first grab, rivals keep off it for a while
-	Services.ShardService:SpawnGround(item, flat(record.Root.Position), nil, {
+	Services.ShardService:SpawnGround(item, flat(record.Root.Position), carriedMeta, {
 		Beacon = true,
 		PriorityUser = player.UserId,
 		PriorityUntil = t + 4,
@@ -788,6 +835,17 @@ function Rival:Bonk(player: Player, model: Model): boolean
 		Util.Format(coins)
 	)
 	return true
+end
+
+-- someone grabbed a pet from this rival's home: run after them
+function Rival:Defend(record, thief: Player)
+	if not rivals[record.Model] or record.Carry then
+		return
+	end
+	record.ChaseTarget = thief
+	record.ChaseUntil = now() + SETTINGS.DefendSeconds
+	record.Defending = true
+	record.RaidPlan = nil
 end
 
 function Rival:Wanted(): number

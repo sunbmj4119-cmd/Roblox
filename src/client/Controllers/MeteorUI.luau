@@ -4,6 +4,8 @@
 	warning, live top-5 ranking with your own place, camera shake on impact,
 	"grab the eggs!" after the burst and the result popup (+ meteor index).
 ]]
+local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -207,8 +209,57 @@ Net.On("MeteorHit", function(score)
 end)
 
 -- camera shake on impact -------------------------------------------------------
+-- 💥 impact: an expanding shockwave ring + a dust cloud where it hit
+local function shockwave(position: Vector3)
+	local ground = Vector3.new(position.X, 0.3, position.Z)
+	local ring = Instance.new("Part")
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.CastShadow = false
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Material = Enum.Material.Neon
+	ring.Color = Color3.fromRGB(255, 170, 80)
+	ring.Transparency = 0.2
+	ring.Size = Vector3.new(0.4, 6, 6)
+	ring.CFrame = CFrame.new(ground) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Parent = workspace
+	TweenService:Create(ring, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = Vector3.new(0.2, 90, 90),
+		Transparency = 1,
+	}):Play()
+	Debris:AddItem(ring, 0.9)
+	local holder = Instance.new("Part")
+	holder.Anchored = true
+	holder.CanCollide = false
+	holder.CanQuery = false
+	holder.CanTouch = false
+	holder.Transparency = 1
+	holder.Size = Vector3.new(16, 1, 16)
+	holder.CFrame = CFrame.new(ground + Vector3.new(0, 1, 0))
+	holder.Parent = workspace
+	local dust = Instance.new("ParticleEmitter")
+	dust.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	dust.Color = ColorSequence.new(Color3.fromRGB(170, 150, 130), Color3.fromRGB(110, 95, 85))
+	dust.Size = NumberSequence.new(4, 12)
+	dust.Transparency = NumberSequence.new(0.3, 1)
+	dust.Lifetime = NumberRange.new(1.5, 2.5)
+	dust.Speed = NumberRange.new(18, 34)
+	dust.SpreadAngle = Vector2.new(80, 10)
+	dust.EmissionDirection = Enum.NormalId.Top
+	dust.Drag = 3
+	dust.Rate = 0
+	dust.Parent = holder
+	dust:Emit(40)
+	Debris:AddItem(holder, 3)
+end
+
 Net.On("MeteorImpact", function(position)
 	Lib.PlaySound("Impact")
+	if typeof(position) == "Vector3" then
+		shockwave(position)
+	end
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart

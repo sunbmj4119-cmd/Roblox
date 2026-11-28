@@ -29,6 +29,7 @@ local ORDER = {
 	"MeteorService",
 	"LuckyService",
 	"RivalService",
+	"RivalHomes",
 	"ProgressionService",
 	"LeaderboardService",
 	"DevService",

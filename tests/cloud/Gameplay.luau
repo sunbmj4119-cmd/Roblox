@@ -43,6 +43,7 @@ local ORDER = {
 	"MeteorService",
 	"LuckyService",
 	"RivalService",
+	"RivalHomes",
 	"ProgressionService",
 	"LeaderboardService",
 	"DevService",
@@ -704,6 +705,7 @@ end
 -- 29) rival players: join small servers, look like players, smash meteors,
 -- grab eggs and run home, get bonked, bonk players carrying eggs
 local Rival = S.RivalService
+S.EventService:EndForTest() -- (no Thief Night now: rivals would rather raid homes)
 Rival:ForceForTest(2)
 for _ = 1, 20 do
 	if #Rival:RecordsForTest() == 2 then
@@ -777,6 +779,23 @@ if #bots == 2 then
 		end
 	end
 	check(carrier ~= nil, "no rival grabbed a star egg")
+	if not carrier then
+		local debug = {}
+		for _, bot in bots do
+			table.insert(
+				debug,
+				string.format(
+					"%s|%s|targets=%d|state=%s|raid=%s",
+					tostring(bot.Task),
+					tostring(bot.Root.Position),
+					#S.ShardService:RivalTargets(bot.Entity.UserId, Config.Rivals.GrabDelay),
+					tostring(workspace:GetAttribute("MeteorState")),
+					tostring(workspace:GetAttribute("RaidActive"))
+				)
+			)
+		end
+		results.rivalDebug = debug
+	end
 	if carrier then
 		check(carrier.Model:GetAttribute("Carrying") == true, "a carrying rival should show it")
 		local coinsBeforeBonk = dataA.Coins
@@ -864,6 +883,59 @@ for _ = 1, 30 do
 end
 check(dataA.PetIndex[meteorPet] == true, "no meteor pet from meteor star eggs")
 results.growth = { Stars = Util.PetStars(main), Index = Util.IndexCount(dataA), IndexBonus = Util.IndexBonus(Config, dataA) }
+
+-- 32) 🏠 rival homes: pets on display, Thief Night raids both ways
+Rival:ForceForTest(2)
+for _ = 1, 20 do
+	if #Rival:RecordsForTest() == 2 then
+		break
+	end
+	task.wait(0.25)
+end
+local homeOwner = nil
+for _, record in Rival:RecordsForTest() do
+	if record.HomeIndex then
+		homeOwner = record
+	end
+end
+check(homeOwner ~= nil and #homeOwner.HomePets >= 3, "a rival has no home with pets")
+if homeOwner then
+	local Homes = S.RivalHomes
+	S.EventService:Trigger("ThiefNight")
+	if S.ShardService:IsCarrying(A) then
+		S.ShardService:Drop(A)
+	end
+	-- Alice steals from the rival's home and runs it to her own
+	local target = homeOwner.HomePets[1]
+	local petsBeforeRaid = #dataA.Pets
+	Homes:StealFrom(A, homeOwner, target.Uid)
+	check(S.ShardService:IsCarrying(A) and target.Away == true, "could not steal from a rival's home")
+	rootA.CFrame = Base:HomeCFrame(A) * CFrame.new(0, 0, 6)
+	task.wait(0.8)
+	check(#dataA.Pets == petsBeforeRaid + 1, "the rival's pet did not arrive at Alice's home")
+	check((homeOwner.HomeShieldUntil or 0) > workspace:GetServerTimeNow(), "a robbed rival home should be shielded for a while")
+	-- the rival raids Alice: grabs a display pet, makes it home, gives it back when leaving
+	unprotect(plotA)
+	local raid = Homes:RaidTarget(homeOwner)
+	check(raid ~= nil and raid.Owner == A, "no raid target in Alice's home")
+	if raid then
+		local item, meta = Homes:TakeFromPlayer(homeOwner, A, raid.Pet.Id)
+		check(item ~= nil and raid.Pet.Away == true, "the rival could not grab Alice's pet")
+		local stolenName = raid.Pet.Name
+		local before = #dataA.Pets
+		Homes:Delivered(homeOwner, meta)
+		check(#dataA.Pets == before - 1 and A:GetAttribute("RevengeTarget") == homeOwner.Entity.UserId, "rival theft did not land")
+		local inRivalHome = false
+		for _, pet in homeOwner.HomePets do
+			inRivalHome = inRivalHome or (pet.Name == stolenName and pet.FromUserId == A.UserId)
+		end
+		check(inRivalHome, "the stolen pet is not on the rival's display")
+		Homes:Release(homeOwner)
+		check(#dataA.Pets == before, "pets taken by a rival did not come back when it left")
+	end
+end
+Rival:ForceForTest(0)
+task.wait(1)
 
 results.alicePets = #dataA.Pets
 results.bobPets = #dataB.Pets

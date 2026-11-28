@@ -1,19 +1,25 @@
 <roblox version="4">
-  <Item class="Players" referent="0">
+  <Item class="Lighting" referent="0">
+    <Properties>
+      <string name="Name">Lighting</string>
+      <token name="Technology">4</token>
+    </Properties>
+  </Item>
+  <Item class="Players" referent="1">
     <Properties>
       <string name="Name">Players</string>
       <bool name="CharacterAutoLoads">true</bool>
     </Properties>
   </Item>
-  <Item class="ReplicatedStorage" referent="1">
+  <Item class="ReplicatedStorage" referent="2">
     <Properties>
       <string name="Name">ReplicatedStorage</string>
     </Properties>
-    <Item class="Folder" referent="2">
+    <Item class="Folder" referent="3">
       <Properties>
         <string name="Name">Shared</string>
       </Properties>
-      <Item class="ModuleScript" referent="3">
+      <Item class="ModuleScript" referent="4">
         <Properties>
           <string name="Name">Config</string>
           <string name="Source"><![CDATA[--[[
@@ -175,11 +181,12 @@ Config.World = {
 	Layout = { HubHalf = 80, ZoneWidth = 100, ZoneLength = 100, Gap = 10, FirstZ = 90 },
 	OreRespawnSeconds = 4,
 	OreSize = 5,
-	OreSpacing = 7,
+	OreSpacing = 6, -- minimum gap between ore nodes
+	OreClusters = 12, -- ore veins per mine (up to 8 nodes each)
 	Reach = 13, -- studs from character to the target
 	WalkSpeed = 22,
 	-- base district south of the hub (see BaseService)
-	Bases = { ZStart = -88, ZEnd = -278, HalfX = 200 },
+	Bases = { ZStart = -88, ZEnd = -298, HalfX = 246 },
 	SpawnSafeRadius = 24, -- nobody can be bonked near the spawn
 }
 
@@ -847,6 +854,9 @@ Config.Rivals = {
 	DropBlockSeconds = 20, -- rivals keep off an egg knocked out of their hands
 	BonkMinCoins = 50,
 	BonkIncomeSeconds = 8, -- reward: 8s of your home income
+	RaidChance = 0.03, -- 🌙 per think (4x a second) on Thief Night: plan a raid on a player's home
+	RaidsPerNight = 1,
+	DefendSeconds = 20, -- chasing a thief who took a pet from their home
 	-- they try to bonk a player carrying an egg now and then
 	Bonk = { ChaseRange = 26, ChaseSeconds = 6, Range = 7, Cooldown = 20 },
 	-- avatar pieces: free items made by Roblox (catalog search, checked in game)
@@ -1260,7 +1270,8 @@ Config.Base = {
 	Plots = 8,
 	PlotSize = 72, -- studs: the whole territory (fence to fence)
 	-- territories: two rows facing a central avenue, wide gardens in between
-	Layout = { Columns = 4, Gap = 26, EntranceGap = 44, Avenue = 30, Margin = 8 },
+	-- (wide gardens between neighbours: every home is its own estate)
+	Layout = { Columns = 4, Gap = 56, EntranceGap = 64, Avenue = 42, Margin = 10 },
 	StartPedestals = 3, -- placed for free in every new base
 	MaxPedestals = 12,
 	-- price of the Nth pedestal (first 3 are free)
@@ -1716,7 +1727,7 @@ return Config
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="4">
+      <Item class="ModuleScript" referent="5">
         <Properties>
           <string name="Name">DecorModel</string>
           <string name="Source"><![CDATA[--[[
@@ -1987,16 +1998,25 @@ end
 
 BUILDERS.Lantern = function(m)
 	part(m, "Post", Vector3.new(0.3, 2.2, 0.3), CFrame.new(0, 1.1, 0), Color3.fromRGB(40, 40, 45), Enum.Material.Metal)
-	local lamp = part(m, "Lamp", Vector3.new(0.9, 1, 0.9), CFrame.new(0, 2.6, 0), Color3.fromRGB(255, 200, 120), Enum.Material.Neon)
-	light(lamp, Color3.fromRGB(255, 200, 120), 12, 1.2)
+	local lamp = part(
+		m,
+		"Lamp",
+		Vector3.new(0.9, 1, 0.9),
+		CFrame.new(0, 2.6, 0),
+		Color3.fromRGB(255, 210, 140),
+		Enum.Material.Glass,
+		{ Transparency = 0.15 }
+	)
+	light(lamp, Color3.fromRGB(255, 200, 120), 12, 0.9)
 end
 
 BUILDERS.LampPost = function(m)
 	part(m, "Post", Vector3.new(0.4, 6, 0.4), CFrame.new(0, 3, 0), Color3.fromRGB(40, 40, 45), Enum.Material.Metal)
-	local bulb = part(m, "Bulb", Vector3.one * 1.2, CFrame.new(0, 6.3, 0), Color3.fromRGB(255, 240, 200), Enum.Material.Neon, {
+	local bulb = part(m, "Bulb", Vector3.one * 1.2, CFrame.new(0, 6.3, 0), Color3.fromRGB(255, 235, 190), Enum.Material.Glass, {
 		Shape = Enum.PartType.Ball,
+		Transparency = 0.15,
 	})
-	light(bulb, Color3.fromRGB(255, 230, 180), 18, 1.4)
+	light(bulb, Color3.fromRGB(255, 230, 180), 18, 1)
 end
 
 BUILDERS.Crystal = function(m)
@@ -2436,7 +2456,7 @@ return DecorModel
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="5">
+      <Item class="ModuleScript" referent="6">
         <Properties>
           <string name="Name">Lang</string>
           <string name="Source"><![CDATA[--[[
@@ -2514,7 +2534,7 @@ return Lang
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="6">
+      <Item class="ModuleScript" referent="7">
         <Properties>
           <string name="Name">LangKO</string>
           <string name="Source"><![CDATA[--[[
@@ -3662,11 +3682,15 @@ return {
 	["Legend"] = "전설",
 	["💰 %s/s  •  ⚡ x%s"] = "💰 %s/초  •  ⚡ x%s",
 	["⭐ Tap again to evolve - it uses %d plain copies of this pet"] = "⭐ 한 번 더 누르면 진화해요 - 같은 펫(변이 없는) %d마리가 사용돼요",
+	["🛡️ %s left - your %s came back home!"] = "🛡️ %s님이 떠나서 %s이(가) 집으로 돌아왔어요!",
+	["🦹 You grabbed %s's %s - run home!"] = "🦹 %s의 %s을(를) 훔쳤어요 - 집으로 달려요!",
+	["🚨 %s is stealing your %s! Bonk them before they get home!"] = "🚨 %s이(가) 내 %s을(를) 훔쳐 가요! 집에 가기 전에 때려요!",
+	["💔 %s stole your %s! Get it back from their house - revenge for 5 minutes!"] = "💔 %s이(가) 내 %s을(를) 훔쳐 갔어요! 그 집에서 되찾아요 - 5분간 복수 가능!",
 }
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="7">
+      <Item class="ModuleScript" referent="8">
         <Properties>
           <string name="Name">PetModel</string>
           <string name="Source"><![CDATA[--[[
@@ -4182,7 +4206,7 @@ return PetModel
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="8">
+      <Item class="ModuleScript" referent="9">
         <Properties>
           <string name="Name">ShardModel</string>
           <string name="Source"><![CDATA[--[[
@@ -4299,7 +4323,7 @@ return ShardModel
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="9">
+      <Item class="ModuleScript" referent="10">
         <Properties>
           <string name="Name">Util</string>
           <string name="Source"><![CDATA[local Util = {}
@@ -5105,15 +5129,15 @@ return Util
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="10">
+  <Item class="ServerScriptService" referent="11">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="11">
+    <Item class="Folder" referent="12">
       <Properties>
         <string name="Name">Server</string>
       </Properties>
-      <Item class="Script" referent="12">
+      <Item class="Script" referent="13">
         <Properties>
           <string name="Name">Main</string>
           <token name="RunContext">0</token>
@@ -5141,6 +5165,7 @@ local ORDER = {
 	"MeteorService",
 	"LuckyService",
 	"RivalService",
+	"RivalHomes",
 	"ProgressionService",
 	"LeaderboardService",
 	"DevService",
@@ -5175,11 +5200,11 @@ print("[Meteor Rush] server ready")
 ]]></string>
         </Properties>
       </Item>
-      <Item class="Folder" referent="13">
+      <Item class="Folder" referent="14">
         <Properties>
           <string name="Name">Services</string>
         </Properties>
-        <Item class="ModuleScript" referent="14">
+        <Item class="ModuleScript" referent="15">
           <Properties>
             <string name="Name">Analytics</string>
             <string name="Source"><![CDATA[--[[
@@ -5236,7 +5261,7 @@ return Analytics
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="15">
+        <Item class="ModuleScript" referent="16">
           <Properties>
             <string name="Name">BaseService</string>
             <string name="Source"><![CDATA[--[[
@@ -5288,7 +5313,7 @@ local World
 
 local SETTINGS = Config.Base
 local PLOT_HALF = SETTINGS.PlotSize / 2
-local WALL_HEIGHT = 9
+local WALL_HEIGHT = 5.5 -- (a low garden wall: the camera never hides behind it)
 local FLOOR_Y = 0.42 -- top of the plot floor
 local GATE_HALF = 6 -- the entrance is 12 studs wide
 
@@ -5714,7 +5739,7 @@ local function applyStyle(plot, data)
 	for _, corner in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
 		part({
 			Name = "Tower",
-			Size = Vector3.new(2.6, towerHeight, 2.6),
+			Size = Vector3.new(2, towerHeight, 2),
 			CFrame = at(corner[1] * PLOT_HALF, towerHeight / 2, corner[2] * PLOT_HALF),
 			Color = style.Pillar,
 			Material = wallMaterial,
@@ -6436,6 +6461,16 @@ end
 function Base:PlotOf(player: Player)
 	return plotOf[player]
 end
+
+-- (RivalHomes builds rival players' homes with the same parts)
+Base.Internal = {
+	Plots = plots,
+	ApplyStyle = applyStyle,
+	SetPrompt = setPrompt,
+	Billboard = billboard,
+	ClearPlot = clearPlot,
+	PlotHalf = PLOT_HALF,
+}
 
 function Base:HasBase(player: Player): boolean
 	return plotOf[player] ~= nil
@@ -7308,9 +7343,19 @@ local function assign(player: Player, data)
 	end
 	local plot = nil
 	for _, candidate in plots do
-		if not candidate.Owner then
+		if not candidate.Owner and not candidate.Rival then
 			plot = candidate
 			break
+		end
+	end
+	if not plot then
+		-- a rival player lives here: they move out for a real player
+		for _, candidate in plots do
+			if not candidate.Owner and candidate.Rival and Services.RivalHomes then
+				Services.RivalHomes:EvictFor(candidate)
+				plot = candidate
+				break
+			end
 		end
 	end
 	if not plot then
@@ -7574,6 +7619,18 @@ function Base:Start()
 	-- visit someone's house (you arrive outside their gate)
 	Net:On("VisitBase", 1, function(player, userId)
 		local target = type(userId) == "number" and Players:GetPlayerByUserId(userId)
+		if not target and type(userId) == "number" and userId < 0 then
+			-- a rival's house
+			for _, plot in plots do
+				if plot.Rival and plot.Model:GetAttribute("OwnerId") == userId then
+					local character = player.Character
+					if character and not Services.ShardService:IsCarrying(player) then
+						character:PivotTo(plot.CFrame * CFrame.new(0, 3, -PLOT_HALF - 6) * CFrame.Angles(0, math.pi, 0))
+					end
+				end
+			end
+			return
+		end
 		if not target or target == player then
 			return
 		end
@@ -7641,7 +7698,7 @@ return Base
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="16">
+        <Item class="ModuleScript" referent="17">
           <Properties>
             <string name="Name">BoostService</string>
             <string name="Source"><![CDATA[--[[
@@ -7747,7 +7804,7 @@ return Boosts
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="17">
+        <Item class="ModuleScript" referent="18">
           <Properties>
             <string name="Name">CharacterService</string>
             <string name="Source"><![CDATA[--[[
@@ -8114,7 +8171,7 @@ return CharacterService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="18">
+        <Item class="ModuleScript" referent="19">
           <Properties>
             <string name="Name">DataService</string>
             <string name="Source"><![CDATA[--[[
@@ -8593,7 +8650,7 @@ return DataService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="19">
+        <Item class="ModuleScript" referent="20">
           <Properties>
             <string name="Name">DevService</string>
             <string name="Source"><![CDATA[--[[
@@ -8698,7 +8755,7 @@ return Dev
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="20">
+        <Item class="ModuleScript" referent="21">
           <Properties>
             <string name="Name">EconomyService</string>
             <string name="Source"><![CDATA[--[[
@@ -8846,7 +8903,7 @@ return Economy
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="21">
+        <Item class="ModuleScript" referent="22">
           <Properties>
             <string name="Name">EventService</string>
             <string name="Source"><![CDATA[--[[
@@ -9081,6 +9138,14 @@ local function stop()
 	setAttributes()
 end
 
+-- cloud tests: end the current event now
+function Events:EndForTest()
+	assert(not RunService:IsRunning(), "test hook used on a live server")
+	stop()
+	raidAt = 0
+	setAttributes()
+end
+
 function Events:Init(services)
 	Services = services
 end
@@ -9132,7 +9197,7 @@ return Events
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="22">
+        <Item class="ModuleScript" referent="23">
           <Properties>
             <string name="Name">LeaderboardService</string>
             <string name="Source"><![CDATA[--[[
@@ -9599,7 +9664,7 @@ return Leaderboards
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="23">
+        <Item class="ModuleScript" referent="24">
           <Properties>
             <string name="Name">LuckyService</string>
             <string name="Source"><![CDATA[--[[
@@ -9883,7 +9948,7 @@ return Lucky
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="24">
+        <Item class="ModuleScript" referent="25">
           <Properties>
             <string name="Name">MeteorService</string>
             <string name="Source"><![CDATA[--[[
@@ -10058,22 +10123,123 @@ local function buildMeteor(radius: number, color: Color3, golden: boolean): Base
 	part.BottomSurface = Enum.SurfaceType.Smooth
 	part:SetAttribute("Radius", radius)
 
-	local core = Instance.new("Part")
-	core.Name = "Core"
-	core.Shape = Enum.PartType.Ball
-	core.Size = part.Size * 0.85
-	core.Material = Enum.Material.Neon
-	core.Color = if golden then Color3.fromRGB(255, 230, 120) else color
-	core.Transparency = 0.35
-	core.Anchored = true
-	core.CanCollide = false
-	core.CanQuery = false
-	core.Parent = part
+	-- ☄️ a rough space rock: boulders on the surface, glowing lava veins and
+	-- molten patches, all welded to the round core (that's the hit target)
+	local veinColor = if golden then Color3.fromRGB(255, 225, 110) else color:Lerp(Color3.fromRGB(255, 150, 40), 0.55)
+	local function stuck(name: string, size: Vector3, cf: CFrame, partColor: Color3, material: Enum.Material, shape)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = size
+		p.CFrame = cf
+		p.Color = partColor
+		p.Material = material
+		p.Anchored = false
+		p.Massless = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		if shape then
+			p.Shape = shape
+		end
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = part
+		weld.Part1 = p
+		weld.Parent = p
+		p.Parent = part
+		return p
+	end
+	local rockRng = Random.new()
+	local origin = part.CFrame
+	for i = 1, 14 do
+		-- spread directions over the sphere (golden angle spiral)
+		local y = 1 - (i - 0.5) / 14 * 2
+		local ring = math.sqrt(1 - y * y)
+		local theta = i * 2.39996
+		local direction = Vector3.new(math.cos(theta) * ring, y, math.sin(theta) * ring)
+		local size = radius * rockRng:NextNumber(0.45, 0.8)
+		stuck(
+			"Shell",
+			Vector3.new(size, size * rockRng:NextNumber(0.6, 0.9), size * rockRng:NextNumber(0.8, 1.1)),
+			CFrame.new(origin.Position + direction * radius * 0.78)
+				* CFrame.Angles(rockRng:NextNumber(0, 6.2), rockRng:NextNumber(0, 6.2), rockRng:NextNumber(0, 6.2)),
+			if golden
+				then Color3.fromRGB(230, 180, 60):Lerp(Color3.new(0, 0, 0), rockRng:NextNumber(0, 0.25))
+				else Color3.fromRGB(62, 48, 44):Lerp(Color3.fromRGB(20, 16, 16), rockRng:NextNumber(0, 0.6)),
+			if golden then Enum.Material.Foil elseif i % 3 == 0 then Enum.Material.Slate else Enum.Material.Basalt
+		)
+	end
+	for i = 1, 8 do
+		-- glowing cracks running over the surface
+		local direction = Vector3.new(rockRng:NextNumber(-1, 1), rockRng:NextNumber(-1, 1), rockRng:NextNumber(-1, 1)).Unit
+		stuck(
+			"Vein",
+			Vector3.new(0.35, radius * rockRng:NextNumber(0.7, 1.2), 0.35),
+			CFrame.lookAt(origin.Position + direction * radius * 0.98, origin.Position + direction * radius * 2)
+				* CFrame.Angles(math.rad(90), 0, rockRng:NextNumber(0, 6.2)),
+			veinColor,
+			Enum.Material.Neon
+		)
+		if i <= 4 then
+			stuck(
+				"Molten",
+				Vector3.one * radius * rockRng:NextNumber(0.35, 0.55),
+				CFrame.new(origin.Position + direction * radius * 0.82),
+				veinColor,
+				Enum.Material.CrackedLava,
+				Enum.PartType.Ball
+			)
+		end
+	end
+	local core = stuck("Core", part.Size * 0.6, origin, veinColor, Enum.Material.Neon, Enum.PartType.Ball)
+	core.Transparency = 0.5
+	-- smoke + embers + a fiery tail while it falls
+	local smoke = Instance.new("ParticleEmitter")
+	smoke.Name = "Smoke"
+	smoke.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	smoke.Color = ColorSequence.new(Color3.fromRGB(90, 80, 80), Color3.fromRGB(40, 36, 36))
+	smoke.Size = NumberSequence.new(radius * 0.6, radius * 1.6)
+	smoke.Transparency = NumberSequence.new(0.35, 1)
+	smoke.Lifetime = NumberRange.new(1.5, 2.5)
+	smoke.Rate = 12
+	smoke.Speed = NumberRange.new(1, 3)
+	smoke.SpreadAngle = Vector2.new(40, 40)
+	smoke.Parent = part
+	local embers = Instance.new("ParticleEmitter")
+	embers.Name = "Embers"
+	embers.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	embers.Color = ColorSequence.new(veinColor)
+	embers.LightEmission = 1
+	embers.Size = NumberSequence.new(0.5, 0)
+	embers.Lifetime = NumberRange.new(0.8, 1.6)
+	embers.Rate = 25
+	embers.Speed = NumberRange.new(3, 8)
+	embers.SpreadAngle = Vector2.new(180, 180)
+	embers.Acceleration = Vector3.new(0, 6, 0)
+	embers.Parent = part
+	local top = Instance.new("Attachment")
+	top.Position = Vector3.new(0, radius * 0.6, 0)
+	top.Parent = part
+	local bottom = Instance.new("Attachment")
+	bottom.Position = Vector3.new(0, -radius * 0.6, 0)
+	bottom.Parent = part
+	local trail = Instance.new("Trail")
+	trail.Name = "Tail"
+	trail.Attachment0 = top
+	trail.Attachment1 = bottom
+	trail.Color = ColorSequence.new(veinColor, Color3.fromRGB(255, 90, 40))
+	trail.LightEmission = 0.8
+	trail.Lifetime = 0.9
+	trail.Transparency = NumberSequence.new(0.1, 1)
+	trail.WidthScale = NumberSequence.new(1, 0.2)
+	trail.FaceCamera = true
+	trail.Parent = part
 
 	local light = Instance.new("PointLight")
-	light.Color = core.Color
+	light.Color = veinColor
 	light.Range = 40
-	light.Brightness = 3
+	light.Brightness = 2.5
 	light.Parent = part
 
 	local fire = Instance.new("Fire")
@@ -10592,15 +10758,59 @@ local function startFalling()
 	local radius = current.Size.Radius
 	local final = current.Position + Vector3.new(0, radius * 0.6, 0)
 	local part = buildMeteor(radius, kind.Color, current.Golden)
-	part.Position = final + Vector3.new(60, 320, 40)
+	part:PivotTo(CFrame.new(final + Vector3.new(60, 320, 40)))
 	part.Parent = World:Folder("Drops")
 	meteorPart = part
-	local core = part:FindFirstChild("Core") :: BasePart
-	core.Position = part.Position
 	local info = TweenInfo.new(2.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	TweenService:Create(part, info, { Position = final }):Play()
-	TweenService:Create(core, info, { Position = final }):Play()
+	-- (tweening the anchored core's CFrame carries the welded rock with it)
+	TweenService:Create(part, info, { CFrame = CFrame.new(final) * CFrame.Angles(1.2, 0.8, 0.4) }):Play()
 	task.wait(2.25)
+	-- calmer once it has landed: less smoke, no tail
+	local tail = part:FindFirstChild("Tail")
+	if tail then
+		tail.Enabled = false
+	end
+	local smokeAfter = part:FindFirstChild("Smoke")
+	if smokeAfter and smokeAfter:IsA("ParticleEmitter") then
+		smokeAfter.Rate = 4
+	end
+	-- a scorched crater with rubble around the impact
+	local crater = Instance.new("Model")
+	crater.Name = "Crater"
+	local scorch = Instance.new("Part")
+	scorch.Name = "Scorch"
+	scorch.Shape = Enum.PartType.Cylinder
+	scorch.Anchored = true
+	scorch.CanCollide = false
+	scorch.CanQuery = false
+	scorch.CanTouch = false
+	scorch.Size = Vector3.new(0.2, radius * 3.2, radius * 3.2)
+	scorch.CFrame = CFrame.new(current.Position + Vector3.new(0, 0.08, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	scorch.Color = Color3.fromRGB(35, 28, 26)
+	scorch.Material = Enum.Material.Basalt
+	scorch.Parent = crater
+	local rubbleRng = Random.new()
+	for i = 1, 12 do
+		local angle = i / 12 * math.pi * 2 + rubbleRng:NextNumber(-0.2, 0.2)
+		local size = rubbleRng:NextNumber(1.2, 2.6)
+		local rubble = Instance.new("Part")
+		rubble.Name = "Rubble"
+		rubble.Anchored = true
+		rubble.CanCollide = false
+		rubble.CanQuery = false
+		rubble.CanTouch = false
+		rubble.Size = Vector3.new(size, size * 0.7, size)
+		rubble.CFrame = CFrame.new(
+			current.Position
+				+ Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius * rubbleRng:NextNumber(1.25, 1.55)
+				+ Vector3.new(0, size * 0.25, 0)
+		) * CFrame.Angles(rubbleRng:NextNumber(0, 3), rubbleRng:NextNumber(0, 3), rubbleRng:NextNumber(0, 3))
+		rubble.Color = Color3.fromRGB(70, 58, 52)
+		rubble.Material = Enum.Material.Basalt
+		rubble.Parent = crater
+	end
+	crater.Parent = World:Folder("Drops")
+	Debris:AddItem(crater, settings.DurationSeconds + 40)
 	if marker then
 		marker:Destroy()
 		marker = nil
@@ -10642,9 +10852,11 @@ function Meteor:TutorialMeteor(player: Player)
 		local part = buildMeteor(cfg.Radius, kind.Color, false)
 		part.Name = "TutorialMeteor_" .. tostring(player.UserId)
 		part:SetAttribute("OwnerId", player.UserId)
-		part.Position = position + Vector3.new(0, cfg.Radius * 0.6, 0)
-		local core = part:FindFirstChild("Core") :: BasePart
-		core.Position = part.Position
+		part:PivotTo(CFrame.new(position + Vector3.new(0, cfg.Radius * 0.6, 0)))
+		local tail = part:FindFirstChild("Tail")
+		if tail then
+			tail.Enabled = false
+		end
 		part.Parent = World:Folder("Drops")
 		entry.Part = part
 		local gui = part:FindFirstChild("HPBar")
@@ -10818,7 +11030,7 @@ return Meteor
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="25">
+        <Item class="ModuleScript" referent="26">
           <Properties>
             <string name="Name">MiningService</string>
             <string name="Source"><![CDATA[--[[
@@ -10902,51 +11114,110 @@ local function addCrystals(part: BasePart, color: Color3, material: Enum.Materia
 	end
 end
 
--- rock chunks around the base + ore "veins" so blocks read as rocks, not cubes
-local function decorate(part: BasePart, ore, size: number)
-	local function chunk(cf: CFrame, chunkSize: Vector3, color: Color3, material: Enum.Material, name: string)
-		local p = Instance.new("Part")
-		p.Name = name
-		p.Anchored = true
-		p.CanCollide = false
-		p.CanQuery = false
-		p.CanTouch = false
-		p.CastShadow = false
-		p.Size = chunkSize
-		p.CFrame = cf
-		p.Color = color
-		p.Material = material
-		p.TopSurface = Enum.SurfaceType.Smooth
-		p.BottomSurface = Enum.SurfaceType.Smooth
-		p.Parent = part
+-- 🪨 an ore node reads as a natural boulder: a rough rock shell (the zone's
+-- stone) around a core of the ore, with crystals (gems) or nuggets (metals)
+-- growing out of it. Only the core part is the hit target.
+local GEM_MATERIALS = {
+	[Enum.Material.Glass] = true,
+	[Enum.Material.Neon] = true,
+	[Enum.Material.Ice] = true,
+}
+local METAL_MATERIALS = {
+	[Enum.Material.Metal] = true,
+	[Enum.Material.Foil] = true,
+	[Enum.Material.DiamondPlate] = true,
+}
+
+local function piece(parent: BasePart, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material, shape)
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = material
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	if shape then
+		p.Shape = shape
 	end
-	local dark = part.Color:Lerp(Color3.new(0, 0, 0), 0.3)
-	local base = part.CFrame
-	chunk(
-		base * CFrame.new(size * 0.42, -size * 0.28, size * 0.36) * CFrame.Angles(0.3, oreRng:NextNumber(0, 3), 0.2),
-		Vector3.new(size * 0.5, size * 0.42, size * 0.48),
-		dark,
-		part.Material,
-		"Rock"
-	)
-	chunk(
-		base * CFrame.new(-size * 0.4, -size * 0.3, -size * 0.34) * CFrame.Angles(-0.2, oreRng:NextNumber(0, 3), 0.3),
-		Vector3.new(size * 0.44, size * 0.38, size * 0.42),
-		dark,
-		part.Material,
-		"Rock"
-	)
-	if ore.Value >= 2 then
-		local vein = part.Color:Lerp(Color3.new(1, 1, 1), 0.2)
-		local material = if ore.Glow then Enum.Material.Neon else part.Material
-		for i = 1, 2 do
-			local side = if i == 1 then 1 else -1
-			chunk(
-				base * CFrame.new(side * size * 0.5, size * (0.05 + i * 0.12), side * size * 0.12) * CFrame.Angles(0.6, 0.7 * i, 0.4),
-				Vector3.new(1.1, 1.1, 1.1) * (0.8 + i * 0.25),
-				vein,
-				material,
-				"Vein"
+	p.Parent = parent
+	return p
+end
+
+local function rockColorFor(zone: number): Color3
+	local def = Config.Zones[zone]
+	local base = if def and def.FloorColor then def.FloorColor else Color3.fromRGB(120, 115, 110)
+	return base:Lerp(Color3.fromRGB(95, 92, 90), 0.55)
+end
+
+local function decorate(part: BasePart, ore, _size: number, zone: number)
+	local rock = rockColorFor(zone)
+	local center = part.CFrame
+	-- rough shell: rotated slabs hugging the core
+	for i = 1, 4 do
+		local angle = i * (math.pi / 2) + oreRng:NextNumber(-0.4, 0.4)
+		local w = oreRng:NextNumber(2.2, 3.4)
+		piece(
+			part,
+			"Rock",
+			Vector3.new(w, oreRng:NextNumber(2, 3.2), w * oreRng:NextNumber(0.8, 1.2)),
+			CFrame.new(center.Position + Vector3.new(math.cos(angle) * 1.5, -0.6, math.sin(angle) * 1.5))
+				* CFrame.Angles(oreRng:NextNumber(-0.5, 0.5), oreRng:NextNumber(0, 6.2), oreRng:NextNumber(-0.5, 0.5)),
+			rock:Lerp(Color3.new(0, 0, 0), oreRng:NextNumber(0, 0.2)),
+			if i % 2 == 0 then Enum.Material.Slate else Enum.Material.Rock
+		)
+	end
+	if GEM_MATERIALS[ore.Material] or ore.Glow then
+		-- crystals growing out of the rock
+		local material = if ore.Glow then Enum.Material.Neon else Enum.Material.Glass
+		for i = 1, oreRng:NextInteger(4, 6) do
+			local angle = i * 1.25 + oreRng:NextNumber(-0.3, 0.3)
+			local h = oreRng:NextNumber(2.2, 4.6)
+			local w = oreRng:NextNumber(0.7, 1.15)
+			local tilt = oreRng:NextNumber(0.25, 0.6)
+			local crystal = piece(
+				part,
+				"Crystal",
+				Vector3.new(w, h, w),
+				CFrame.new(center.Position + Vector3.new(math.cos(angle) * 1.1, 1 + h * 0.3, math.sin(angle) * 1.1))
+					* CFrame.Angles(math.sin(angle) * tilt, angle, -math.cos(angle) * tilt)
+					* CFrame.Angles(0, math.rad(45), 0),
+				ore.Color:Lerp(Color3.new(1, 1, 1), oreRng:NextNumber(0, 0.25)),
+				material
+			)
+			crystal.Transparency = if material == Enum.Material.Glass then 0.15 else 0
+		end
+	elseif METAL_MATERIALS[ore.Material] then
+		-- shiny nuggets in the stone
+		for i = 1, oreRng:NextInteger(4, 7) do
+			local angle = i * 1.1 + oreRng:NextNumber(-0.4, 0.4)
+			local sizeN = oreRng:NextNumber(0.8, 1.5)
+			piece(
+				part,
+				"Nugget",
+				Vector3.one * sizeN,
+				CFrame.new(center.Position + Vector3.new(math.cos(angle) * 1.9, oreRng:NextNumber(-0.4, 1.4), math.sin(angle) * 1.9)),
+				ore.Color,
+				ore.Material,
+				Enum.PartType.Ball
+			)
+		end
+	elseif ore.Value >= 2 then
+		-- coal / plain rock: dark lumps
+		for i = 1, 4 do
+			local angle = i * 1.6
+			piece(
+				part,
+				"Vein",
+				Vector3.one * oreRng:NextNumber(0.9, 1.4),
+				CFrame.new(center.Position + Vector3.new(math.cos(angle) * 1.9, oreRng:NextNumber(-0.3, 1), math.sin(angle) * 1.9))
+					* CFrame.Angles(oreRng:NextNumber(0, 3), oreRng:NextNumber(0, 3), 0),
+				ore.Color,
+				ore.Material
 			)
 		end
 	end
@@ -10963,18 +11234,14 @@ local function spawnBlock(slot, forcedLucky)
 	local size = Config.World.OreSize
 	local part = Instance.new("Part")
 	part.Name = oreId
-	part.Size = Vector3.new(size, size, size)
+	part.Size = Vector3.new(size * 0.8, size * 0.7, size * 0.8)
 	part.Anchored = true
 	part.Material = ore.Material
-	part.Color = ore.Color
+	part.Color = ore.Color:Lerp(rockColorFor(slot.Zone), if ore.Glow then 0 else 0.2)
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
-	part.CFrame = CFrame.new(slot.Position)
-		* CFrame.Angles(
-			math.rad(oreRng:NextNumber(-6, 6)),
-			math.rad(oreRng:NextInteger(0, 3) * 90 + oreRng:NextNumber(-14, 14)),
-			math.rad(oreRng:NextNumber(-6, 6))
-		)
+	part.CFrame = CFrame.new(slot.Position - Vector3.new(0, 0.6, 0))
+		* CFrame.Angles(math.rad(oreRng:NextNumber(-20, 20)), math.rad(oreRng:NextNumber(0, 360)), math.rad(oreRng:NextNumber(-20, 20)))
 	part:SetAttribute("Ore", oreId)
 	part:SetAttribute("HP", hp)
 	part:SetAttribute("MaxHP", hp)
@@ -11002,9 +11269,9 @@ local function spawnBlock(slot, forcedLucky)
 		light.Range = 8
 		light.Brightness = 0.8
 		light.Parent = part
-		addCrystals(part, ore.Color, Enum.Material.Neon)
+		-- (glowing ores already grow neon crystals in decorate)
 	end
-	decorate(part, ore, size)
+	decorate(part, ore, size, slot.Zone)
 	part.Parent = oreFolder
 	slot.Part = part
 	blockInfo[part] = { Slot = slot, Ore = oreId, HP = hp, MaxHP = hp, Zone = slot.Zone, Lucky = lucky }
@@ -11543,7 +11810,8 @@ end
 
 -- may a rival bonk this player? (same safety rules as players, plus: never a
 -- new player's first egg, never in the base district)
-function Mining:CanNpcBonk(victim: Player): boolean
+-- (rivalId: a rival may chase a thief carrying ITS pet even into the base district)
+function Mining:CanNpcBonk(victim: Player, rivalId: number?): boolean
 	local data = Data:Get(victim)
 	local root = victim.Character and victim.Character:FindFirstChild("HumanoidRootPart")
 	if not data or not root or not root:IsA("BasePart") or not Services.ShardService:IsCarrying(victim) then
@@ -11556,14 +11824,16 @@ function Mining:CanNpcBonk(victim: Player): boolean
 	if (root.Position - World.HubSpawn.Position).Magnitude <= Config.World.SpawnSafeRadius then
 		return false
 	end
-	if Util.InBases(Config, root.Position) then
+	local meta = Services.ShardService:CarryMeta(victim)
+	local ownPet = rivalId ~= nil and meta ~= nil and meta.RivalFrom == rivalId
+	if Util.InBases(Config, root.Position) and not ownPet then
 		return false
 	end
 	return (immunity[victim] or 0) <= os.clock()
 end
 
-function Mining:NpcBonk(attackerRoot: BasePart, attackerName: string, victim: Player): boolean
-	if not self:CanNpcBonk(victim) then
+function Mining:NpcBonk(attackerRoot: BasePart, attackerName: string, victim: Player, rivalId: number?): boolean
+	if not self:CanNpcBonk(victim, rivalId) then
 		return false
 	end
 	local vRoot = victim.Character and victim.Character:FindFirstChild("HumanoidRootPart") :: BasePart
@@ -11642,7 +11912,7 @@ return Mining
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="26">
+        <Item class="ModuleScript" referent="27">
           <Properties>
             <string name="Name">MonetizationService</string>
             <string name="Source"><![CDATA[--[[
@@ -12062,7 +12332,7 @@ return Monetization
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="27">
+        <Item class="ModuleScript" referent="28">
           <Properties>
             <string name="Name">Net</string>
             <string name="Source"><![CDATA[--[[
@@ -12194,7 +12464,7 @@ return Net
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="28">
+        <Item class="ModuleScript" referent="29">
           <Properties>
             <string name="Name">PetService</string>
             <string name="Source"><![CDATA[--[[
@@ -13075,7 +13345,7 @@ return PetService
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="29">
+        <Item class="ModuleScript" referent="30">
           <Properties>
             <string name="Name">ProgressionService</string>
             <string name="Source"><![CDATA[--[[
@@ -13727,7 +13997,486 @@ return Progression
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="30">
+        <Item class="ModuleScript" referent="31">
+          <Properties>
+            <string name="Name">RivalHomes</string>
+            <string name="Source"><![CDATA[--[[
+	RivalHomes: rival players own a home too - a real estate in the base
+	district with a house and pets on display.
+
+	  * 🌙 Thief Night (or revenge): you can steal a rival's displayed pet and
+	    run it home. The rival runs after you (they may bonk you even inside
+	    the base district - it's their pet). One theft per rival home per
+	    few minutes (like players' theft shield).
+	  * 🌙 Thief Night: a rival may sneak into YOUR home and grab a pet from a
+	    display pedestal (never a vault / exclusive pet, never through locks
+	    or shields). You get an alarm - bonk them before they get home! If
+	    they make it, the pet stands in their home: steal it back (revenge
+	    for 5 minutes, or the next Thief Night). When a rival leaves the
+	    server, pets they took go back to their owners.
+]]
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Util = require(Shared.Util)
+local PetModel = require(Shared.PetModel)
+local DecorModel = require(Shared.DecorModel)
+local Net = require(script.Parent.Net)
+
+local Homes = {}
+local Services
+local Data
+local World
+
+local SETTINGS = Config.Base
+local SLOTS = { { -12, 4 }, { -6, 2 }, { 0, 2 }, { 6, 2 }, { 12, 4 } }
+local rng = Random.new()
+local byIndex = {} -- [plot index] = rival record
+local byUser = {} -- [rival UserId] = rival record
+local nextUid = 0
+
+local function newPet(fields)
+	nextUid += 1
+	fields.Uid = nextUid
+	return fields
+end
+
+local function findPet(record, uid)
+	for index, pet in record.HomePets or {} do
+		if pet.Uid == uid then
+			return pet, index
+		end
+	end
+	return nil, nil
+end
+
+-- the weakest pet that may make room (not away, not a player's)
+local function weakestIndex(record)
+	local best, bestIndex = nil, nil
+	for index, pet in record.HomePets do
+		if not pet.Away and not pet.FromUserId and (not best or Util.PetIncomeOf(Config, pet) < Util.PetIncomeOf(Config, best)) then
+			best, bestIndex = pet, index
+		end
+	end
+	return best, bestIndex
+end
+
+local function now(): number
+	return workspace:GetServerTimeNow()
+end
+
+local function internal()
+	return Services.BaseService.Internal
+end
+
+local function raidActive(): boolean
+	local events = Services.EventService
+	return events ~= nil and events:RaidActive()
+end
+
+-- may this player steal from this rival right now?
+local function canRaid(player: Player, record): boolean
+	if (record.HomeShieldUntil or 0) > now() then
+		return false
+	end
+	if raidActive() then
+		return true
+	end
+	return player:GetAttribute("RevengeTarget") == record.Entity.UserId and (player:GetAttribute("RevengeUntil") or 0) > now()
+end
+
+-- a fresh set of pets for a new rival (from the server's eggs, a little grown)
+local function startingPets(zone: number)
+	local pool = Config.Eggs[Config.Shards.ZoneEggs[math.clamp(zone, 1, #Config.Shards.ZoneEggs)]].Pets
+	local pets = {}
+	for _ = 1, rng:NextInteger(3, 5) do
+		local name = Util.WeightedPick(pool, nil, rng)
+		table.insert(
+			pets,
+			newPet({
+				Name = name,
+				Variant = if rng:NextNumber() < 0.08 then "Golden" else nil,
+				Level = rng:NextInteger(1, 8),
+				Stars = if rng:NextNumber() < 0.15 then 1 else 0,
+			})
+		)
+	end
+	return pets
+end
+
+local function homeRate(record): number
+	local total = 0
+	for _, pet in record.HomePets do
+		if not pet.Away then
+			total += Util.PetIncomeOf(Config, pet)
+		end
+	end
+	return total
+end
+
+local function refreshSign(record)
+	local plot = internal().Plots[record.HomeIndex]
+	if not plot then
+		return
+	end
+	local open = raidActive() and (record.HomeShieldUntil or 0) <= now()
+	local status = if open then "🔓 OPEN" else "🏠 SAFE"
+	plot.Model:SetAttribute("Protection", if open then "" else "safe")
+	plot.Model:SetAttribute("Rate", homeRate(record))
+	local key = status .. "|" .. math.floor(homeRate(record))
+	if key ~= record.SignKey then
+		record.SignKey = key
+		World.SetText(
+			plot.Sign,
+			"🏠 %s's HOUSE\n💰 %s/s  ❤️ %s  ⭐ Lv.%s\n%s",
+			record.Name,
+			Util.Format(homeRate(record)),
+			tostring(record.Likes),
+			tostring(record.HouseLevel),
+			status
+		)
+	end
+end
+
+function Homes:Render(record)
+	local plot = internal().Plots[record.HomeIndex]
+	if not plot then
+		return
+	end
+	plot.Displays:ClearAllChildren()
+	for slot, pet in record.HomePets do
+		local spot = SLOTS[slot]
+		if spot then
+			local cf = plot.CFrame * CFrame.new(spot[1], 0.52, spot[2])
+			local pedestal = DecorModel.Build(Config, "Pedestal", nil)
+			pedestal:PivotTo(cf)
+			pedestal.Parent = plot.Displays
+			if not pet.Away then
+				local top = pedestal:FindFirstChild("Top")
+				local petModel = PetModel.Build(pet.Name, pet.Variant, { Level = pet.Level, Stars = pet.Stars })
+				petModel.Name = "RivalPet_" .. slot
+				local base = if top and top:IsA("BasePart") then top.Position else cf.Position + Vector3.new(0, 2.6, 0)
+				petModel:PivotTo(CFrame.new(base + Vector3.new(0, 1.6, 0)) * (cf - cf.Position))
+				local box, size = petModel:GetBoundingBox()
+				local lift = (base.Y + 0.2) - (box.Position.Y - size.Y / 2)
+				if lift > 0 then
+					petModel:PivotTo(petModel:GetPivot() + Vector3.new(0, lift, 0))
+				end
+				petModel:SetAttribute("Spin", true)
+				petModel:SetAttribute("PetId", -1000 - slot)
+				petModel.Parent = plot.Displays
+				local info = Config.Pets[pet.Name]
+				local rarity = info and Config.Rarities[info.Rarity] or Config.Rarities.Common
+				local anchor = petModel.PrimaryPart :: BasePart
+				local label = internal().Billboard(anchor, 5.5, 1.7, size.Y + 1, rarity.Color, 40)
+				World.SetText(
+					label,
+					"%s %s%s\n%s  💰 %s/s",
+					"🌠",
+					if pet.Variant then pet.Variant .. " " else "",
+					pet.Name,
+					Util.PetBadge(Config, pet),
+					Util.Format(Util.PetIncomeOf(Config, pet))
+				)
+				local uid = pet.Uid
+				internal().SetPrompt(anchor, "Steal", pet.Name, "Thief", SETTINGS.StealHold, function(thief)
+					Homes:StealFrom(thief, record, uid)
+				end)
+			end
+		end
+	end
+	record.SignKey = nil
+	refreshSign(record)
+end
+
+-- a rival moves into a free plot (never one a player could need: see BaseService assign)
+function Homes:Claim(record): boolean
+	local plot = nil
+	for _, candidate in internal().Plots do
+		if not candidate.Owner and not candidate.Rival then
+			plot = candidate
+		end
+	end
+	if not plot then
+		return false
+	end
+	local zone = 1
+	for _, player in Data:LoadedPlayers() do
+		local data = Data:Get(player)
+		if data then
+			zone = math.max(zone, data.ZoneLevel or 1)
+		end
+	end
+	plot.Rival = record
+	record.HomeIndex = plot.Index
+	record.HouseLevel = rng:NextInteger(1, 3)
+	record.Likes = rng:NextInteger(0, 25)
+	record.HomePets = startingPets(zone)
+	byIndex[plot.Index] = record
+	byUser[record.Entity.UserId] = record
+	local fake = { Base = { Level = record.HouseLevel, Skin = "Auto", Roof = rng:NextInteger(0, #Config.Paint), Items = {}, Skins = {} } }
+	internal().ApplyStyle(plot, fake)
+	plot.Model:SetAttribute("OwnerId", record.Entity.UserId)
+	plot.Model:SetAttribute("OwnerName", record.Name)
+	plot.Model:SetAttribute("HouseLevel", record.HouseLevel)
+	plot.Model:SetAttribute("Likes", record.Likes)
+	self:Render(record)
+	return true
+end
+
+-- leaving: pets taken from players go back to them, the plot is free again
+function Homes:Release(record)
+	local plot = record.HomeIndex and internal().Plots[record.HomeIndex]
+	for _, pet in record.HomePets or {} do
+		local owner = nil
+		for _, player in Data:LoadedPlayers() do
+			if player.UserId == pet.FromUserId then
+				owner = player
+			end
+		end
+		if owner and not pet.Away then
+			Services.PetService:GivePet(owner, pet.Name, pet.Variant, pet.Serial, pet)
+			Net:Notify(owner, "🛡️ %s left - your %s came back home!", Color3.fromRGB(120, 230, 255), record.Name, pet.Name)
+		end
+	end
+	if plot then
+		byIndex[plot.Index] = nil
+		plot.Rival = nil
+		internal().ClearPlot(plot)
+	end
+	byUser[record.Entity.UserId] = nil
+	record.HomeIndex = nil
+	record.HomePets = {}
+end
+
+-- a player needs this plot: the rival moves out (keeps playing without a home)
+function Homes:EvictFor(plot)
+	local record = byIndex[plot.Index]
+	if record then
+		self:Release(record)
+	end
+end
+
+function Homes:HomeSpot(record): Vector3?
+	local plot = record.HomeIndex and internal().Plots[record.HomeIndex]
+	return plot and (plot.CFrame * CFrame.new(0, 3, -4)).Position
+end
+
+function Homes:IsHomeOf(record, position: Vector3): boolean
+	local plot = record.HomeIndex and internal().Plots[record.HomeIndex]
+	if not plot then
+		return false
+	end
+	local localPos = plot.CFrame:PointToObjectSpace(position)
+	local half = internal().PlotHalf
+	return math.abs(localPos.X) <= half and math.abs(localPos.Z) <= half + 1
+end
+
+---------------------------------------------------------------------------
+-- players steal from rivals
+---------------------------------------------------------------------------
+function Homes:StealFrom(thief: Player, record, uid: number)
+	local pet = findPet(record, uid)
+	if not pet or pet.Away or not record.HomeIndex then
+		return
+	end
+	local shards = Services.ShardService
+	if shards:IsCarrying(thief) then
+		Net:Notify(thief, "Your hands are full!")
+		return
+	end
+	if not Services.BaseService:HasBase(thief) then
+		Net:Notify(thief, "You need a base to steal pets!")
+		return
+	end
+	if not canRaid(thief, record) then
+		Net:Notify(thief, "🏠 Homes are safe! Raids only happen on 🌙 Thief Night.")
+		return
+	end
+	local item = { Kind = "Pet", Name = pet.Name, Variant = pet.Variant }
+	local meta = {
+		RivalFrom = record.Entity.UserId,
+		RivalSlot = uid,
+		Growth = { Level = pet.Level, Stars = pet.Stars },
+		Thief = thief,
+		Deadline = os.clock() + SETTINGS.StolenCarrySeconds,
+	}
+	pet.Away = true
+	if not shards:StartCarry(thief, item, meta) then
+		pet.Away = nil
+		return
+	end
+	self:Render(record)
+	-- the owner runs after you
+	Services.RivalService:Defend(record, thief)
+	Net:Notify(thief, "🦹 You grabbed %s's %s - run home!", Color3.fromRGB(255, 170, 90), record.Name, pet.Name)
+end
+
+-- the stolen pet made it to the thief's home
+function Homes:PetGone(rivalId: number, uid: number)
+	local record = byUser[rivalId]
+	if not record then
+		return
+	end
+	local _, index = findPet(record, uid)
+	if not index then
+		return
+	end
+	table.remove(record.HomePets, index)
+	record.HomeShieldUntil = now() + SETTINGS.TheftShieldSeconds
+	self:Render(record)
+end
+
+-- dropped / too slow: the pet runs back to the rival's home
+function Homes:PetBack(rivalId: number, uid: number)
+	local record = byUser[rivalId]
+	local pet = if record then findPet(record, uid) else nil
+	if pet then
+		pet.Away = nil
+		self:Render(record)
+	end
+end
+
+---------------------------------------------------------------------------
+-- rivals steal from players (🌙 Thief Night only)
+---------------------------------------------------------------------------
+-- a pet on display in an unprotected home (owner, pet, position of the pet)
+function Homes:RaidTarget(record)
+	if not raidActive() then
+		return nil
+	end
+	local base = Services.BaseService
+	local options = {}
+	for _, player in Data:LoadedPlayers() do
+		local data = Data:Get(player)
+		local plot = base:PlotOf(player)
+		if data and plot and base:Protection(player) == nil then
+			for _, pet in base.DisplayedPets(data) do
+				if not pet.Away and not pet.SerialPending and not Util.IsExclusive(Config, pet) then
+					local model = plot.Displays:FindFirstChild("Pet_" .. pet.Id)
+					if model and model:IsA("Model") then
+						table.insert(options, { Owner = player, Pet = pet, Position = model:GetPivot().Position })
+					end
+				end
+			end
+		end
+	end
+	if #options == 0 or not record then
+		return nil
+	end
+	return options[rng:NextInteger(1, #options)]
+end
+
+-- grab it (the owner gets an alarm); returns the carried item + meta
+function Homes:TakeFromPlayer(record, owner: Player, petId: number)
+	local base = Services.BaseService
+	local data = Data:Get(owner)
+	local pet = data and Services.PetService.FindPet(data, petId)
+	if not pet or pet.Away or base:Protection(owner) ~= nil then
+		return nil
+	end
+	local onDisplay = false
+	for _, shown in base.DisplayedPets(data) do
+		onDisplay = onDisplay or shown == pet
+	end
+	if not onDisplay or Util.IsExclusive(Config, pet) then
+		return nil
+	end
+	base:SetAway(owner, petId, true)
+	Net:Notify(owner, "🚨 %s is stealing your %s! Bonk them before they get home!", Color3.fromRGB(255, 90, 90), record.Name, pet.Name)
+	Net:Send(owner, "RaidAlarm", record.Name)
+	return { Kind = "Pet", Name = pet.Name, Variant = pet.Variant }, {
+		From = owner,
+		PetId = petId,
+		RivalThief = record.Entity.UserId,
+		Deadline = os.clock() + SETTINGS.StolenCarrySeconds,
+	}
+end
+
+-- the rival brought a star egg home: it hatches on their display
+function Homes:EggHome(record, item)
+	if not record.HomeIndex or not item or not item.Egg or not Config.Eggs[item.Egg] then
+		return
+	end
+	local name = Util.WeightedPick(Config.Eggs[item.Egg].Pets, nil, rng)
+	if #record.HomePets >= #SLOTS then
+		-- keep the best ones
+		local weakest, index = weakestIndex(record)
+		if not weakest or Util.PetIncome(Config, name, nil) <= Util.PetIncomeOf(Config, weakest) then
+			return
+		end
+		table.remove(record.HomePets, index)
+	end
+	table.insert(record.HomePets, newPet({ Name = name, Level = 1, Stars = 0 }))
+	self:Render(record)
+end
+
+-- the rival made it home with a player's pet: it stands on their display now
+function Homes:Delivered(record, meta)
+	local owner = meta and meta.From
+	if not owner or not owner.Parent or not meta.PetId then
+		return
+	end
+	local taken = Services.PetService:TakePet(owner, meta.PetId)
+	if not taken then
+		return
+	end
+	if #record.HomePets >= #SLOTS then
+		local _, index = weakestIndex(record)
+		if index then
+			table.remove(record.HomePets, index)
+		end
+	end
+	table.insert(
+		record.HomePets,
+		newPet({
+			Name = taken.Name,
+			Variant = taken.Variant,
+			Serial = taken.Serial,
+			Level = taken.Level,
+			XP = taken.XP,
+			Stars = taken.Stars,
+			FromUserId = owner.UserId,
+		})
+	)
+	self:Render(record)
+	-- revenge: steal it back for 5 minutes (even outside Thief Night)
+	owner:SetAttribute("RevengeTarget", record.Entity.UserId)
+	owner:SetAttribute("RevengeUntil", now() + SETTINGS.RevengeSeconds)
+	Net:Send(owner, "Revenge", record.Entity.UserId, record.Name, now() + SETTINGS.RevengeSeconds)
+	Net:Notify(
+		owner,
+		"💔 %s stole your %s! Get it back from their house - revenge for 5 minutes!",
+		Color3.fromRGB(255, 90, 90),
+		record.Name,
+		taken.Name
+	)
+end
+
+function Homes:Init(services)
+	Services = services
+	Data = services.DataService
+	World = services.WorldService
+end
+
+function Homes:Start()
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			for _, record in byIndex do
+				pcall(refreshSign, record)
+			end
+		end
+	end)
+end
+
+return Homes
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="32">
           <Properties>
             <string name="Name">RivalService</string>
             <string name="Source"><![CDATA[--[[
@@ -14055,10 +14804,16 @@ local function spawnRival(index: number)
 	playAnim(record, "Idle")
 	usedNames[name] = true
 	rivals[model] = record
+	-- 🏠 a home of their own in the base district (pets on display)
+	local okHome, homeErr = pcall(Services.RivalHomes.Claim, Services.RivalHomes, record)
+	if not okHome then
+		warn("[Rival] home failed: " .. tostring(homeErr))
+	end
 	return record
 end
 
-local function setCarry(record, item)
+local function setCarry(record, item, meta)
+	record.CarryMeta = if item then meta else nil
 	if record.CarryModel then
 		record.CarryModel:Destroy()
 		record.CarryModel = nil
@@ -14102,11 +14857,12 @@ local function despawn(record)
 	rivals[record.Model] = nil
 	usedNames[record.Name] = nil
 	if record.Carry then
-		-- (never take an egg away when leaving: drop it)
-		local item = record.Carry
+		-- (never take an egg / a stolen pet away when leaving: drop it)
+		local item, meta = record.Carry, record.CarryMeta
 		setCarry(record, nil)
-		Services.ShardService:SpawnGround(item, flat(record.Root.Position), nil, { Beacon = true, RivalBlockSeconds = 20 })
+		Services.ShardService:SpawnGround(item, flat(record.Root.Position), meta, { Beacon = true, RivalBlockSeconds = 20 })
 	end
+	pcall(Services.RivalHomes.Release, Services.RivalHomes, record)
 	Services.MeteorService:Forget(record.Entity)
 	if record.Model.Parent then
 		record.Model:Destroy()
@@ -14276,25 +15032,32 @@ local function think(record)
 	local current = meteor:Current()
 	local state = workspace:GetAttribute("MeteorState")
 
-	-- 1) carrying an egg: run home with it (like everybody)
+	-- 1) carrying an egg / a stolen pet: run home with it (like everybody)
+	local homes = Services.RivalHomes
 	if record.Carry and os.clock() > (record.CarryUntil or math.huge) then
-		-- couldn't make it home in time: drop the egg here
-		local item = record.Carry
+		-- couldn't make it home in time: drop it here
+		local item, meta = record.Carry, record.CarryMeta
 		setCarry(record, nil)
 		record.Home = nil
-		shards:SpawnGround(item, flat(root.Position), nil, { Beacon = true, RivalBlockSeconds = SETTINGS.DropBlockSeconds })
+		shards:SpawnGround(item, flat(root.Position), meta, { Beacon = true, RivalBlockSeconds = SETTINGS.DropBlockSeconds })
 	end
 	if record.Carry then
 		record.Task = "Home"
-		local home = record.Home or homeSpot()
+		local home = record.Home or homes:HomeSpot(record) or homeSpot()
 		record.Home = home
 		walkTo(record, home, false)
-		if (flat(home - root.Position)).Magnitude <= 8 then
-			local item = record.Carry
+		local arrived = (flat(home - root.Position)).Magnitude <= 8 or homes:IsHomeOf(record, root.Position)
+		if arrived then
+			local item, meta = record.Carry, record.CarryMeta
 			setCarry(record, nil)
 			record.Home = nil
-			if Util.ShardIndex(Config, item.Rarity) >= 4 then
-				Net:Announce("🌟 %s brought a %s home!", shards.ItemColor(item), record.Name, shards.ItemName(item))
+			if item.Kind == "Pet" then
+				homes:Delivered(record, meta)
+			else
+				homes:EggHome(record, item)
+				if Util.ShardIndex(Config, item.Rarity) >= 4 then
+					Net:Announce("🌟 %s brought a %s home!", shards.ItemColor(item), record.Name, shards.ItemName(item))
+				end
 			end
 		end
 		return
@@ -14303,8 +15066,10 @@ local function think(record)
 	-- 2) chasing a player who carries an egg (now and then)
 	local chase = record.ChaseTarget
 	-- (gives up at once near the spawn / in the base district / on a new player)
-	if chase and (not chase.Parent or t > record.ChaseUntil or not Services.MiningService:CanNpcBonk(chase)) then
+	local defendId = if record.Defending then record.Entity.UserId else nil
+	if chase and (not chase.Parent or t > record.ChaseUntil or not Services.MiningService:CanNpcBonk(chase, defendId)) then
 		record.ChaseTarget = nil
+		record.Defending = nil
 		chase = nil
 	end
 	if not chase then
@@ -14325,12 +15090,42 @@ local function think(record)
 			if (victimRoot.Position - root.Position).Magnitude <= SETTINGS.Bonk.Range then
 				face(record, victimRoot.Position)
 				playAnim(record, "Slash")
-				Services.MiningService:NpcBonk(root, record.Name, chase)
+				Services.MiningService:NpcBonk(root, record.Name, chase, defendId)
 				record.ChaseTarget = nil
+				record.Defending = nil
 				record.NextBonk = t + SETTINGS.Bonk.Cooldown
 			end
 		end
 		return
+	end
+
+	-- 🌙 Thief Night: sneak into a player's home and grab a pet from display
+	if workspace:GetAttribute("RaidActive") == true and record.HomeIndex then
+		if not record.RaidPlan and (record.RaidsTonight or 0) < SETTINGS.RaidsPerNight and rng:NextNumber() < SETTINGS.RaidChance then
+			record.RaidPlan = homes:RaidTarget(record)
+		end
+		local plan = record.RaidPlan
+		if plan then
+			if not plan.Owner.Parent or plan.Pet.Away then
+				record.RaidPlan = nil
+			else
+				record.Task = "Raid"
+				walkTo(record, plan.Position)
+				if (flat(plan.Position - root.Position)).Magnitude <= 6 then
+					face(record, plan.Position)
+					local item, meta = homes:TakeFromPlayer(record, plan.Owner, plan.Pet.Id)
+					record.RaidPlan = nil
+					record.RaidsTonight = (record.RaidsTonight or 0) + 1
+					if item then
+						setCarry(record, item, meta)
+					end
+				end
+				return
+			end
+		end
+	else
+		record.RaidPlan = nil
+		record.RaidsTonight = 0
 	end
 
 	-- 3) a meteor is coming / being smashed: go there and smash it
@@ -14478,13 +15273,14 @@ function Rival:Bonk(player: Player, model: Model): boolean
 	record.Root.AssemblyLinearVelocity = push * 45 + Vector3.new(0, 30, 0)
 	Net:Send(player, "BonkHit", record.Root.Position)
 	local item = record.Carry
+	local carriedMeta = record.CarryMeta
 	if not item then
 		return true
 	end
 	setCarry(record, nil)
 	record.Home = nil
 	-- the egg drops: the bonker gets the first grab, rivals keep off it for a while
-	Services.ShardService:SpawnGround(item, flat(record.Root.Position), nil, {
+	Services.ShardService:SpawnGround(item, flat(record.Root.Position), carriedMeta, {
 		Beacon = true,
 		PriorityUser = player.UserId,
 		PriorityUntil = t + 4,
@@ -14520,6 +15316,17 @@ function Rival:Bonk(player: Player, model: Model): boolean
 		Util.Format(coins)
 	)
 	return true
+end
+
+-- someone grabbed a pet from this rival's home: run after them
+function Rival:Defend(record, thief: Player)
+	if not rivals[record.Model] or record.Carry then
+		return
+	end
+	record.ChaseTarget = thief
+	record.ChaseUntil = now() + SETTINGS.DefendSeconds
+	record.Defending = true
+	record.RaidPlan = nil
 end
 
 function Rival:Wanted(): number
@@ -14660,7 +15467,7 @@ return Rival
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="31">
+        <Item class="ModuleScript" referent="33">
           <Properties>
             <string name="Name">ShardService</string>
             <string name="Source"><![CDATA[--[[
@@ -14849,7 +15656,7 @@ function Shards:StartCarry(player: Player, item, meta)
 	carrying[player] = { Item = item, Meta = meta or {}, Model = model }
 	player:SetAttribute("Carrying", itemName(item))
 	player:SetAttribute("CarryTier", itemTier(item))
-	player:SetAttribute("CarryStolen", meta ~= nil and meta.From ~= nil)
+	player:SetAttribute("CarryStolen", meta ~= nil and (meta.From ~= nil or meta.RivalFrom ~= nil))
 	Services.CharacterService:ApplyWalkSpeed(player)
 	local fromName = if meta and meta.From then meta.From.DisplayName else nil
 	Net:Send(player, "CarryStart", itemName(item), fromName, itemTier(item))
@@ -14858,6 +15665,11 @@ end
 
 -- a stolen pet runs back to the base it was taken from
 local function returnHome(meta, message: boolean)
+	if meta and meta.RivalFrom then
+		-- a pet stolen from a rival player's home runs back there
+		Services.RivalHomes:PetBack(meta.RivalFrom, meta.RivalSlot)
+		return
+	end
 	local owner = meta and meta.From
 	if not owner or not owner.Parent or not meta.PetId then
 		return
@@ -15099,7 +15911,7 @@ function Shards:SpawnGround(item, position: Vector3, meta, opts)
 	end)
 
 	-- stolen shards fly home if nobody grabs them; others fade out eventually
-	local lifetime = if meta and meta.From then SETTINGS.ReturnSeconds else (opts.Lifetime or SETTINGS.GroundLifetime)
+	local lifetime = if meta and (meta.From or meta.RivalFrom) then SETTINGS.ReturnSeconds else (opts.Lifetime or SETTINGS.GroundLifetime)
 	task.delay(lifetime, function()
 		if ground[model] then
 			destroyGround(model)
@@ -15234,7 +16046,7 @@ function Shards:Drop(player: Player, attacker: Player?)
 	end
 	local angle = rng:NextNumber(0, math.pi * 2)
 	local spot = Vector3.new(position.X + math.cos(angle) * 5, 0, position.Z + math.sin(angle) * 5)
-	local meta = if info.Meta and info.Meta.From then info.Meta else nil
+	local meta = if info.Meta and (info.Meta.From or info.Meta.RivalFrom) then info.Meta else nil
 	self:SpawnGround(info.Item, spot, meta, {
 		Beacon = true,
 		BlockUser = player.UserId,
@@ -15260,6 +16072,22 @@ local function deliver(player: Player)
 	local data = Data:Get(player)
 	local tier = itemTier(item)
 	local pets = Services.PetService
+	if item.Kind == "Pet" and meta and meta.RivalFrom then
+		-- a pet stolen from a rival player's home
+		local given, isNew = pets:GivePet(player, item.Name, item.Variant, nil, meta.Growth)
+		Services.RivalHomes:PetGone(meta.RivalFrom, meta.RivalSlot)
+		if data then
+			data.Stats.ShardsStolen += 1
+		end
+		Services.ProgressionService:AddQuest(player, "Steal", 1)
+		Net:Send(player, "ShardDelivered", item.Name, "Stolen", 0)
+		local card = given and pets:Describe(player, given, isNew)
+		if card then
+			card.Stolen = true
+			Net:Send(player, "HatchResult", { card }, nil, "Stolen")
+		end
+		return
+	end
 	if item.Kind == "Pet" then
 		-- a stolen pet: it leaves the owner's base and joins ours
 		local owner = meta and meta.From
@@ -15665,7 +16493,7 @@ return Shards
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="32">
+        <Item class="ModuleScript" referent="34">
           <Properties>
             <string name="Name">StatsService</string>
             <string name="Source"><![CDATA[--[[
@@ -15918,7 +16746,7 @@ return Stats
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="33">
+        <Item class="ModuleScript" referent="35">
           <Properties>
             <string name="Name">TradeService</string>
             <string name="Source"><![CDATA[--[[
@@ -16216,7 +17044,7 @@ return Trade
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="34">
+        <Item class="ModuleScript" referent="36">
           <Properties>
             <string name="Name">WorldService</string>
             <string name="Source"><![CDATA[--[[
@@ -16440,22 +17268,34 @@ local function wall(cf: CFrame, size: Vector3, color: Color3, parent)
 	}, parent)
 end
 
-local function tree(position: Vector3, parent)
+-- a fuller tree: trunk + a few overlapping leaf clumps (varied size / colour)
+local treeRng = Random.new(77)
+local function tree(position: Vector3, parent, scale: number?)
+	local k = (scale or 1) * treeRng:NextNumber(0.85, 1.25)
+	local trunkH = 7 * k
 	newPart({
 		Name = "Trunk",
-		Size = Vector3.new(2, 8, 2),
-		CFrame = CFrame.new(position + Vector3.new(0, 4, 0)),
-		Color = Color3.fromRGB(110, 75, 45),
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(trunkH, 1.6 * k, 1.6 * k),
+		CFrame = CFrame.new(position + Vector3.new(0, trunkH / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(105, 72, 48),
 		Material = Enum.Material.Wood,
 	}, parent)
-	newPart({
-		Name = "Leaves",
-		Shape = Enum.PartType.Ball,
-		Size = Vector3.one * 9,
-		CFrame = CFrame.new(position + Vector3.new(0, 10, 0)),
-		Color = Color3.fromRGB(70, 160, 70),
-		Material = Enum.Material.LeafyGrass,
-	}, parent)
+	local green = Color3.fromRGB(70, 150, 70):Lerp(Color3.fromRGB(110, 180, 80), treeRng:NextNumber())
+	for i = 1, 4 do
+		local angle = i * 1.7 + treeRng:NextNumber(0, 1)
+		local r = if i == 1 then 0 else 2.2 * k
+		local size = (if i == 1 then 8 else 5.5) * k * treeRng:NextNumber(0.9, 1.1)
+		newPart({
+			Name = "Leaves",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * size,
+			CFrame = CFrame.new(position + Vector3.new(math.cos(angle) * r, trunkH + (if i == 1 then 1.5 else 0) * k, math.sin(angle) * r)),
+			Color = green:Lerp(Color3.new(0, 0, 0), if i == 1 then 0 else 0.08 * i),
+			Material = Enum.Material.Grass,
+			CanCollide = false,
+		}, parent)
+	end
 end
 
 local function lamp(position: Vector3, color: Color3, parent)
@@ -16469,10 +17309,11 @@ local function lamp(position: Vector3, color: Color3, parent)
 	local bulb = newPart({
 		Name = "Bulb",
 		Shape = Enum.PartType.Ball,
-		Size = Vector3.one * 2,
-		CFrame = CFrame.new(position + Vector3.new(0, 10.5, 0)),
+		Size = Vector3.one * 1.6,
+		CFrame = CFrame.new(position + Vector3.new(0, 10.3, 0)),
 		Color = color,
-		Material = Enum.Material.Neon,
+		Material = Enum.Material.Glass,
+		Transparency = 0.2,
 		CanCollide = false,
 	}, parent)
 	local light = Instance.new("PointLight")
@@ -16968,12 +17809,22 @@ local function buildBaseDistrict()
 		lamp(Vector3.new(x, 0, avenueZ + layout.Avenue / 2 + 1.5), Color3.fromRGB(255, 220, 160), district)
 	end
 
-	-- gardens between neighbours: a row of trees in every gap
+	-- gardens between neighbours: two staggered tree lines in every gap
 	local gapX = layout.EntranceGap / 2 + half * 2 + layout.Gap / 2
 	for _, rowZ in { northZ, southZ } do
 		for _, x in { -gapX, gapX } do
-			for dz = -half + 6, half - 6, 12 do
-				tree(Vector3.new(x, 0, rowZ + dz), district)
+			for dz = -half + 6, half - 6, 13 do
+				tree(Vector3.new(x - 9, 0, rowZ + dz), district, 1.1)
+				tree(Vector3.new(x + 9, 0, rowZ + dz + 6), district, 1.1)
+			end
+		end
+	end
+	-- and along the outer edges of the far houses
+	local outerX = layout.EntranceGap / 2 + half * 4 + layout.Gap + 8
+	for _, rowZ in { northZ, southZ } do
+		for _, x in { -outerX, outerX } do
+			for dz = -half + 8, half - 8, 16 do
+				tree(Vector3.new(x, 0, rowZ + dz), district, 1.2)
 			end
 		end
 	end
@@ -17248,24 +18099,198 @@ local function buildZones()
 			end
 		end
 
-		-- ore slots
+		-- ore slots: natural clusters (veins) with paths between them, instead
+		-- of a dense grid of blocks
 		local slots = {}
 		local rng = Random.new(1000 + index)
-		local spacing = Config.World.OreSpacing
 		local half = Config.World.OreSize / 2
-		for x = -42, 42, spacing do
-			if math.abs(x) > 4 then
-				for z = zStart + 14, zEnd - 8, spacing do
-					if rng:NextNumber() > 0.12 then
-						table.insert(slots, {
-							Zone = index,
-							Position = Vector3.new(x, half, z),
-						})
-					end
+		local minGap = Config.World.OreSpacing
+		local function free(position: Vector3): boolean
+			if math.abs(position.X) < 6 or math.abs(position.X) > ZONE_W / 2 - 7 then
+				return false
+			end
+			if position.Z < zStart + 16 or position.Z > zEnd - 7 then
+				return false
+			end
+			for _, other in slots do
+				if (other.Position - position).Magnitude < minGap then
+					return false
+				end
+			end
+			return true
+		end
+		for _ = 1, Config.World.OreClusters do
+			local center = Vector3.new(rng:NextNumber(-34, 34), half, rng:NextNumber(zStart + 24, zEnd - 14))
+			local placed = 0
+			for _ = 1, 24 do
+				local angle = rng:NextNumber(0, math.pi * 2)
+				local position = center + Vector3.new(math.cos(angle), 0, math.sin(angle)) * rng:NextNumber(0, 13)
+				if placed < 8 and free(position) then
+					placed += 1
+					table.insert(slots, { Zone = index, Position = position })
 				end
 			end
 		end
 		World.OreSlots[index] = slots
+	end
+end
+
+---------------------------------------------------------------------------
+-- 🌄 landscape: real terrain instead of flat plates - grass / snow / basalt /
+-- slate / lava ground, rocky cliffs instead of walls, hills on the horizon
+---------------------------------------------------------------------------
+local TERRAIN = {
+	[Enum.Material.Grass] = Enum.Material.Grass,
+	[Enum.Material.LeafyGrass] = Enum.Material.LeafyGrass,
+	[Enum.Material.Snow] = Enum.Material.Snow,
+	[Enum.Material.Ice] = Enum.Material.Glacier,
+	[Enum.Material.Basalt] = Enum.Material.Basalt,
+	[Enum.Material.Slate] = Enum.Material.Slate,
+	[Enum.Material.CrackedLava] = Enum.Material.CrackedLava,
+	[Enum.Material.Cobblestone] = Enum.Material.Cobblestone,
+	[Enum.Material.Sand] = Enum.Material.Sand,
+	[Enum.Material.Rock] = Enum.Material.Rock,
+	[Enum.Material.Ground] = Enum.Material.Ground,
+	[Enum.Material.Pavement] = Enum.Material.Pavement,
+}
+-- cliff rock per zone (hub = grassy rock)
+local CLIFF = {
+	[0] = { Rock = Enum.Material.Rock, Top = Enum.Material.Grass },
+	[1] = { Rock = Enum.Material.Rock, Top = Enum.Material.Grass },
+	[2] = { Rock = Enum.Material.Glacier, Top = Enum.Material.Snow },
+	[3] = { Rock = Enum.Material.Basalt, Top = Enum.Material.CrackedLava },
+	[4] = { Rock = Enum.Material.Slate, Top = Enum.Material.Slate },
+	[5] = { Rock = Enum.Material.Basalt, Top = Enum.Material.Rock },
+}
+
+local function landscape()
+	local terrain = workspace.Terrain
+	local rng = Random.new(2024)
+	pcall(function()
+		terrain.Decoration = true -- (animated grass where supported)
+	end)
+	pcall(function()
+		terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(106, 170, 82))
+		terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(96, 156, 74))
+		terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(128, 122, 114))
+		terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(122, 96, 70))
+		terrain:SetMaterialColor(Enum.Material.Cobblestone, Color3.fromRGB(186, 172, 150))
+	end)
+	if not terrain:FindFirstChildOfClass("Clouds") then
+		local clouds = Instance.new("Clouds")
+		clouds.Cover = 0.55
+		clouds.Density = 0.6
+		clouds.Color = Color3.fromRGB(255, 255, 255)
+		clouds.Parent = terrain
+	end
+
+	local function zoneOf(position: Vector3): number
+		return Util.ZoneAt(Config, Vector3.new(position.X, 3, position.Z)) or 0
+	end
+
+	-- floors and corridors become terrain (the parts stay as invisible floors)
+	for _, part in map:GetDescendants() do
+		if part:IsA("BasePart") and (part.Name == "Floor" or part.Name == "Corridor") and part.Size.Y >= 2 then
+			local material = TERRAIN[part.Material] or Enum.Material.Ground
+			-- (a hair lower, so paths / plazas lying on the floor stay visible)
+			terrain:FillBlock(part.CFrame * CFrame.new(0, -0.3, 0), part.Size, material)
+			terrain:FillBlock(
+				part.CFrame * CFrame.new(0, -part.Size.Y / 2 - 4, 0),
+				Vector3.new(part.Size.X, 8, part.Size.Z),
+				Enum.Material.Rock
+			)
+			part.Transparency = 1
+		end
+	end
+
+	-- walls become rocky cliffs (the wall parts stay as invisible borders)
+	for _, part in map:GetDescendants() do
+		if part:IsA("BasePart") and part.Name == "Wall" then
+			local cliff = CLIFF[zoneOf(part.Position)] or CLIFF[0]
+			local size = part.Size
+			local long = if size.X >= size.Z then Vector3.xAxis else Vector3.zAxis
+			local length = math.max(size.X, size.Z)
+			local height = size.Y + 6
+			terrain:FillBlock(
+				CFrame.new(part.Position + Vector3.new(0, 3, 0)),
+				Vector3.new(math.max(size.X, 8), height, math.max(size.Z, 8)),
+				cliff.Rock
+			)
+			-- an uneven top: boulders along the ridge
+			for d = -length / 2, length / 2, 9 do
+				local center = part.Position + long * (d + rng:NextNumber(-2, 2)) + Vector3.new(0, size.Y / 2 + rng:NextNumber(2, 6), 0)
+				terrain:FillBall(center, rng:NextNumber(5, 8), cliff.Rock)
+				if rng:NextNumber() < 0.5 then
+					terrain:FillBall(center + Vector3.new(0, 3, 0), rng:NextNumber(3, 5), cliff.Top)
+				end
+			end
+			part.Transparency = 1
+		end
+	end
+
+	-- the horizon: rolling grassy hills around the hub and the homes
+	local layout = Config.World.Layout
+	local half = layout.HubHalf
+	for _ = 1, 26 do
+		local angle = rng:NextNumber(0, math.pi * 2)
+		local distance = half + rng:NextNumber(30, 70)
+		local center = Vector3.new(math.cos(angle) * distance, rng:NextNumber(-10, 4), math.sin(angle) * distance)
+		if math.abs(center.X) > layout.ZoneWidth / 2 + 20 or center.Z < 0 then
+			terrain:FillBall(center, rng:NextNumber(24, 40), Enum.Material.Grass)
+		end
+	end
+	local bases = Config.World.Bases
+	for x = -bases.HalfX - 30, bases.HalfX + 30, 45 do
+		terrain:FillBall(Vector3.new(x, -8, bases.ZEnd - 40 - rng:NextNumber(0, 20)), rng:NextNumber(26, 40), Enum.Material.Grass)
+	end
+	for _, side in { -1, 1 } do
+		for z = bases.ZStart - 20, bases.ZEnd, -45 do
+			terrain:FillBall(
+				Vector3.new(side * (bases.HalfX + 40 + rng:NextNumber(0, 15)), -8, z),
+				rng:NextNumber(26, 38),
+				Enum.Material.Grass
+			)
+		end
+	end
+	-- low grassy mounds in the gardens between homes (estates, not a grid)
+	local baseLayout = Config.Base.Layout
+	local plotHalf = Config.Base.PlotSize / 2
+	local avenueZ = Util.AvenueZ(Config)
+	local northZ = bases.ZStart - baseLayout.Margin - plotHalf
+	local southZ = avenueZ - baseLayout.Avenue / 2 - plotHalf
+	local gapX = baseLayout.EntranceGap / 2 + plotHalf * 2 + baseLayout.Gap / 2
+	for _, rowZ in { northZ, southZ } do
+		for _, x in { -gapX, gapX } do
+			for dz = -plotHalf + 4, plotHalf - 4, 10 do
+				terrain:FillBall(Vector3.new(x + rng:NextNumber(-3, 3), -3.5, rowZ + dz), rng:NextNumber(6, 8), Enum.Material.Grass)
+			end
+		end
+	end
+	-- mines: rock spires beyond the cliffs
+	for index in Config.Zones do
+		local info = World.Zones[index]
+		local cliff = CLIFF[index] or CLIFF[0]
+		if info then
+			for _, side in { -1, 1 } do
+				for z = info.ZStart + 10, info.ZEnd - 10, 22 do
+					local center = Vector3.new(side * (layout.ZoneWidth / 2 + rng:NextNumber(14, 26)), rng:NextNumber(4, 14), z)
+					terrain:FillBall(center, rng:NextNumber(10, 16), cliff.Rock)
+				end
+			end
+		end
+	end
+	-- trees on the hills outside the hub
+	local nature = folder("Nature", map)
+	for _ = 1, 40 do
+		local angle = rng:NextNumber(0, math.pi * 2)
+		local distance = half + rng:NextNumber(8, 40)
+		local position = Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
+		if math.abs(position.X) > CORRIDOR_W and math.abs(position.X) < half + 60 and position.Z > -half - 4 then
+			local hit = workspace:Raycast(position + Vector3.new(0, 80, 0), Vector3.new(0, -160, 0))
+			if hit and hit.Instance == terrain then
+				tree(hit.Position - Vector3.new(0, 0.5, 0), nature, rng:NextNumber(1, 1.5))
+			end
+		end
 	end
 end
 
@@ -17322,6 +18347,10 @@ function World:Init(services)
 	folder("Bases", map)
 	map.Parent = workspace
 	setupLighting()
+	local ok, err = pcall(landscape)
+	if not ok then
+		warn("[World] landscape failed: " .. tostring(err))
+	end
 end
 
 function World:Folder(name: string): Folder
@@ -17335,23 +18364,23 @@ return World
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="35">
+  <Item class="StarterPlayer" referent="37">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="36">
+    <Item class="StarterPlayerScripts" referent="38">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="37">
+      <Item class="Folder" referent="39">
         <Properties>
           <string name="Name">Client</string>
         </Properties>
-        <Item class="Folder" referent="38">
+        <Item class="Folder" referent="40">
           <Properties>
             <string name="Name">Controllers</string>
           </Properties>
-          <Item class="ModuleScript" referent="39">
+          <Item class="ModuleScript" referent="41">
             <Properties>
               <string name="Name">Ambience</string>
               <string name="Source"><![CDATA[--[[
@@ -17576,7 +18605,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="40">
+          <Item class="ModuleScript" referent="42">
             <Properties>
               <string name="Name">Build</string>
               <string name="Source"><![CDATA[--[[
@@ -18611,7 +19640,7 @@ return Build
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="41">
+          <Item class="ModuleScript" referent="43">
             <Properties>
               <string name="Name">DevTools</string>
               <string name="Source"><![CDATA[--[[
@@ -18693,7 +19722,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="42">
+          <Item class="ModuleScript" referent="44">
             <Properties>
               <string name="Name">Guide</string>
               <string name="Source"><![CDATA[--[[
@@ -18983,7 +20012,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="43">
+          <Item class="ModuleScript" referent="45">
             <Properties>
               <string name="Name">HUD</string>
               <string name="Source"><![CDATA[--[[
@@ -20287,7 +21316,7 @@ return HUD
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="44">
+          <Item class="ModuleScript" referent="46">
             <Properties>
               <string name="Name">HowTo</string>
               <string name="Source"><![CDATA[--[[
@@ -20461,7 +21490,7 @@ return HowTo
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="45">
+          <Item class="ModuleScript" referent="47">
             <Properties>
               <string name="Name">MeteorUI</string>
               <string name="Source"><![CDATA[--[[
@@ -20470,6 +21499,8 @@ return HowTo
 	warning, live top-5 ranking with your own place, camera shake on impact,
 	"grab the eggs!" after the burst and the result popup (+ meteor index).
 ]]
+local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -20673,8 +21704,57 @@ Net.On("MeteorHit", function(score)
 end)
 
 -- camera shake on impact -------------------------------------------------------
+-- 💥 impact: an expanding shockwave ring + a dust cloud where it hit
+local function shockwave(position: Vector3)
+	local ground = Vector3.new(position.X, 0.3, position.Z)
+	local ring = Instance.new("Part")
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.CastShadow = false
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Material = Enum.Material.Neon
+	ring.Color = Color3.fromRGB(255, 170, 80)
+	ring.Transparency = 0.2
+	ring.Size = Vector3.new(0.4, 6, 6)
+	ring.CFrame = CFrame.new(ground) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Parent = workspace
+	TweenService:Create(ring, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = Vector3.new(0.2, 90, 90),
+		Transparency = 1,
+	}):Play()
+	Debris:AddItem(ring, 0.9)
+	local holder = Instance.new("Part")
+	holder.Anchored = true
+	holder.CanCollide = false
+	holder.CanQuery = false
+	holder.CanTouch = false
+	holder.Transparency = 1
+	holder.Size = Vector3.new(16, 1, 16)
+	holder.CFrame = CFrame.new(ground + Vector3.new(0, 1, 0))
+	holder.Parent = workspace
+	local dust = Instance.new("ParticleEmitter")
+	dust.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	dust.Color = ColorSequence.new(Color3.fromRGB(170, 150, 130), Color3.fromRGB(110, 95, 85))
+	dust.Size = NumberSequence.new(4, 12)
+	dust.Transparency = NumberSequence.new(0.3, 1)
+	dust.Lifetime = NumberRange.new(1.5, 2.5)
+	dust.Speed = NumberRange.new(18, 34)
+	dust.SpreadAngle = Vector2.new(80, 10)
+	dust.EmissionDirection = Enum.NormalId.Top
+	dust.Drag = 3
+	dust.Rate = 0
+	dust.Parent = holder
+	dust:Emit(40)
+	Debris:AddItem(holder, 3)
+end
+
 Net.On("MeteorImpact", function(position)
 	Lib.PlaySound("Impact")
+	if typeof(position) == "Vector3" then
+		shockwave(position)
+	end
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart
@@ -20780,7 +21860,7 @@ return MeteorUI
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="46">
+          <Item class="ModuleScript" referent="48">
             <Properties>
               <string name="Name">Mining</string>
               <string name="Source"><![CDATA[--[[
@@ -21752,7 +22832,7 @@ return Mining
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="47">
+          <Item class="ModuleScript" referent="49">
             <Properties>
               <string name="Name">PetFollow</string>
               <string name="Source"><![CDATA[--[[
@@ -21921,7 +23001,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="48">
+          <Item class="ModuleScript" referent="50">
             <Properties>
               <string name="Name">Shards</string>
               <string name="Source"><![CDATA[--[[
@@ -22357,7 +23437,7 @@ return Shards
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="49">
+          <Item class="ModuleScript" referent="51">
             <Properties>
               <string name="Name">Spectacle</string>
               <string name="Source"><![CDATA[--[[
@@ -22492,6 +23572,15 @@ Net.On("Party", function()
 	Lib.PlaySound("Cheer")
 end)
 
+-- 🚨 a rival is stealing from my home
+Net.On("RaidAlarm", function()
+	for i = 0, 2 do
+		task.delay(i * 0.5, function()
+			Lib.PlaySound("Alarm", 0.9)
+		end)
+	end
+end)
+
 -- 🌙 Thief Night is coming (20s): a short alarm so everyone runs home
 Net.On("RaidWarning", function()
 	for i = 0, 1 do
@@ -22532,7 +23621,7 @@ return Spectacle
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="50">
+          <Item class="ModuleScript" referent="52">
             <Properties>
               <string name="Name">TradeUI</string>
               <string name="Source"><![CDATA[--[[
@@ -22648,7 +23737,7 @@ return TradeUI
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="51">
+          <Item class="ModuleScript" referent="53">
             <Properties>
               <string name="Name">WorldFX</string>
               <string name="Source"><![CDATA[--[[
@@ -22807,7 +23896,7 @@ return {}
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="52">
+          <Item class="ModuleScript" referent="54">
             <Properties>
               <string name="Name">YardPets</string>
               <string name="Source"><![CDATA[--[[
@@ -23047,7 +24136,7 @@ return YardPets
             </Properties>
           </Item>
         </Item>
-        <Item class="LocalScript" referent="53">
+        <Item class="LocalScript" referent="55">
           <Properties>
             <string name="Name">Main</string>
             <string name="Source"><![CDATA[--[[
@@ -23121,7 +24210,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="54">
+        <Item class="ModuleScript" referent="56">
           <Properties>
             <string name="Name">Net</string>
             <string name="Source"><![CDATA[local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -23165,7 +24254,7 @@ return Net
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="55">
+        <Item class="ModuleScript" referent="57">
           <Properties>
             <string name="Name">State</string>
             <string name="Source"><![CDATA[--[[
@@ -23228,11 +24317,11 @@ return State
 ]]></string>
           </Properties>
         </Item>
-        <Item class="Folder" referent="56">
+        <Item class="Folder" referent="58">
           <Properties>
             <string name="Name">UI</string>
           </Properties>
-          <Item class="ModuleScript" referent="57">
+          <Item class="ModuleScript" referent="59">
             <Properties>
               <string name="Name">Hatch</string>
               <string name="Source"><![CDATA[--[[
@@ -23619,7 +24708,7 @@ return Hatch
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="58">
+          <Item class="ModuleScript" referent="60">
             <Properties>
               <string name="Name">Lib</string>
               <string name="Source"><![CDATA[--[[
@@ -23984,7 +25073,7 @@ return Lib
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="59">
+          <Item class="ModuleScript" referent="61">
             <Properties>
               <string name="Name">Panels</string>
               <string name="Source"><![CDATA[--[[
@@ -24220,7 +25309,7 @@ end
 return Panels
 ]]></string>
             </Properties>
-            <Item class="ModuleScript" referent="60">
+            <Item class="ModuleScript" referent="62">
               <Properties>
                 <string name="Name">Codes</string>
                 <string name="Source"><![CDATA[-- Promo codes: free rewards for players who find codes on YouTube / TikTok /
@@ -24321,7 +25410,7 @@ return Codes
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="61">
+            <Item class="ModuleScript" referent="63">
               <Properties>
                 <string name="Name">Egg</string>
                 <string name="Source"><![CDATA[-- Egg shop: shows exact odds (incl. your luck) and what each pet earns
@@ -24584,7 +25673,7 @@ return Egg
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="62">
+            <Item class="ModuleScript" referent="64">
               <Properties>
                 <string name="Name">Gifts</string>
                 <string name="Source"><![CDATA[-- Playtime gifts: claimable after N minutes in this session (session length)
@@ -24666,7 +25755,7 @@ return Gifts
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="63">
+            <Item class="ModuleScript" referent="65">
               <Properties>
                 <string name="Name">Houses</string>
                 <string name="Source"><![CDATA[--[[
@@ -24813,7 +25902,7 @@ return Houses
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="64">
+            <Item class="ModuleScript" referent="66">
               <Properties>
                 <string name="Name">Index</string>
                 <string name="Source"><![CDATA[--[[
@@ -25052,7 +26141,7 @@ return Index
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="65">
+            <Item class="ModuleScript" referent="67">
               <Properties>
                 <string name="Name">Pass</string>
                 <string name="Source"><![CDATA[-- Season pass: free + premium tracks, XP bar, premium / skip upsells
@@ -25234,7 +26323,7 @@ return Pass
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="66">
+            <Item class="ModuleScript" referent="68">
               <Properties>
                 <string name="Name">Pets</string>
                 <string name="Source"><![CDATA[--[[
@@ -25882,7 +26971,7 @@ return Pets
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="67">
+            <Item class="ModuleScript" referent="69">
               <Properties>
                 <string name="Name">Quests</string>
                 <string name="Source"><![CDATA[-- Daily login streak, daily quests, weekly ranked ladder, VIP chest, group reward
@@ -26190,7 +27279,7 @@ return Quests
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="68">
+            <Item class="ModuleScript" referent="70">
               <Properties>
                 <string name="Name">Rebirth</string>
                 <string name="Source"><![CDATA[-- Rebirth: reset coins/upgrades for a permanent coin multiplier + gems
@@ -26280,7 +27369,7 @@ return Rebirth
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="69">
+            <Item class="ModuleScript" referent="71">
               <Properties>
                 <string name="Name">Rewards</string>
                 <string name="Source"><![CDATA[-- One place for every free reward (instead of 4 separate menu buttons)
@@ -26365,7 +27454,7 @@ return Rewards
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="70">
+            <Item class="ModuleScript" referent="72">
               <Properties>
                 <string name="Name">Settings</string>
                 <string name="Source"><![CDATA[-- Settings: language (auto / 한국어 / English), sound, how to play
@@ -26487,7 +27576,7 @@ return Settings
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="71">
+            <Item class="ModuleScript" referent="73">
               <Properties>
                 <string name="Name">Shop</string>
                 <string name="Source"><![CDATA[-- Pickaxe + running-speed upgrades (coins sink, sequential tiers)
@@ -26624,7 +27713,7 @@ return Shop
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="72">
+            <Item class="ModuleScript" referent="74">
               <Properties>
                 <string name="Name">Spin</string>
                 <string name="Source"><![CDATA[-- Free prize wheel: one spin every few hours (VIP: faster). The server picks
@@ -26849,7 +27938,7 @@ return Spin
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="73">
+            <Item class="ModuleScript" referent="75">
               <Properties>
                 <string name="Name">Store</string>
                 <string name="Source"><![CDATA[-- Robux store: game passes, consumables (gems/boosts/server luck/meteor),
@@ -27114,7 +28203,7 @@ return Store
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="74">
+            <Item class="ModuleScript" referent="76">
               <Properties>
                 <string name="Name">Teleport</string>
                 <string name="Source"><![CDATA[-- Zone list: teleport to unlocked zones, unlock the next one
@@ -27196,7 +28285,7 @@ return Teleport
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="75">
+            <Item class="ModuleScript" referent="77">
               <Properties>
                 <string name="Name">Titles</string>
                 <string name="Source"><![CDATA[--[[
@@ -27396,7 +28485,7 @@ return Titles
 ]]></string>
               </Properties>
             </Item>
-            <Item class="ModuleScript" referent="76">
+            <Item class="ModuleScript" referent="78">
               <Properties>
                 <string name="Name">Trade</string>
                 <string name="Source"><![CDATA[--[[
@@ -27682,7 +28771,7 @@ return Trade
               </Properties>
             </Item>
           </Item>
-          <Item class="ModuleScript" referent="77">
+          <Item class="ModuleScript" referent="79">
             <Properties>
               <string name="Name">Root</string>
               <string name="Source"><![CDATA[--[[
@@ -27768,7 +28857,7 @@ return Root
 ]]></string>
             </Properties>
           </Item>
-          <Item class="ModuleScript" referent="78">
+          <Item class="ModuleScript" referent="80">
             <Properties>
               <string name="Name">Upsell</string>
               <string name="Source"><![CDATA[--[[
@@ -27902,13 +28991,13 @@ return Upsell
       </Item>
     </Item>
   </Item>
-  <Item class="TextChatService" referent="79">
+  <Item class="TextChatService" referent="81">
     <Properties>
       <string name="Name">TextChatService</string>
       <token name="ChatVersion">1</token>
     </Properties>
   </Item>
-  <Item class="Workspace" referent="80">
+  <Item class="Workspace" referent="82">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>

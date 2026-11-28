@@ -47,7 +47,7 @@ local World
 
 local SETTINGS = Config.Base
 local PLOT_HALF = SETTINGS.PlotSize / 2
-local WALL_HEIGHT = 9
+local WALL_HEIGHT = 5.5 -- (a low garden wall: the camera never hides behind it)
 local FLOOR_Y = 0.42 -- top of the plot floor
 local GATE_HALF = 6 -- the entrance is 12 studs wide
 
@@ -473,7 +473,7 @@ local function applyStyle(plot, data)
 	for _, corner in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
 		part({
 			Name = "Tower",
-			Size = Vector3.new(2.6, towerHeight, 2.6),
+			Size = Vector3.new(2, towerHeight, 2),
 			CFrame = at(corner[1] * PLOT_HALF, towerHeight / 2, corner[2] * PLOT_HALF),
 			Color = style.Pillar,
 			Material = wallMaterial,
@@ -1195,6 +1195,16 @@ end
 function Base:PlotOf(player: Player)
 	return plotOf[player]
 end
+
+-- (RivalHomes builds rival players' homes with the same parts)
+Base.Internal = {
+	Plots = plots,
+	ApplyStyle = applyStyle,
+	SetPrompt = setPrompt,
+	Billboard = billboard,
+	ClearPlot = clearPlot,
+	PlotHalf = PLOT_HALF,
+}
 
 function Base:HasBase(player: Player): boolean
 	return plotOf[player] ~= nil
@@ -2067,9 +2077,19 @@ local function assign(player: Player, data)
 	end
 	local plot = nil
 	for _, candidate in plots do
-		if not candidate.Owner then
+		if not candidate.Owner and not candidate.Rival then
 			plot = candidate
 			break
+		end
+	end
+	if not plot then
+		-- a rival player lives here: they move out for a real player
+		for _, candidate in plots do
+			if not candidate.Owner and candidate.Rival and Services.RivalHomes then
+				Services.RivalHomes:EvictFor(candidate)
+				plot = candidate
+				break
+			end
 		end
 	end
 	if not plot then
@@ -2333,6 +2353,18 @@ function Base:Start()
 	-- visit someone's house (you arrive outside their gate)
 	Net:On("VisitBase", 1, function(player, userId)
 		local target = type(userId) == "number" and Players:GetPlayerByUserId(userId)
+		if not target and type(userId) == "number" and userId < 0 then
+			-- a rival's house
+			for _, plot in plots do
+				if plot.Rival and plot.Model:GetAttribute("OwnerId") == userId then
+					local character = player.Character
+					if character and not Services.ShardService:IsCarrying(player) then
+						character:PivotTo(plot.CFrame * CFrame.new(0, 3, -PLOT_HALF - 6) * CFrame.Angles(0, math.pi, 0))
+					end
+				end
+			end
+			return
+		end
 		if not target or target == player then
 			return
 		end

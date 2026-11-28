@@ -170,22 +170,123 @@ local function buildMeteor(radius: number, color: Color3, golden: boolean): Base
 	part.BottomSurface = Enum.SurfaceType.Smooth
 	part:SetAttribute("Radius", radius)
 
-	local core = Instance.new("Part")
-	core.Name = "Core"
-	core.Shape = Enum.PartType.Ball
-	core.Size = part.Size * 0.85
-	core.Material = Enum.Material.Neon
-	core.Color = if golden then Color3.fromRGB(255, 230, 120) else color
-	core.Transparency = 0.35
-	core.Anchored = true
-	core.CanCollide = false
-	core.CanQuery = false
-	core.Parent = part
+	-- ☄️ a rough space rock: boulders on the surface, glowing lava veins and
+	-- molten patches, all welded to the round core (that's the hit target)
+	local veinColor = if golden then Color3.fromRGB(255, 225, 110) else color:Lerp(Color3.fromRGB(255, 150, 40), 0.55)
+	local function stuck(name: string, size: Vector3, cf: CFrame, partColor: Color3, material: Enum.Material, shape)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = size
+		p.CFrame = cf
+		p.Color = partColor
+		p.Material = material
+		p.Anchored = false
+		p.Massless = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		if shape then
+			p.Shape = shape
+		end
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = part
+		weld.Part1 = p
+		weld.Parent = p
+		p.Parent = part
+		return p
+	end
+	local rockRng = Random.new()
+	local origin = part.CFrame
+	for i = 1, 14 do
+		-- spread directions over the sphere (golden angle spiral)
+		local y = 1 - (i - 0.5) / 14 * 2
+		local ring = math.sqrt(1 - y * y)
+		local theta = i * 2.39996
+		local direction = Vector3.new(math.cos(theta) * ring, y, math.sin(theta) * ring)
+		local size = radius * rockRng:NextNumber(0.45, 0.8)
+		stuck(
+			"Shell",
+			Vector3.new(size, size * rockRng:NextNumber(0.6, 0.9), size * rockRng:NextNumber(0.8, 1.1)),
+			CFrame.new(origin.Position + direction * radius * 0.78)
+				* CFrame.Angles(rockRng:NextNumber(0, 6.2), rockRng:NextNumber(0, 6.2), rockRng:NextNumber(0, 6.2)),
+			if golden
+				then Color3.fromRGB(230, 180, 60):Lerp(Color3.new(0, 0, 0), rockRng:NextNumber(0, 0.25))
+				else Color3.fromRGB(62, 48, 44):Lerp(Color3.fromRGB(20, 16, 16), rockRng:NextNumber(0, 0.6)),
+			if golden then Enum.Material.Foil elseif i % 3 == 0 then Enum.Material.Slate else Enum.Material.Basalt
+		)
+	end
+	for i = 1, 8 do
+		-- glowing cracks running over the surface
+		local direction = Vector3.new(rockRng:NextNumber(-1, 1), rockRng:NextNumber(-1, 1), rockRng:NextNumber(-1, 1)).Unit
+		stuck(
+			"Vein",
+			Vector3.new(0.35, radius * rockRng:NextNumber(0.7, 1.2), 0.35),
+			CFrame.lookAt(origin.Position + direction * radius * 0.98, origin.Position + direction * radius * 2)
+				* CFrame.Angles(math.rad(90), 0, rockRng:NextNumber(0, 6.2)),
+			veinColor,
+			Enum.Material.Neon
+		)
+		if i <= 4 then
+			stuck(
+				"Molten",
+				Vector3.one * radius * rockRng:NextNumber(0.35, 0.55),
+				CFrame.new(origin.Position + direction * radius * 0.82),
+				veinColor,
+				Enum.Material.CrackedLava,
+				Enum.PartType.Ball
+			)
+		end
+	end
+	local core = stuck("Core", part.Size * 0.6, origin, veinColor, Enum.Material.Neon, Enum.PartType.Ball)
+	core.Transparency = 0.5
+	-- smoke + embers + a fiery tail while it falls
+	local smoke = Instance.new("ParticleEmitter")
+	smoke.Name = "Smoke"
+	smoke.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	smoke.Color = ColorSequence.new(Color3.fromRGB(90, 80, 80), Color3.fromRGB(40, 36, 36))
+	smoke.Size = NumberSequence.new(radius * 0.6, radius * 1.6)
+	smoke.Transparency = NumberSequence.new(0.35, 1)
+	smoke.Lifetime = NumberRange.new(1.5, 2.5)
+	smoke.Rate = 12
+	smoke.Speed = NumberRange.new(1, 3)
+	smoke.SpreadAngle = Vector2.new(40, 40)
+	smoke.Parent = part
+	local embers = Instance.new("ParticleEmitter")
+	embers.Name = "Embers"
+	embers.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	embers.Color = ColorSequence.new(veinColor)
+	embers.LightEmission = 1
+	embers.Size = NumberSequence.new(0.5, 0)
+	embers.Lifetime = NumberRange.new(0.8, 1.6)
+	embers.Rate = 25
+	embers.Speed = NumberRange.new(3, 8)
+	embers.SpreadAngle = Vector2.new(180, 180)
+	embers.Acceleration = Vector3.new(0, 6, 0)
+	embers.Parent = part
+	local top = Instance.new("Attachment")
+	top.Position = Vector3.new(0, radius * 0.6, 0)
+	top.Parent = part
+	local bottom = Instance.new("Attachment")
+	bottom.Position = Vector3.new(0, -radius * 0.6, 0)
+	bottom.Parent = part
+	local trail = Instance.new("Trail")
+	trail.Name = "Tail"
+	trail.Attachment0 = top
+	trail.Attachment1 = bottom
+	trail.Color = ColorSequence.new(veinColor, Color3.fromRGB(255, 90, 40))
+	trail.LightEmission = 0.8
+	trail.Lifetime = 0.9
+	trail.Transparency = NumberSequence.new(0.1, 1)
+	trail.WidthScale = NumberSequence.new(1, 0.2)
+	trail.FaceCamera = true
+	trail.Parent = part
 
 	local light = Instance.new("PointLight")
-	light.Color = core.Color
+	light.Color = veinColor
 	light.Range = 40
-	light.Brightness = 3
+	light.Brightness = 2.5
 	light.Parent = part
 
 	local fire = Instance.new("Fire")
@@ -704,15 +805,59 @@ local function startFalling()
 	local radius = current.Size.Radius
 	local final = current.Position + Vector3.new(0, radius * 0.6, 0)
 	local part = buildMeteor(radius, kind.Color, current.Golden)
-	part.Position = final + Vector3.new(60, 320, 40)
+	part:PivotTo(CFrame.new(final + Vector3.new(60, 320, 40)))
 	part.Parent = World:Folder("Drops")
 	meteorPart = part
-	local core = part:FindFirstChild("Core") :: BasePart
-	core.Position = part.Position
 	local info = TweenInfo.new(2.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	TweenService:Create(part, info, { Position = final }):Play()
-	TweenService:Create(core, info, { Position = final }):Play()
+	-- (tweening the anchored core's CFrame carries the welded rock with it)
+	TweenService:Create(part, info, { CFrame = CFrame.new(final) * CFrame.Angles(1.2, 0.8, 0.4) }):Play()
 	task.wait(2.25)
+	-- calmer once it has landed: less smoke, no tail
+	local tail = part:FindFirstChild("Tail")
+	if tail then
+		tail.Enabled = false
+	end
+	local smokeAfter = part:FindFirstChild("Smoke")
+	if smokeAfter and smokeAfter:IsA("ParticleEmitter") then
+		smokeAfter.Rate = 4
+	end
+	-- a scorched crater with rubble around the impact
+	local crater = Instance.new("Model")
+	crater.Name = "Crater"
+	local scorch = Instance.new("Part")
+	scorch.Name = "Scorch"
+	scorch.Shape = Enum.PartType.Cylinder
+	scorch.Anchored = true
+	scorch.CanCollide = false
+	scorch.CanQuery = false
+	scorch.CanTouch = false
+	scorch.Size = Vector3.new(0.2, radius * 3.2, radius * 3.2)
+	scorch.CFrame = CFrame.new(current.Position + Vector3.new(0, 0.08, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	scorch.Color = Color3.fromRGB(35, 28, 26)
+	scorch.Material = Enum.Material.Basalt
+	scorch.Parent = crater
+	local rubbleRng = Random.new()
+	for i = 1, 12 do
+		local angle = i / 12 * math.pi * 2 + rubbleRng:NextNumber(-0.2, 0.2)
+		local size = rubbleRng:NextNumber(1.2, 2.6)
+		local rubble = Instance.new("Part")
+		rubble.Name = "Rubble"
+		rubble.Anchored = true
+		rubble.CanCollide = false
+		rubble.CanQuery = false
+		rubble.CanTouch = false
+		rubble.Size = Vector3.new(size, size * 0.7, size)
+		rubble.CFrame = CFrame.new(
+			current.Position
+				+ Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius * rubbleRng:NextNumber(1.25, 1.55)
+				+ Vector3.new(0, size * 0.25, 0)
+		) * CFrame.Angles(rubbleRng:NextNumber(0, 3), rubbleRng:NextNumber(0, 3), rubbleRng:NextNumber(0, 3))
+		rubble.Color = Color3.fromRGB(70, 58, 52)
+		rubble.Material = Enum.Material.Basalt
+		rubble.Parent = crater
+	end
+	crater.Parent = World:Folder("Drops")
+	Debris:AddItem(crater, settings.DurationSeconds + 40)
 	if marker then
 		marker:Destroy()
 		marker = nil
@@ -754,9 +899,11 @@ function Meteor:TutorialMeteor(player: Player)
 		local part = buildMeteor(cfg.Radius, kind.Color, false)
 		part.Name = "TutorialMeteor_" .. tostring(player.UserId)
 		part:SetAttribute("OwnerId", player.UserId)
-		part.Position = position + Vector3.new(0, cfg.Radius * 0.6, 0)
-		local core = part:FindFirstChild("Core") :: BasePart
-		core.Position = part.Position
+		part:PivotTo(CFrame.new(position + Vector3.new(0, cfg.Radius * 0.6, 0)))
+		local tail = part:FindFirstChild("Tail")
+		if tail then
+			tail.Enabled = false
+		end
 		part.Parent = World:Folder("Drops")
 		entry.Part = part
 		local gui = part:FindFirstChild("HPBar")

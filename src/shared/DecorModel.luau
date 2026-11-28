@@ -266,16 +266,25 @@ end
 
 BUILDERS.Lantern = function(m)
 	part(m, "Post", Vector3.new(0.3, 2.2, 0.3), CFrame.new(0, 1.1, 0), Color3.fromRGB(40, 40, 45), Enum.Material.Metal)
-	local lamp = part(m, "Lamp", Vector3.new(0.9, 1, 0.9), CFrame.new(0, 2.6, 0), Color3.fromRGB(255, 200, 120), Enum.Material.Neon)
-	light(lamp, Color3.fromRGB(255, 200, 120), 12, 1.2)
+	local lamp = part(
+		m,
+		"Lamp",
+		Vector3.new(0.9, 1, 0.9),
+		CFrame.new(0, 2.6, 0),
+		Color3.fromRGB(255, 210, 140),
+		Enum.Material.Glass,
+		{ Transparency = 0.15 }
+	)
+	light(lamp, Color3.fromRGB(255, 200, 120), 12, 0.9)
 end
 
 BUILDERS.LampPost = function(m)
 	part(m, "Post", Vector3.new(0.4, 6, 0.4), CFrame.new(0, 3, 0), Color3.fromRGB(40, 40, 45), Enum.Material.Metal)
-	local bulb = part(m, "Bulb", Vector3.one * 1.2, CFrame.new(0, 6.3, 0), Color3.fromRGB(255, 240, 200), Enum.Material.Neon, {
+	local bulb = part(m, "Bulb", Vector3.one * 1.2, CFrame.new(0, 6.3, 0), Color3.fromRGB(255, 235, 190), Enum.Material.Glass, {
 		Shape = Enum.PartType.Ball,
+		Transparency = 0.15,
 	})
-	light(bulb, Color3.fromRGB(255, 230, 180), 18, 1.4)
+	light(bulb, Color3.fromRGB(255, 230, 180), 18, 1)
 end
 
 BUILDERS.Crystal = function(m)
