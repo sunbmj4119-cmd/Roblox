@@ -750,14 +750,17 @@ if #bots == 2 then
 	-- eggs nobody picked up: a rival grabs one
 	task.wait(Config.Rivals.GrabDelay + 0.5)
 	local carrier = nil
-	for attempt = 1, 3 do
+	local tried = {}
+	for attempt = 1, 4 do
 		-- (rivals never take eggs in the base district; characters don't walk in
 		-- cloud tests, so put the rival right on a public egg)
 		local bot = bots[attempt % 2 + 1]
 		local spot = nil
 		for _, entry in S.ShardService:RivalTargets(bot.Entity.UserId, Config.Rivals.GrabDelay) do
-			if not Util.InBases(Config, entry.Position + Vector3.new(0, 3, 0)) then
+			if not Util.InBases(Config, entry.Position + Vector3.new(0, 3, 0)) and not tried[entry.Model] then
 				spot = entry.Position
+				tried[entry.Model] = true
+				break
 			end
 		end
 		if spot then
@@ -794,20 +797,29 @@ if #bots == 2 then
 				)
 			)
 		end
+		for _, entry in game:GetService("LogService"):GetLogHistory() do
+			if string.find(entry.message, "Rival", 1, true) then
+				table.insert(debug, string.sub(entry.message, 1, 240))
+			end
+		end
 		results.rivalDebug = debug
 	end
 	if carrier then
 		check(carrier.Model:GetAttribute("Carrying") == true, "a carrying rival should show it")
 		local coinsBeforeBonk = dataA.Coins
+		local groundBefore = {}
+		for _, child in workspace.Map.Shards:GetChildren() do
+			groundBefore[child] = true
+		end
 		rootA.CFrame = CFrame.new(carrier.Root.Position + Vector3.new(3, 0, 0))
 		check(Rival:Bonk(A, carrier.Model) == true, "bonking a rival failed")
 		check(carrier.Carry == nil, "the bonked rival kept the egg")
 		check(dataA.Coins > coinsBeforeBonk, "no coins for bonking a rival")
 		check(Rival:Bonk(A, carrier.Model) == false, "a stunned rival could be bonked again")
+		-- the egg that just dropped must be off-limits to rivals
 		local reGrab = false
 		for _, entry in S.ShardService:RivalTargets(carrier.Entity.UserId, 0) do
-			local here = carrier.Root.Position
-			if (Vector3.new(entry.Position.X, 0, entry.Position.Z) - Vector3.new(here.X, 0, here.Z)).Magnitude < 2 then
+			if not groundBefore[entry.Model] then
 				reGrab = true
 			end
 		end
@@ -916,22 +928,33 @@ if homeOwner then
 	check((homeOwner.HomeShieldUntil or 0) > workspace:GetServerTimeNow(), "a robbed rival home should be shielded for a while")
 	-- the rival raids Alice: grabs a display pet, makes it home, gives it back when leaving
 	unprotect(plotA)
-	local raid = Homes:RaidTarget(homeOwner)
-	check(raid ~= nil and raid.Owner == A, "no raid target in Alice's home")
+	-- (rivals never take numbered / exclusive pets: give Alice a plain star for her display)
+	S.PetService:GrantPet(A, "Galaxy Dragon", nil)
+	local raid = nil
+	for _ = 1, 40 do
+		local candidate = Homes:RaidTarget(homeOwner)
+		if candidate and candidate.Owner == A then
+			raid = candidate
+			break
+		end
+	end
+	check(raid ~= nil, "no raid target in Alice's home")
 	if raid then
 		local item, meta = Homes:TakeFromPlayer(homeOwner, A, raid.Pet.Id)
 		check(item ~= nil and raid.Pet.Away == true, "the rival could not grab Alice's pet")
 		local stolenName = raid.Pet.Name
-		local before = #dataA.Pets
+		local heldPet = raid.Pet
 		Homes:Delivered(homeOwner, meta)
-		check(#dataA.Pets == before - 1 and A:GetAttribute("RevengeTarget") == homeOwner.Entity.UserId, "rival theft did not land")
+		-- (a held pet stays in the owner's save: it can never be lost)
+		check(heldPet.HeldBy == homeOwner.Entity.UserId and heldPet.Away == true, "rival theft did not land")
+		check(table.find(dataA.Pets, heldPet) ~= nil, "a held pet left the owner's save")
 		local inRivalHome = false
 		for _, pet in homeOwner.HomePets do
 			inRivalHome = inRivalHome or (pet.Name == stolenName and pet.FromUserId == A.UserId)
 		end
 		check(inRivalHome, "the stolen pet is not on the rival's display")
 		Homes:Release(homeOwner)
-		check(#dataA.Pets == before, "pets taken by a rival did not come back when it left")
+		check(heldPet.Away == nil and heldPet.HeldBy == nil, "pets taken by a rival did not come back when it left")
 	end
 end
 Rival:ForceForTest(0)

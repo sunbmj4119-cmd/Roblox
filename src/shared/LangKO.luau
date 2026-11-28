@@ -1147,4 +1147,5 @@ return {
 	["🦹 You grabbed %s's %s - run home!"] = "🦹 %s의 %s을(를) 훔쳤어요 - 집으로 달려요!",
 	["🚨 %s is stealing your %s! Bonk them before they get home!"] = "🚨 %s이(가) 내 %s을(를) 훔쳐 가요! 집에 가기 전에 때려요!",
 	["💔 %s stole your %s! Get it back from their house - revenge for 5 minutes!"] = "💔 %s이(가) 내 %s을(를) 훔쳐 갔어요! 그 집에서 되찾아요 - 5분간 복수 가능!",
+	["That's someone else's pet - only its owner can take it back."] = "다른 사람의 펫이에요 - 주인만 되찾을 수 있어요.",
 }

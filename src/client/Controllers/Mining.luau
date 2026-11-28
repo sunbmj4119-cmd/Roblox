@@ -139,8 +139,10 @@ end
 
 -- block squash on hit (purely local, restores the real size)
 local function squash(part: BasePart)
-	part.Size = ORE_SIZE * 0.86
-	TweenService:Create(part, TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = ORE_SIZE }):Play()
+	local base = part:GetAttribute("BaseSize")
+	local size = if typeof(base) == "Vector3" then base else ORE_SIZE
+	part.Size = size * 0.86
+	TweenService:Create(part, TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = size }):Play()
 end
 
 local function shake(strength: number, duration: number)

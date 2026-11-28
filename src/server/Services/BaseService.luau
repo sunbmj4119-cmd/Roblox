@@ -2330,8 +2330,11 @@ function Base:Start()
 					local entry = revenge[player]
 					if entry and entry.Until <= now() then
 						revenge[player] = nil
-						player:SetAttribute("RevengeTarget", nil)
-						player:SetAttribute("RevengeUntil", nil)
+						-- (a newer revenge on a rival keeps its attributes)
+						if player:GetAttribute("RevengeTarget") == entry.Target.UserId then
+							player:SetAttribute("RevengeTarget", nil)
+							player:SetAttribute("RevengeUntil", nil)
+						end
 					end
 					local ok, err = pcall(self.RefreshLabels, self, player)
 					if not ok then

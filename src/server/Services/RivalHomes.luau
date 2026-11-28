@@ -74,9 +74,19 @@ local function raidActive(): boolean
 	return events ~= nil and events:RaidActive()
 end
 
+-- someone is carrying one of this home's pets right now
+local function beingRobbed(record): boolean
+	for _, pet in record.HomePets or {} do
+		if pet.Away then
+			return true
+		end
+	end
+	return false
+end
+
 -- may this player steal from this rival right now?
 local function canRaid(player: Player, record): boolean
-	if (record.HomeShieldUntil or 0) > now() then
+	if (record.HomeShieldUntil or 0) > now() or beingRobbed(record) then
 		return false
 	end
 	if raidActive() then
@@ -119,9 +129,12 @@ local function refreshSign(record)
 	if not plot then
 		return
 	end
-	local open = raidActive() and (record.HomeShieldUntil or 0) <= now()
-	local status = if open then "🔓 OPEN" else "🏠 SAFE"
+	local shielded = (record.HomeShieldUntil or 0) > now() or beingRobbed(record)
+	local open = raidActive() and not shielded
+	local status = if open then "🔓 OPEN" elseif shielded then "🛡️ THEFT SHIELD" else "🏠 SAFE"
 	plot.Model:SetAttribute("Protection", if open then "" else "safe")
+	-- (hides the steal prompts even for revenge while shielded / being robbed)
+	plot.Model:SetAttribute("Robbing", shielded)
 	plot.Model:SetAttribute("Rate", homeRate(record))
 	local key = status .. "|" .. math.floor(homeRate(record))
 	if key ~= record.SignKey then
@@ -228,17 +241,16 @@ end
 function Homes:Release(record)
 	local plot = record.HomeIndex and internal().Plots[record.HomeIndex]
 	for _, pet in record.HomePets or {} do
-		local owner = nil
-		for _, player in Data:LoadedPlayers() do
-			if player.UserId == pet.FromUserId then
-				owner = player
+		if pet.FromUserId and pet.OwnPetId then
+			for _, owner in Data:LoadedPlayers() do
+				if owner.UserId == pet.FromUserId then
+					Homes:GiveBack(owner, pet.OwnPetId)
+					Net:Notify(owner, "🛡️ %s left - your %s came back home!", Color3.fromRGB(120, 230, 255), record.Name, pet.Name)
+				end
 			end
 		end
-		if owner and not pet.Away then
-			Services.PetService:GivePet(owner, pet.Name, pet.Variant, pet.Serial, pet)
-			Net:Notify(owner, "🛡️ %s left - your %s came back home!", Color3.fromRGB(120, 230, 255), record.Name, pet.Name)
-		end
 	end
+	record.Home = nil
 	if plot then
 		byIndex[plot.Index] = nil
 		plot.Rival = nil
@@ -293,11 +305,16 @@ function Homes:StealFrom(thief: Player, record, uid: number)
 		Net:Notify(thief, "🏠 Homes are safe! Raids only happen on 🌙 Thief Night.")
 		return
 	end
+	if pet.FromUserId and pet.FromUserId ~= thief.UserId then
+		Net:Notify(thief, "That's someone else's pet - only its owner can take it back.")
+		return
+	end
 	local item = { Kind = "Pet", Name = pet.Name, Variant = pet.Variant }
 	local meta = {
 		RivalFrom = record.Entity.UserId,
 		RivalSlot = uid,
-		Growth = { Level = pet.Level, Stars = pet.Stars },
+		Growth = { Level = pet.Level, Stars = pet.Stars, XP = pet.XP },
+		OwnPetId = pet.OwnPetId, -- (the thief's own pet, held by the rival)
 		Thief = thief,
 		Deadline = os.clock() + SETTINGS.StolenCarrySeconds,
 	}
@@ -352,7 +369,7 @@ function Homes:RaidTarget(record)
 		local plot = base:PlotOf(player)
 		if data and plot and base:Protection(player) == nil then
 			for _, pet in base.DisplayedPets(data) do
-				if not pet.Away and not pet.SerialPending and not Util.IsExclusive(Config, pet) then
+				if not pet.Away and not pet.SerialPending and not pet.Serial and not Util.IsExclusive(Config, pet) then
 					local model = plot.Displays:FindFirstChild("Pet_" .. pet.Id)
 					if model and model:IsA("Model") then
 						table.insert(options, { Owner = player, Pet = pet, Position = model:GetPivot().Position })
@@ -379,7 +396,7 @@ function Homes:TakeFromPlayer(record, owner: Player, petId: number)
 	for _, shown in base.DisplayedPets(data) do
 		onDisplay = onDisplay or shown == pet
 	end
-	if not onDisplay or Util.IsExclusive(Config, pet) then
+	if not onDisplay or Util.IsExclusive(Config, pet) or pet.Serial then
 		return nil
 	end
 	base:SetAway(owner, petId, true)
@@ -411,39 +428,64 @@ function Homes:EggHome(record, item)
 	self:Render(record)
 end
 
--- the rival made it home with a player's pet: it stands on their display now
+-- a held pet comes back to its owner (it never left their save)
+function Homes:GiveBack(owner: Player, petId: number)
+	local data = Data:Get(owner)
+	local pet = data and Services.PetService.FindPet(data, petId)
+	if pet then
+		pet.HeldBy = nil
+		Services.BaseService:SetAway(owner, petId, false)
+	end
+end
+
+-- the rival made it home with a player's pet: it stands on their display
+-- now. (The pet stays in the owner's save, marked held: it can never be
+-- lost - leaving / rejoining / the rival leaving brings it back.)
 function Homes:Delivered(record, meta)
 	local owner = meta and meta.From
 	if not owner or not owner.Parent or not meta.PetId then
 		return
 	end
-	local taken = Services.PetService:TakePet(owner, meta.PetId)
-	if not taken then
+	local data = Data:Get(owner)
+	local pet = data and Services.PetService.FindPet(data, meta.PetId)
+	if not pet then
+		return
+	end
+	if not record.HomeIndex then
+		self:GiveBack(owner, meta.PetId)
 		return
 	end
 	if #record.HomePets >= #SLOTS then
 		local _, index = weakestIndex(record)
-		if index then
-			table.remove(record.HomePets, index)
+		if not index then
+			self:GiveBack(owner, meta.PetId) -- (no room on their display)
+			return
 		end
+		table.remove(record.HomePets, index)
 	end
+	pet.Away = true
+	pet.HeldBy = record.Entity.UserId
 	table.insert(
 		record.HomePets,
 		newPet({
-			Name = taken.Name,
-			Variant = taken.Variant,
-			Serial = taken.Serial,
-			Level = taken.Level,
-			XP = taken.XP,
-			Stars = taken.Stars,
+			Name = pet.Name,
+			Variant = pet.Variant,
+			Level = pet.Level,
+			Stars = pet.Stars,
 			FromUserId = owner.UserId,
+			OwnPetId = pet.Id,
 		})
 	)
+	local taken = pet
 	self:Render(record)
-	-- revenge: steal it back for 5 minutes (even outside Thief Night)
-	owner:SetAttribute("RevengeTarget", record.Entity.UserId)
-	owner:SetAttribute("RevengeUntil", now() + SETTINGS.RevengeSeconds)
-	Net:Send(owner, "Revenge", record.Entity.UserId, record.Name, now() + SETTINGS.RevengeSeconds)
+	-- revenge: steal it back for 5 minutes (even outside Thief Night) -
+	-- unless a revenge on a real player is still running
+	local running = (owner:GetAttribute("RevengeUntil") or 0) > now() and (owner:GetAttribute("RevengeTarget") or 0) > 0
+	if not running then
+		owner:SetAttribute("RevengeTarget", record.Entity.UserId)
+		owner:SetAttribute("RevengeUntil", now() + SETTINGS.RevengeSeconds)
+		Net:Send(owner, "Revenge", record.Entity.UserId, record.Name, now() + SETTINGS.RevengeSeconds)
+	end
 	Net:Notify(
 		owner,
 		"💔 %s stole your %s! Get it back from their house - revenge for 5 minutes!",
@@ -460,6 +502,21 @@ function Homes:Init(services)
 end
 
 function Homes:Start()
+	-- a player left: pets a rival took from them go home with their save
+	Players.PlayerRemoving:Connect(function(player)
+		for _, record in byIndex do
+			local changed = false
+			for index = #record.HomePets, 1, -1 do
+				if record.HomePets[index].FromUserId == player.UserId and not record.HomePets[index].Away then
+					table.remove(record.HomePets, index)
+					changed = true
+				end
+			end
+			if changed then
+				pcall(Homes.Render, Homes, record)
+			end
+		end
+	end)
 	task.spawn(function()
 		while true do
 			task.wait(1)

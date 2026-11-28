@@ -600,6 +600,14 @@ local function deliver(player: Player)
 	local data = Data:Get(player)
 	local tier = itemTier(item)
 	local pets = Services.PetService
+	if item.Kind == "Pet" and meta and meta.RivalFrom and meta.OwnPetId then
+		-- your own pet, taken back from a rival's home
+		Services.RivalHomes:PetGone(meta.RivalFrom, meta.RivalSlot)
+		Services.RivalHomes:GiveBack(player, meta.OwnPetId)
+		Net:Notify(player, "🛡️ You got your %s back!", Color3.fromRGB(120, 230, 255), item.Name)
+		Net:Send(player, "ShardRecovered", item.Name)
+		return
+	end
 	if item.Kind == "Pet" and meta and meta.RivalFrom then
 		-- a pet stolen from a rival player's home
 		local given, isNew = pets:GivePet(player, item.Name, item.Variant, nil, meta.Growth)

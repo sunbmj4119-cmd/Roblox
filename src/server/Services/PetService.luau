@@ -772,6 +772,7 @@ function PetService:Start()
 	Data:OnLoaded(function(player, data)
 		for _, pet in data.Pets do
 			pet.Away = nil -- a theft interrupted by a server shutdown never happened
+			pet.HeldBy = nil -- (a pet a rival took comes home on rejoin)
 			pet.SerialPending = nil
 		end
 		-- numbered pets whose number never arrived (DataStore hiccup): try again

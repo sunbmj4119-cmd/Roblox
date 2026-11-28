@@ -1154,54 +1154,125 @@ local function landscape()
 		end
 	end
 
-	-- walls become rocky cliffs (the wall parts stay as invisible borders)
+	-- where people walk: the hub, the mines, the base district and the corridors
+	-- (terrain hills / spires must never cover these)
+	local layout = Config.World.Layout
+	local half = layout.HubHalf
+	local bases = Config.World.Bases
+	local lastZone = World.Zones[#Config.Zones]
+	local playRects = {
+		{ -half, half, -half, half }, -- hub (minX, maxX, minZ, maxZ)
+		{ -bases.HalfX, bases.HalfX, bases.ZEnd, bases.ZStart }, -- homes
+		{ -CORRIDOR_W / 2, CORRIDOR_W / 2, bases.ZStart, -half }, -- hub -> homes corridor
+	}
+	local previousEnd = half
+	for index in Config.Zones do
+		local info = World.Zones[index]
+		if info then
+			-- the corridor into this mine, then the mine itself
+			table.insert(playRects, { -CORRIDOR_W / 2, CORRIDOR_W / 2, previousEnd, info.ZStart })
+			table.insert(playRects, { -layout.ZoneWidth / 2, layout.ZoneWidth / 2, info.ZStart, info.ZEnd })
+			previousEnd = info.ZEnd
+		end
+	end
+	local function inPlay(position: Vector3, margin: number): boolean
+		for _, r in playRects do
+			if
+				position.X >= r[1] - margin
+				and position.X <= r[2] + margin
+				and position.Z >= r[3] - margin
+				and position.Z <= r[4] + margin
+			then
+				return true
+			end
+		end
+		return false
+	end
+	-- a hill's footprint on the ground must stay clear of the play areas
+	local function hill(center: Vector3, radius: number, material: Enum.Material): boolean
+		local footprint = if center.Y < radius then math.sqrt(radius * radius - center.Y * center.Y) else 0
+		if footprint <= 0 or inPlay(center, footprint + 6) then
+			return false
+		end
+		terrain:FillBall(center, radius, material)
+		return true
+	end
+
+	-- walls become rocky cliffs OUTSIDE the play area (the wall parts stay as
+	-- invisible borders, made tall so nobody walks over the cliff tops)
 	for _, part in map:GetDescendants() do
 		if part:IsA("BasePart") and part.Name == "Wall" then
 			local cliff = CLIFF[zoneOf(part.Position)] or CLIFF[0]
 			local size = part.Size
-			local long = if size.X >= size.Z then Vector3.xAxis else Vector3.zAxis
+			local alongX = size.X >= size.Z
+			local long = if alongX then Vector3.xAxis else Vector3.zAxis
+			local normal = if alongX then Vector3.zAxis else Vector3.xAxis
 			local length = math.max(size.X, size.Z)
-			local height = size.Y + 6
-			terrain:FillBlock(
-				CFrame.new(part.Position + Vector3.new(0, 3, 0)),
-				Vector3.new(math.max(size.X, 8), height, math.max(size.Z, 8)),
-				cliff.Rock
-			)
-			-- an uneven top: boulders along the ridge
-			for d = -length / 2, length / 2, 9 do
-				local center = part.Position + long * (d + rng:NextNumber(-2, 2)) + Vector3.new(0, size.Y / 2 + rng:NextNumber(2, 6), 0)
-				terrain:FillBall(center, rng:NextNumber(5, 8), cliff.Rock)
-				if rng:NextNumber() < 0.5 then
-					terrain:FillBall(center + Vector3.new(0, 3, 0), rng:NextNumber(3, 5), cliff.Top)
+			-- the outside is the side that isn't walkable (walls with people
+			-- on both sides stay plain invisible borders, no cliff)
+			local probe = part.Position * Vector3.new(1, 0, 1)
+			local plus, minus = inPlay(probe + normal * 6, -1), inPlay(probe - normal * 6, -1)
+			local outward = if plus then -normal else normal
+			if plus and minus then
+				outward = nil
+			end
+			local thickness = 10
+			local height = size.Y + 4
+			if outward then
+				terrain:FillBlock(
+					CFrame.new(probe + outward * (thickness / 2 + 0.5) + Vector3.new(0, height / 2 - 1, 0)),
+					if alongX then Vector3.new(size.X + 4, height, thickness) else Vector3.new(thickness, height, size.Z + 4),
+					cliff.Rock
+				)
+				-- an uneven top: boulders along the ridge, leaning outward
+				for d = -length / 2, length / 2, 9 do
+					local center = probe
+						+ long * (d + rng:NextNumber(-2, 2))
+						+ outward * (thickness / 2 + 3)
+						+ Vector3.new(0, size.Y + rng:NextNumber(0, 3), 0)
+					terrain:FillBall(center, rng:NextNumber(4, 6), cliff.Rock)
+					if rng:NextNumber() < 0.5 then
+						terrain:FillBall(center + Vector3.new(0, 2.5, 0), rng:NextNumber(2.5, 4), cliff.Top)
+					end
 				end
 			end
-			part.Transparency = 1
+			part.Transparency = if outward then 1 else part.Transparency
+			-- taller than any cliff top: no walking along the ridges
+			part.Size = Vector3.new(size.X, 70, size.Z)
+			part.CFrame = part.CFrame + Vector3.new(0, 35 - size.Y / 2, 0)
+		end
+	end
+	-- zone gates get an invisible cap too (no hopping over a locked gate)
+	for _, zone in World.Zones do
+		local gate = zone.Gate
+		if gate then
+			newPart({
+				Name = "GateCap",
+				Size = Vector3.new(gate.Size.X, 54, gate.Size.Z),
+				CFrame = gate.CFrame + Vector3.new(0, gate.Size.Y / 2 + 27, 0),
+				Transparency = 1,
+				CanQuery = false,
+			}, gate.Parent)
 		end
 	end
 
-	-- the horizon: rolling grassy hills around the hub and the homes
-	local layout = Config.World.Layout
-	local half = layout.HubHalf
-	for _ = 1, 26 do
-		local angle = rng:NextNumber(0, math.pi * 2)
-		local distance = half + rng:NextNumber(30, 70)
-		local center = Vector3.new(math.cos(angle) * distance, rng:NextNumber(-10, 4), math.sin(angle) * distance)
-		if math.abs(center.X) > layout.ZoneWidth / 2 + 20 or center.Z < 0 then
-			terrain:FillBall(center, rng:NextNumber(24, 40), Enum.Material.Grass)
+	-- the horizon: rolling grassy hills all around (never on the play areas)
+	local placed = 0
+	for _ = 1, 400 do
+		if placed >= 46 then
+			break
+		end
+		local center = Vector3.new(
+			rng:NextNumber(-bases.HalfX - 140, bases.HalfX + 140),
+			rng:NextNumber(-10, 2),
+			rng:NextNumber(bases.ZEnd - 120, (if lastZone then lastZone.ZEnd else half) + 40)
+		)
+		if hill(center, rng:NextNumber(24, 40), Enum.Material.Grass) then
+			placed += 1
 		end
 	end
-	local bases = Config.World.Bases
-	for x = -bases.HalfX - 30, bases.HalfX + 30, 45 do
-		terrain:FillBall(Vector3.new(x, -8, bases.ZEnd - 40 - rng:NextNumber(0, 20)), rng:NextNumber(26, 40), Enum.Material.Grass)
-	end
-	for _, side in { -1, 1 } do
-		for z = bases.ZStart - 20, bases.ZEnd, -45 do
-			terrain:FillBall(
-				Vector3.new(side * (bases.HalfX + 40 + rng:NextNumber(0, 15)), -8, z),
-				rng:NextNumber(26, 38),
-				Enum.Material.Grass
-			)
-		end
+	if not lastZone then
+		warn("[World] no zones for the landscape")
 	end
 	-- low grassy mounds in the gardens between homes (estates, not a grid)
 	local baseLayout = Config.Base.Layout
@@ -1224,8 +1295,8 @@ local function landscape()
 		if info then
 			for _, side in { -1, 1 } do
 				for z = info.ZStart + 10, info.ZEnd - 10, 22 do
-					local center = Vector3.new(side * (layout.ZoneWidth / 2 + rng:NextNumber(14, 26)), rng:NextNumber(4, 14), z)
-					terrain:FillBall(center, rng:NextNumber(10, 16), cliff.Rock)
+					local center = Vector3.new(side * (layout.ZoneWidth / 2 + rng:NextNumber(22, 34)), rng:NextNumber(4, 14), z)
+					hill(center, rng:NextNumber(10, 16), cliff.Rock)
 				end
 			end
 		end
@@ -1236,7 +1307,7 @@ local function landscape()
 		local angle = rng:NextNumber(0, math.pi * 2)
 		local distance = half + rng:NextNumber(8, 40)
 		local position = Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
-		if math.abs(position.X) > CORRIDOR_W and math.abs(position.X) < half + 60 and position.Z > -half - 4 then
+		if not inPlay(position, 4) then
 			local hit = workspace:Raycast(position + Vector3.new(0, 80, 0), Vector3.new(0, -160, 0))
 			if hit and hit.Instance == terrain then
 				tree(hit.Position - Vector3.new(0, 0.5, 0), nature, rng:NextNumber(1, 1.5))

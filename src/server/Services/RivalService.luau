@@ -799,9 +799,10 @@ function Rival:Bonk(player: Player, model: Model): boolean
 	setCarry(record, nil)
 	record.Home = nil
 	-- the egg drops: the bonker gets the first grab, rivals keep off it for a while
+	local firstGrab = if carriedMeta and carriedMeta.From then carriedMeta.From.UserId else player.UserId
 	Services.ShardService:SpawnGround(item, flat(record.Root.Position), carriedMeta, {
 		Beacon = true,
-		PriorityUser = player.UserId,
+		PriorityUser = firstGrab,
 		PriorityUntil = t + 4,
 		RivalBlockSeconds = SETTINGS.DropBlockSeconds,
 	})

@@ -200,6 +200,7 @@ local function spawnBlock(slot, forcedLucky)
 	local part = Instance.new("Part")
 	part.Name = oreId
 	part.Size = Vector3.new(size * 0.8, size * 0.7, size * 0.8)
+	part:SetAttribute("BaseSize", part.Size) -- (the client's hit squash returns to this)
 	part.Anchored = true
 	part.Material = ore.Material
 	part.Color = ore.Color:Lerp(rockColorFor(slot.Zone), if ore.Glow then 0 else 0.2)

@@ -3686,6 +3686,7 @@ return {
 	["🦹 You grabbed %s's %s - run home!"] = "🦹 %s의 %s을(를) 훔쳤어요 - 집으로 달려요!",
 	["🚨 %s is stealing your %s! Bonk them before they get home!"] = "🚨 %s이(가) 내 %s을(를) 훔쳐 가요! 집에 가기 전에 때려요!",
 	["💔 %s stole your %s! Get it back from their house - revenge for 5 minutes!"] = "💔 %s이(가) 내 %s을(를) 훔쳐 갔어요! 그 집에서 되찾아요 - 5분간 복수 가능!",
+	["That's someone else's pet - only its owner can take it back."] = "다른 사람의 펫이에요 - 주인만 되찾을 수 있어요.",
 }
 ]]></string>
         </Properties>
@@ -7596,8 +7597,11 @@ function Base:Start()
 					local entry = revenge[player]
 					if entry and entry.Until <= now() then
 						revenge[player] = nil
-						player:SetAttribute("RevengeTarget", nil)
-						player:SetAttribute("RevengeUntil", nil)
+						-- (a newer revenge on a rival keeps its attributes)
+						if player:GetAttribute("RevengeTarget") == entry.Target.UserId then
+							player:SetAttribute("RevengeTarget", nil)
+							player:SetAttribute("RevengeUntil", nil)
+						end
 					end
 					local ok, err = pcall(self.RefreshLabels, self, player)
 					if not ok then
@@ -11235,6 +11239,7 @@ local function spawnBlock(slot, forcedLucky)
 	local part = Instance.new("Part")
 	part.Name = oreId
 	part.Size = Vector3.new(size * 0.8, size * 0.7, size * 0.8)
+	part:SetAttribute("BaseSize", part.Size) -- (the client's hit squash returns to this)
 	part.Anchored = true
 	part.Material = ore.Material
 	part.Color = ore.Color:Lerp(rockColorFor(slot.Zone), if ore.Glow then 0 else 0.2)
@@ -13241,6 +13246,7 @@ function PetService:Start()
 	Data:OnLoaded(function(player, data)
 		for _, pet in data.Pets do
 			pet.Away = nil -- a theft interrupted by a server shutdown never happened
+			pet.HeldBy = nil -- (a pet a rival took comes home on rejoin)
 			pet.SerialPending = nil
 		end
 		-- numbered pets whose number never arrived (DataStore hiccup): try again
@@ -14076,9 +14082,19 @@ local function raidActive(): boolean
 	return events ~= nil and events:RaidActive()
 end
 
+-- someone is carrying one of this home's pets right now
+local function beingRobbed(record): boolean
+	for _, pet in record.HomePets or {} do
+		if pet.Away then
+			return true
+		end
+	end
+	return false
+end
+
 -- may this player steal from this rival right now?
 local function canRaid(player: Player, record): boolean
-	if (record.HomeShieldUntil or 0) > now() then
+	if (record.HomeShieldUntil or 0) > now() or beingRobbed(record) then
 		return false
 	end
 	if raidActive() then
@@ -14121,9 +14137,12 @@ local function refreshSign(record)
 	if not plot then
 		return
 	end
-	local open = raidActive() and (record.HomeShieldUntil or 0) <= now()
-	local status = if open then "🔓 OPEN" else "🏠 SAFE"
+	local shielded = (record.HomeShieldUntil or 0) > now() or beingRobbed(record)
+	local open = raidActive() and not shielded
+	local status = if open then "🔓 OPEN" elseif shielded then "🛡️ THEFT SHIELD" else "🏠 SAFE"
 	plot.Model:SetAttribute("Protection", if open then "" else "safe")
+	-- (hides the steal prompts even for revenge while shielded / being robbed)
+	plot.Model:SetAttribute("Robbing", shielded)
 	plot.Model:SetAttribute("Rate", homeRate(record))
 	local key = status .. "|" .. math.floor(homeRate(record))
 	if key ~= record.SignKey then
@@ -14230,17 +14249,16 @@ end
 function Homes:Release(record)
 	local plot = record.HomeIndex and internal().Plots[record.HomeIndex]
 	for _, pet in record.HomePets or {} do
-		local owner = nil
-		for _, player in Data:LoadedPlayers() do
-			if player.UserId == pet.FromUserId then
-				owner = player
+		if pet.FromUserId and pet.OwnPetId then
+			for _, owner in Data:LoadedPlayers() do
+				if owner.UserId == pet.FromUserId then
+					Homes:GiveBack(owner, pet.OwnPetId)
+					Net:Notify(owner, "🛡️ %s left - your %s came back home!", Color3.fromRGB(120, 230, 255), record.Name, pet.Name)
+				end
 			end
 		end
-		if owner and not pet.Away then
-			Services.PetService:GivePet(owner, pet.Name, pet.Variant, pet.Serial, pet)
-			Net:Notify(owner, "🛡️ %s left - your %s came back home!", Color3.fromRGB(120, 230, 255), record.Name, pet.Name)
-		end
 	end
+	record.Home = nil
 	if plot then
 		byIndex[plot.Index] = nil
 		plot.Rival = nil
@@ -14295,11 +14313,16 @@ function Homes:StealFrom(thief: Player, record, uid: number)
 		Net:Notify(thief, "🏠 Homes are safe! Raids only happen on 🌙 Thief Night.")
 		return
 	end
+	if pet.FromUserId and pet.FromUserId ~= thief.UserId then
+		Net:Notify(thief, "That's someone else's pet - only its owner can take it back.")
+		return
+	end
 	local item = { Kind = "Pet", Name = pet.Name, Variant = pet.Variant }
 	local meta = {
 		RivalFrom = record.Entity.UserId,
 		RivalSlot = uid,
-		Growth = { Level = pet.Level, Stars = pet.Stars },
+		Growth = { Level = pet.Level, Stars = pet.Stars, XP = pet.XP },
+		OwnPetId = pet.OwnPetId, -- (the thief's own pet, held by the rival)
 		Thief = thief,
 		Deadline = os.clock() + SETTINGS.StolenCarrySeconds,
 	}
@@ -14354,7 +14377,7 @@ function Homes:RaidTarget(record)
 		local plot = base:PlotOf(player)
 		if data and plot and base:Protection(player) == nil then
 			for _, pet in base.DisplayedPets(data) do
-				if not pet.Away and not pet.SerialPending and not Util.IsExclusive(Config, pet) then
+				if not pet.Away and not pet.SerialPending and not pet.Serial and not Util.IsExclusive(Config, pet) then
 					local model = plot.Displays:FindFirstChild("Pet_" .. pet.Id)
 					if model and model:IsA("Model") then
 						table.insert(options, { Owner = player, Pet = pet, Position = model:GetPivot().Position })
@@ -14381,7 +14404,7 @@ function Homes:TakeFromPlayer(record, owner: Player, petId: number)
 	for _, shown in base.DisplayedPets(data) do
 		onDisplay = onDisplay or shown == pet
 	end
-	if not onDisplay or Util.IsExclusive(Config, pet) then
+	if not onDisplay or Util.IsExclusive(Config, pet) or pet.Serial then
 		return nil
 	end
 	base:SetAway(owner, petId, true)
@@ -14413,39 +14436,64 @@ function Homes:EggHome(record, item)
 	self:Render(record)
 end
 
--- the rival made it home with a player's pet: it stands on their display now
+-- a held pet comes back to its owner (it never left their save)
+function Homes:GiveBack(owner: Player, petId: number)
+	local data = Data:Get(owner)
+	local pet = data and Services.PetService.FindPet(data, petId)
+	if pet then
+		pet.HeldBy = nil
+		Services.BaseService:SetAway(owner, petId, false)
+	end
+end
+
+-- the rival made it home with a player's pet: it stands on their display
+-- now. (The pet stays in the owner's save, marked held: it can never be
+-- lost - leaving / rejoining / the rival leaving brings it back.)
 function Homes:Delivered(record, meta)
 	local owner = meta and meta.From
 	if not owner or not owner.Parent or not meta.PetId then
 		return
 	end
-	local taken = Services.PetService:TakePet(owner, meta.PetId)
-	if not taken then
+	local data = Data:Get(owner)
+	local pet = data and Services.PetService.FindPet(data, meta.PetId)
+	if not pet then
+		return
+	end
+	if not record.HomeIndex then
+		self:GiveBack(owner, meta.PetId)
 		return
 	end
 	if #record.HomePets >= #SLOTS then
 		local _, index = weakestIndex(record)
-		if index then
-			table.remove(record.HomePets, index)
+		if not index then
+			self:GiveBack(owner, meta.PetId) -- (no room on their display)
+			return
 		end
+		table.remove(record.HomePets, index)
 	end
+	pet.Away = true
+	pet.HeldBy = record.Entity.UserId
 	table.insert(
 		record.HomePets,
 		newPet({
-			Name = taken.Name,
-			Variant = taken.Variant,
-			Serial = taken.Serial,
-			Level = taken.Level,
-			XP = taken.XP,
-			Stars = taken.Stars,
+			Name = pet.Name,
+			Variant = pet.Variant,
+			Level = pet.Level,
+			Stars = pet.Stars,
 			FromUserId = owner.UserId,
+			OwnPetId = pet.Id,
 		})
 	)
+	local taken = pet
 	self:Render(record)
-	-- revenge: steal it back for 5 minutes (even outside Thief Night)
-	owner:SetAttribute("RevengeTarget", record.Entity.UserId)
-	owner:SetAttribute("RevengeUntil", now() + SETTINGS.RevengeSeconds)
-	Net:Send(owner, "Revenge", record.Entity.UserId, record.Name, now() + SETTINGS.RevengeSeconds)
+	-- revenge: steal it back for 5 minutes (even outside Thief Night) -
+	-- unless a revenge on a real player is still running
+	local running = (owner:GetAttribute("RevengeUntil") or 0) > now() and (owner:GetAttribute("RevengeTarget") or 0) > 0
+	if not running then
+		owner:SetAttribute("RevengeTarget", record.Entity.UserId)
+		owner:SetAttribute("RevengeUntil", now() + SETTINGS.RevengeSeconds)
+		Net:Send(owner, "Revenge", record.Entity.UserId, record.Name, now() + SETTINGS.RevengeSeconds)
+	end
 	Net:Notify(
 		owner,
 		"💔 %s stole your %s! Get it back from their house - revenge for 5 minutes!",
@@ -14462,6 +14510,21 @@ function Homes:Init(services)
 end
 
 function Homes:Start()
+	-- a player left: pets a rival took from them go home with their save
+	Players.PlayerRemoving:Connect(function(player)
+		for _, record in byIndex do
+			local changed = false
+			for index = #record.HomePets, 1, -1 do
+				if record.HomePets[index].FromUserId == player.UserId and not record.HomePets[index].Away then
+					table.remove(record.HomePets, index)
+					changed = true
+				end
+			end
+			if changed then
+				pcall(Homes.Render, Homes, record)
+			end
+		end
+	end)
 	task.spawn(function()
 		while true do
 			task.wait(1)
@@ -15280,9 +15343,10 @@ function Rival:Bonk(player: Player, model: Model): boolean
 	setCarry(record, nil)
 	record.Home = nil
 	-- the egg drops: the bonker gets the first grab, rivals keep off it for a while
+	local firstGrab = if carriedMeta and carriedMeta.From then carriedMeta.From.UserId else player.UserId
 	Services.ShardService:SpawnGround(item, flat(record.Root.Position), carriedMeta, {
 		Beacon = true,
-		PriorityUser = player.UserId,
+		PriorityUser = firstGrab,
 		PriorityUntil = t + 4,
 		RivalBlockSeconds = SETTINGS.DropBlockSeconds,
 	})
@@ -16072,6 +16136,14 @@ local function deliver(player: Player)
 	local data = Data:Get(player)
 	local tier = itemTier(item)
 	local pets = Services.PetService
+	if item.Kind == "Pet" and meta and meta.RivalFrom and meta.OwnPetId then
+		-- your own pet, taken back from a rival's home
+		Services.RivalHomes:PetGone(meta.RivalFrom, meta.RivalSlot)
+		Services.RivalHomes:GiveBack(player, meta.OwnPetId)
+		Net:Notify(player, "🛡️ You got your %s back!", Color3.fromRGB(120, 230, 255), item.Name)
+		Net:Send(player, "ShardRecovered", item.Name)
+		return
+	end
 	if item.Kind == "Pet" and meta and meta.RivalFrom then
 		-- a pet stolen from a rival player's home
 		local given, isNew = pets:GivePet(player, item.Name, item.Variant, nil, meta.Growth)
@@ -18203,54 +18275,125 @@ local function landscape()
 		end
 	end
 
-	-- walls become rocky cliffs (the wall parts stay as invisible borders)
+	-- where people walk: the hub, the mines, the base district and the corridors
+	-- (terrain hills / spires must never cover these)
+	local layout = Config.World.Layout
+	local half = layout.HubHalf
+	local bases = Config.World.Bases
+	local lastZone = World.Zones[#Config.Zones]
+	local playRects = {
+		{ -half, half, -half, half }, -- hub (minX, maxX, minZ, maxZ)
+		{ -bases.HalfX, bases.HalfX, bases.ZEnd, bases.ZStart }, -- homes
+		{ -CORRIDOR_W / 2, CORRIDOR_W / 2, bases.ZStart, -half }, -- hub -> homes corridor
+	}
+	local previousEnd = half
+	for index in Config.Zones do
+		local info = World.Zones[index]
+		if info then
+			-- the corridor into this mine, then the mine itself
+			table.insert(playRects, { -CORRIDOR_W / 2, CORRIDOR_W / 2, previousEnd, info.ZStart })
+			table.insert(playRects, { -layout.ZoneWidth / 2, layout.ZoneWidth / 2, info.ZStart, info.ZEnd })
+			previousEnd = info.ZEnd
+		end
+	end
+	local function inPlay(position: Vector3, margin: number): boolean
+		for _, r in playRects do
+			if
+				position.X >= r[1] - margin
+				and position.X <= r[2] + margin
+				and position.Z >= r[3] - margin
+				and position.Z <= r[4] + margin
+			then
+				return true
+			end
+		end
+		return false
+	end
+	-- a hill's footprint on the ground must stay clear of the play areas
+	local function hill(center: Vector3, radius: number, material: Enum.Material): boolean
+		local footprint = if center.Y < radius then math.sqrt(radius * radius - center.Y * center.Y) else 0
+		if footprint <= 0 or inPlay(center, footprint + 6) then
+			return false
+		end
+		terrain:FillBall(center, radius, material)
+		return true
+	end
+
+	-- walls become rocky cliffs OUTSIDE the play area (the wall parts stay as
+	-- invisible borders, made tall so nobody walks over the cliff tops)
 	for _, part in map:GetDescendants() do
 		if part:IsA("BasePart") and part.Name == "Wall" then
 			local cliff = CLIFF[zoneOf(part.Position)] or CLIFF[0]
 			local size = part.Size
-			local long = if size.X >= size.Z then Vector3.xAxis else Vector3.zAxis
+			local alongX = size.X >= size.Z
+			local long = if alongX then Vector3.xAxis else Vector3.zAxis
+			local normal = if alongX then Vector3.zAxis else Vector3.xAxis
 			local length = math.max(size.X, size.Z)
-			local height = size.Y + 6
-			terrain:FillBlock(
-				CFrame.new(part.Position + Vector3.new(0, 3, 0)),
-				Vector3.new(math.max(size.X, 8), height, math.max(size.Z, 8)),
-				cliff.Rock
-			)
-			-- an uneven top: boulders along the ridge
-			for d = -length / 2, length / 2, 9 do
-				local center = part.Position + long * (d + rng:NextNumber(-2, 2)) + Vector3.new(0, size.Y / 2 + rng:NextNumber(2, 6), 0)
-				terrain:FillBall(center, rng:NextNumber(5, 8), cliff.Rock)
-				if rng:NextNumber() < 0.5 then
-					terrain:FillBall(center + Vector3.new(0, 3, 0), rng:NextNumber(3, 5), cliff.Top)
+			-- the outside is the side that isn't walkable (walls with people
+			-- on both sides stay plain invisible borders, no cliff)
+			local probe = part.Position * Vector3.new(1, 0, 1)
+			local plus, minus = inPlay(probe + normal * 6, -1), inPlay(probe - normal * 6, -1)
+			local outward = if plus then -normal else normal
+			if plus and minus then
+				outward = nil
+			end
+			local thickness = 10
+			local height = size.Y + 4
+			if outward then
+				terrain:FillBlock(
+					CFrame.new(probe + outward * (thickness / 2 + 0.5) + Vector3.new(0, height / 2 - 1, 0)),
+					if alongX then Vector3.new(size.X + 4, height, thickness) else Vector3.new(thickness, height, size.Z + 4),
+					cliff.Rock
+				)
+				-- an uneven top: boulders along the ridge, leaning outward
+				for d = -length / 2, length / 2, 9 do
+					local center = probe
+						+ long * (d + rng:NextNumber(-2, 2))
+						+ outward * (thickness / 2 + 3)
+						+ Vector3.new(0, size.Y + rng:NextNumber(0, 3), 0)
+					terrain:FillBall(center, rng:NextNumber(4, 6), cliff.Rock)
+					if rng:NextNumber() < 0.5 then
+						terrain:FillBall(center + Vector3.new(0, 2.5, 0), rng:NextNumber(2.5, 4), cliff.Top)
+					end
 				end
 			end
-			part.Transparency = 1
+			part.Transparency = if outward then 1 else part.Transparency
+			-- taller than any cliff top: no walking along the ridges
+			part.Size = Vector3.new(size.X, 70, size.Z)
+			part.CFrame = part.CFrame + Vector3.new(0, 35 - size.Y / 2, 0)
+		end
+	end
+	-- zone gates get an invisible cap too (no hopping over a locked gate)
+	for _, zone in World.Zones do
+		local gate = zone.Gate
+		if gate then
+			newPart({
+				Name = "GateCap",
+				Size = Vector3.new(gate.Size.X, 54, gate.Size.Z),
+				CFrame = gate.CFrame + Vector3.new(0, gate.Size.Y / 2 + 27, 0),
+				Transparency = 1,
+				CanQuery = false,
+			}, gate.Parent)
 		end
 	end
 
-	-- the horizon: rolling grassy hills around the hub and the homes
-	local layout = Config.World.Layout
-	local half = layout.HubHalf
-	for _ = 1, 26 do
-		local angle = rng:NextNumber(0, math.pi * 2)
-		local distance = half + rng:NextNumber(30, 70)
-		local center = Vector3.new(math.cos(angle) * distance, rng:NextNumber(-10, 4), math.sin(angle) * distance)
-		if math.abs(center.X) > layout.ZoneWidth / 2 + 20 or center.Z < 0 then
-			terrain:FillBall(center, rng:NextNumber(24, 40), Enum.Material.Grass)
+	-- the horizon: rolling grassy hills all around (never on the play areas)
+	local placed = 0
+	for _ = 1, 400 do
+		if placed >= 46 then
+			break
+		end
+		local center = Vector3.new(
+			rng:NextNumber(-bases.HalfX - 140, bases.HalfX + 140),
+			rng:NextNumber(-10, 2),
+			rng:NextNumber(bases.ZEnd - 120, (if lastZone then lastZone.ZEnd else half) + 40)
+		)
+		if hill(center, rng:NextNumber(24, 40), Enum.Material.Grass) then
+			placed += 1
 		end
 	end
-	local bases = Config.World.Bases
-	for x = -bases.HalfX - 30, bases.HalfX + 30, 45 do
-		terrain:FillBall(Vector3.new(x, -8, bases.ZEnd - 40 - rng:NextNumber(0, 20)), rng:NextNumber(26, 40), Enum.Material.Grass)
-	end
-	for _, side in { -1, 1 } do
-		for z = bases.ZStart - 20, bases.ZEnd, -45 do
-			terrain:FillBall(
-				Vector3.new(side * (bases.HalfX + 40 + rng:NextNumber(0, 15)), -8, z),
-				rng:NextNumber(26, 38),
-				Enum.Material.Grass
-			)
-		end
+	if not lastZone then
+		warn("[World] no zones for the landscape")
 	end
 	-- low grassy mounds in the gardens between homes (estates, not a grid)
 	local baseLayout = Config.Base.Layout
@@ -18273,8 +18416,8 @@ local function landscape()
 		if info then
 			for _, side in { -1, 1 } do
 				for z = info.ZStart + 10, info.ZEnd - 10, 22 do
-					local center = Vector3.new(side * (layout.ZoneWidth / 2 + rng:NextNumber(14, 26)), rng:NextNumber(4, 14), z)
-					terrain:FillBall(center, rng:NextNumber(10, 16), cliff.Rock)
+					local center = Vector3.new(side * (layout.ZoneWidth / 2 + rng:NextNumber(22, 34)), rng:NextNumber(4, 14), z)
+					hill(center, rng:NextNumber(10, 16), cliff.Rock)
 				end
 			end
 		end
@@ -18285,7 +18428,7 @@ local function landscape()
 		local angle = rng:NextNumber(0, math.pi * 2)
 		local distance = half + rng:NextNumber(8, 40)
 		local position = Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
-		if math.abs(position.X) > CORRIDOR_W and math.abs(position.X) < half + 60 and position.Z > -half - 4 then
+		if not inPlay(position, 4) then
 			local hit = workspace:Raycast(position + Vector3.new(0, 80, 0), Vector3.new(0, -160, 0))
 			if hit and hit.Instance == terrain then
 				tree(hit.Position - Vector3.new(0, 0.5, 0), nature, rng:NextNumber(1, 1.5))
@@ -22004,8 +22147,10 @@ end
 
 -- block squash on hit (purely local, restores the real size)
 local function squash(part: BasePart)
-	part.Size = ORE_SIZE * 0.86
-	TweenService:Create(part, TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = ORE_SIZE }):Play()
+	local base = part:GetAttribute("BaseSize")
+	local size = if typeof(base) == "Vector3" then base else ORE_SIZE
+	part.Size = size * 0.86
+	TweenService:Create(part, TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = size }):Play()
 end
 
 local function shake(strength: number, duration: number)
