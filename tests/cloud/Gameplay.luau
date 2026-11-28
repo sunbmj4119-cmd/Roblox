@@ -356,6 +356,8 @@ local pods = plotA.Model:FindFirstChild("Incubators")
 check(pods ~= nil and #pods:GetChildren() == Incubator:Slots(dataA), "incubator pods not built for the house level")
 local firstPod = pods and pods:FindFirstChild("Incubator_1")
 check(firstPod ~= nil and firstPod:FindFirstChild("Egg") ~= nil, "no egg inside the incubator")
+local podPrompt = firstPod and firstPod.PrimaryPart and firstPod.PrimaryPart:FindFirstChild("HatchPrompt")
+check(podPrompt ~= nil and podPrompt:GetAttribute("Role") == "Owner", "the incubator prompt must be owner-only (Role = Owner)")
 local entry = dataA.Incubators[1]
 check(entry ~= nil and entry.Ready - os.time() >= Config.Incubator.Seconds.Epic - 2, "incubator timer is not the Epic time")
 check(not Incubator:Hatch(A, 1, false), "an unready egg hatched")
@@ -377,6 +379,20 @@ for _ = 1, Incubator:Slots(dataA) do
 end
 check(#dataA.Incubators == Incubator:Slots(dataA), "incubators did not fill up")
 check(not Incubator:Add(A, { Kind = "Egg", Rarity = "Common", Egg = "Meadow" }), "a full incubator took another egg")
+-- full, but one egg is ready: it hatches to make room (no timer skipping)
+Incubator:FinishForTest(A, 2)
+local readyId = dataA.Incubators[2].Id
+local petsBeforeRoom = #dataA.Pets
+check(Incubator:Add(A, { Kind = "Egg", Rarity = "Mythic", Egg = "Meadow" }), "a ready egg did not make room")
+check(#dataA.Pets == petsBeforeRoom + 1, "the ready egg did not hatch to make room")
+local stillThere = false
+for _, entry in dataA.Incubators do
+	if entry.Id == readyId then
+		stillThere = true
+	end
+end
+check(not stillThere and dataA.Incubators[#dataA.Incubators].Rarity == "Mythic", "the new egg did not take the free pod")
+check(not Incubator:Hatch(A, readyId, true), "an old prompt id hatched again")
 local petsFull = #dataA.Pets
 S.ShardService:StartCarry(A, { Kind = "Egg", Rarity = "Rare", Egg = "Meadow" }, nil)
 rootA.CFrame = Base:HomeCFrame(A) * CFrame.new(0, 0, 6)

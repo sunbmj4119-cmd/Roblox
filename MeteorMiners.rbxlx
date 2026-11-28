@@ -233,7 +233,7 @@ Config.Strength = {
 	PerSwing = 1, -- per hit on an ore / meteor (x pickaxe tier x bonuses)
 	RebirthBonus = 0.5, -- +50% strength gain per rebirth
 	VipBonus = 0.25,
-	DamageScale = 30, -- damage x (1 + sqrt(strength) / DamageScale)
+	DamageScale = 45, -- damage x (1 + sqrt(strength) / DamageScale)
 	Rocks = {
 		{ Name = "Pebble", Need = 0, Gain = 1, Size = 4.5, Color = Color3.fromRGB(150, 142, 132) },
 		{ Name = "Boulder", Need = 400, Gain = 3, Size = 6, Color = Color3.fromRGB(125, 118, 110) },
@@ -3746,6 +3746,7 @@ return {
 	["🥚 Your %s is ready to hatch! 🏠"] = "🥚 %s 알이 부화할 준비가 됐어요! 🏠",
 	["🥚 empty"] = "🥚 비어 있음",
 	["💪 TRAIN HERE"] = "💪 여기서 훈련해요",
+	["💪 Need %s strength"] = "💪 힘 %s 필요",
 }
 ]]></string>
         </Properties>
@@ -9320,6 +9321,7 @@ return Events
 	still hatches right away, so nothing is ever lost.
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -9334,6 +9336,7 @@ local Data
 local World
 
 local SETTINGS = Config.Incubator
+local rebuilding = {}
 
 -- pods in the front-left corner of the land (clear of the pads, the
 -- corner tower and every house level's build area)
@@ -9473,34 +9476,31 @@ function Incubator:Render(player: Player)
 				end
 				egg.Parent = pod
 				pod:SetAttribute("Ready", entry.Ready)
-				-- hatch (when ready) / skip the wait with gems
+				-- one owner-only prompt: "Hatch" when ready, "⚡ Hatch now" (💎) before.
+				-- (Role = Owner: the client shows it to the owner only. The text is
+				-- set here, at build time, so it gets translated - the pod is rebuilt
+				-- the moment its egg is ready.)
 				local base = pod.PrimaryPart :: BasePart
+				local ready = now() >= entry.Ready
 				local hatchPrompt = Instance.new("ProximityPrompt")
 				hatchPrompt.Name = "HatchPrompt"
-				hatchPrompt.ActionText = "Hatch"
-				hatchPrompt.ObjectText = rarityName(entry.Rarity)
-				hatchPrompt.HoldDuration = 0.3
+				if ready then
+					hatchPrompt.ActionText = "Hatch"
+					hatchPrompt.ObjectText = rarityName(entry.Rarity)
+					hatchPrompt.HoldDuration = 0.3
+				else
+					hatchPrompt.ActionText = "⚡ Hatch now"
+					hatchPrompt.ObjectText = "💎" .. tostring(self:SkipCost(entry))
+					hatchPrompt.HoldDuration = 1
+				end
 				hatchPrompt.MaxActivationDistance = 10
 				hatchPrompt.RequiresLineOfSight = false
+				hatchPrompt:SetAttribute("Role", "Owner")
 				hatchPrompt.Parent = base
+				local id = entry.Id or index
 				hatchPrompt.Triggered:Connect(function(who)
 					if who == player then
-						self:Hatch(player, index, false)
-					end
-				end)
-				local skipPrompt = Instance.new("ProximityPrompt")
-				skipPrompt.Name = "SkipPrompt"
-				skipPrompt.ActionText = "⚡ Hatch now"
-				skipPrompt.ObjectText = "💎"
-				skipPrompt.HoldDuration = 0.8
-				skipPrompt.MaxActivationDistance = 10
-				skipPrompt.RequiresLineOfSight = false
-				skipPrompt.KeyboardKeyCode = Enum.KeyCode.F
-				skipPrompt.UIOffset = Vector2.new(0, 60)
-				skipPrompt.Parent = base
-				skipPrompt.Triggered:Connect(function(who)
-					if who == player then
-						self:Hatch(player, index, true)
+						self:Hatch(player, id, true)
 					end
 				end)
 			end
@@ -9515,6 +9515,15 @@ function Incubator:Refresh(player: Player)
 	local data = Data:Get(player)
 	local folder = podFolder(player)
 	if not data or not folder then
+		return
+	end
+	if #folder:GetChildren() == 0 then
+		-- (no pods yet: e.g. the plot was assigned after we loaded)
+		if not rebuilding[player] then
+			rebuilding[player] = true
+			pcall(self.Render, self, player)
+			rebuilding[player] = nil
+		end
 		return
 	end
 	local t = now()
@@ -9537,15 +9546,12 @@ function Incubator:Refresh(player: Player)
 			end
 		end
 		if entry and base then
-			local ready = t >= entry.Ready
 			local hatchPrompt = base:FindFirstChild("HatchPrompt")
-			local skipPrompt = base:FindFirstChild("SkipPrompt")
-			if hatchPrompt then
-				hatchPrompt.Enabled = ready
-			end
-			if skipPrompt and skipPrompt:IsA("ProximityPrompt") then
-				skipPrompt.Enabled = not ready
-				skipPrompt.ObjectText = "💎" .. tostring(self:SkipCost(entry))
+			if hatchPrompt and hatchPrompt:IsA("ProximityPrompt") and t < entry.Ready then
+				local cost = "💎" .. tostring(self:SkipCost(entry))
+				if hatchPrompt.ObjectText ~= cost then
+					hatchPrompt.ObjectText = cost
+				end
 			end
 			-- the egg grows while it incubates
 			local egg = pod:FindFirstChild("Egg")
@@ -9580,11 +9586,22 @@ function Incubator:Add(player: Player, item): boolean
 	data.Incubators = data.Incubators or {}
 	local slots = self:Slots(data)
 	if #data.Incubators >= slots then
-		Net:Notify(player, "🥚 All incubators are busy - this egg hatches right away!", Color3.fromRGB(255, 210, 120))
-		return false
+		-- full: a ready egg hatches to make room (parked ready eggs must
+		-- not let new eggs skip their timers)
+		local oldest, oldestReady = nil, math.huge
+		for index, entry in data.Incubators do
+			if now() >= entry.Ready and entry.Ready < oldestReady then
+				oldest, oldestReady = index, entry.Ready
+			end
+		end
+		if not oldest or not self:Hatch(player, oldest, false) or #data.Incubators >= slots then
+			Net:Notify(player, "🥚 All incubators are busy - this egg hatches right away!", Color3.fromRGB(255, 210, 120))
+			return false
+		end
 	end
 	local seconds = Util.IncubateSeconds(Config, item.Rarity, item.Golden)
 	table.insert(data.Incubators, {
+		Id = HttpService:GenerateGUID(false),
 		Egg = item.Egg,
 		Rarity = item.Rarity,
 		MeteorKind = item.MeteorKind,
@@ -9593,43 +9610,72 @@ function Incubator:Add(player: Player, item): boolean
 		Total = seconds,
 	})
 	Data:MarkDirty(player)
-	self:Render(player)
-	Net:Notify(
-		player,
-		"🥚 Your %s is incubating - ready in %s!",
-		Color3.fromRGB(150, 230, 255),
-		rarityName(item.Rarity),
-		Util.FormatTime(seconds)
-	)
-	Net:Send(player, "EggIncubating", item.Rarity, seconds)
+	-- (from here on the egg is stored: nothing below may make it hatch twice)
+	pcall(self.Render, self, player)
+	pcall(function()
+		Net:Notify(
+			player,
+			"🥚 Your %s is incubating - ready in %s!",
+			Color3.fromRGB(150, 230, 255),
+			rarityName(item.Rarity),
+			Util.FormatTime(seconds)
+		)
+		Net:Send(player, "EggIncubating", item.Rarity, seconds)
+	end)
 	return true
 end
 
-function Incubator:Hatch(player: Player, index: number, skip: boolean): boolean
+-- key = the egg's Id (prompts: an old prompt can never hit another egg
+-- after the list shifted) or its slot number
+function Incubator:Hatch(player: Player, key: number | string, skip: boolean): boolean
 	local data = Data:Get(player)
-	local entry = data and data.Incubators and data.Incubators[index]
+	local list = data and data.Incubators
+	if not list then
+		return false
+	end
+	local index = if type(key) == "number" then key else nil
+	if type(key) == "string" then
+		for i, candidate in list do
+			if candidate.Id == key then
+				index = i
+				break
+			end
+		end
+	end
+	local entry = index and list[index]
 	if not entry then
 		return false
 	end
+	local cost = 0
 	if now() < entry.Ready then
 		if not skip then
 			return false
 		end
-		local cost = self:SkipCost(entry)
+		cost = self:SkipCost(entry)
 		if data.Gems < cost then
 			Net:Notify(player, "Not enough 💎 (%s)", Color3.fromRGB(255, 110, 110), Util.Format(cost))
 			return false
 		end
 		data.Gems -= cost
-		Services.Analytics:Economy(player, "Sink", "Gems", cost, data.Gems, "Gameplay", "IncubatorSkip")
 	end
-	table.remove(data.Incubators, index)
+	table.remove(list, index)
 	local def = Config.Shards.Rarities[entry.Rarity]
 	local meteorInfo = if entry.MeteorKind then { Kind = entry.MeteorKind, Golden = entry.Golden, Rarity = entry.Rarity } else nil
-	Services.PetService:HatchStarEgg(player, entry.Egg, if def then def.Luck or 1 else 1, meteorInfo)
+	local ok, err =
+		pcall(Services.PetService.HatchStarEgg, Services.PetService, player, entry.Egg, if def then def.Luck or 1 else 1, meteorInfo)
+	if not ok then
+		-- (never lose the egg or the gems)
+		warn("[Incubator] hatch failed: " .. tostring(err))
+		table.insert(list, math.min(index, #list + 1), entry)
+		data.Gems += cost
+		cost = 0
+	end
+	if cost > 0 then
+		Services.Analytics:Economy(player, "Sink", "Gems", cost, data.Gems, "Gameplay", "IncubatorSkip")
+	end
 	Data:MarkDirty(player)
-	self:Render(player)
-	return true
+	pcall(self.Render, self, player)
+	return ok
 end
 
 -- how many eggs are ready (for the HUD)
@@ -9672,29 +9718,41 @@ function Incubator:Start()
 		while true do
 			task.wait(1)
 			for _, player in Data:LoadedPlayers() do
-				local data = Data:Get(player)
-				if data and data.Incubators and #data.Incubators > 0 then
-					pcall(self.Refresh, self, player)
-					local ready = self:ReadyCount(data)
-					player:SetAttribute("EggsReady", ready)
-					for _, entry in data.Incubators do
-						if now() >= entry.Ready and not entry.Told then
-							entry.Told = true
-							Net:Notify(
-								player,
-								"🥚 Your %s is ready to hatch! 🏠",
-								Color3.fromRGB(120, 255, 160),
-								rarityName(entry.Rarity)
-							)
-							Net:Send(player, "EggReady", entry.Rarity)
-						end
-					end
-				elseif player:GetAttribute("EggsReady") then
-					player:SetAttribute("EggsReady", nil)
+				local ok, err = pcall(self.Tick, self, player)
+				if not ok then
+					warn("[Incubator] tick failed: " .. tostring(err))
 				end
 			end
 		end
 	end)
+end
+
+function Incubator:Tick(player: Player)
+	local data = Data:Get(player)
+	if not data or not data.Incubators or #data.Incubators == 0 then
+		if player:GetAttribute("EggsReady") then
+			player:SetAttribute("EggsReady", nil)
+		end
+		return
+	end
+	local fresh = {}
+	for _, entry in data.Incubators do
+		if now() >= entry.Ready and not entry.Told then
+			entry.Told = true
+			table.insert(fresh, entry)
+		end
+	end
+	if #fresh > 0 then
+		-- (rebuilt so the prompt says "Hatch", translated)
+		pcall(self.Render, self, player)
+	else
+		self:Refresh(player)
+	end
+	player:SetAttribute("EggsReady", self:ReadyCount(data))
+	for _, entry in fresh do
+		Net:Notify(player, "🥚 Your %s is ready to hatch! 🏠", Color3.fromRGB(120, 255, 160), rarityName(entry.Rarity))
+		Net:Send(player, "EggReady", entry.Rarity)
+	end
 end
 
 return Incubator
@@ -11987,10 +12045,10 @@ local function hitBlock(player: Player, data, part: BasePart, damage: number, cr
 	return "broken"
 end
 
-local function mineBlock(player: Player, data, part: BasePart)
+local function mineBlock(player: Player, data, part: BasePart): boolean
 	local info = blockInfo[part]
 	if not info then
-		return
+		return false
 	end
 	local zone = info.Zone
 	local center = part.Position
@@ -12022,6 +12080,7 @@ local function mineBlock(player: Player, data, part: BasePart)
 		end
 	end
 	Data:MarkDirty(player)
+	return result == "hit" or result == "broken"
 end
 
 -- DEV: turn the block closest to the player into a Rainbow ore
@@ -12131,11 +12190,16 @@ local function strengthMult(player: Player, data): number
 	return mult
 end
 
+-- (StrengthGain carries the new total, so the full data sync can wait a bit)
+local strengthSynced = {}
 local function gainStrength(player: Player, data, base: number)
 	local amount = math.max(1, math.floor(base * strengthMult(player, data)))
 	data.Strength = (data.Strength or 0) + amount
 	Net:Send(player, "StrengthGain", amount, data.Strength)
-	Data:MarkDirty(player)
+	if os.clock() - (strengthSynced[player] or 0) >= 3 then
+		strengthSynced[player] = os.clock()
+		Data:MarkDirty(player)
+	end
 	return amount
 end
 Mining.GainStrength = gainStrength
@@ -12267,8 +12331,9 @@ local function onSwing(player: Player, hint)
 			return
 		end
 		if blockInfo[hintPart] and withinReach(root, hintPart, 3) then
-			mineBlock(player, data, hintPart)
-			gainStrength(player, data, STRENGTH.PerSwing)
+			if mineBlock(player, data, hintPart) then
+				gainStrength(player, data, STRENGTH.PerSwing)
+			end
 			return
 		end
 	end
@@ -12303,14 +12368,22 @@ local function onSwing(player: Player, hint)
 	-- 4) auto target the closest block (mobile friendly + auto mine pass)
 	local target = nearestBlock(root)
 	if target then
-		mineBlock(player, data, target)
-		gainStrength(player, data, STRENGTH.PerSwing)
+		if mineBlock(player, data, target) then
+			gainStrength(player, data, STRENGTH.PerSwing)
+		end
 		return
 	end
-	-- 5) at the training ground: the heaviest rock we can lift
-	local rock = autoTrain[player] or nearestRock(root, data)
-	if rock then
-		trainAt(player, data, rock, root)
+	-- 5) at the training ground: the auto-train rock, else the heaviest rock we can lift
+	local chosen = autoTrain[player]
+	if chosen and not (chosen.Parent and trainAt(player, data, chosen, root)) then
+		autoTrain[player] = nil -- (walked away from it)
+		chosen = nil
+	end
+	if not chosen then
+		local rock = nearestRock(root, data)
+		if rock then
+			trainAt(player, data, rock, root)
+		end
 	end
 end
 
@@ -12511,6 +12584,7 @@ function Mining:Start()
 
 	Players.PlayerRemoving:Connect(function(player)
 		autoTrain[player] = nil
+		strengthSynced[player] = nil
 		lastSwing[player] = nil
 		immunity[player] = nil
 		combos[player] = nil
@@ -18267,7 +18341,7 @@ local function buildTrainingGround(parent)
 	local sign = newPart({
 		Name = "TrainingSign",
 		Size = Vector3.new(12, 4, 0.6),
-		CFrame = CFrame.new(-52, 6, 76) * CFrame.Angles(0, math.pi, 0),
+		CFrame = CFrame.new(-77, 6, 54) * CFrame.Angles(0, math.pi / 2, 0),
 		Color = Color3.fromRGB(40, 32, 28),
 		Material = Enum.Material.Wood,
 	}, ground)
@@ -18849,7 +18923,17 @@ local function buildZones()
 				Transparency = 0.1,
 			}, gates)
 			gate:SetAttribute("ZoneIndex", index)
-			local gateLabel = billboard(gate, "🔒 %s\n💰 %s", Color3.new(1, 1, 1), -1, 14, 4.2, zone.Name, Util.Format(zone.Cost))
+			local gateLabel = billboard(
+				gate,
+				"🔒 %s\n💰 %s  •  💪 %s",
+				Color3.new(1, 1, 1),
+				-1,
+				14,
+				4.2,
+				zone.Name,
+				Util.Format(zone.Cost),
+				Util.Format(zone.Strength or 0)
+			)
 			gateLabel.StudsOffsetWorldSpace = Vector3.new(0, -1, -2) -- in front of the forcefield, facing the approach
 			prompt(gate, "Unlock", zone.Name, function(player)
 				Services.EconomyService:UnlockZone(player, index)
@@ -29221,7 +29305,12 @@ function Teleport.Build(content, ctx)
 				Lib.SetButton(row.Button, "🌀 Teleport", C.Blue)
 			elseif index == data.ZoneLevel + 1 then
 				local cost = row.Entry.Zone.Cost
-				Lib.SetButton(row.Button, T("🔓 Unlock 💰%s", Util.Format(cost)), if data.Coins >= cost then C.Green else C.Red)
+				local need = row.Entry.Zone.Strength or 0
+				if (data.Strength or 0) < need then
+					Lib.SetButton(row.Button, T("💪 Need %s strength", Util.Format(need)), C.Red)
+				else
+					Lib.SetButton(row.Button, T("🔓 Unlock 💰%s", Util.Format(cost)), if data.Coins >= cost then C.Green else C.Red)
+				end
 			else
 				Lib.SetButton(row.Button, "🔒 " .. Util.Format(row.Entry.Zone.Cost), Color3.fromRGB(70, 72, 92))
 			end

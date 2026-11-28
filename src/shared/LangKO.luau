@@ -1167,4 +1167,5 @@ return {
 	["🥚 Your %s is ready to hatch! 🏠"] = "🥚 %s 알이 부화할 준비가 됐어요! 🏠",
 	["🥚 empty"] = "🥚 비어 있음",
 	["💪 TRAIN HERE"] = "💪 여기서 훈련해요",
+	["💪 Need %s strength"] = "💪 힘 %s 필요",
 }

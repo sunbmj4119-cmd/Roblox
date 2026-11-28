@@ -26,6 +26,7 @@ local Data
 local World
 
 local SETTINGS = Config.Incubator
+local rebuilding = {}
 
 -- pods in the front-left corner of the land (clear of the pads, the
 -- corner tower and every house level's build area)
@@ -165,34 +166,31 @@ function Incubator:Render(player: Player)
 				end
 				egg.Parent = pod
 				pod:SetAttribute("Ready", entry.Ready)
-				-- hatch (when ready) / skip the wait with gems
+				-- one owner-only prompt: "Hatch" when ready, "⚡ Hatch now" (💎) before.
+				-- (Role = Owner: the client shows it to the owner only. The text is
+				-- set here, at build time, so it gets translated - the pod is rebuilt
+				-- the moment its egg is ready.)
 				local base = pod.PrimaryPart :: BasePart
+				local ready = now() >= entry.Ready
 				local hatchPrompt = Instance.new("ProximityPrompt")
 				hatchPrompt.Name = "HatchPrompt"
-				hatchPrompt.ActionText = "Hatch"
-				hatchPrompt.ObjectText = rarityName(entry.Rarity)
-				hatchPrompt.HoldDuration = 0.3
+				if ready then
+					hatchPrompt.ActionText = "Hatch"
+					hatchPrompt.ObjectText = rarityName(entry.Rarity)
+					hatchPrompt.HoldDuration = 0.3
+				else
+					hatchPrompt.ActionText = "⚡ Hatch now"
+					hatchPrompt.ObjectText = "💎" .. tostring(self:SkipCost(entry))
+					hatchPrompt.HoldDuration = 1
+				end
 				hatchPrompt.MaxActivationDistance = 10
 				hatchPrompt.RequiresLineOfSight = false
+				hatchPrompt:SetAttribute("Role", "Owner")
 				hatchPrompt.Parent = base
+				local id = entry.Id or index
 				hatchPrompt.Triggered:Connect(function(who)
 					if who == player then
-						self:Hatch(player, entry.Id or index, false)
-					end
-				end)
-				local skipPrompt = Instance.new("ProximityPrompt")
-				skipPrompt.Name = "SkipPrompt"
-				skipPrompt.ActionText = "⚡ Hatch now"
-				skipPrompt.ObjectText = "💎"
-				skipPrompt.HoldDuration = 0.8
-				skipPrompt.MaxActivationDistance = 10
-				skipPrompt.RequiresLineOfSight = false
-				skipPrompt.KeyboardKeyCode = Enum.KeyCode.F
-				skipPrompt.UIOffset = Vector2.new(0, 60)
-				skipPrompt.Parent = base
-				skipPrompt.Triggered:Connect(function(who)
-					if who == player then
-						self:Hatch(player, entry.Id or index, true)
+						self:Hatch(player, id, true)
 					end
 				end)
 			end
@@ -207,6 +205,15 @@ function Incubator:Refresh(player: Player)
 	local data = Data:Get(player)
 	local folder = podFolder(player)
 	if not data or not folder then
+		return
+	end
+	if #folder:GetChildren() == 0 then
+		-- (no pods yet: e.g. the plot was assigned after we loaded)
+		if not rebuilding[player] then
+			rebuilding[player] = true
+			pcall(self.Render, self, player)
+			rebuilding[player] = nil
+		end
 		return
 	end
 	local t = now()
@@ -229,15 +236,12 @@ function Incubator:Refresh(player: Player)
 			end
 		end
 		if entry and base then
-			local ready = t >= entry.Ready
 			local hatchPrompt = base:FindFirstChild("HatchPrompt")
-			local skipPrompt = base:FindFirstChild("SkipPrompt")
-			if hatchPrompt then
-				hatchPrompt.Enabled = ready
-			end
-			if skipPrompt and skipPrompt:IsA("ProximityPrompt") then
-				skipPrompt.Enabled = not ready
-				skipPrompt.ObjectText = "💎" .. tostring(self:SkipCost(entry))
+			if hatchPrompt and hatchPrompt:IsA("ProximityPrompt") and t < entry.Ready then
+				local cost = "💎" .. tostring(self:SkipCost(entry))
+				if hatchPrompt.ObjectText ~= cost then
+					hatchPrompt.ObjectText = cost
+				end
 			end
 			-- the egg grows while it incubates
 			local egg = pod:FindFirstChild("Egg")
@@ -272,8 +276,18 @@ function Incubator:Add(player: Player, item): boolean
 	data.Incubators = data.Incubators or {}
 	local slots = self:Slots(data)
 	if #data.Incubators >= slots then
-		Net:Notify(player, "🥚 All incubators are busy - this egg hatches right away!", Color3.fromRGB(255, 210, 120))
-		return false
+		-- full: a ready egg hatches to make room (parked ready eggs must
+		-- not let new eggs skip their timers)
+		local oldest, oldestReady = nil, math.huge
+		for index, entry in data.Incubators do
+			if now() >= entry.Ready and entry.Ready < oldestReady then
+				oldest, oldestReady = index, entry.Ready
+			end
+		end
+		if not oldest or not self:Hatch(player, oldest, false) or #data.Incubators >= slots then
+			Net:Notify(player, "🥚 All incubators are busy - this egg hatches right away!", Color3.fromRGB(255, 210, 120))
+			return false
+		end
 	end
 	local seconds = Util.IncubateSeconds(Config, item.Rarity, item.Golden)
 	table.insert(data.Incubators, {
@@ -286,15 +300,18 @@ function Incubator:Add(player: Player, item): boolean
 		Total = seconds,
 	})
 	Data:MarkDirty(player)
-	self:Render(player)
-	Net:Notify(
-		player,
-		"🥚 Your %s is incubating - ready in %s!",
-		Color3.fromRGB(150, 230, 255),
-		rarityName(item.Rarity),
-		Util.FormatTime(seconds)
-	)
-	Net:Send(player, "EggIncubating", item.Rarity, seconds)
+	-- (from here on the egg is stored: nothing below may make it hatch twice)
+	pcall(self.Render, self, player)
+	pcall(function()
+		Net:Notify(
+			player,
+			"🥚 Your %s is incubating - ready in %s!",
+			Color3.fromRGB(150, 230, 255),
+			rarityName(item.Rarity),
+			Util.FormatTime(seconds)
+		)
+		Net:Send(player, "EggIncubating", item.Rarity, seconds)
+	end)
 	return true
 end
 
@@ -319,25 +336,36 @@ function Incubator:Hatch(player: Player, key: number | string, skip: boolean): b
 	if not entry then
 		return false
 	end
+	local cost = 0
 	if now() < entry.Ready then
 		if not skip then
 			return false
 		end
-		local cost = self:SkipCost(entry)
+		cost = self:SkipCost(entry)
 		if data.Gems < cost then
 			Net:Notify(player, "Not enough 💎 (%s)", Color3.fromRGB(255, 110, 110), Util.Format(cost))
 			return false
 		end
 		data.Gems -= cost
-		Services.Analytics:Economy(player, "Sink", "Gems", cost, data.Gems, "Gameplay", "IncubatorSkip")
 	end
-	table.remove(data.Incubators, index)
+	table.remove(list, index)
 	local def = Config.Shards.Rarities[entry.Rarity]
 	local meteorInfo = if entry.MeteorKind then { Kind = entry.MeteorKind, Golden = entry.Golden, Rarity = entry.Rarity } else nil
-	Services.PetService:HatchStarEgg(player, entry.Egg, if def then def.Luck or 1 else 1, meteorInfo)
+	local ok, err =
+		pcall(Services.PetService.HatchStarEgg, Services.PetService, player, entry.Egg, if def then def.Luck or 1 else 1, meteorInfo)
+	if not ok then
+		-- (never lose the egg or the gems)
+		warn("[Incubator] hatch failed: " .. tostring(err))
+		table.insert(list, math.min(index, #list + 1), entry)
+		data.Gems += cost
+		cost = 0
+	end
+	if cost > 0 then
+		Services.Analytics:Economy(player, "Sink", "Gems", cost, data.Gems, "Gameplay", "IncubatorSkip")
+	end
 	Data:MarkDirty(player)
-	self:Render(player)
-	return true
+	pcall(self.Render, self, player)
+	return ok
 end
 
 -- how many eggs are ready (for the HUD)
@@ -380,29 +408,41 @@ function Incubator:Start()
 		while true do
 			task.wait(1)
 			for _, player in Data:LoadedPlayers() do
-				local data = Data:Get(player)
-				if data and data.Incubators and #data.Incubators > 0 then
-					pcall(self.Refresh, self, player)
-					local ready = self:ReadyCount(data)
-					player:SetAttribute("EggsReady", ready)
-					for _, entry in data.Incubators do
-						if now() >= entry.Ready and not entry.Told then
-							entry.Told = true
-							Net:Notify(
-								player,
-								"🥚 Your %s is ready to hatch! 🏠",
-								Color3.fromRGB(120, 255, 160),
-								rarityName(entry.Rarity)
-							)
-							Net:Send(player, "EggReady", entry.Rarity)
-						end
-					end
-				elseif player:GetAttribute("EggsReady") then
-					player:SetAttribute("EggsReady", nil)
+				local ok, err = pcall(self.Tick, self, player)
+				if not ok then
+					warn("[Incubator] tick failed: " .. tostring(err))
 				end
 			end
 		end
 	end)
+end
+
+function Incubator:Tick(player: Player)
+	local data = Data:Get(player)
+	if not data or not data.Incubators or #data.Incubators == 0 then
+		if player:GetAttribute("EggsReady") then
+			player:SetAttribute("EggsReady", nil)
+		end
+		return
+	end
+	local fresh = {}
+	for _, entry in data.Incubators do
+		if now() >= entry.Ready and not entry.Told then
+			entry.Told = true
+			table.insert(fresh, entry)
+		end
+	end
+	if #fresh > 0 then
+		-- (rebuilt so the prompt says "Hatch", translated)
+		pcall(self.Render, self, player)
+	else
+		self:Refresh(player)
+	end
+	player:SetAttribute("EggsReady", self:ReadyCount(data))
+	for _, entry in fresh do
+		Net:Notify(player, "🥚 Your %s is ready to hatch! 🏠", Color3.fromRGB(120, 255, 160), rarityName(entry.Rarity))
+		Net:Send(player, "EggReady", entry.Rarity)
+	end
 end
 
 return Incubator

@@ -448,10 +448,10 @@ local function hitBlock(player: Player, data, part: BasePart, damage: number, cr
 	return "broken"
 end
 
-local function mineBlock(player: Player, data, part: BasePart)
+local function mineBlock(player: Player, data, part: BasePart): boolean
 	local info = blockInfo[part]
 	if not info then
-		return
+		return false
 	end
 	local zone = info.Zone
 	local center = part.Position
@@ -483,6 +483,7 @@ local function mineBlock(player: Player, data, part: BasePart)
 		end
 	end
 	Data:MarkDirty(player)
+	return result == "hit" or result == "broken"
 end
 
 -- DEV: turn the block closest to the player into a Rainbow ore
@@ -592,11 +593,16 @@ local function strengthMult(player: Player, data): number
 	return mult
 end
 
+-- (StrengthGain carries the new total, so the full data sync can wait a bit)
+local strengthSynced = {}
 local function gainStrength(player: Player, data, base: number)
 	local amount = math.max(1, math.floor(base * strengthMult(player, data)))
 	data.Strength = (data.Strength or 0) + amount
 	Net:Send(player, "StrengthGain", amount, data.Strength)
-	Data:MarkDirty(player)
+	if os.clock() - (strengthSynced[player] or 0) >= 3 then
+		strengthSynced[player] = os.clock()
+		Data:MarkDirty(player)
+	end
 	return amount
 end
 Mining.GainStrength = gainStrength
@@ -728,8 +734,9 @@ local function onSwing(player: Player, hint)
 			return
 		end
 		if blockInfo[hintPart] and withinReach(root, hintPart, 3) then
-			mineBlock(player, data, hintPart)
-			gainStrength(player, data, STRENGTH.PerSwing)
+			if mineBlock(player, data, hintPart) then
+				gainStrength(player, data, STRENGTH.PerSwing)
+			end
 			return
 		end
 	end
@@ -764,14 +771,22 @@ local function onSwing(player: Player, hint)
 	-- 4) auto target the closest block (mobile friendly + auto mine pass)
 	local target = nearestBlock(root)
 	if target then
-		mineBlock(player, data, target)
-		gainStrength(player, data, STRENGTH.PerSwing)
+		if mineBlock(player, data, target) then
+			gainStrength(player, data, STRENGTH.PerSwing)
+		end
 		return
 	end
-	-- 5) at the training ground: the heaviest rock we can lift
-	local rock = autoTrain[player] or nearestRock(root, data)
-	if rock then
-		trainAt(player, data, rock, root)
+	-- 5) at the training ground: the auto-train rock, else the heaviest rock we can lift
+	local chosen = autoTrain[player]
+	if chosen and not (chosen.Parent and trainAt(player, data, chosen, root)) then
+		autoTrain[player] = nil -- (walked away from it)
+		chosen = nil
+	end
+	if not chosen then
+		local rock = nearestRock(root, data)
+		if rock then
+			trainAt(player, data, rock, root)
+		end
 	end
 end
 
@@ -972,6 +987,7 @@ function Mining:Start()
 
 	Players.PlayerRemoving:Connect(function(player)
 		autoTrain[player] = nil
+		strengthSynced[player] = nil
 		lastSwing[player] = nil
 		immunity[player] = nil
 		combos[player] = nil

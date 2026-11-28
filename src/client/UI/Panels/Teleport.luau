@@ -63,7 +63,12 @@ function Teleport.Build(content, ctx)
 				Lib.SetButton(row.Button, "🌀 Teleport", C.Blue)
 			elseif index == data.ZoneLevel + 1 then
 				local cost = row.Entry.Zone.Cost
-				Lib.SetButton(row.Button, T("🔓 Unlock 💰%s", Util.Format(cost)), if data.Coins >= cost then C.Green else C.Red)
+				local need = row.Entry.Zone.Strength or 0
+				if (data.Strength or 0) < need then
+					Lib.SetButton(row.Button, T("💪 Need %s strength", Util.Format(need)), C.Red)
+				else
+					Lib.SetButton(row.Button, T("🔓 Unlock 💰%s", Util.Format(cost)), if data.Coins >= cost then C.Green else C.Red)
+				end
 			else
 				Lib.SetButton(row.Button, "🔒 " .. Util.Format(row.Entry.Zone.Cost), Color3.fromRGB(70, 72, 92))
 			end

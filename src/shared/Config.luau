@@ -209,7 +209,7 @@ Config.Strength = {
 	PerSwing = 1, -- per hit on an ore / meteor (x pickaxe tier x bonuses)
 	RebirthBonus = 0.5, -- +50% strength gain per rebirth
 	VipBonus = 0.25,
-	DamageScale = 30, -- damage x (1 + sqrt(strength) / DamageScale)
+	DamageScale = 45, -- damage x (1 + sqrt(strength) / DamageScale)
 	Rocks = {
 		{ Name = "Pebble", Need = 0, Gain = 1, Size = 4.5, Color = Color3.fromRGB(150, 142, 132) },
 		{ Name = "Boulder", Need = 400, Gain = 3, Size = 6, Color = Color3.fromRGB(125, 118, 110) },

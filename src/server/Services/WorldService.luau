@@ -523,7 +523,7 @@ local function buildTrainingGround(parent)
 	local sign = newPart({
 		Name = "TrainingSign",
 		Size = Vector3.new(12, 4, 0.6),
-		CFrame = CFrame.new(-52, 6, 76) * CFrame.Angles(0, math.pi, 0),
+		CFrame = CFrame.new(-77, 6, 54) * CFrame.Angles(0, math.pi / 2, 0),
 		Color = Color3.fromRGB(40, 32, 28),
 		Material = Enum.Material.Wood,
 	}, ground)
@@ -1105,7 +1105,17 @@ local function buildZones()
 				Transparency = 0.1,
 			}, gates)
 			gate:SetAttribute("ZoneIndex", index)
-			local gateLabel = billboard(gate, "🔒 %s\n💰 %s", Color3.new(1, 1, 1), -1, 14, 4.2, zone.Name, Util.Format(zone.Cost))
+			local gateLabel = billboard(
+				gate,
+				"🔒 %s\n💰 %s  •  💪 %s",
+				Color3.new(1, 1, 1),
+				-1,
+				14,
+				4.2,
+				zone.Name,
+				Util.Format(zone.Cost),
+				Util.Format(zone.Strength or 0)
+			)
 			gateLabel.StudsOffsetWorldSpace = Vector3.new(0, -1, -2) -- in front of the forcefield, facing the approach
 			prompt(gate, "Unlock", zone.Name, function(player)
 				Services.EconomyService:UnlockZone(player, index)
